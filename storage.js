@@ -2,6 +2,8 @@
    Režimy: 1) lokální (localStorage, výchozí)  2) synchronizace přes Supabase (REST) s frontou pro offline provoz. */
 (function(){
 "use strict";
+const VERSION="v7 · 8. 10. 2026";
+{const v=document.getElementById("ver");if(v)v.textContent=VERSION}
 const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 const K_DATA="hokej_data_v1",K_CFG="hokej_cfg_v1",K_Q="hokej_queue_v1",K_META="hokej_meta_v1";
 const COLL=["players","matches","opponents","settings"];
@@ -84,9 +86,10 @@ function openCfg(){
  <h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>
  <h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div>
  <div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>
+ <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
  const $=s=>el.querySelector(s),close=()=>{el.innerHTML=""};uiStatus();
- $("#cz").onclick=close;$("#cbg").onclick=e=>{if(e.target.id==="cbg")close()};
+ $("#cu2").onclick=refresh;$("#cz").onclick=close;$("#cbg").onclick=e=>{if(e.target.id==="cbg")close()};
  $("#cs").onclick=async()=>{$("#cs").disabled=true;await connect($("#cu").value,$("#ck").value);$("#cs").disabled=false;if(!remote())return;say(status.ok?"Připojeno":"Připojení se nepovedlo: "+status.msg)};
  $("#cx").onclick=()=>{connect("","");$("#cu").value="";$("#ck").value=""};
  $("#ce").onclick=exportJSON;$("#cc").onclick=exportCSV;
@@ -94,8 +97,9 @@ function openCfg(){
  let armed=false;
  $("#cm").onclick=()=>{try{if(!pendingImport)return say("Nejdřív vyber soubor.");importData(pendingImport,false);say("Data sloučena");close()}catch(e){say(e.message)}};
  $("#cr").onclick=()=>{if(!pendingImport)return say("Nejdřív vyber soubor.");if(!armed){armed=true;$("#cr").textContent="Opravdu nahradit? Klepni znovu";return}try{importData(pendingImport,true);say("Data nahrazena");close()}catch(e){say(e.message)}}}
+async function refresh(){try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.reload()}
 document.getElementById("gear").onclick=openCfg;
 window.addEventListener("online",tick);
-window.HK={ready:async()=>{setInterval(tick,5000);tick();return db},importData,exportJSON,exportCSV,connect,status:()=>status};
+window.HK={version:VERSION,refresh,ready:async()=>{setInterval(tick,5000);tick();return db},importData,exportJSON,exportCSV,connect,status:()=>status};
 if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();

@@ -50,6 +50,23 @@ Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná
 - ⚙️ → **Soupiska (CSV)** vyexportuje soupisku pro Excel.
 - **Sloučit s daty** přidá/přepíše položky ze zálohy, **Nahradit vším** nahradí celý obsah.
 
+## Postup zápasu (3 kroky)
+Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav příprav (✅/⛔ Nominace, Sestava). Pod ním jsou kroky, dole tlačítko pro další krok.
+1. **Zápas** – soupeř, datum, délka třetiny (standard 20 min), vzájemné zápasy (jen uzavřené) a tlačítko živého zápisu.
+2. **Sestava** – nominace i sestava na jedné obrazovce:
+   - nahoře řady a brankářky (klepnutí = výběr hráčky, podržení a přetažení = přesun nebo prohození),
+   - **Nominované – náhradnice**: nominované hráčky, které nejsou v sestavě,
+   - **Nenominované**: klepnutím hráčku nominuješ, přetažením sem ji z nominace vyřadíš (z řady zmizí). Tlačítka Všechny aktivní / Zrušit vše,
+   - pod tím nepovinné jednotky pro přesilovku a oslabení (hráčka jen v jedné jednotce).
+3. **Zápas živě** – průběh (nejnovější nahoře), jmenné statistiky zápasu a uzavření zápasu. Tlačítko živého zápisu je i tady.
+- **Živý zápis jde spustit až po dokončení** nominace (min. 1 brankářka a 5 bruslařek) a sestavy (hotová 1. pětka a základní brankářka). Do té doby je vidět, co chybí, a tlačítko vede do kroku 2.
+- **Po zahájení zápisu** je uzamčená nominace, soupeř, datum a doma/venku. Sestavu, jednotky, brankářku a vyřazení zraněné hráčky měnit lze.
+- **Krok Soupeř** (zápis soupeřovy sestavy) je zatím z postupu vyřazen. Dříve zapsaná data zůstávají uložená.
+- Hráčka je vždy jen v jedné formaci: v sestavě na jednom místě a v přesilovkách/oslabeních jen v jedné jednotce.
+
+## Když po nahrání nové verze vidíš starou
+Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají). Při nahrání na web musí být nahrány všechny soubory ze složky, včetně `sw.js` a `storage.js`.
+
 ## Záložka Team
 - **Základní formace** nahoře: klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Sestava se kopíruje do každého nového zápasu.
 - **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
@@ -75,7 +92,7 @@ Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná
 - Nemodelováno: odložený trest, trestné střílení a zvláštní pravidla pro tresty brankářky.
 
 ## Přesilovky a oslabení
-- **Před zápasem (krok 3 Sestava):** definuj 2 jednotky přesilovky a 2 jednotky oslabení (každá až 5 míst, do oslabení stačí 3–4). Hráčka může být v řadě i v jednotce. Jde zkopírovat z posledního zápasu.
+- **Před zápasem (krok 3 Sestava):** definuj 2 jednotky přesilovky a 2 jednotky oslabení (každá až 5 míst, do oslabení stačí 3–4). Hráčka může být jen v jedné z jednotek (přesilovka 1/2, oslabení 1/2), vedle toho zůstává ve své řadě. Jde zkopírovat z posledního zápasu.
 - **Za zápasu:** když je na ledě nerovný počet hráček, objeví se nahoře velká tlačítka **⚡ Přesilovka 1/2** nebo **🛡 Oslabení 1/2**. Jedním klepnutím se jednotka nasadí. Vyloučená hráčka se přeskočí a místo zůstane prázdné. Ostatní hráčky z ledu jdou na konec fronty své pozice.
 - **Rychlá úprava jednotek při přerušení:** menu **⋯** → **Jednotky PP/OS** – změna hráček v jednotce a nasazení.
 - **↩ Zpět na řady** vrátí hru na běžné řady. Prázdné zůstane místo vyloučené hráčky.
