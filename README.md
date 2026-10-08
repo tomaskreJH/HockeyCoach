@@ -50,28 +50,36 @@ Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná
 - ⚙️ → **Soupiska (CSV)** vyexportuje soupisku pro Excel.
 - **Sloučit s daty** přidá/přepíše položky ze zálohy, **Nahradit vším** nahradí celý obsah.
 
+## Živý zápis – rychlé ovládání
+- **Spuštění:** velké tlačítko je v kroku **1 Zápas** (Zahájit zápas / Pokračovat v živém zápisu).
+- **Spodní lišta:** ⚽ Gól naši, ⚽ Gól soupeř a 🚫 Trest jsou stále na očích (při běžící hře zešedlé, nejdřív přeruš hru). Pod nimi je ↩ vrácení poslední akce, Start/Přerušit a menu ⋯ s méně častými akcemi (zranění, konec třetiny, brankářka, nastavení, jednotky, sundat z ledu).
+- **Gól naši:** klepneš střelkyni, pak 1. asistenci, pak 2. asistenci (nebo „Bez asistence“). Střelkyně se v asistencích nenabízí. Situaci (5 na 5, přesilovka, oslabení) nastaví aplikace sama, jde ji přepnout.
+- **Gól soupeře:** jedno klepnutí, zapíše se rovnou.
+- **Trest:** hráčka → délka → důvod.
+- **Krok 5 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání. Jen pro čtení.
+
 ## Tresty podle pravidel IIHF (živý zápis)
-- **Menu ☰ → Vyloučení:** hráčka, délka (2 min, 2+2, 5 min, 10 osobní, do konce) a důvod. Hráčka sejde z ledu, místo zůstane prázdné a nahoře běží odpočet.
+- **Tlačítko 🚫 Trest ve spodní liště:** hráčka (nebo soupeř), délka (2 min, 2+2, 5 min, 10 osobní, do konce) a důvod, vše jednotlivými klepnutími. Hráčka sejde z ledu, místo zůstane prázdné a nahoře běží odpočet.
 - **Návrat po vypršení:** po skončení trestu se hráčka sama vrátí na led na svou pozici. Pokud je její místo obsazené, nastoupí na jiné volné místo, jinak čeká ve frontě své pozice jako první.
 - **Gól ukončí trest:** pokud padne gól a týmy mají na ledě rozdílný počet hráček, ukončí se nejstarší dvouminutový trest oslabeného týmu a jeho hráčka se vrací. Gól oslabeného týmu trest neukončí. U 2+2 gól ukončí jen první dvě minuty a druhé dvě začnou běžet. Pětiminutový trest gól neukončuje.
 - **Minimum 3 bruslaři:** odpykávají se nejvýše dva tresty současně, třetí čeká, dokud se jedno místo neuvolní.
 - **Osobní trest (10) a do konce:** tým neoslabují, hned lze doplnit náhradnici. Po osobním trestu se hráčka vrací na lavičku (do fronty), po „do konce“ se nevrací.
 - **Souběžné tresty obou týmů** (stejný počet hráček na ledě) gólem neskončí.
-- **Hlídání počtu na ledě:** aplikace nepovolí doplnit víc hráček, než dovolují tresty, a upozorní, když je jich na ledě víc. Hráčku můžeš sundat v menu („Sundat z ledu“).
+- **Hlídání počtu na ledě:** aplikace nepovolí doplnit víc hráček, než dovolují tresty, a upozorní, když je jich na ledě víc. Hráčku můžeš sundat v menu (menu ⋯ → „Sundat z ledu“).
 - **Zrušit** u trestu opraví omyl (hráčka se vrátí na led). Poslední akci vrací také tlačítko ↩.
 - Nemodelováno: odložený trest, trestné střílení a zvláštní pravidla pro tresty brankářky.
 
 ## Přesilovky a oslabení
 - **Před zápasem (krok 3 Sestava):** definuj 2 jednotky přesilovky a 2 jednotky oslabení (každá až 5 míst, do oslabení stačí 3–4). Hráčka může být v řadě i v jednotce. Jde zkopírovat z posledního zápasu.
 - **Za zápasu:** když je na ledě nerovný počet hráček, objeví se nahoře velká tlačítka **⚡ Přesilovka 1/2** nebo **🛡 Oslabení 1/2**. Jedním klepnutím se jednotka nasadí. Vyloučená hráčka se přeskočí a místo zůstane prázdné. Ostatní hráčky z ledu jdou na konec fronty své pozice.
-- **Rychlá úprava jednotek při přerušení:** menu ☰ → **Jednotky PP/OS** – změna hráček v jednotce a nasazení.
+- **Rychlá úprava jednotek při přerušení:** menu **⋯** → **Jednotky PP/OS** – změna hráček v jednotce a nasazení.
 - **↩ Zpět na řady** vrátí hru na běžné řady. Prázdné zůstane místo vyloučené hráčky.
 
 ## Co aplikace zatím neumí
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
 - Tréninky, hodnocení hráček a dlouhodobý plán (zatím jen v původní verzi v Claude).
 - Přihlášení uživatelů.
-- Statistiky času na ledě za celou sezónu (v zápase je tabulka v menu ☰ → Čas na ledě).
+- Statistiky času na ledě za celou sezónu (v zápase je tabulka v statistiky zápasu v kroku 5).
 
 ## Poznámky k datům z Claude
 - Historie kroků „vrátit akci“ v rozehraném zápase se do exportu nepřenesla (zápas, události ani statistiky ano).
