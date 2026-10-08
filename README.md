@@ -52,20 +52,16 @@ Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná
 
 ## Postup zápasu (3 kroky)
 Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav příprav (✅/⛔ Nominace, Sestava). Pod ním jsou kroky, dole tlačítko pro další krok.
-1. **Zápas** – soupeř, datum, délka třetiny (standard 20 min), vzájemné zápasy (jen uzavřené) a tlačítko živého zápisu.
-2. **Sestava** – nominace i sestava na jedné obrazovce:
-   - nahoře řady a brankářky (klepnutí = výběr hráčky, podržení a přetažení = přesun nebo prohození),
-   - **Nominované – náhradnice**: nominované hráčky, které nejsou v sestavě,
-   - **Nenominované**: klepnutím hráčku nominuješ, přetažením sem ji z nominace vyřadíš (z řady zmizí). Tlačítka Všechny aktivní / Zrušit vše,
-   - pod tím nepovinné jednotky pro přesilovku a oslabení (hráčka jen v jedné jednotce).
-3. **Zápas živě** – průběh (nejnovější nahoře), jmenné statistiky zápasu a uzavření zápasu. Tlačítko živého zápisu je i tady.
-- **Živý zápis jde spustit až po dokončení** nominace (min. 1 brankářka a 5 bruslařek) a sestavy (hotová 1. pětka a základní brankářka). Do té doby je vidět, co chybí, a tlačítko vede do kroku 2.
-- **Po zahájení zápisu** je uzamčená nominace, soupeř, datum a doma/venku. Sestavu, jednotky, brankářku a vyřazení zraněné hráčky měnit lze.
+1. **Zápas** – soupeř, datum, délka třetiny (standard 20 min), vzájemné zápasy (jen uzavřené) a karta živého zápisu.
+2. **Sestava** – dvě části (A a B):
+   - **A Nominace:** klepnutím vybereš hráčky, které máš k dispozici (jsou seřazené podle pozic, Všechny aktivní / Zrušit vše). Dál se jde až po splnění minima (1 brankářka a 5 bruslařek).
+   - **B Sestava:** po přechodu se sestava sama naplní **podle základní formace** (jen nominované hráčky). Pod ní jsou **náhradnice rozdělené podle pozic**, pod nimi **přesilovky a oslabení** (hráčka jen v jedné jednotce). Tlačítko ↻ Podle základní formace sestavu znovu přepíše. Sestavu potvrdíš tlačítkem **✔ Uzavřít sestavu**. Jakákoli změna sestavy před zahájením uzavření zruší, takže ji uzavřeš znovu.
+3. **Zápas živě** – průběh (nejnovější nahoře), jmenné statistiky zápasu a uzavření zápasu. Karta živého zápisu je i tady.
+- **Živý zápis jde spustit až po uzavření sestavy** (a splněné nominaci). Do té doby je vidět, co chybí, a tlačítko vede do kroku 2.
+- **Po zahájení zápisu** je uzamčená nominace, soupeř, datum a doma/venku.
+- **Změna sestavy za zápasu:** živý zápis → menu ⋯ → **👥 Sestava**. Klepnutím nebo přetažením vyměníš hráčky (i s náhradnicemi). Změna se hned promítne do front střídání: hráčky na ledě zůstávají, ostatní se přeskládají podle nové sestavy. Přesilovky a oslabení jdou měnit v menu ⋯ → Jednotky PP/OS.
 - **Krok Soupeř** (zápis soupeřovy sestavy) je zatím z postupu vyřazen. Dříve zapsaná data zůstávají uložená.
 - Hráčka je vždy jen v jedné formaci: v sestavě na jednom místě a v přesilovkách/oslabeních jen v jedné jednotce.
-
-## Když po nahrání nové verze vidíš starou
-Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají). Při nahrání na web musí být nahrány všechny soubory ze složky, včetně `sw.js` a `storage.js`.
 
 ## Záložka Team
 - **Základní formace** nahoře: klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Sestava se kopíruje do každého nového zápasu.
