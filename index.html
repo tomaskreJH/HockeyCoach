@@ -60,6 +60,8 @@ nav button{font-size:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr
 .lb{position:fixed;left:0;right:0;bottom:0;display:flex;gap:12px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:var(--cd);border-top:1px solid var(--bd);z-index:15}.lb button{min-height:62px;border-radius:12px;font-weight:700;border:1px solid var(--ac);background:var(--cd);color:var(--ac);font-size:15px}
 .lmw{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:16;display:flex;align-items:flex-end}.lmb{background:var(--cd);width:100%;max-height:85%;overflow:auto;border-radius:16px 16px 0 0;padding:16px}.qg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.qg button{min-height:62px}.qg .p{grid-column:1/-1}.lb button.dd{opacity:.35}
 .lmg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.lmg button{min-height:58px}.lmg button[disabled]{opacity:.35}
+.bz{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;border:2px dashed var(--bd);border-radius:12px;padding:8px}.bz.ov{outline:3px solid var(--ac)}
+.chip.bn{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}.chip.dg{opacity:.35}.chip.ov{outline:3px solid var(--ac)}
 .msg{padding:26px 10px;text-align:center;color:var(--mu)}
 </style></head><body>
 <header style="display:flex;justify-content:space-between;align-items:center"><span>🏒 Hokej – zápasy</span><button id="gear" style="background:none;border:0;color:#fff;font-size:22px;cursor:pointer" aria-label="Nastavení a data">⚙️</button></header><nav id="nav"></nav><main id="app"><div class="msg">Načítám…</div></main><div id="mod"></div><div id="cfg"></div><div id="lv" class="lv" style="display:none"></div>
@@ -95,12 +97,12 @@ const skaters=lu=>[...new Set(LN.flatMap(n=>SL.map(x=>(lu||{})[n+x])).filter(Boo
 const shots=m=>{const r={us:0,opp:0,p:{1:[0,0],2:[0,0],3:[0,0],4:[0,0]}};(m.events||[]).forEach(e=>{if(e.k==="S"||e.k==="G"){const i=e.team==="us"?0:1;r[e.team]++;(r.p[e.per]||r.p[1])[i]++}});return r};
 const score=m=>{const e=m.events||[];return[e.filter(x=>x.k==="G"&&x.team==="us").length,e.filter(x=>x.k==="G"&&x.team==="opp").length]};
 
-function tabs(){$("#nav").innerHTML=[["ma","Zápasy"],["pl","Soupiska"],["fo","Formace"],["st","Statistiky"],["op","Soupeři"]].map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
+function tabs(){$("#nav").innerHTML=[["ma","Zápasy"],["fo","Team"],["st","Statistiky"],["op","Soupeři"]].map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
 $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.mid=null;S.oid=null;render()})}
 function render(){tabs();const a=$("#app");
 if(S.err){a.innerHTML=`<div class="msg">${esc(S.err)}</div>`;return}
 if(!S.ready){a.innerHTML='<div class="msg">Načítám…</div>';return}
-({ma:matches,pl:players,fo:formV,st:stats,op:oppsView})[S.tab](a);modal();liveRender()}
+({ma:matches,fo:formV,st:stats,op:oppsView})[S.tab](a);modal();liveRender()}
 
 /* SOUPISKA */
 function players(a){const cnt=k=>S.pl.filter(p=>stOf(p)===k).length;const l=S.pl.filter(p=>(S.pf==="all"||stOf(p)===S.pf)&&(S.pq==="all"||(p.pos||"")===S.pq)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));
@@ -143,9 +145,39 @@ b.addEventListener("mousedown",e=>{if(e.button!==0||!get()[key(b)])return;const 
 const mm=ev=>{if(!D&&Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>6)begin(b,ev.clientX,ev.clientY);if(D)mv(ev.clientX,ev.clientY)};
 const mu=ev=>{document.removeEventListener("mousemove",mm);document.removeEventListener("mouseup",mu);end(ev.clientX,ev.clientY)};
 document.addEventListener("mousemove",mm);document.addEventListener("mouseup",mu)})})}
-function formV(a){const lu=S.def.lu||{};
-a.innerHTML=`<div class="cd"><h2>Základní formace</h2><div class="mu" style="margin-bottom:10px">Tato sestava se zkopíruje do každého nového zápasu, kde ji můžeš upravit.</div><div class="mu" style="margin-bottom:6px">Hráčku přesuneš podržením a přetažením na jiné místo (obsazené místo se prohodí).</div><div class="tw">${luEditor(lu,0,"d:")}</div></div>`;
-bindLu(a,"d:",()=>clone(S.def.lu||{}),lu=>S.db.doc("settings/lineup").set({lu}))}
+function benchOrder(){const used=new Set(Object.values((S.def||{}).lu||{})),un=S.pl.filter(p=>stOf(p)!=="end"&&!used.has(p.id)),ids=un.map(p=>p.id),st=((S.def||{}).bn||[]).filter(id=>ids.includes(id)),rest=un.filter(p=>!st.includes(p.id)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs")).map(p=>p.id);return[...st,...rest]}
+const saveDef=(lu,bn)=>S.db.doc("settings/lineup").set({lu,bn});
+function formV(a){const lu=S.def.lu||{},B=benchOrder();
+a.innerHTML=`<div class="cd"><h2>Základní formace</h2><div class="mu" style="margin-bottom:10px">Tato sestava se zkopíruje do každého nového zápasu, kde ji můžeš upravit.</div><div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo. Podržením a přetažením ji přesuneš na jiné místo nebo mezi náhradnice (obsazené místo se prohodí).</div><div class="tw">${luEditor(lu,0,"d:")}</div></div>
+<div class="cd"><h2>Náhradnice (${B.length})</h2><div class="mu" style="margin-bottom:8px">Nezařazené hráčky. Přetažením je dáš na místo v sestavě, nebo je prohodíš mezi sebou. Sestavu sem můžeš vrátit přetažením místa na tuto plochu.</div><div class="bz" data-bz="1">${B.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny hráčky jsou v sestavě.</span>'}</div></div>
+<div id="plw"></div>`;
+teamDrag(a);players($("#plw"))}
+function teamDrag(root){let D=null,timer=null,blk=false;const SEL='[data-sl^="d:"],[data-bn],[data-bz]';
+const closest=(x,y)=>{const e=document.elementFromPoint(x,y);return e&&e.closest?e.closest(SEL):null};
+const info=b=>b.dataset.bn?{t:"b",id:b.dataset.bn}:b.dataset.sl?{t:"s",k:b.dataset.sl.slice(2)}:{t:"z"};
+const clr=()=>{if(D&&D.g)D.g.remove();root.querySelectorAll(".ov,.dg").forEach(n=>n.classList.remove("ov","dg"));D=null};
+const mv=(x,y)=>{D.x=x;D.y=y;D.g.style.left=x+"px";D.g.style.top=y+"px";root.querySelectorAll(".ov").forEach(n=>n.classList.remove("ov"));const b=closest(x,y);if(b&&b!==D.el)b.classList.add("ov")};
+const begin=(b,x,y)=>{const s=info(b);if(s.t==="s"&&!(S.def.lu||{})[s.k])return;const g=document.createElement("div");g.className="ghost";g.textContent=b.textContent.replace(/\s+[ÚOB?]$/,"");document.body.appendChild(g);D={s,g,el:b};b.classList.add("dg");mv(x,y);navigator.vibrate&&navigator.vibrate(15)};
+const drop=(s,t)=>{if(!t)return;const lu=clone(S.def.lu||{});let B=benchOrder();
+if(s.t==="s"){const p=lu[s.k];if(!p)return;
+ if(t.t==="s"&&t.k!==s.k){const q=lu[t.k];lu[t.k]=p;if(q)lu[s.k]=q;else delete lu[s.k]}
+ else if(t.t==="b"){const i=B.indexOf(t.id);lu[s.k]=t.id;B[i]=p}
+ else if(t.t==="z"){delete lu[s.k];B.push(p)}else return}
+else{if(t.t==="s"){const q=lu[t.k],i=B.indexOf(s.id);lu[t.k]=s.id;if(q)B[i]=q;else B.splice(i,1)}
+ else if(t.t==="b"&&t.id!==s.id){const i=B.indexOf(s.id),j=B.indexOf(t.id);[B[i],B[j]]=[B[j],B[i]]}else return}
+S.def={lu,bn:B};saveDef(lu,B)};
+const end=(x,y)=>{if(!D)return;const b=closest(x,y),s=D.s;clr();blk=true;setTimeout(()=>blk=false,450);if(b)drop(s,info(b))};
+root.querySelectorAll('[data-sl^="d:"],[data-bn]').forEach(b=>{
+if(b.dataset.sl)b.onclick=()=>{if(blk)return;S.pickAll=false;S.pick={slot:b.dataset.sl.slice(2),get:()=>clone(S.def.lu||{}),onCh:lu=>saveDef(lu,(S.def||{}).bn||[]),pool:undefined};modal()};
+b.addEventListener("contextmenu",e=>e.preventDefault());
+b.addEventListener("touchstart",e=>{const t=e.touches[0];clearTimeout(timer);b._s={x:t.clientX,y:t.clientY};timer=setTimeout(()=>begin(b,t.clientX,t.clientY),320)},{passive:true});
+b.addEventListener("touchmove",e=>{const t=e.touches[0];if(D){e.preventDefault();mv(t.clientX,t.clientY)}else if(Math.abs(t.clientX-b._s.x)+Math.abs(t.clientY-b._s.y)>10)clearTimeout(timer)},{passive:false});
+b.addEventListener("touchend",e=>{clearTimeout(timer);if(D){e.preventDefault();end(D.x,D.y)}});
+b.addEventListener("touchcancel",()=>{clearTimeout(timer);clr()});
+b.addEventListener("mousedown",e=>{if(e.button!==0)return;const sx=e.clientX,sy=e.clientY;
+const mm=ev=>{if(!D&&Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>6)begin(b,ev.clientX,ev.clientY);if(D)mv(ev.clientX,ev.clientY)};
+const mu=ev=>{document.removeEventListener("mousemove",mm);document.removeEventListener("mouseup",mu);end(ev.clientX,ev.clientY)};
+document.addEventListener("mousemove",mm);document.addEventListener("mouseup",mu)})})}
 function pickModal(){const P=S.pick;if(!P)return"";const lu=P.get(),sl=P.slot;
 const want=sl[0]==="G"?POS[2]:/(LO|PO)$/.test(sl)?POS[1]:POS[0];
 const lab=want===POS[2]?"brankářky":want===POS[1]?"obránkyně":"útočnice";

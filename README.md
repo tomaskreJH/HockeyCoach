@@ -50,6 +50,11 @@ Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná
 - ⚙️ → **Soupiska (CSV)** vyexportuje soupisku pro Excel.
 - **Sloučit s daty** přidá/přepíše položky ze zálohy, **Nahradit vším** nahradí celý obsah.
 
+## Záložka Team
+- **Základní formace** nahoře: klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Sestava se kopíruje do každého nového zápasu.
+- **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
+- **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není.
+
 ## Živý zápis – rychlé ovládání
 - **Spuštění:** velké tlačítko je v kroku **1 Zápas** (Zahájit zápas / Pokračovat v živém zápisu).
 - **Spodní lišta:** ⚽ Gól naši, ⚽ Gól soupeř a 🚫 Trest jsou stále na očích (při běžící hře zešedlé, nejdřív přeruš hru). Pod nimi je ↩ vrácení poslední akce, Start/Přerušit a menu ⋯ s méně častými akcemi (zranění, konec třetiny, brankářka, nastavení, jednotky, sundat z ledu).
