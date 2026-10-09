@@ -649,7 +649,7 @@ if((L.pen||[]).some(x=>x.end!=null&&x.ty!=="gm"&&x.end<=now)&&!S.pp){S.pp=1;act(
 
 /* STATISTIKY */
 function stats(a){const T={};const GK={},TT={sf:0,sa:0,gf:0,ga:0};const gg=id=>GK[id]=GK[id]||{sa:0,ga:0};const g=id=>T[id]=T[id]||{sh:0,gp:0,g:0,a:0,pim:0,pm:0,ppg:0,hp:0,ap:0};
-S.ma.forEach(m=>{luPlayers(m.lineup).forEach(id=>g(id).gp++);(m.events||[]).forEach(e=>{
+S.ma.filter(m=>m.closed).forEach(m=>{luPlayers(m.lineup).forEach(id=>g(id).gp++);(m.events||[]).forEach(e=>{
 if(e.k==="G"){const us=e.team==="us";
 if(us){const s=g(e.scorer);s.g++;s.sh++;if(e.sit==="PP")s.ppg++;[e.scorer,e.a1,e.a2].filter(Boolean).forEach(id=>g(id)[m.home?"hp":"ap"]++);[e.a1,e.a2].filter(Boolean).forEach(id=>g(id).a++)}
 if(e.sit!=="PP")(e.on||[]).forEach(id=>g(id).pm+=us?1:-1)}
