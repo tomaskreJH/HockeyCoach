@@ -68,16 +68,19 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 - **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
 - **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není.
 
-## Živý zápis – rychlé ovládání
-- **Spuštění:** velké tlačítko je v kroku **1 Zápas** (Zahájit zápas / Pokračovat v živém zápisu).
-- **Spodní lišta:** ⚽ Gól naši, ⚽ Gól soupeř a 🚫 Trest jsou stále na očích (při běžící hře zešedlé, nejdřív přeruš hru). Pod nimi je ↩ vrácení poslední akce, Start/Přerušit a menu ⋯ s méně častými akcemi (zranění, konec třetiny, brankářka, nastavení, jednotky, sundat z ledu).
-- **Gól naši:** klepneš střelkyni, pak 1. asistenci, pak 2. asistenci (nebo „Bez asistence“). Střelkyně se v asistencích nenabízí. Situaci (5 na 5, přesilovka, oslabení) nastaví aplikace sama, jde ji přepnout.
-- **Gól soupeře:** jedno klepnutí, zapíše se rovnou.
-- **Trest:** hráčka → délka → důvod.
-- **Krok 5 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání. Jen pro čtení.
+## Živý zápis – rozložení a ovládání
+- **Horní lišta** (čas s šipkami ◀ ▶ pro posun o 5 s, skóre, situace) zůstává nahoře.
+- **Barvy podle pětek:** 1. pětka modrá, 2. bílá, 3. červená, 4. zelená, hráčka mimo pětky šedá. Z barev je vidět, jak se pětky míchají.
+- **Rozložení shora dolů:** tlačítka „Celá pětka na led“ → fronty čekajících hráček (nejblíž ledu je ta, která jde na řadu, zvýrazněná oranžově) → **hráčky na ledě** → mezera → **STŘELA NA NAŠI BRÁNU** → poslední čtyři akce z průběhu.
+- **Tlačítka hráček:** na ledě číslo (velké), pod ním přezdívka a čas na ledě. V čekání číslo a pod ním přezdívka.
+- **Střídání:** klepnutí na hráčku ve frontě ji pošle na led místo hráčky pod ní. Podržením a přetažením ji pošleš na jinou pozici. Tlačítko **N. pětka** pošle na led celou pětku najednou (např. když jsou řady rozházené).
+- **Střela:** klepnutí na hráčku na ledě zapíše její střelu, tlačítko STŘELA NA NAŠI BRÁNU střelu soupeře. **Když je hra přerušená, střely zapsat nejdou.**
+- **Spodní lišta:** za běžící hry jen ↩ Zpět a velké Start/Přerušit. **Po přerušení** se přidají ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby (zranění, konec třetiny, brankářka, změna sestavy, jednotky a další).
+- **Gól naši:** klepneš střelkyni, pak 1. a 2. asistenci (nebo „Bez asistence“). Střelkyně se v asistencích nenabízí. Situaci nastaví aplikace sama. **Gól soupeře:** jedno klepnutí. **Trest:** hráčka → délka → důvod.
+- **Krok 3 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání. Jen pro čtení.
 
 ## Tresty podle pravidel IIHF (živý zápis)
-- **Tlačítko 🚫 Trest ve spodní liště:** hráčka (nebo soupeř), délka (2 min, 2+2, 5 min, 10 osobní, do konce) a důvod, vše jednotlivými klepnutími. Hráčka sejde z ledu, místo zůstane prázdné a nahoře běží odpočet.
+- **Tlačítko 🚫 Trest (ve spodní liště po přerušení hry):** hráčka (nebo soupeř), délka (2 min, 2+2, 5 min, 10 osobní, do konce) a důvod, vše jednotlivými klepnutími. Hráčka sejde z ledu, místo zůstane prázdné a nahoře běží odpočet.
 - **Návrat po vypršení:** po skončení trestu se hráčka sama vrátí na led na svou pozici. Pokud je její místo obsazené, nastoupí na jiné volné místo, jinak čeká ve frontě své pozice jako první.
 - **Gól ukončí trest:** pokud padne gól a týmy mají na ledě rozdílný počet hráček, ukončí se nejstarší dvouminutový trest oslabeného týmu a jeho hráčka se vrací. Gól oslabeného týmu trest neukončí. U 2+2 gól ukončí jen první dvě minuty a druhé dvě začnou běžet. Pětiminutový trest gól neukončuje.
 - **Minimum 3 bruslaři:** odpykávají se nejvýše dva tresty současně, třetí čeká, dokud se jedno místo neuvolní.
