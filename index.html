@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs"><head><meta charset="utf-8"><title>Hokej – zápasy</title><meta name="theme-color" content="#0b5cad">
+<html lang="cs"><head><meta charset="utf-8"><title>Hokej – zápasy</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b5cad"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
 :root{--bg:#f4f6f9;--cd:#fff;--tx:#14202e;--mu:#6b7788;--ac:#0b5cad;--a2:#e8f1fb;--ok:#1a8f4c;--no:#c0392b;--wa:#c77a00;--bd:#dde3ea;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -62,117 +62,13 @@ nav button{font-size:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr
 .lmg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.lmg button{min-height:58px}.lmg button[disabled]{opacity:.35}
 .bz{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;border:2px dashed var(--bd);border-radius:12px;padding:8px}.bz.ov{outline:3px solid var(--ac)}
 .chip.bn{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}.chip.dg{opacity:.35}.chip.ov{outline:3px solid var(--ac)}
+.L1{background:#1e5bb8!important;color:#fff!important;border-color:#143f82!important}.L2{background:#f1f1f1!important;color:#111!important;border-color:#b5b5b5!important}.L3{background:#c0392b!important;color:#fff!important;border-color:#8e2a20!important}.L4{background:#2e7d32!important;color:#fff!important;border-color:#1f5a23!important}.L0{background:#6b7480!important;color:#fff!important;border-color:#4b525b!important}
+.tl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}.tl .n{font-size:24px;font-weight:800}.tl .nm{font-size:11px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tl .t{font-size:11px;font-weight:500;opacity:.9}.lq .n{font-size:19px}
+.lice{min-height:92px;margin-bottom:0}.lice.wr{box-shadow:0 0 0 4px var(--wa)}.lice.wr2{box-shadow:0 0 0 4px var(--no)}.lq.nx{box-shadow:0 0 0 3px #f9a825}.lq{min-height:54px;padding:3px}
 .msg{padding:26px 10px;text-align:center;color:var(--mu)}
 </style></head><body>
 <header style="display:flex;justify-content:space-between;align-items:center"><span>🏒 Hokej – zápasy<small id="ver" style="opacity:.75;font-weight:400;font-size:11px;margin-left:8px"></small></span><button id="gear" style="background:none;border:0;color:#fff;font-size:22px;cursor:pointer" aria-label="Nastavení a data">⚙️</button></header><nav id="nav"></nav><main id="app"><div class="msg">Načítám…</div></main><div id="mod"></div><div id="cfg"></div><div id="lv" class="lv" style="display:none"></div>
-<script>
-/* Úložiště pro Hokej – zápasy (mimo Claude)
-   Režimy: 1) lokální (localStorage, výchozí)  2) synchronizace přes Supabase (REST) s frontou pro offline provoz. */
-(function(){
-"use strict";
-const VERSION="v7 · 8. 10. 2026";
-{const v=document.getElementById("ver");if(v)v.textContent=VERSION}
-const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
-const K_DATA="hokej_data_v1",K_CFG="hokej_cfg_v1",K_Q="hokej_queue_v1",K_META="hokej_meta_v1";
-const COLL=["players","matches","opponents","settings"];
-const parse=(t,d)=>{try{return t?JSON.parse(t):d}catch(e){return d}};
-let cfg=parse(LS.get(K_CFG),{}),data=parse(LS.get(K_DATA),{}),queue=parse(LS.get(K_Q),[]),meta=parse(LS.get(K_META),{});
-COLL.forEach(c=>data[c]=data[c]||{});
-const subs=[],clone=o=>JSON.parse(JSON.stringify(o));
-const persist=()=>{LS.set(K_DATA,JSON.stringify(data));LS.set(K_Q,JSON.stringify(queue));LS.set(K_META,JSON.stringify(meta))};
-let notifyQ=false;
-const notify=()=>{if(notifyQ)return;notifyQ=true;setTimeout(()=>{notifyQ=false;subs.forEach(f=>{try{f()}catch(e){console.error(e)}})},0)};
-const uid=()=>Math.random().toString(36).slice(2,12)+Date.now().toString(36).slice(-4);
-const remote=()=>!!(cfg.url&&cfg.key);
-const say=m=>{if(typeof toast==="function")toast(m);else alert(m)};
-let status={ok:true,msg:"Ukládá se jen v tomto zařízení (bez synchronizace)."},flushing=false,pulling=false;
-const hdr=()=>({apikey:cfg.key,Authorization:"Bearer "+cfg.key,"Content-Type":"application/json"});
-const base=()=>cfg.url.replace(/\/+$/,"")+"/rest/v1/docs";
-const split=k=>{const i=k.indexOf("/");return[k.slice(0,i),k.slice(i+1)]};
-function uiStatus(){const e=document.getElementById("cst");if(e){e.textContent=status.msg;e.style.color=status.ok?"var(--ok)":"var(--no)"}}
-async function flush(){
- if(!remote()||flushing||!queue.length)return;flushing=true;
- try{while(queue.length){const op=queue[0];
-  if(op.op==="set"){const r=await fetch(base()+"?on_conflict=coll,id",{method:"POST",headers:{...hdr(),Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({coll:op.coll,id:op.id,data:op.data})});if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();if(j[0])meta[op.coll+"/"+op.id]=j[0].updated_at}
-  else{const r=await fetch(base()+"?coll=eq."+op.coll+"&id=eq."+encodeURIComponent(op.id),{method:"DELETE",headers:hdr()});if(!r.ok)throw new Error("HTTP "+r.status);delete meta[op.coll+"/"+op.id]}
-  queue.shift();persist()}
-  status={ok:true,msg:"Synchronizováno "+new Date().toLocaleTimeString("cs")}}
- catch(e){status={ok:false,msg:"Offline nebo chyba ("+e.message+"). Čeká na odeslání: "+queue.length+" změn."}}
- finally{flushing=false;uiStatus()}}
-async function pull(){
- if(!remote()||pulling)return;pulling=true;
- try{const r=await fetch(base()+"?select=coll,id,updated_at",{headers:hdr()});if(!r.ok)throw new Error("HTTP "+r.status);
-  const rows=await r.json(),seen=new Set(),pend=new Set(queue.map(o=>o.coll+"/"+o.id)),need=[];let changed=false;
-  rows.forEach(x=>{const k=x.coll+"/"+x.id;seen.add(k);if(pend.has(k))return;if(meta[k]!==x.updated_at||!(data[x.coll]&&data[x.coll][x.id]))need.push(x)});
-  for(let i=0;i<need.length;i+=5)await Promise.all(need.slice(i,i+5).map(async x=>{
-   const rr=await fetch(base()+"?select=data,updated_at&coll=eq."+x.coll+"&id=eq."+encodeURIComponent(x.id),{headers:hdr()});const j=await rr.json();
-   if(j[0]){(data[x.coll]=data[x.coll]||{})[x.id]=j[0].data;meta[x.coll+"/"+x.id]=j[0].updated_at;changed=true}}));
-  Object.keys(meta).forEach(k=>{if(!seen.has(k)&&!pend.has(k)){const[c,id]=split(k);if(data[c])delete data[c][id];delete meta[k];changed=true}});
-  if(changed){persist();notify()}
-  status={ok:true,msg:"Synchronizováno "+new Date().toLocaleTimeString("cs")}}
- catch(e){status={ok:false,msg:"Offline nebo chyba ("+e.message+")"+(queue.length?". Čeká na odeslání: "+queue.length:"")}}
- finally{pulling=false;uiStatus()}}
-const tick=()=>flush().then(pull);
-function setDoc(c,id,d){(data[c]=data[c]||{})[id]=clone(d);
- if(remote()){queue=queue.filter(o=>!(o.op==="set"&&o.coll===c&&o.id===id));queue.push({op:"set",coll:c,id,data:clone(d)})}
- persist();notify();flush()}
-function delDoc(c,id){if(data[c])delete data[c][id];
- if(remote()){queue=queue.filter(o=>!(o.coll===c&&o.id===id));queue.push({op:"del",coll:c,id})}
- persist();notify();flush()}
-const db={
- collection:c=>({onSnapshot:cb=>{const f=()=>cb({docs:Object.entries(data[c]||{}).map(([id,d])=>({id,data:()=>clone(d)}))});subs.push(f);setTimeout(f,0)},
-  add:async d=>{const id=uid();setDoc(c,id,d);return{id}}}),
- doc:p=>{const i=p.indexOf("/"),c=p.slice(0,i),id=p.slice(i+1);
-  return{set:async d=>setDoc(c,id,d),delete:async()=>delDoc(c,id),
-   onSnapshot:cb=>{const f=()=>{const d=(data[c]||{})[id];cb({exists:!!d,data:()=>d?clone(d):undefined})};subs.push(f);setTimeout(f,0)}}}};
-async function connect(url,key){
- url=(url||"").trim();key=(key||"").trim();
- if(!url||!key){cfg={};LS.del(K_CFG);queue=[];meta={};persist();status={ok:true,msg:"Odpojeno. Ukládá se jen v tomto zařízení."};uiStatus();return}
- cfg={url,key};LS.set(K_CFG,JSON.stringify(cfg));meta={};queue=[];
- await pull();
- COLL.forEach(c=>Object.entries(data[c]).forEach(([id,d])=>{if(!meta[c+"/"+id])queue.push({op:"set",coll:c,id,data:clone(d)})}));
- persist();await flush();notify()}
-/* export / import */
-function download(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-const stamp=()=>new Date().toISOString().slice(0,10);
-function exportJSON(){download("hokej-zaloha-"+stamp()+".json",JSON.stringify({app:"hokej-zapasy",version:1,exported:new Date().toISOString(),data},null,1),"application/json")}
-function exportCSV(){const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
- const rows=[["Přezdívka","Číslo","Pozice","Alternativní pozice","Stav"],...Object.values(data.players).map(p=>[p.name,p.num,p.pos,p.alt,p.st||"act"])];
- download("soupiska-"+stamp()+".csv","\ufeff"+rows.map(r=>r.map(q).join(";")).join("\r\n"),"text/csv")}
-function importData(obj,replace){
- if(!obj||obj.app!=="hokej-zapasy"||!obj.data)throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
- COLL.forEach(c=>{const src=obj.data[c]||{};if(replace)Object.keys(data[c]).forEach(id=>{if(!(id in src))delDoc(c,id)});Object.entries(src).forEach(([id,d])=>setDoc(c,id,d))})}
-/* okno nastavení */
-let pendingImport=null;
-function openCfg(){
- const el=document.getElementById("cfg");pendingImport=null;
- el.innerHTML=`<div class="md" id="cbg"><div class="mb"><h2>⚙️ Data a synchronizace</h2>
- <h3>Synchronizace mezi zařízeními (Supabase)</h3><div class="mu" id="cst" style="margin-bottom:8px"></div>
- <label>Adresa projektu</label><input id="cu" placeholder="https://xxxx.supabase.co" value="${(cfg.url||"").replace(/"/g,"&quot;")}">
- <label>Veřejný klíč (anon public)</label><input id="ck" placeholder="eyJ…" value="${(cfg.key||"").replace(/"/g,"&quot;")}">
- <div class="row"><button class="p" id="cs">Připojit</button><button class="s" id="cx">Odpojit</button></div>
- <h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>
- <h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div>
- <div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>
- <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
- <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
- const $=s=>el.querySelector(s),close=()=>{el.innerHTML=""};uiStatus();
- $("#cu2").onclick=refresh;$("#cz").onclick=close;$("#cbg").onclick=e=>{if(e.target.id==="cbg")close()};
- $("#cs").onclick=async()=>{$("#cs").disabled=true;await connect($("#cu").value,$("#ck").value);$("#cs").disabled=false;if(!remote())return;say(status.ok?"Připojeno":"Připojení se nepovedlo: "+status.msg)};
- $("#cx").onclick=()=>{connect("","");$("#cu").value="";$("#ck").value=""};
- $("#ce").onclick=exportJSON;$("#cc").onclick=exportCSV;
- $("#cf").onchange=()=>{const f=$("#cf").files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{pendingImport=JSON.parse(r.result);const d=pendingImport.data||{};$("#ci").textContent="Načteno: "+COLL.map(c=>c+" "+Object.keys(d[c]||{}).length).join(", ")}catch(e){pendingImport=null;$("#ci").textContent="Soubor nelze přečíst."}};r.readAsText(f)};
- let armed=false;
- $("#cm").onclick=()=>{try{if(!pendingImport)return say("Nejdřív vyber soubor.");importData(pendingImport,false);say("Data sloučena");close()}catch(e){say(e.message)}};
- $("#cr").onclick=()=>{if(!pendingImport)return say("Nejdřív vyber soubor.");if(!armed){armed=true;$("#cr").textContent="Opravdu nahradit? Klepni znovu";return}try{importData(pendingImport,true);say("Data nahrazena");close()}catch(e){say(e.message)}}}
-async function refresh(){try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.reload()}
-document.getElementById("gear").onclick=openCfg;
-window.addEventListener("online",tick);
-window.HK={version:VERSION,refresh,ready:async()=>{setInterval(tick,5000);tick();return db},importData,exportJSON,exportCSV,connect,status:()=>status};
-if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
-})();
-
-</script>
+<script src="storage.js"></script>
 <script>
 const POS=["Útočnice","Obránkyně","Brankářka"],isG=p=>/^Brank/.test((p&&p.pos)||""),LN=[1,2,3,4],SL=["LK","C","PK","LO","PO"];
 const REA=["Hákování","Držení","Podražení","Vysoká hůl","Hrubost","Zdržování hry","Příliš mnoho hráčů","Nesportovní chování","Jiné"];
@@ -259,7 +155,12 @@ a.innerHTML=`<div class="cd"><h2>Základní formace</h2><div class="mu" style="m
 <div class="cd"><h2>Náhradnice (${B.length})</h2><div class="mu" style="margin-bottom:8px">Nezařazené hráčky. Přetažením je dáš na místo v sestavě, nebo je prohodíš mezi sebou. Sestavu sem můžeš vrátit přetažením místa na tuto plochu.</div><div class="bz" data-bz="1">${B.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny hráčky jsou v sestavě.</span>'}</div></div>
 <div id="plw"></div>`;
 teamDrag(a);players($("#plw"))}
-function benchM(m){const nom=nomOf(m),used=new Set(Object.values(m.lineup||{})),un=nom.filter(id=>pl(id)&&stOf(pl(id))!=="end"&&!used.has(id)),st=(m.bn||[]).filter(id=>un.includes(id)),rest=un.filter(id=>!st.includes(id)).sort((x,y)=>pri(pl(x))-pri(pl(y))||pl(x).name.localeCompare(pl(y).name,"cs"));return[...st,...rest]}
+function fillDef(n){const dl=(S.def||{}).lu||{},nm=nomOf(n);n.lineup={};Object.entries(dl).forEach(([k,id])=>{if(nm.includes(id)&&pl(id)&&stOf(pl(id))!=="end")n.lineup[k]=id})}
+function syncLive(L,m,now){const lu=m.lineup||{},boxed=new Set((L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p)),onIce=new Set(COLS.map(c=>L.ice[c]).filter(Boolean));
+COLS.forEach(c=>{const want=[1,2,3,4].map(n=>lu[n+c]).filter(id=>id&&!onIce.has(id)&&!boxed.has(id)),keep=(L.q[c]||[]).filter(id=>want.includes(id));L.q[c]=[...keep,...want.filter(id=>!keep.includes(id))]});
+if(L.G&&L.G!==lu.G1&&L.G!==lu.G2)L.G=lu.G1||null;if(!L.G)L.G=lu.G1||null}
+function benchGrouped(m){const B=benchM(m);if(!B.length)return'<span class="mu">Žádné.</span>';let h="",last=-1;B.forEach(id=>{const k=pri(pl(id));if(k!==last){h+=`<div class="lnl" style="width:100%;margin:6px 0 0">${PG[k]}</div>`;last=k}h+=`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`});return h}
+function benchM(m){const nom=nomOf(m),used=new Set(Object.values(m.lineup||{}));return nom.filter(id=>pl(id)&&stOf(pl(id))!=="end"&&!used.has(id)).sort((x,y)=>pri(pl(x))-pri(pl(y))||pl(x).name.localeCompare(pl(y).name,"cs"))}
 function matchDrag(root,m0){let D=null,timer=null,blk=false;const SEL='[data-sl^="m:"],[data-bn],[data-on],[data-bz]';
 const cur=()=>S.ma.find(x=>x.id===m0.id)||m0;
 const closest=(x,y)=>{const e=document.elementFromPoint(x,y);return e&&e.closest?e.closest(SEL):null};
@@ -267,7 +168,7 @@ const info=b=>b.dataset.bn?{t:"b",id:b.dataset.bn}:b.dataset.on?{t:"o",id:b.data
 const clr=()=>{if(D&&D.g)D.g.remove();root.querySelectorAll(".ov,.dg").forEach(n=>n.classList.remove("ov","dg"));D=null};
 const mv=(x,y)=>{D.x=x;D.y=y;D.g.style.left=x+"px";D.g.style.top=y+"px";root.querySelectorAll(".ov").forEach(n=>n.classList.remove("ov"));const b=closest(x,y);if(b&&b!==D.el)b.classList.add("ov")};
 const begin=(b,x,y)=>{const s=info(b),m=cur();if(s.t==="s"&&!(m.lineup||{})[s.k])return;if(s.t==="o"&&m.live)return;const g=document.createElement("div");g.className="ghost";g.textContent=b.textContent.replace(/\s+[ÚOB?]$/,"");document.body.appendChild(g);D={s,g,el:b};b.classList.add("dg");mv(x,y);navigator.vibrate&&navigator.vibrate(15)};
-const drop=(s,t)=>{if(!t)return;const m=cur(),n=clone(m);n.lineup=n.lineup||{};let nom=nomOf(n).slice(),B=benchM(n);const lu=n.lineup,lock=!!n.live;
+const drop=(s,t)=>{if(!t)return;const m=cur(),n=clone(m);n.lineup=n.lineup||{};let nom=nomOf(n).slice(),B=benchM(n);const lu=n.lineup,lock=!!n.live,lu0=JSON.stringify(n.lineup),nom0=JSON.stringify(nom);
 const outT=t.t==="o"||(t.t==="z"&&t.z==="o");
 if((s.t==="o"||outT)&&lock)return toast("Nominace je po zahájení zápasu uzamčena");
 const un=id=>{nom=nom.filter(x=>x!==id);Object.keys(lu).forEach(k=>{if(lu[k]===id)delete lu[k]});if(n.gk===id)delete n.gk;B=B.filter(x=>x!==id)};
@@ -278,15 +179,15 @@ if(s.t==="s"){const p=lu[s.k];if(!p)return;
  else if(outT)un(p);else return}
 else if(s.t==="b"){
  if(t.t==="s"){const q=lu[t.k],i=B.indexOf(s.id);lu[t.k]=s.id;if(q)B[i]=q;else B.splice(i,1)}
- else if(t.t==="b"&&t.id!==s.id){const i=B.indexOf(s.id),j=B.indexOf(t.id);[B[i],B[j]]=[B[j],B[i]]}
+ else if(t.t==="b"&&t.id!==s.id)return;
  else if(outT)un(s.id);else return}
 else{
  if(t.t==="s"){nom.push(s.id);const q=lu[t.k];lu[t.k]=s.id;if(q)B.push(q)}
  else if(t.t==="b"||(t.t==="z"&&t.z==="b")){nom.push(s.id);B.push(s.id)}else return}
-n.nom=nom;n.bn=B;upd(n)};
+n.nom=nom;delete n.bn;if(!n.live&&(JSON.stringify(n.lineup)!==lu0||JSON.stringify(nom)!==nom0))n.luOk=false;if(n.live)syncLive(n.live,n,el_(n.live));upd(n)};
 const end=(x,y)=>{if(!D)return;const b=closest(x,y),s=D.s;clr();blk=true;setTimeout(()=>blk=false,450);if(b)drop(s,info(b))};
 root.querySelectorAll('[data-sl^="m:"],[data-bn],[data-on]').forEach(b=>{
-if(b.dataset.sl)b.onclick=()=>{if(blk)return;S.pickAll=false;S.pick={slot:b.dataset.sl.slice(2),get:()=>clone(cur().lineup||{}),onCh:l=>{const n=clone(cur());n.lineup=l;save(n)},pool:nomOf(cur())};modal()};
+if(b.dataset.sl)b.onclick=()=>{if(blk)return;S.pickAll=false;S.pick={slot:b.dataset.sl.slice(2),get:()=>clone(cur().lineup||{}),onCh:l=>{const n=clone(cur()),o=JSON.stringify(n.lineup||{});n.lineup=l;if(!n.live&&JSON.stringify(l)!==o)n.luOk=false;if(n.live)syncLive(n.live,n,el_(n.live));upd(n)},pool:nomOf(cur())};modal()};
 if(b.dataset.on)b.onclick=()=>{if(blk||cur().live)return;const n=clone(cur());n.nom=[...nomOf(n),b.dataset.on];save(n)};
 b.addEventListener("contextmenu",e=>e.preventDefault());
 b.addEventListener("touchstart",e=>{const t=e.touches[0];clearTimeout(timer);b._s={x:t.clientX,y:t.clientY};timer=setTimeout(()=>begin(b,t.clientX,t.clientY),320)},{passive:true});
@@ -365,10 +266,10 @@ a.innerHTML=`<button class="p w" id="nw" style="margin-bottom:12px">+ Nový záp
 $("#nw").onclick=()=>{S.M={k:"NEW",date:td(),opp:"",home:true};modal()};
 a.querySelectorAll(".it").forEach(i=>i.onclick=()=>{S.mid=i.dataset.id;S.showLu=false;S.showNom=false;S.step=1;render()})}
 function detail(a,m){const[g,o]=score(m);const ev=(m.events||[]).map((e,i)=>({e,i})).sort((x,y)=>y.e.per-x.e.per||(y.e.time||"").localeCompare(x.e.time||"")||y.i-x.i).map(x=>x.e);const sh=shots(m),sk=skaters(m.lineup),gk=m.gk||(m.lineup||{}).G1,ge=m.events||[];const tm=e=>e.per+". tř."+(e.time?" "+esc(e.time):"");
-const lu=m.lineup||{},nom=nomOf(m),lk=!!m.closed,opr=m.opr||[],sg=opr.reduce((x,r)=>x+(+r.g||0),0),sNm=!lk&&!m.live,st=S.step||1,NM=["Zápas","Sestava","Zápas živě"],R0=readiness(m),BM=benchM(m),OUT=S.pl.filter(p=>stOf(p)!=="end"&&!nom.includes(p.id)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs")).map(p=>p.id);
+const lu=m.lineup||{},nom=nomOf(m),lk=!!m.closed,opr=m.opr||[],sg=opr.reduce((x,r)=>x+(+r.g||0),0),sNm=!lk&&!m.live,st=S.step||1,NM=["Zápas","Sestava","Zápas živě"],R0=readiness(m),BM=benchM(m),ph=m.live||lk?"lu":(!R0.nom.ok?"nom":(S.ph||"lu")),OUT=S.pl.filter(p=>stOf(p)!=="end"&&!nom.includes(p.id)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs")).map(p=>p.id);
 const startCard=sn=>`<div class="cd" data-s="${sn}"><h2>Živý zápis</h2>${lk?'<div class="mu">Zápas je uzavřený.</div>':m.live?'<button class="p w" data-lvo style="padding:20px">▶ Pokračovat v živém zápisu</button>':`<div class="ev"><div class="b">${R0.nom.ok?"✅":"⛔"} ${R0.nom.txt}</div></div><div class="ev"><div class="b">${R0.lu.ok?"✅":"⛔"} ${R0.lu.txt}</div></div>${R0.nom.ok&&R0.lu.ok?'<button class="p w" data-lvs style="padding:20px;margin-top:10px">Zahájit zápas</button>':`<button class="p w" data-fx style="padding:16px;margin-top:10px">${!R0.nom.ok?"Dokončit nominaci →":"Dokončit sestavu →"}</button>`}`}</div>`;
 a.innerHTML=`<div class="${lk?"lk":""} stp" data-cur="${st}"><div class="cd" style="padding:10px 14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(m.opp)}</b><span class="mu">${fd(m.date)} · ${m.home?"doma":"venku"} · ${m.perLen||20} min</span></div><div class="mu" style="margin-top:4px">${R0.nom.ok?"✅":"⛔"} Nominace · ${R0.lu.ok?"✅":"⛔"} Sestava${m.live&&!lk?" · ▶ zápas běží":""}${lk?" · 🔒 uzavřeno":""}</div></div><div class="chips" style="margin-bottom:10px">${NM.map((t,i)=>`<button class="chip ${st===i+1?"on":""}" data-st="${i+1}">${i+1} ${t}</button>`).join("")}</div>
-<div class="cd" data-s="1"><div class="sc">${g} : ${o}</div><div style="text-align:center"><b>${m.home?"HC Střely – "+esc(m.opp):esc(m.opp)+" – HC Střely"}</b></div>${lk?'<div style="text-align:center;margin-top:6px"><span class="tag red">🔒 Uzavřeno</span></div>':m.live?'<div class="mu" style="text-align:center;margin-top:8px">🔒 Zápas je zahájen – soupeř, datum a doma/venku už nelze měnit.</div>':'<button class="s w ed" id="em" style="margin-top:10px">✏️ Upravit soupeře, datum, doma/venku</button>'}</div>
+<div class="cd" data-s="1"><div class="sc">${g} : ${o}</div><div style="text-align:center"><b>${m.home?"Naši – "+esc(m.opp):esc(m.opp)+" – Naši"}</b></div>${lk?'<div style="text-align:center;margin-top:6px"><span class="tag red">🔒 Uzavřeno</span></div>':m.live?'<div class="mu" style="text-align:center;margin-top:8px">🔒 Zápas je zahájen – soupeř, datum a doma/venku už nelze měnit.</div>':'<button class="s w ed" id="em" style="margin-top:10px">✏️ Upravit soupeře, datum, doma/venku</button>'}</div>
 ${(()=>{const pm=m.perLen||20;return`<div class="cd" data-s="1"><h2>Délka třetiny</h2>${lk?`<div class="mu">${pm} min</div>`:`<div class="row" style="align-items:center;text-align:center;flex-wrap:nowrap"><button class="s" data-pl="-1" style="min-height:52px;flex:none;min-width:64px">−</button><b style="font-size:22px">${pm} min</b><button class="s" data-pl="1" style="min-height:52px;flex:none;min-width:64px">+</button></div><div class="mu" style="margin-top:6px">Standard je 20 min, prodloužení 5 min.</div>`}</div>`})()}
 ${startCard(1)}
 <div class="cd" data-s="1">${h2h(m.opp,m.id,"Vzájemné zápasy – "+esc(m.opp))}</div>
@@ -376,18 +277,18 @@ ${startCard(3)}
 <div class="sc" data-s="3">${g} : ${o}</div>
 <div class="cd" data-s="3"><h2>Průběh</h2>${ev.length?ev.map(e=>e.k==="G"?`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>${e.team==="us"?"⚽ "+(e.scorer?pn(e.scorer):"?"):"⚽ Gól soupeře"}</b> <span class="tag ${e.sit==="PP"?"pp":e.sit==="SH"?"sh":""}">${SIT[e.sit]||SIT.E}</span>${e.team==="us"?`<div class="mu">Asistence: ${[e.a1,e.a2].filter(Boolean).map(pn).join(", ")||"bez asistence"}</div>`:""}<div class="mu">Na ledě: ${(e.on||[]).map(pn).join(", ")||"–"}</div></div></div>`:e.k==="S"?`<div class="ev"><div class="t">${tm(e)}</div><div class="b">${e.team==="us"?"🏒 Střela: <b>"+(e.shooter?pn(e.shooter):"?")+"</b>":"🏒 Střela soupeře"+(e.gk&&pl(e.gk)?'<div class="mu">Brankářka: '+pn(e.gk)+"</div>":"")}</div></div>`:`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>🚫 ${e.team==="us"?(e.pid?pn(e.pid):"?"):"Soupeř"}</b> <span class="tag red">${e.min} min</span><div class="mu">${esc(e.reason||"")}</div></div></div>`).join(""):'<div class="msg">Zatím nic nezapsáno.</div>'}</div>
 <div class="cd" data-s="3">${matchStatsHtml(m)}</div>
-<div class="cd" data-s="2"><h2>Sestava zápasu</h2>${m.live&&!lk?'<div class="mu" style="margin-bottom:6px">🔒 Nominace je po zahájení zápasu uzamčena, sestavu měnit můžeš.</div>':""}<div class="mu ed" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo. Podržením a přetažením ji přesuneš nebo prohodíš s jinou.</div><div class="mu" style="margin-bottom:4px">${R0.nom.ok?"✅":"⛔"} ${R0.nom.txt}<br>${R0.lu.ok?"✅":"⛔"} ${R0.lu.txt}</div><div class="tw">${luEditor(lu,0,"m:")}</div></div>
-<div class="cd" data-s="2"><h2>Nominované – náhradnice (${BM.length})</h2><div class="mu ed" style="margin-bottom:8px">Nominované hráčky, které nejsou v sestavě. Přetáhni je na místo v sestavě nebo mezi sebou prohoď.</div><div class="bz" data-bz="b">${BM.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Žádné.</span>'}</div></div>
-${!lk&&!m.live?`<div class="cd" data-s="2"><h2>Nenominované (${OUT.length})</h2><div class="mu" style="margin-bottom:8px">Klepnutím hráčku nominuješ. Přetažením sem hráčku z nominace vyřadíš.</div><div class="row" style="margin-bottom:8px"><button class="s" data-nall>Všechny aktivní</button><button class="s" data-nnone>Zrušit vše</button></div><div class="bz" data-bz="o">${OUT.map(id=>`<button class="chip bn" data-on="${id}" style="opacity:.6">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny jsou nominované.</span>'}</div></div>`:""}
-
-<div class="cd" data-s="2"><h2>Přesilovky a oslabení</h2><div class="mu" style="margin-bottom:8px">Hráčka může být jen v jedné jednotce (přesilovka/oslabení), vedle toho zůstává ve své řadě. Do oslabení stačí 3–4 hráčky, ostatní místa nech prázdná. Za zápasu jdou jednotky měnit v menu živého zápisu.</div><div class="tw">${[["PP1","Přesilovka 1"],["PP2","Přesilovka 2"],["SH1","Oslabení 1"],["SH2","Oslabení 2"]].map(([k,t])=>{const u=(m.sp||{})[k]||{};return`<div class="lnl">${t}</div><div class="ln">${COLS.map(c=>{const id=u[c];return`<button class="sl ${id&&pl(id)?"f":""}" data-sl="${k}:${c}"><small>${c}</small>${id&&pl(id)?pn(id):"+"}</button>`}).join("")}</div>`}).join("")}</div><button class="s w ed" id="cpsp" style="margin-top:6px">Zkopírovat z posledního zápasu</button></div>
+${m.live&&!lk?'<div class="mu" data-s="2" style="margin-bottom:8px">🔒 Nominace je po zahájení zápasu uzamčena. Sestavu můžeš měnit i za zápasu (živý zápis → ⋯ → Sestava).</div>':""}
+${m.live||lk?"":`<div class="chips" data-s="2"><button class="chip ${ph==="nom"?"on":""}" data-ph="nom">A  Nominace</button><button class="chip ${ph==="lu"?"on":""}" data-ph="lu" ${R0.nom.ok?"":'disabled style="opacity:.4"'}>B  Sestava</button></div>`}
+${ph==="nom"?`<div class="cd" data-s="2"><h2>Nominace (${nom.length})</h2><div class="mu" style="margin-bottom:8px">Klepnutím vyber hráčky, které má trenér k dispozici.<br>${R0.nom.ok?"✅":"⛔"} ${R0.nom.txt}</div>${lk||m.live?`<div class="mu">${nom.map(pn).join(", ")||"–"}</div>`:`<div class="row" style="margin-bottom:8px"><button class="s" data-nall>Všechny aktivní</button><button class="s" data-nnone>Zrušit vše</button></div>${(()=>{const l=S.pl.filter(p=>stOf(p)!=="end"||nom.includes(p.id)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));return l.map((p,i)=>(i===0||pri(l[i-1])!==pri(p)?(i?"</div>":"")+`<div class="lnl">${PG[pri(p)]}</div><div class="chips">`:"")+`<button class="chip ${nom.includes(p.id)?"on":""}" data-tn="${p.id}">${pn(p.id)}</button>`).join("")+(l.length?"</div>":"")})()}<button class="p w" data-gols style="margin-top:12px;min-height:56px" ${R0.nom.ok?"":"disabled"}>Pokračovat – sestava →</button>`}</div>`:`<div class="cd" data-s="2"><h2>Sestava zápasu</h2><div class="mu" style="margin-bottom:6px">${R0.lu.ok?"✅":R0.lu.done?"🟡":"⛔"} ${R0.lu.txt}</div>${lk?"":`<div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš nebo prohodíš.${m.live?" Změna se promítne do střídání.":""}</div>`}<div class="tw">${luEditor(lu,0,"m:")}</div>${lk||m.live?"":`<div class="row" style="margin-top:8px"><button class="s" data-fdef style="${S.cf==="f"+m.id?"background:var(--no);color:#fff":""}">${S.cf==="f"+m.id?"Opravdu přepsat? Klepni znovu":"↻ Podle základní formace"}</button></div>${m.luOk?'<button class="s w" data-luop style="margin-top:10px;min-height:52px">🔒 Sestava uzavřena – znovu otevřít</button>':`<button class="p w" data-lucl style="margin-top:10px;min-height:56px" ${R0.lu.done?"":"disabled"}>✔ Uzavřít sestavu</button>`}`}</div>
+<div class="cd" data-s="2"><h2>Náhradnice (${BM.length})</h2><div class="mu" style="margin-bottom:8px">Nominované hráčky mimo sestavu, rozdělené podle pozic. Přetáhni je na místo v sestavě.</div><div class="bz" data-bz="b">${benchGrouped(m)}</div></div>`}
+${ph==="lu"?`<div class="cd" data-s="2"><h2>Přesilovky a oslabení</h2><div class="mu" style="margin-bottom:8px">Hráčka může být jen v jedné jednotce (přesilovka/oslabení), vedle toho zůstává ve své řadě. Do oslabení stačí 3–4 hráčky, ostatní místa nech prázdná. Za zápasu jdou jednotky měnit v menu živého zápisu.</div><div class="tw">${[["PP1","Přesilovka 1"],["PP2","Přesilovka 2"],["SH1","Oslabení 1"],["SH2","Oslabení 2"]].map(([k,t])=>{const u=(m.sp||{})[k]||{};return`<div class="lnl">${t}</div><div class="ln">${COLS.map(c=>{const id=u[c];return`<button class="sl ${id&&pl(id)?"f":""}" data-sl="${k}:${c}"><small>${c}</small>${id&&pl(id)?pn(id):"+"}</button>`}).join("")}</div>`}).join("")}</div><button class="s w ed" id="cpsp" style="margin-top:6px">Zkopírovat z posledního zápasu</button></div>`:""}
 
 ${lk?`<div class="cd" data-s="3"><b>🔒 Zápas je uzavřený</b><div class="mu">Nic v něm nejde měnit. Pokud je potřeba oprava, otevři ho znovu.</div><button class="s w" id="ro" style="margin-top:8px">${S.cf==="o"+m.id?"Opravdu otevřít? Klepni znovu":"Znovu otevřít"}</button></div>`:`<div class="cd" data-s="3"><h2>Uzavření zápasu</h2><div class="mu" style="margin-bottom:8px">Do uzavření jde všechno upravovat: nominaci, sestavu, průběh i soupeřovu sestavu (tu můžeš doplnit i za pár dní z oficiálního zápisu). Po uzavření se zápas zamkne.</div><button class="p w" id="cz">${S.cf==="c"+m.id?"Opravdu uzavřít? Klepni znovu":"Uzavřít a potvrdit zápas"}</button></div>`}
 <button class="d w ed" data-s="1" id="dm" style="${S.cf===m.id?"background:var(--no);color:#fff":""}">${S.cf===m.id?"Opravdu smazat celý zápas? Klepni znovu":"Smazat zápas"}</button><div style="display:flex;gap:12px;margin:16px 0">${st>1?`<button class="s" id="pv" style="flex:1;min-height:56px">← ${NM[st-2]}</button>`:""}${st<3?`<button class="p" id="nx" style="flex:2;min-height:56px">${NM[st]} →</button>`:""}</div></div>`;
 
 const go=n=>{S.step=n;render();window.scrollTo(0,0)};Q("#pv").onclick=()=>go(st-1);Q("#nx").onclick=()=>go(st+1);a.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>go(+b.dataset.st));
 a.querySelectorAll("[data-lvs]").forEach(b=>b.onclick=()=>{const R=readiness(m);if(!R.nom.ok||!R.lu.ok)return toast("Nejdřív dokonči nominaci a sestavu");const n=clone(m);n.live=initLive(n);S.lv=true;upd(n)});
-a.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>{S.step=2;render();window.scrollTo(0,0)});
+a.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>{S.step=2;S.ph=R0.nom.ok?"lu":"nom";if(R0.nom.ok&&!Object.keys(m.lineup||{}).length){const n=clone(m);fillDef(n);save(n)}render();window.scrollTo(0,0)});
 a.querySelectorAll("[data-pl]").forEach(b=>b.onclick=()=>{const n=clone(m);n.perLen=Math.max(1,Math.min(30,(m.perLen||20)+ +b.dataset.pl));upd(n)});
 a.querySelectorAll("[data-lvo]").forEach(b=>b.onclick=()=>{S.lv=true;liveRender()});
 Q("#em").onclick=()=>{S.M={k:"EM",id:m.id,opp:m.opp,date:m.date,home:m.home};modal()};
@@ -400,9 +301,16 @@ Q("#ra").onclick=()=>{const c=$("#rc").value.trim(),nm=$("#rn").value.trim();if(
 a.querySelectorAll("[data-rid]").forEach(i=>i.onchange=()=>{const n=clone(m),r=(n.opr||[]).find(x=>x.id===i.dataset.rid);if(r){r[i.dataset.f]=Math.max(0,+i.value||0);save(n)}});
 a.querySelectorAll("[data-rd]").forEach(b=>b.onclick=()=>{const n=clone(m);n.opr=(n.opr||[]).filter(x=>x.id!==b.dataset.rd);save(n)});
 if(!lk)a.querySelectorAll("[data-ee]").forEach(r=>r.onclick=()=>{const e=ge.find(x=>x.id===r.dataset.ee);if(!e)return;S.M={...clone(e),eid:e.id,all:true,on:clone(e.on||[])};modal()});
-const setNom=nm=>{const n=clone(m);n.nom=nm;n.lineup=n.lineup||{};Object.keys(n.lineup).forEach(k=>{if(!nm.includes(n.lineup[k]))delete n.lineup[k]});if(n.gk&&!nm.includes(n.gk))delete n.gk;save(n)};
+const setNom=nm=>{const n=clone(m);n.nom=nm;n.lineup=n.lineup||{};Object.keys(n.lineup).forEach(k=>{if(!nm.includes(n.lineup[k]))delete n.lineup[k]});if(n.gk&&!nm.includes(n.gk))delete n.gk;if(!n.live)n.luOk=false;save(n)};
 a.querySelectorAll("[data-nall]").forEach(b=>b.onclick=()=>setNom(S.pl.filter(p=>stOf(p)==="act").map(p=>p.id)));
 a.querySelectorAll("[data-nnone]").forEach(b=>b.onclick=()=>setNom([]));
+a.querySelectorAll("[data-tn]").forEach(b=>b.onclick=()=>{const id=b.dataset.tn;setNom(nom.includes(id)?nom.filter(x=>x!==id):[...nom,id])});
+const toLu=()=>{if(!Object.keys(m.lineup||{}).length){const n=clone(m);fillDef(n);n.luOk=false;save(n)}S.ph="lu";render();window.scrollTo(0,0)};
+a.querySelectorAll("[data-gols]").forEach(b=>b.onclick=()=>{if(R0.nom.ok)toLu()});
+a.querySelectorAll("[data-ph]").forEach(b=>b.onclick=()=>{if(b.dataset.ph==="lu"){if(R0.nom.ok)toLu()}else{S.ph="nom";render()}});
+a.querySelectorAll("[data-fdef]").forEach(b=>b.onclick=()=>two("f"+m.id,()=>{const n=clone(m);fillDef(n);n.luOk=false;save(n)}));
+a.querySelectorAll("[data-lucl]").forEach(b=>b.onclick=()=>{if(!R0.lu.done)return toast("V 1. pětce chybí hráčky nebo brankářka");const n=clone(m);n.luOk=true;save(n)});
+a.querySelectorAll("[data-luop]").forEach(b=>b.onclick=()=>{const n=clone(m);delete n.luOk;save(n)});
 
 Q("#gu").onclick=()=>{S.M={k:"G",team:"us",per:S.per,time:"",sit:"E",scorer:null,a1:null,a2:null,on:[]};modal()};
 Q("#go").onclick=()=>{S.M={k:"G",team:"opp",per:S.per,time:"",sit:"E",on:[gk].filter(Boolean)};modal()};
@@ -438,7 +346,7 @@ const rd=()=>{M.name=$("#en").value;M.num=$("#ec").value;M.pos=$("#ep").value;M.
 el.querySelectorAll("[data-es]").forEach(b=>b.onclick=()=>{rd();M.st=b.dataset.es;modal()});
 $("#ok").onclick=()=>{rd();const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("players/"+M.id).set({name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
 const m=S.ma.find(x=>x.id===S.mid),lu=m.lineup||{},inl=luPlayers(lu);const lvA=m.live&&!M.all?liveIds(m.live):inl,lvS=m.live&&!M.all?liveIds(m.live).filter(i=>i!==m.live.G):inl;
-let h=`<h2>${M.eid?"✏️ ":""}${M.k==="G"?(M.team==="us"?"⚽ Gól Střely":"⚽ Gól soupeře"):"🚫 Vyloučení"}</h2><label>Třetina</label>${opts("per",[[1,"1."],[2,"2."],[3,"3."],[4,"Prodl."]],M.per)}<label>Čas ve třetině (volitelně)</label><input id="tm" placeholder="např. 12:35" value="${esc(M.time)}" style="max-width:160px">${m.live&&!M.all?'<div><button class="s" data-all style="margin-bottom:10px">Zobrazit celou sestavu</button></div>':""}`;
+let h=`<h2>${M.eid?"✏️ ":""}${M.k==="G"?(M.team==="us"?"⚽ Gól našich":"⚽ Gól soupeře"):"🚫 Vyloučení"}</h2><label>Třetina</label>${opts("per",[[1,"1."],[2,"2."],[3,"3."],[4,"Prodl."]],M.per)}<label>Čas ve třetině (volitelně)</label><input id="tm" placeholder="např. 12:35" value="${esc(M.time)}" style="max-width:160px">${m.live&&!M.all?'<div><button class="s" data-all style="margin-bottom:10px">Zobrazit celou sestavu</button></div>':""}`;
 if(M.k==="G"){h+=`<label>Situace</label>${opts("sit",Object.entries(SIT),M.sit)}`;
 if(M.team==="us")h+=`<label>Střelec</label>${chips("scorer",lvS,M.scorer)}<label>Asistence 1</label>${chips("a1",lvS.filter(i=>i!==M.scorer&&i!==M.a2),M.a1)}<label>Asistence 2</label>${chips("a2",lvS.filter(i=>i!==M.scorer&&i!==M.a1),M.a2)}`;
 h+=`<label>${M.team==="us"?"Další hráči na ledě":"Kdo byl na ledě"} (celá pětka jedním klepnutím)</label><div class="chips">${LN.map(n=>`<button class="chip" data-line="${n}">${n}. pětka</button>`).join("")}</div>${chips("on",lvA,M.on,true)}`}
@@ -475,7 +383,7 @@ const liveIds=L=>[...COLS.map(c=>L.ice[c]),L.G].filter(Boolean);
 function initLive(m){const lu=m.lineup||{},L={running:false,t0:0,acc:0,per:1,pst:0,ice:{},q:{},since:{},sh:[],pen:[],seq:0,u:[],G:lu.G1||null};
 COLS.forEach(c=>{const q=[1,2,3,4].map(n=>lu[n+c]).filter(Boolean);L.ice[c]=q.shift()||null;L.q[c]=q;if(L.ice[c])L.since[L.ice[c]]=0});return L}
 const leave=(L,p,c,now)=>{L.sh.push({p,c,a:L.since[p]||0,b:now,per:L.per});delete L.since[p]};
-function putOn(L,p,c,now){COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));const out=L.ice[c];L.ice[c]=p;L.since[p]=now;if(out){leave(L,out,c,now);L.q[ownCol(curM(),out)||c].push(out)}}
+function putOn(L,p,c,now){COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));const out=L.ice[c];L.ice[c]=p;L.since[p]=now;if(out){leave(L,out,c,now);const oc=ownCol(curM(),out);if(oc)L.q[oc].push(out)}}
 function upd(n){const i=S.ma.findIndex(x=>x.id===n.id);if(i>=0)S.ma[i]=n;save(n);render()}
 function act(label,fn){const m=curM();if(!m||!m.live||m.closed)return;const n=clone(m),L=n.live,snap=clone(L);delete snap.u;migrate(L);const ids=[];fn(L,n,ids,el_(L));if(label===null)L.u=[];else if(label)L.u=[...(L.u||[]),{l:snap,ids,t:label}].slice(-15);upd(n)}
 const doSub=(p,c)=>{const m=curM();if(!m||!m.live)return;const L=m.live,now=el_(L);if(!L.ice[c]&&skCount(L)>=sk(L,"us",now)){toast("Na ledě už je největší povolený počet hráček (trest).");return}act("Střídání: "+(pl(p)||{}).name,(L2,n,ids,t)=>putOn(L2,p,c,t))};
@@ -508,18 +416,20 @@ const c=L.pen.filter(x=>x.t===other&&x.ty==="min"&&x.end!=null).sort((a,b)=>a.se
 L.pen=L.pen.filter(x=>x!==c);afterRemove(L,c,now);return c.p&&!L.pen.some(x=>x.p===c.p)&&c.t==="us"?c.p:null}
 
 /* jednotky pro přesilovku / oslabení */
-function applyUnit(L,m,key,now){const u=(m.sp||{})[key]||{},boxed=new Set((L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p)),nm=nomOf(m),skip=[];
+function applyMap(L,m,u,now){const boxed=new Set((L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p)),nm=nomOf(m),skip=[];
 let T={};COLS.forEach(c=>{const p=u[c];if(!p)return;if(boxed.has(p)||!nm.includes(p)){skip.push((pl(p)||{}).name||"?");return}T[c]=p});
 const max=sk(L,"us",now);let trim=false;
 if(Object.keys(T).length>max){trim=true;const keep=["C","LO","PO","LK","PK"].filter(c=>T[c]).slice(0,max),N={};keep.forEach(c=>N[c]=T[c]);T=N}
-COLS.forEach(c=>{const cur=L.ice[c];if(cur&&T[c]!==cur){leave(L,cur,c,now);L.ice[c]=null;if(!Object.values(T).includes(cur))L.q[ownCol(m,cur)||c].push(cur)}});
+COLS.forEach(c=>{const cur=L.ice[c];if(cur&&T[c]!==cur){leave(L,cur,c,now);L.ice[c]=null;if(!Object.values(T).includes(cur)){const oc=ownCol(m,cur);if(oc)L.q[oc].push(cur)}}});
 COLS.forEach(c=>{const p=T[c];if(!p||L.ice[c]===p)return;const e=COLS.find(k=>L.ice[k]===p);if(e){leave(L,p,e,now);L.ice[e]=null}COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));L.ice[c]=p;L.since[p]=now});
-L.unit=key;return{skip,trim}}
+return{skip,trim}}
+function applyUnit(L,m,key,now){const r=applyMap(L,m,(m.sp||{})[key]||{},now);L.unit=key;return r}
+function applyLine(L,m,n,now){const u={};COLS.forEach(c=>{const p=(m.lineup||{})[n+c];if(p)u[c]=p});const r=applyMap(L,m,u,now);delete L.unit;return r}
 function toLines(L,m,now){COLS.forEach(c=>{const p=L.ice[c];if(p){leave(L,p,c,now);L.ice[c]=null;L.q[ownCol(m,p)||c].push(p)}});
 const max=sk(L,"us",now),bx=(L.pen||[]).filter(x=>x.t==="us"&&x.p&&SA(x)).map(x=>ownCol(m,x.p)),order=[...COLS.filter(c=>!bx.includes(c)),...COLS.filter(c=>bx.includes(c))];let n=0;order.forEach(c=>{if(n>=max)return;const p=L.q[c].shift();if(p){L.ice[c]=p;L.since[p]=now;n++}});delete L.unit}
 function readiness(m){const nom=nomOf(m),lu=m.lineup||{},gk=nom.filter(i=>pl(i)&&isG(pl(i))).length,sk=nom.filter(i=>pl(i)&&!isG(pl(i))).length;
-const miss=[...COLS.filter(c=>!lu["1"+c]||!nom.includes(lu["1"+c])),...(lu.G1&&nom.includes(lu.G1)?[]:["brankářka"])];
-return{nom:{ok:gk>=1&&sk>=5,txt:`Nominace: ${gk} brankářka, ${sk} bruslařek (potřeba min. 1 + 5)`},lu:{ok:miss.length===0,txt:miss.length?"Sestava: v 1. pětce chybí "+miss.join(", "):"Sestava: 1. pětka i brankářka jsou hotové"}}}
+const miss=[...COLS.filter(c=>!lu["1"+c]||!nom.includes(lu["1"+c])),...(lu.G1&&nom.includes(lu.G1)?[]:["brankářka"])],done=miss.length===0;
+return{nom:{ok:gk>=1&&sk>=5,txt:`Nominace: ${gk} brankářka, ${sk} bruslařek (potřeba min. 1 + 5)`},lu:{done,ok:done&&!!m.luOk,txt:!done?"Sestava: v 1. pětce chybí "+miss.join(", "):(m.luOk?"Sestava uzavřena":"Sestava je hotová, ale ještě není uzavřená")}}}
 function openLive(kind,team){const m=curM(),L=m.live,now=el_(L),us=sk(L,"us",now),op=sk(L,"opp",now);S.lmenu=false;S.lsub=null;
 const base={per:L.per,time:mmss(ela(L,now))};
 if(kind==="G"){const sit=team==="us"?(us>op?"PP":us<op?"SH":"E"):(op>us?"PP":op<us?"SH":"E");S.M={k:"G",team,...base,sit,scorer:null,a1:null,a2:null,on:liveIds(L)}}
@@ -528,7 +438,7 @@ function lvDrag(root){let D=null,timer=null,blk=false;
 const tgt=(x,y)=>{const e=document.elementFromPoint(x,y),b=e&&e.closest&&e.closest("[data-ice]");return b?b.dataset.ice:null};
 const clr=()=>{if(D)D.g.remove();root.querySelectorAll(".ov,.dg").forEach(b=>b.classList.remove("ov","dg"));D=null};
 const mv=(x,y)=>{D.x=x;D.y=y;D.g.style.left=x+"px";D.g.style.top=y+"px";const c=tgt(x,y);root.querySelectorAll("[data-ice]").forEach(b=>b.classList.toggle("ov",b.dataset.ice===c))};
-const begin=(b,x,y)=>{const g=document.createElement("div");g.className="ghost";g.textContent=b.textContent;document.body.appendChild(g);D={p:b.dataset.q,g};b.classList.add("dg");mv(x,y);navigator.vibrate&&navigator.vibrate(15)};
+const begin=(b,x,y)=>{const g=document.createElement("div");g.className="ghost";g.textContent=(pl(b.dataset.q)||{}).name||"";document.body.appendChild(g);D={p:b.dataset.q,g};b.classList.add("dg");mv(x,y);navigator.vibrate&&navigator.vibrate(15)};
 const end=(x,y)=>{if(!D)return;const c=tgt(x,y),p=D.p;clr();blk=true;setTimeout(()=>blk=false,450);if(c)doSub(p,c)};
 root.querySelectorAll("[data-q]").forEach(b=>{
 b.onclick=()=>{if(!blk)doSub(b.dataset.q,b.dataset.col)};
@@ -543,7 +453,7 @@ function autoSit(L,team,now){const us=sk(L,"us",now),op=sk(L,"opp",now);return t
 function commitEv(e){const m=curM();if(!m||!m.live||m.closed)return;const n=clone(m),L=n.live;if(!L.pen)L.pen=[];if(!L.seq)L.seq=0;
 const now=el_(L),snap=clone(L);delete snap.u;procExp(L,now);n.events=[...(n.events||[]),e];
 if(e.k==="P")addPen(L,{t:e.team,p:e.team==="us"?e.pid:null,min:e.min},now,m);else goalPen(L,e.team,now);
-L.u=[...(L.u||[]),{l:snap,ids:[e.id],t:e.k==="P"?"Vyloučení":(e.team==="us"?"Gól Střely":"Gól soupeře")}].slice(-15);upd(n)}
+L.u=[...(L.u||[]),{l:snap,ids:[e.id],t:e.k==="P"?"Vyloučení":(e.team==="us"?"Gól naši":"Gól soupeře")}].slice(-15);upd(n)}
 function qaStart(kind){const m=curM();if(!m||!m.live)return;const L=m.live;if(L.running)return toast("Nejdřív přeruš hru");
 const now=el_(L),b={per:L.per,time:mmss(ela(L,now))};
 if(kind==="GO"){commitEv({id:uid(),k:"G",team:"opp",...b,sit:autoSit(L,"opp",now),on:liveIds(L),gk:L.G||null});toast("Gól soupeře zapsán (↩ vrátí)");return}
@@ -583,16 +493,26 @@ if(!S.lv){if(e.style.display!=="none"){e.innerHTML="";e.style.display="none"}if(
 const m=curM();if(!m||!m.live||m.closed){S.lv=false;e.style.display="none";return}
 if(!S.wl&&navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>S.wl=l).catch(()=>{});
 e.style.display="block";migrate(m.live);const L=m.live,[g,o]=score(m),sh=shots(m),now=el_(L),us=sk(L,"us",now),op=sk(L,"opp",now),u=(L.u||[]).slice(-1)[0],run=L.running;
-const sit=us>op?"Přesilovka "+us+" na "+op:op>us?"Oslabení "+us+" na "+op:us+" na "+op;
+const sit=us>op?"Přesilovka "+us+" na "+op:op>us?"Oslabení "+us+" na "+op:us+" na "+op;e.style.paddingBottom=run?"130px":"310px";
 let h=`<div class="lt" style="position:sticky;top:0;z-index:3;background:var(--bg);padding:6px 0"><div><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" style="min-width:52px;min-height:48px;border-radius:10px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-weight:700;font-size:16px">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" style="min-width:52px;min-height:48px;border-radius:10px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-weight:700;font-size:16px">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div><span class="tag ${us>op?"pp":op>us?"sh":""}" style="font-size:14px">${sit}</span></div><div id="lwarn"></div>`;
 h+=(L.pen||[]).map(x=>{const tl={min:"2 min",maj:"5 min",mis:"10 min osobní",gm:"do konce"}[x.ty],t=x.ty==="gm"?"":x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<div class="bx"><span>🚫 ${x.t==="us"?pn(x.p):"Soupeř"} · ${tl} ${t}</span><button class="s" data-pcx="${x.id}">Zrušit</button></div>`}).join("");
-{const ub=(us>op?["PP1","PP2"]:op>us?["SH1","SH2"]:[]).filter(k=>Object.values((m.sp||{})[k]||{}).some(Boolean));
-if(ub.length||L.unit)h+=`<div class="row" style="margin-bottom:12px">${ub.map(k=>`<button class="p" data-unit="${k}" style="min-height:58px;${k[0]==="S"?"background:var(--wa);border-color:var(--wa)":""}">${k[0]==="P"?"⚡ Přesilovka "+k[2]:"🛡 Oslabení "+k[2]}</button>`).join("")}${L.unit?`<button class="s" data-lines="1" style="min-height:58px">↩ Zpět na řady</button>`:""}</div>`}
-h+=`<div class="lg">${COLS.map(c=>{const p=L.ice[c];return`<div class="lc"><small>${c}</small><button class="lice" data-ice="${c}">${p?`<b>${pn(p)}</b><span data-sh="${p}">${mmss(now-(L.since[p]||0))}</span>`:"— prázdné —"}</button>${L.q[c].map((q,i)=>`<button class="lq ${i===0?"nx":""}" data-q="${q}" data-col="${c}">${pn(q)}</button>`).join("")}</div>`}).join("")}</div>`;
-h+=`<div style="margin-top:48px;padding-top:14px;border-top:2px dashed var(--bd)"><div class="mu" style="text-align:center;margin-bottom:8px">STŘELA NA NAŠI BRÁNU</div><button class="lgk" id="lgk" style="margin-top:0">🥅 ${L.G?pn(L.G):"brankářka?"} · střely soupeře: ${sh.opp} (klepni +1)</button></div>`;
-h+=`<div class="lb" style="flex-direction:column;gap:12px"><div style="display:flex;gap:12px"><button id="qg" class="${run?"dd":""}" style="flex:1;font-size:15px;background:var(--ac);color:#fff;border-color:transparent">⚽ Gól naši</button><button id="qo" class="${run?"dd":""}" style="flex:1;font-size:15px;background:var(--no);color:#fff;border-color:transparent">⚽ Gól soupeř</button><button id="qp" class="${run?"dd":""}" style="flex:1;font-size:15px">🚫 Trest</button></div><div style="display:flex;gap:12px"><button id="lun" style="flex:3;font-size:13px">↩ ${u?esc(u.t):"nic k vrácení"}</button><button id="lpl" style="flex:4;font-size:18px;background:${run?"var(--no)":"var(--ok)"};color:#fff;border-color:transparent">${run?"⏸ Přerušit":"▶ Start"}</button><button id="lmn" style="flex:2;font-size:22px" aria-label="Více">⋯</button></div></div>`;
+const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc((pl(id)||{}).name||"?");
+{const lbn=[1,2,3,4].filter(n=>COLS.some(c=>(m.lineup||{})[n+c]));
+if(lbn.length)h+=`<div class="mu" style="margin:2px 0 4px">Celá pětka na led</div><div class="row" style="margin-bottom:10px;flex-wrap:nowrap;gap:8px">${lbn.map(n=>`<button class="L${n}" data-pline="${n}" style="flex:1;min-height:46px;border-radius:10px;border:2px solid;font-weight:700;font-size:15px">${n}. pětka</button>`).join("")}</div>`;
+const ub=(us>op?["PP1","PP2"]:op>us?["SH1","SH2"]:[]).filter(k=>Object.values((m.sp||{})[k]||{}).some(Boolean));
+if(ub.length||L.unit)h+=`<div class="row" style="margin-bottom:12px">${ub.map(k=>`<button class="p" data-unit="${k}" style="min-height:52px;${k[0]==="S"?"background:var(--wa);border-color:var(--wa)":""}">${k[0]==="P"?"⚡ Přesilovka "+k[2]:"🛡 Oslabení "+k[2]}</button>`).join("")}${L.unit?`<button class="s" data-lines="1" style="min-height:52px">↩ Zpět na řady</button>`:""}</div>`}
+const mq=Math.min(5,Math.max(0,...COLS.map(c=>L.q[c].length)));
+h+=`<div class="lg" style="margin-bottom:4px">${COLS.map(c=>`<small class="mu" style="text-align:center;font-size:11px">${c}</small>`).join("")}</div>`;
+for(let r=mq;r>=1;r--)h+=`<div class="lg" style="margin-bottom:8px">${COLS.map(c=>{const q=L.q[c][r-1];return q?`<button class="lq L${lineOf(q)} tl${r===1?" nx":""}" data-q="${q}" data-col="${c}"><span class="n">${numOf(q)}</span><span class="nm">${nmOf(q)}</span></button>`:"<div></div>"}).join("")}</div>`;
+h+=`<div class="lg" style="margin-top:14px">${COLS.map(c=>{const p=L.ice[c];return p?`<button class="lice L${lineOf(p)} tl" data-ice="${c}"><span class="n">${numOf(p)}</span><span class="nm">${nmOf(p)}</span><span class="t" data-sh="${p}">${mmss(now-(L.since[p]||0))}</span></button>`:`<button class="lice tl" data-ice="${c}"><span class="nm">— prázdné —</span></button>`}).join("")}</div>`;
+h+=`<div style="margin-top:44px;padding-top:14px;border-top:2px dashed var(--bd)"><button class="lgk${run?"":" dd"}" id="lgk" style="margin-top:0;min-height:66px;font-size:15px">🥅 STŘELA NA NAŠI BRÁNU<br><small style="font-weight:400">${L.G?pn(L.G):"brankářka?"} · střely soupeře: ${sh.opp}${run?"":" · hra je přerušena"}</small></button></div>`;
+const evS=e=>e.k==="G"?(e.team==="us"?"⚽ Gól "+(e.scorer?pn(e.scorer):"?")+([e.a1,e.a2].filter(Boolean).length?" ("+[e.a1,e.a2].filter(Boolean).map(pn).join(", ")+")":""):"⚽ Gól soupeře"):e.k==="S"?(e.team==="us"?"🏒 Střela "+(e.shooter?pn(e.shooter):"?"):"🏒 Střela soupeře"):"🚫 "+(e.team==="us"?(e.pid?pn(e.pid):"?"):"Soupeř")+" "+e.min+" min";
+const recent=(m.events||[]).map((x,i)=>({x,i})).sort((a,b)=>b.x.per-a.x.per||(b.x.time||"").localeCompare(a.x.time||"")||b.i-a.i).slice(0,4).map(o=>o.x);
+h+=`<div style="margin-top:22px"><div class="mu" style="text-align:center;margin-bottom:4px">POSLEDNÍ AKCE</div>${recent.map(e=>`<div class="ev" style="padding:7px 0"><div class="t">${e.per}.&nbsp;${esc(e.time||"")}</div><div class="b">${evS(e)}</div></div>`).join("")||'<div class="mu" style="text-align:center">Zatím nic.</div>'}</div>`;
+h+=`<div class="lb" style="flex-direction:column;gap:10px">${run?"":`<div style="display:flex;gap:12px"><button id="qg" style="flex:1;font-size:16px;background:var(--ac);color:#fff;border-color:transparent">⚽ Gól naši</button><button id="qo" style="flex:1;font-size:16px;background:var(--no);color:#fff;border-color:transparent">⚽ Gól soupeř</button></div><div style="display:flex;gap:12px"><button id="qp" style="flex:1;font-size:15px">🚫 Trest</button><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`}<div style="display:flex;gap:12px"><button id="lun" style="flex:1;font-size:14px" title="${u?esc(u.t):""}">↩ Zpět</button><button id="lpl" style="flex:2.4;font-size:20px;background:${run?"var(--no)":"var(--ok)"};color:#fff;border-color:transparent">${run?"⏸ Přerušit":"▶ Start"}</button></div></div>`;
 if(S.lmenu){const dis=run?"disabled":"";let b;
 if(S.lsub==="off")b=`<h2>Kdo opustí led?</h2><div class="lmg">${COLS.map(c=>L.ice[c]).filter(Boolean).map(i=>`<button class="s" data-off="${i}">${pn(i)}</button>`).join("")}</div>`;
+else if(S.lsub==="lineup")b=`<h2>Sestava</h2><div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš nebo prohodíš. Změna se hned promítne do střídání (fronty pod místy).</div>${luEditor(m.lineup||{},0,"m:")}<div class="lnl" style="margin-top:12px">Náhradnice (podle pozic)</div><div class="bz" data-bz="b">${benchGrouped(m)}</div>`;
 else if(S.lsub==="units")b=`<h2>Přesilovky a oslabení</h2>${["PP1","PP2","SH1","SH2"].map(k=>{const u=(m.sp||{})[k]||{};return`<div style="margin-bottom:14px"><div class="mu" style="margin-bottom:4px"><b>${k[0]==="P"?"Přesilovka "+k[2]:"Oslabení "+k[2]}</b></div><div class="ln" style="grid-template-columns:repeat(5,minmax(0,1fr))">${COLS.map(c=>{const id=u[c],bx=id&&(L.pen||[]).some(x=>x.t==="us"&&x.p===id);return`<button class="sl ${id&&pl(id)?"f":""}" data-us="${k}:${c}" style="${bx?"outline:2px solid var(--no)":""}"><small>${c}</small>${id&&pl(id)?pn(id):"+"}${bx?" 🚫":""}</button>`}).join("")}</div><button class="s w" data-unit="${k}" style="margin-top:6px;min-height:50px">Nasadit</button></div>`}).join("")}<button class="s w" data-lines="1" style="min-height:50px">↩ Zpět na řady</button>`;
 else if((S.lsub||"").startsWith("usel:")){const[,uk,uc]=S.lsub.split(":"),cur=((m.sp||{})[uk]||{})[uc],inU=["PP1","PP2","SH1","SH2"].flatMap(x=>Object.entries((m.sp||{})[x]||{}).filter(([c])=>!(x===uk&&c===uc)).map(([c,v])=>v)),want=/^(LO|PO)$/.test(uc)?POS[1]:POS[0],pool=S.pl.filter(p=>nomOf(m).includes(p.id)&&!inU.includes(p.id)).sort((x,y)=>(y.pos===want)-(x.pos===want)||x.name.localeCompare(y.name,"cs"));
 b=`<h2>${uk} – ${uc}</h2><div class="chips">${pool.map(p=>`<button class="chip ${cur===p.id?"on":""}" data-usp="${p.id}">${pn(p.id)}</button>`).join("")||"Nikdo není nominován."}</div><button class="s w" data-usp="" style="min-height:50px">Vyprázdnit místo</button>`}
@@ -601,23 +521,24 @@ else if(S.lsub==="gk")b=`<h2>Brankářka</h2><div class="lmg">${[(m.lineup||{}).
 else if(S.lsub==="toi"){const T={},N={};L.sh.forEach(x=>{T[x.p]=(T[x.p]||0)+x.b-x.a;N[x.p]=(N[x.p]||0)+1});COLS.forEach(c=>{const p=L.ice[c];if(p){T[p]=(T[p]||0)+now-(L.since[p]||0);N[p]=(N[p]||0)+1}});
 b=`<h2>Čas na ledě</h2><table style="min-width:0"><tr><th>Hráčka</th><th>Čas</th><th>Střídání</th></tr>${Object.entries(T).sort((x,y)=>y[1]-x[1]).map(([p,t])=>`<tr><td>${pn(p)}</td><td>${mmss(t)}</td><td>${N[p]}</td></tr>`).join("")}</table>`}
 else if(S.lsub==="set")b=`<h2>Limit dlouhého střídání</h2><div class="row" style="align-items:center;text-align:center"><button class="s" data-lim="-15" style="min-height:58px">− 15 s</button><b style="font-size:26px">${mmss(shiftMax()*1000)}</b><button class="s" data-lim="15" style="min-height:58px">+ 15 s</button></div><div class="mu" style="margin-top:8px">Po překročení se dlaždice hráčky zbarví a telefon zavibruje. Nastavení se pamatuje v tomto zařízení.</div>`;
-else b=`${run?'<div class="mu" style="margin-bottom:8px">Některé akce jsou dostupné jen při přerušení hry.</div>':""}<div class="lmg"><button class="s" data-m="inj" ${dis}>🤕 Zranění</button><button class="s" data-m="end" ${dis}>⏱ Konec třetiny</button><button class="s" data-m="gk" ${dis}>🧤 Brankářka</button><button class="s" data-m="set">⚙️ Nastavení</button><button class="s" data-m="off" ${dis}>⬇️ Sundat z ledu</button><button class="s" data-m="re" ${dis}>🔄 Sestava znovu</button><button class="s" data-m="units">⚡ Jednotky PP/OS</button><button class="d" data-m="x">✕ Zavřít živý zápis</button></div>`;
+else b=`${run?'<div class="mu" style="margin-bottom:8px">Některé akce jsou dostupné jen při přerušení hry.</div>':""}<div class="lmg"><button class="s" data-m="lineup">👥 Sestava</button><button class="s" data-m="inj" ${dis}>🤕 Zranění</button><button class="s" data-m="end" ${dis}>⏱ Konec třetiny</button><button class="s" data-m="gk" ${dis}>🧤 Brankářka</button><button class="s" data-m="set">⚙️ Nastavení</button><button class="s" data-m="off" ${dis}>⬇️ Sundat z ledu</button><button class="s" data-m="re" ${dis}>🔄 Sestava znovu</button><button class="s" data-m="units">⚡ Jednotky PP/OS</button><button class="d" data-m="x">✕ Zavřít živý zápis</button></div>`;
 h+=`<div class="lmw" id="lmw"><div class="lmb">${b}<button class="s w" data-m="${S.lsub?"back":"cl"}" style="margin-top:14px;min-height:54px">Zpět</button></div></div>`}
 if(S.qa)h+=qaHtml(m,L);
 e.innerHTML=h;
-const Q2=x=>e.querySelectorAll(x);
+const Q2=x=>e.querySelectorAll(x);if(S.lmenu&&S.lsub==="lineup"&&!m.closed)matchDrag(e,m);
 e.querySelector("#lpl").onclick=()=>act(false,(L,n,i,t)=>{if(L.running){L.acc=t;L.running=false;L.t0=0}else{L.running=true;L.t0=Date.now()}});
 e.querySelector("#tm5").onclick=()=>nudgeT(-5000);e.querySelector("#tp5").onclick=()=>nudgeT(5000);
 e.querySelector("#lun").onclick=doUndo;
-e.querySelector("#lmn").onclick=()=>{S.lmenu=true;S.lsub=null;liveRender()};
+Q("#lmn").onclick=()=>{S.lmenu=true;S.lsub=null;liveRender()};
 const nope=()=>toast("Nejdřív přeruš hru");
-e.querySelector("#qg").onclick=()=>run?nope():qaStart("G");
-e.querySelector("#qo").onclick=()=>run?nope():qaStart("GO");
-e.querySelector("#qp").onclick=()=>run?nope():qaStart("P");
+Q("#qg").onclick=()=>run?nope():qaStart("G");
+Q("#qo").onclick=()=>run?nope():qaStart("GO");
+Q("#qp").onclick=()=>run?nope():qaStart("P");
 Q2("[data-qb]").forEach(b=>b.onclick=()=>qaClick(b.dataset.qb,m,L));
 Q2("[data-qs]").forEach(b=>b.onclick=()=>{S.qa.sit=b.dataset.qs;liveRender()});
-e.querySelector("#lgk").onclick=doOShot;
-Q2("[data-ice]").forEach(b=>b.onclick=()=>{const p=L.ice[b.dataset.ice];if(p)doShot(p)});
+e.querySelector("#lgk").onclick=()=>run?doOShot():toast("Hra je přerušena – střelu nelze zapsat");
+Q2("[data-ice]").forEach(b=>b.onclick=()=>{const p=L.ice[b.dataset.ice];if(p){if(run)doShot(p);else toast("Hra je přerušena – střelu nelze zapsat")}});
+Q2("[data-pline]").forEach(b=>b.onclick=()=>{const k=+b.dataset.pline;act(k+". pětka na led",(L2,n,ids,t)=>{const r=applyLine(L2,n,k,t);if(r.skip.length)toast("Nenasazeny (trest/nenominovány): "+r.skip.join(", "))})});
 Q2("[data-us]").forEach(b=>b.onclick=()=>{S.lsub="usel:"+b.dataset.us;liveRender()});
 Q2("[data-usp]").forEach(b=>b.onclick=()=>{const[,k,c]=S.lsub.split(":"),n=clone(m);n.sp=n.sp||{};n.sp[k]=n.sp[k]||{};if(b.dataset.usp)n.sp[k][c]=b.dataset.usp;else delete n.sp[k][c];S.lsub="units";upd(n)});
 Q2("[data-unit]").forEach(b=>b.onclick=()=>{const k=b.dataset.unit;S.lmenu=false;S.lsub=null;act((k[0]==="P"?"Přesilovka ":"Oslabení ")+k[2],(L2,n,ids,t)=>{const r=applyUnit(L2,n,k,t);if(r.skip.length)toast("Nenasazeny (trest/nenominovány): "+r.skip.join(", "));else if(r.trim)toast("Jednotka zkrácena podle počtu hráček na ledě")})});
@@ -630,7 +551,7 @@ Q2("[data-m]").forEach(b=>b.onclick=()=>{const k=b.dataset.m;
 if(k==="cl")cl();else if(k==="back"){S.lsub=(S.lsub||"").startsWith("usel:")?"units":null;liveRender()}
 else if(k==="x"){S.lv=false;S.qa=null;cl();render()}
 else if(k==="gu")openLive("G","us");else if(k==="go")openLive("G","opp");else if(k==="pe")openLive("P");
-else if(["inj","gk","toi","set","off","units"].includes(k)){S.lsub=k;liveRender()}
+else if(["inj","gk","toi","set","off","units","lineup"].includes(k)){S.lsub=k;liveRender()}
 else if(k==="end"){cl();act("Konec třetiny",(L,n,i,t)=>{L.running=false;L.acc=t;L.t0=0;L.per=Math.min(4,L.per+1);L.pst=t})}
 else if(k==="re"){cl();act(null,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c])leave(L,L.ice[c],c,t)});const f=initLive(n);COLS.forEach(c=>{f.ice[c]=f.ice[c];if(f.ice[c])f.since[f.ice[c]]=t});Object.assign(L,{ice:f.ice,q:f.q,since:f.since,G:f.G})})}});
 Q2("[data-inj]").forEach(b=>b.onclick=()=>{const id=b.dataset.inj;cl();act(null,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c]===id){leave(L,id,c,t);L.ice[c]=null}L.q[c]=L.q[c].filter(x=>x!==id)});n.nom=nomOf(n).filter(x=>x!==id);Object.keys(n.lineup||{}).forEach(k=>{if(n.lineup[k]===id)delete n.lineup[k]})});toast("Hráčka odebrána ze zápasu (zraněna)")});
