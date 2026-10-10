@@ -1,0 +1,1207 @@
+{
+ "app": "hokej-zapasy",
+ "version": 1,
+ "exported": "2026-10-08",
+ "data": {
+  "players": {
+   "0s2tk1snpma9vj9ag88h": {
+    "alt": "Obránkyně",
+    "name": "Janča",
+    "num": "5",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "0svdi1a6ojems2l01r8b": {
+    "alt": "Útočnice",
+    "name": "Terka",
+    "num": "23",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "6hst4znm1d7gkanf0z7h": {
+    "alt": "Obránkyně",
+    "name": "Majda",
+    "num": "21",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp01": {
+    "alt": "",
+    "name": "Petra",
+    "num": "",
+    "pos": "",
+    "st": "act"
+   },
+   "imp02": {
+    "alt": "",
+    "name": "Štěpánka",
+    "num": "27",
+    "pos": "Brankářka",
+    "st": "act"
+   },
+   "imp04": {
+    "alt": "Útočnice",
+    "name": "Zdenča",
+    "num": "9",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp05": {
+    "alt": "",
+    "name": "Bětka",
+    "num": "28",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp06": {
+    "alt": "",
+    "name": "Štěpka",
+    "num": "12",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp08": {
+    "alt": "",
+    "name": "Verča",
+    "num": "13",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp09": {
+    "alt": "",
+    "name": "Lenka",
+    "num": "",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp10": {
+    "alt": "",
+    "name": "Káťa",
+    "num": "26",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp11": {
+    "alt": "Útočnice",
+    "name": "Barča",
+    "num": "",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp12": {
+    "alt": "Obránkyně",
+    "name": "Danča",
+    "num": "22",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp13": {
+    "alt": "",
+    "name": "Hanča",
+    "num": "8",
+    "pos": "Obránkyně",
+    "st": "act"
+   },
+   "imp15": {
+    "alt": "",
+    "name": "Eliška",
+    "num": "",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp16": {
+    "alt": "",
+    "name": "Táňa",
+    "num": "19",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp17": {
+    "alt": "",
+    "name": "Violeta",
+    "num": "",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp19": {
+    "alt": "Obránkyně",
+    "name": "Emča",
+    "num": "25",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp20": {
+    "alt": "Obránkyně",
+    "name": "Ráďa",
+    "num": "1",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp21": {
+    "alt": "Obránkyně",
+    "name": "Alča",
+    "num": "",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "imp22": {
+    "alt": "Obránkyně",
+    "name": "Nikča",
+    "num": "24",
+    "pos": "Útočnice",
+    "st": "act"
+   },
+   "nkgur04a0yafjbbcfaom": {
+    "alt": "",
+    "name": "Táňa",
+    "num": "2",
+    "pos": "Brankářka",
+    "st": "act"
+   }
+  },
+  "matches": {
+   "w6yp0892c828z4973cr5": {
+    "date": "2026-10-10",
+    "events": [
+     {
+      "id": "ft192v7k",
+      "k": "S",
+      "per": 1,
+      "shooter": "6hst4znm1d7gkanf0z7h",
+      "team": "us",
+      "time": "00:09"
+     },
+     {
+      "id": "dy4csoc7",
+      "k": "S",
+      "per": 1,
+      "shooter": "imp16",
+      "team": "us",
+      "time": "00:13"
+     },
+     {
+      "gk": null,
+      "id": "nvqkt91l",
+      "k": "S",
+      "per": 1,
+      "team": "opp",
+      "time": "00:18"
+     },
+     {
+      "gk": null,
+      "id": "2cdfzb2l",
+      "k": "S",
+      "per": 1,
+      "team": "opp",
+      "time": "00:20"
+     },
+     {
+      "gk": null,
+      "id": "rgf5mbz9",
+      "k": "S",
+      "per": 1,
+      "team": "opp",
+      "time": "00:21"
+     },
+     {
+      "id": "y3e8m382",
+      "k": "P",
+      "min": 2,
+      "per": 1,
+      "pid": "0s2tk1snpma9vj9ag88h",
+      "reason": "Držení",
+      "team": "us",
+      "time": "00:22"
+     },
+     {
+      "gk": null,
+      "id": "7htgdig3",
+      "k": "S",
+      "per": 1,
+      "team": "opp",
+      "time": "00:47"
+     },
+     {
+      "id": "vjifpug2",
+      "k": "S",
+      "per": 1,
+      "shooter": "imp19",
+      "team": "us",
+      "time": "00:49"
+     },
+     {
+      "id": "3dzkikuh",
+      "k": "S",
+      "per": 1,
+      "shooter": "imp21",
+      "team": "us",
+      "time": "00:59"
+     },
+     {
+      "gk": null,
+      "id": "3khaznn8",
+      "k": "S",
+      "per": 1,
+      "team": "opp",
+      "time": "01:00"
+     },
+     {
+      "gk": null,
+      "id": "0i73f1as",
+      "k": "G",
+      "on": [
+       "6hst4znm1d7gkanf0z7h",
+       "imp19",
+       "imp08",
+       "imp06"
+      ],
+      "per": 1,
+      "sit": "PP",
+      "team": "opp",
+      "time": "01:02"
+     },
+     {
+      "id": "kbkxeqz6",
+      "k": "S",
+      "per": 1,
+      "shooter": "imp22",
+      "team": "us",
+      "time": "01:57"
+     },
+     {
+      "gk": null,
+      "id": "yzhqpkz7",
+      "k": "S",
+      "per": 1,
+      "team": "opp",
+      "time": "02:00"
+     },
+     {
+      "id": "aejyupo3",
+      "k": "S",
+      "per": 1,
+      "shooter": "imp21",
+      "team": "us",
+      "time": "02:05"
+     },
+     {
+      "id": "7295e2nm",
+      "k": "S",
+      "per": 1,
+      "shooter": "imp19",
+      "team": "us",
+      "time": "02:05"
+     },
+     {
+      "a1": "imp19",
+      "a2": "imp21",
+      "id": "frhwm188",
+      "k": "G",
+      "on": [
+       "imp22",
+       "imp19",
+       "imp21",
+       "imp05",
+       "imp08"
+      ],
+      "per": 1,
+      "scorer": "imp22",
+      "sit": "E",
+      "team": "us",
+      "time": "02:06"
+     },
+     {
+      "gk": null,
+      "id": "3bc9fd3t",
+      "k": "S",
+      "per": 2,
+      "team": "opp",
+      "time": "00:01"
+     },
+     {
+      "id": "34cjqjnp",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp22",
+      "team": "us",
+      "time": "00:16"
+     },
+     {
+      "id": "q9pkemlr",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp08",
+      "team": "us",
+      "time": "00:20"
+     },
+     {
+      "id": "mmp0d695",
+      "k": "S",
+      "per": 2,
+      "shooter": "6hst4znm1d7gkanf0z7h",
+      "team": "us",
+      "time": "00:29"
+     },
+     {
+      "a1": "imp08",
+      "a2": null,
+      "id": "pryb0gkx",
+      "k": "G",
+      "on": [
+       "6hst4znm1d7gkanf0z7h",
+       "imp08",
+       "imp19",
+       "imp20",
+       "imp05"
+      ],
+      "per": 2,
+      "scorer": "6hst4znm1d7gkanf0z7h",
+      "sit": "E",
+      "team": "us",
+      "time": "00:30"
+     },
+     {
+      "gk": null,
+      "id": "3hpu4q7x",
+      "k": "S",
+      "per": 2,
+      "team": "opp",
+      "time": "00:38"
+     },
+     {
+      "gk": null,
+      "id": "bzrf49vi",
+      "k": "S",
+      "per": 2,
+      "team": "opp",
+      "time": "00:40"
+     },
+     {
+      "id": "2p8gnzlq",
+      "k": "S",
+      "per": 2,
+      "shooter": "6hst4znm1d7gkanf0z7h",
+      "team": "us",
+      "time": "00:43"
+     },
+     {
+      "id": "rmp50njf",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp20",
+      "team": "us",
+      "time": "00:44"
+     },
+     {
+      "id": "074b9f6e",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp05",
+      "team": "us",
+      "time": "00:50"
+     },
+     {
+      "id": "0x8tu7k0",
+      "k": "S",
+      "per": 2,
+      "shooter": "0s2tk1snpma9vj9ag88h",
+      "team": "us",
+      "time": "00:50"
+     },
+     {
+      "a1": "imp16",
+      "a2": "imp13",
+      "id": "99ojuoz2",
+      "k": "G",
+      "on": [
+       "0s2tk1snpma9vj9ag88h",
+       "imp16",
+       "imp13",
+       "6hst4znm1d7gkanf0z7h",
+       "imp05"
+      ],
+      "per": 2,
+      "scorer": "0s2tk1snpma9vj9ag88h",
+      "sit": "E",
+      "team": "us",
+      "time": "00:59"
+     },
+     {
+      "id": "y77tj44c",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp16",
+      "team": "us",
+      "time": "01:06"
+     },
+     {
+      "id": "2m0chdr5",
+      "k": "S",
+      "per": 2,
+      "shooter": "0s2tk1snpma9vj9ag88h",
+      "team": "us",
+      "time": "01:08"
+     },
+     {
+      "id": "mu228nui",
+      "k": "S",
+      "per": 2,
+      "shooter": "6hst4znm1d7gkanf0z7h",
+      "team": "us",
+      "time": "01:09"
+     },
+     {
+      "id": "5g0sx9iz",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp16",
+      "team": "us",
+      "time": "01:11"
+     },
+     {
+      "a1": "6hst4znm1d7gkanf0z7h",
+      "a2": "0s2tk1snpma9vj9ag88h",
+      "id": "ujq9wdao",
+      "k": "G",
+      "on": [
+       "imp16",
+       "6hst4znm1d7gkanf0z7h",
+       "0s2tk1snpma9vj9ag88h",
+       "imp05",
+       "imp13"
+      ],
+      "per": 2,
+      "scorer": "imp16",
+      "sit": "E",
+      "team": "us",
+      "time": "01:13"
+     },
+     {
+      "id": "nrbhiqpb",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp20",
+      "team": "us",
+      "time": "01:33"
+     },
+     {
+      "id": "rp9cshef",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp19",
+      "team": "us",
+      "time": "01:35"
+     },
+     {
+      "id": "rv90vdwz",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp20",
+      "team": "us",
+      "time": "01:54"
+     },
+     {
+      "gk": null,
+      "id": "lnhoeqc4",
+      "k": "G",
+      "on": [
+       "6hst4znm1d7gkanf0z7h",
+       "0s2tk1snpma9vj9ag88h",
+       "imp20",
+       "imp05",
+       "imp08"
+      ],
+      "per": 2,
+      "sit": "E",
+      "team": "opp",
+      "time": "02:00"
+     },
+     {
+      "id": "v4mfzvuh",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp19",
+      "team": "us",
+      "time": "02:06"
+     },
+     {
+      "id": "9zlozxai",
+      "k": "P",
+      "min": 2,
+      "per": 2,
+      "pid": "imp19",
+      "reason": "Podražení",
+      "team": "us",
+      "time": "02:08"
+     },
+     {
+      "gk": null,
+      "id": "5xf6ynho",
+      "k": "S",
+      "per": 2,
+      "team": "opp",
+      "time": "02:11"
+     },
+     {
+      "id": "nz4qjb95",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp22",
+      "team": "us",
+      "time": "02:15"
+     },
+     {
+      "gk": null,
+      "id": "d0g4ljys",
+      "k": "S",
+      "per": 2,
+      "team": "opp",
+      "time": "02:24"
+     },
+     {
+      "id": "jy3kyjil",
+      "k": "S",
+      "per": 2,
+      "shooter": "6hst4znm1d7gkanf0z7h",
+      "team": "us",
+      "time": "02:25"
+     },
+     {
+      "id": "yoc69njp",
+      "k": "S",
+      "per": 2,
+      "shooter": "0svdi1a6ojems2l01r8b",
+      "team": "us",
+      "time": "02:27"
+     },
+     {
+      "id": "xqbe5ycs",
+      "k": "S",
+      "per": 2,
+      "shooter": "0svdi1a6ojems2l01r8b",
+      "team": "us",
+      "time": "02:29"
+     },
+     {
+      "id": "nw5z2at2",
+      "k": "S",
+      "per": 2,
+      "shooter": "imp16",
+      "team": "us",
+      "time": "02:36"
+     },
+     {
+      "gk": null,
+      "id": "1m2ce5g8",
+      "k": "G",
+      "on": [
+       "imp22",
+       "imp16",
+       "imp05",
+       "imp08"
+      ],
+      "per": 2,
+      "sit": "PP",
+      "team": "opp",
+      "time": "02:38"
+     }
+    ],
+    "home": true,
+    "lineup": {
+     "1C": "0s2tk1snpma9vj9ag88h",
+     "1LK": "6hst4znm1d7gkanf0z7h",
+     "1LO": "0svdi1a6ojems2l01r8b",
+     "1PK": "imp16",
+     "1PO": "imp08",
+     "2C": "imp19",
+     "2LK": "imp22",
+     "2LO": "imp05",
+     "2PK": "imp20",
+     "2PO": "imp13",
+     "3LK": "imp15",
+     "3PK": "imp21",
+     "G1": "imp02",
+     "G2": "nkgur04a0yafjbbcfaom"
+    },
+    "live": {
+     "G": null,
+     "acc": 285832,
+     "box": [],
+     "ice": {
+      "C": "imp19",
+      "LK": "imp22",
+      "LO": "imp05",
+      "PK": "imp16",
+      "PO": "imp08"
+     },
+     "obox": [],
+     "per": 3,
+     "pst": 284860,
+     "q": {
+      "C": [
+       "0s2tk1snpma9vj9ag88h"
+      ],
+      "LK": [
+       "6hst4znm1d7gkanf0z7h"
+      ],
+      "LO": [
+       "0svdi1a6ojems2l01r8b"
+      ],
+      "PK": [
+       "imp21",
+       "imp20"
+      ],
+      "PO": [
+       "imp13"
+      ]
+     },
+     "running": false,
+     "sh": [
+      {
+       "a": 0,
+       "b": 0,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 0,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 0,
+       "c": "PK",
+       "p": "imp16",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 0,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 0,
+       "c": "PO",
+       "p": "imp06",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 22652,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 22652,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 22652,
+       "c": "PK",
+       "p": "imp16",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 22652,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 1
+      },
+      {
+       "a": 0,
+       "b": 22652,
+       "c": "PO",
+       "p": "imp06",
+       "per": 1
+      },
+      {
+       "a": 22652,
+       "b": 30639,
+       "c": "LO",
+       "p": "imp05",
+       "per": 1
+      },
+      {
+       "a": 22652,
+       "b": 38951,
+       "c": "PK",
+       "p": "imp20",
+       "per": 1
+      },
+      {
+       "a": 22652,
+       "b": 42851,
+       "c": "PO",
+       "p": "imp13",
+       "per": 1
+      },
+      {
+       "a": 22652,
+       "b": 44891,
+       "c": "LK",
+       "p": "imp22",
+       "per": 1
+      },
+      {
+       "a": 44891,
+       "b": 62075,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 1
+      },
+      {
+       "a": 22652,
+       "b": 62075,
+       "c": "C",
+       "p": "imp19",
+       "per": 1
+      },
+      {
+       "a": 38951,
+       "b": 62075,
+       "c": "PK",
+       "p": "imp21",
+       "per": 1
+      },
+      {
+       "a": 30639,
+       "b": 62075,
+       "c": "LO",
+       "p": "imp08",
+       "per": 1
+      },
+      {
+       "a": 42851,
+       "b": 62075,
+       "c": "PO",
+       "p": "imp06",
+       "per": 1
+      },
+      {
+       "a": 62075,
+       "b": 72119,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 1
+      },
+      {
+       "a": 62075,
+       "b": 72341,
+       "c": "PO",
+       "p": "imp06",
+       "per": 1
+      },
+      {
+       "a": 62075,
+       "b": 97923,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 1
+      },
+      {
+       "a": 62075,
+       "b": 97923,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 1
+      },
+      {
+       "a": 62075,
+       "b": 97923,
+       "c": "PK",
+       "p": "imp16",
+       "per": 1
+      },
+      {
+       "a": 72119,
+       "b": 97923,
+       "c": "LO",
+       "p": "imp05",
+       "per": 1
+      },
+      {
+       "a": 72341,
+       "b": 97923,
+       "c": "PO",
+       "p": "imp13",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 97923,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 97923,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 97923,
+       "c": "PK",
+       "p": "imp16",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 97923,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 97923,
+       "c": "PO",
+       "p": "imp13",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 99935,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 102034,
+       "c": "PK",
+       "p": "imp16",
+       "per": 1
+      },
+      {
+       "a": 102034,
+       "b": 105907,
+       "c": "PK",
+       "p": "imp21",
+       "per": 1
+      },
+      {
+       "a": 99935,
+       "b": 108114,
+       "c": "LO",
+       "p": "imp08",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 114164,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 114164,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 1
+      },
+      {
+       "a": 105907,
+       "b": 114164,
+       "c": "PK",
+       "p": "imp20",
+       "per": 1
+      },
+      {
+       "a": 108114,
+       "b": 114164,
+       "c": "LO",
+       "p": "imp16",
+       "per": 1
+      },
+      {
+       "a": 97923,
+       "b": 114164,
+       "c": "PO",
+       "p": "imp13",
+       "per": 1
+      },
+      {
+       "a": 114164,
+       "b": 131062,
+       "c": "LO",
+       "p": "imp05",
+       "per": 2
+      },
+      {
+       "a": 131062,
+       "b": 132083,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 2
+      },
+      {
+       "a": 114164,
+       "b": 139805,
+       "c": "PK",
+       "p": "imp21",
+       "per": 2
+      },
+      {
+       "a": 114164,
+       "b": 152874,
+       "c": "LK",
+       "p": "imp22",
+       "per": 2
+      },
+      {
+       "a": 139805,
+       "b": 172925,
+       "c": "PK",
+       "p": "imp20",
+       "per": 2
+      },
+      {
+       "a": 114164,
+       "b": 174914,
+       "c": "C",
+       "p": "imp19",
+       "per": 2
+      },
+      {
+       "a": 114164,
+       "b": 176407,
+       "c": "PO",
+       "p": "imp08",
+       "per": 2
+      },
+      {
+       "a": 174914,
+       "b": 206680,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 2
+      },
+      {
+       "a": 172925,
+       "b": 208227,
+       "c": "PK",
+       "p": "imp16",
+       "per": 2
+      },
+      {
+       "a": 152874,
+       "b": 210355,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 2
+      },
+      {
+       "a": 132083,
+       "b": 212096,
+       "c": "LO",
+       "p": "imp05",
+       "per": 2
+      },
+      {
+       "a": 176407,
+       "b": 212739,
+       "c": "PO",
+       "p": "imp13",
+       "per": 2
+      },
+      {
+       "a": 208227,
+       "b": 218216,
+       "c": "PK",
+       "p": "imp21",
+       "per": 2
+      },
+      {
+       "a": 206680,
+       "b": 224856,
+       "c": "C",
+       "p": "imp19",
+       "per": 2
+      },
+      {
+       "a": 210355,
+       "b": 225848,
+       "c": "LK",
+       "p": "imp22",
+       "per": 2
+      },
+      {
+       "a": 218216,
+       "b": 226802,
+       "c": "PK",
+       "p": "imp20",
+       "per": 2
+      },
+      {
+       "a": 212096,
+       "b": 233430,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 2
+      },
+      {
+       "a": 233430,
+       "b": 242336,
+       "c": "LO",
+       "p": "imp20",
+       "per": 2
+      },
+      {
+       "a": 226802,
+       "b": 244366,
+       "c": "PK",
+       "p": "imp16",
+       "per": 2
+      },
+      {
+       "a": 225848,
+       "b": 246924,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 2
+      },
+      {
+       "a": 224856,
+       "b": 246924,
+       "c": "C",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 2
+      },
+      {
+       "a": 242336,
+       "b": 246924,
+       "c": "LO",
+       "p": "imp05",
+       "per": 2
+      },
+      {
+       "a": 212739,
+       "b": 246924,
+       "c": "PO",
+       "p": "imp08",
+       "per": 2
+      },
+      {
+       "a": 246924,
+       "b": 255428,
+       "c": "C",
+       "p": "imp19",
+       "per": 2
+      },
+      {
+       "a": 244366,
+       "b": 255428,
+       "c": "PK",
+       "p": "imp20",
+       "per": 2
+      },
+      {
+       "a": 246924,
+       "b": 267840,
+       "c": "LK",
+       "p": "imp22",
+       "per": 2
+      },
+      {
+       "a": 267840,
+       "b": 280221,
+       "c": "LK",
+       "p": "6hst4znm1d7gkanf0z7h",
+       "per": 2
+      },
+      {
+       "a": 255428,
+       "b": 280221,
+       "c": "PK",
+       "p": "0s2tk1snpma9vj9ag88h",
+       "per": 2
+      },
+      {
+       "a": 246924,
+       "b": 280221,
+       "c": "LO",
+       "p": "0svdi1a6ojems2l01r8b",
+       "per": 2
+      },
+      {
+       "a": 246924,
+       "b": 280221,
+       "c": "PO",
+       "p": "imp13",
+       "per": 2
+      }
+     ],
+     "since": {
+      "imp05": 280221,
+      "imp08": 280221,
+      "imp16": 280221,
+      "imp19": 284860,
+      "imp22": 280221
+     },
+     "t0": 0,
+     "u": []
+    },
+    "nom": [
+     "imp02",
+     "nkgur04a0yafjbbcfaom",
+     "imp05",
+     "imp13",
+     "0svdi1a6ojems2l01r8b",
+     "imp08",
+     "imp21",
+     "imp19",
+     "0s2tk1snpma9vj9ag88h",
+     "6hst4znm1d7gkanf0z7h",
+     "imp22",
+     "imp20",
+     "imp16",
+     "imp06",
+     "imp15"
+    ],
+    "opp": "HC Dračice"
+   }
+  },
+  "opponents": {
+   "o14cptk5": {
+    "name": "HC Dračice"
+   }
+  },
+  "settings": {
+   "lineup": {
+    "lu": {
+     "1C": "0s2tk1snpma9vj9ag88h",
+     "1LK": "6hst4znm1d7gkanf0z7h",
+     "1LO": "imp06",
+     "1PK": "imp16",
+     "1PO": "0svdi1a6ojems2l01r8b",
+     "2C": "imp22",
+     "2LK": "imp19",
+     "2LO": "imp05",
+     "2PK": "imp20",
+     "2PO": "imp13",
+     "3LO": "imp08",
+     "3PK": "imp11",
+     "G1": "imp02",
+     "G2": "nkgur04a0yafjbbcfaom"
+    }
+   }
+  }
+ }
+}

@@ -2,7 +2,7 @@
    Režimy: 1) lokální (localStorage, výchozí)  2) synchronizace přes Supabase (REST) s frontou pro offline provoz. */
 (function(){
 "use strict";
-const VERSION="v10 · 8. 10. 2026";
+const VERSION="v7 · 8. 10. 2026";
 {const v=document.getElementById("ver");if(v)v.textContent=VERSION}
 const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 const K_DATA="hokej_data_v1",K_CFG="hokej_cfg_v1",K_Q="hokej_queue_v1",K_META="hokej_meta_v1";

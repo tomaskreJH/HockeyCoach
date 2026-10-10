@@ -52,49 +52,36 @@ Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná
 
 ## Postup zápasu (3 kroky)
 Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav příprav (✅/⛔ Nominace, Sestava). Pod ním jsou kroky, dole tlačítko pro další krok.
-1. **Zápas** – soupeř, datum, délka třetiny (standard 20 min), vzájemné zápasy (jen uzavřené) a karta živého zápisu.
-2. **Sestava** – dvě části (A a B):
-   - **A Nominace:** klepnutím vybereš hráčky, které máš k dispozici (jsou seřazené podle pozic, Všechny aktivní / Zrušit vše). Dál se jde až po splnění minima (1 brankářka a 5 bruslařek).
-   - **B Sestava:** po přechodu se sestava sama naplní **podle základní formace** (jen nominované hráčky). Pod ní jsou **náhradnice rozdělené podle pozic**, pod nimi **přesilovky a oslabení** (hráčka jen v jedné jednotce). Tlačítko ↻ Podle základní formace sestavu znovu přepíše. Sestavu potvrdíš tlačítkem **✔ Uzavřít sestavu**. Jakákoli změna sestavy před zahájením uzavření zruší, takže ji uzavřeš znovu.
-3. **Zápas živě** – průběh (nejnovější nahoře), jmenné statistiky zápasu a uzavření zápasu. Karta živého zápisu je i tady.
-- **Živý zápis jde spustit až po uzavření sestavy** (a splněné nominaci). Do té doby je vidět, co chybí, a tlačítko vede do kroku 2.
-- **Po zahájení zápisu** je uzamčená nominace, soupeř, datum a doma/venku.
-- **Změna sestavy za zápasu:** živý zápis → menu ⋯ → **👥 Sestava**. Klepnutím nebo přetažením vyměníš hráčky (i s náhradnicemi). Změna se hned promítne do front střídání: hráčky na ledě zůstávají, ostatní se přeskládají podle nové sestavy. Přesilovky a oslabení jdou měnit v menu ⋯ → Jednotky PP/OS.
+1. **Zápas** – soupeř, datum, délka třetiny (standard 20 min), vzájemné zápasy (jen uzavřené) a tlačítko živého zápisu.
+2. **Sestava** – nominace i sestava na jedné obrazovce:
+   - nahoře řady a brankářky (klepnutí = výběr hráčky, podržení a přetažení = přesun nebo prohození),
+   - **Nominované – náhradnice**: nominované hráčky, které nejsou v sestavě,
+   - **Nenominované**: klepnutím hráčku nominuješ, přetažením sem ji z nominace vyřadíš (z řady zmizí). Tlačítka Všechny aktivní / Zrušit vše,
+   - pod tím nepovinné jednotky pro přesilovku a oslabení (hráčka jen v jedné jednotce).
+3. **Zápas živě** – průběh (nejnovější nahoře), jmenné statistiky zápasu a uzavření zápasu. Tlačítko živého zápisu je i tady.
+- **Živý zápis jde spustit až po dokončení** nominace (min. 1 brankářka a 5 bruslařek) a sestavy (hotová 1. pětka a základní brankářka). Do té doby je vidět, co chybí, a tlačítko vede do kroku 2.
+- **Po zahájení zápisu** je uzamčená nominace, soupeř, datum a doma/venku. Sestavu, jednotky, brankářku a vyřazení zraněné hráčky měnit lze.
 - **Krok Soupeř** (zápis soupeřovy sestavy) je zatím z postupu vyřazen. Dříve zapsaná data zůstávají uložená.
-- **Hráčka se nesmí opakovat ve více formacích téhož druhu.** Druhy jsou tři: řady 5:5 (jedno místo), přesilovky (jen jedna z PP1/PP2) a oslabení (zvlášť 4 hráčky: SH1/SH2, a 3 hráčky: SH3/SH4). Mezi druhy se hráčka překrývat smí (např. v řadě a zároveň v oslabení).
+- Hráčka je vždy jen v jedné formaci: v sestavě na jednom místě a v přesilovkách/oslabeních jen v jedné jednotce.
+
+## Když po nahrání nové verze vidíš starou
+Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají). Při nahrání na web musí být nahrány všechny soubory ze složky, včetně `sw.js` a `storage.js`.
 
 ## Záložka Team
 - **Základní formace** nahoře: klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Sestava se kopíruje do každého nového zápasu.
 - **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
 - **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není.
 
-## Živý zápis – rozložení a ovládání
-- **Horní lišta** (čas s šipkami ◀ ▶ pro posun o 5 s, skóre, situace) zůstává nahoře.
-- **Barvy podle pětek:** 1. pětka modrá, 2. bílá, 3. červená, 4. zelená, hráčka mimo pětky šedá. Z barev je vidět, jak se pětky míchají.
-- **Rozložení shora dolů:** tlačítka „Celá pětka na led“ → fronty čekajících hráček (nejblíž ledu je ta, která jde na řadu, zvýrazněná oranžově) → **hráčky na ledě** → mezera → **STŘELA NA NAŠI BRÁNU** → poslední čtyři akce z průběhu.
-- **Tlačítka hráček:** na ledě číslo (velké), pod ním přezdívka a čas na ledě. V čekání číslo a pod ním přezdívka.
-- **Střídání:** klepnutí na hráčku ve frontě ji pošle na led místo hráčky pod ní. Podržením a přetažením ji pošleš na jinou pozici. Tlačítko **N. pětka** pošle na led celou pětku najednou (např. když jsou řady rozházené).
-- **Střela:** klepnutí na hráčku na ledě zapíše její střelu, tlačítko STŘELA NA NAŠI BRÁNU střelu soupeře. **Když je hra přerušená, střely zapsat nejdou.**
-- **Spodní lišta:** za běžící hry jen ↩ Zpět a velké Start/Přerušit. **Po přerušení** se přidají ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby (zranění, konec třetiny, brankářka, změna sestavy, jednotky a další).
-- **Gól naši:** klepneš střelkyni, pak 1. a 2. asistenci (nebo „Bez asistence“). Střelkyně se v asistencích nenabízí. Situaci nastaví aplikace sama. **Gól soupeře:** jedno klepnutí. **Trest:** hráčka → délka → důvod.
-- **Krok 3 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání. Jen pro čtení.
-
-## Oslabení – méně pozic a základní rozdělení
-- **Oslabení 4 hráčky:** střed (C), útočník (Ú), oba obránci (LO, PO). **Oslabení 3 hráčky:** střed a dva obránci. Základní rozdělení se definuje předem v kroku 2 (jednotky SH1–SH4), kombinace můžeš zvolit libovolně.
-- **V živém zápisu se při oslabení ukáže jen 4 resp. 3 pozice** (ostatní se skryjí). Hráčky na ledě se podle potřeby přeskupí do zbývajících pozic, po skončení trestu se pozice vrátí.
-- **Nasazení jednotky:** při oslabení se nabídnou jednotky pro příslušný počet hráček (4 nebo 3), při přesilovce přesilovky PP1/PP2.
-- **Vyloučená hráčka v jednotce:** při nasazení jednotky se její místo obsadí jinou hráčkou z fronty téže pozice (nebo z druhé strany), pokud to tresty dovolují. Aplikace to oznámí.
-
-## Zranění v živém zápisu
-Menu **⋯ → 🤕 Zranění** → vybereš hráčku a typ:
-- **🩹 Dočasně (v ošetřování):** hráčka se vyřadí z ledu a front, ale zůstává v nominaci i sestavě. V menu je v seznamu „V ošetřování“, odkud ji tlačítkem **↩ Vrátit** vrátíš do sestavy (zařadí se na konec fronty své pozice), nebo **Trvalé** převedeš na trvalé zranění.
-- **🤕 Trvale:** hráčka se odebere z nominace a sestavy a v soupisce se označí jako zraněná (🤕), takže do dalších zápasů se nenabízí.
-
-## Zápis utkání
-V kroku 3 (Zápas živě) je karta **Zápis utkání**. Otevře souhrn: výsledek a po třetinách, góly a asistence, sestava (řady, brankářky, náhradnice, jednotky, zranění), průběh (góly a tresty) a jmenné statistiky se časem na ledě a počtem střídání. Tlačítka **🖨 Tisk / PDF** a **💾 Stáhnout (HTML)** zápis uloží nebo vytisknou.
+## Živý zápis – rychlé ovládání
+- **Spuštění:** velké tlačítko je v kroku **1 Zápas** (Zahájit zápas / Pokračovat v živém zápisu).
+- **Spodní lišta:** ⚽ Gól naši, ⚽ Gól soupeř a 🚫 Trest jsou stále na očích (při běžící hře zešedlé, nejdřív přeruš hru). Pod nimi je ↩ vrácení poslední akce, Start/Přerušit a menu ⋯ s méně častými akcemi (zranění, konec třetiny, brankářka, nastavení, jednotky, sundat z ledu).
+- **Gól naši:** klepneš střelkyni, pak 1. asistenci, pak 2. asistenci (nebo „Bez asistence“). Střelkyně se v asistencích nenabízí. Situaci (5 na 5, přesilovka, oslabení) nastaví aplikace sama, jde ji přepnout.
+- **Gól soupeře:** jedno klepnutí, zapíše se rovnou.
+- **Trest:** hráčka → délka → důvod.
+- **Krok 5 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání. Jen pro čtení.
 
 ## Tresty podle pravidel IIHF (živý zápis)
-- **Tlačítko 🚫 Trest (ve spodní liště po přerušení hry):** hráčka (nebo soupeř), délka (2 min, 2+2, 5 min, 10 osobní, do konce) a důvod, vše jednotlivými klepnutími. Hráčka sejde z ledu, místo zůstane prázdné a nahoře běží odpočet.
+- **Tlačítko 🚫 Trest ve spodní liště:** hráčka (nebo soupeř), délka (2 min, 2+2, 5 min, 10 osobní, do konce) a důvod, vše jednotlivými klepnutími. Hráčka sejde z ledu, místo zůstane prázdné a nahoře běží odpočet.
 - **Návrat po vypršení:** po skončení trestu se hráčka sama vrátí na led na svou pozici. Pokud je její místo obsazené, nastoupí na jiné volné místo, jinak čeká ve frontě své pozice jako první.
 - **Gól ukončí trest:** pokud padne gól a týmy mají na ledě rozdílný počet hráček, ukončí se nejstarší dvouminutový trest oslabeného týmu a jeho hráčka se vrací. Gól oslabeného týmu trest neukončí. U 2+2 gól ukončí jen první dvě minuty a druhé dvě začnou běžet. Pětiminutový trest gól neukončuje.
 - **Minimum 3 bruslaři:** odpykávají se nejvýše dva tresty současně, třetí čeká, dokud se jedno místo neuvolní.
@@ -106,7 +93,7 @@ V kroku 3 (Zápas živě) je karta **Zápis utkání**. Otevře souhrn: výslede
 
 ## Přesilovky a oslabení
 - **Před zápasem (krok 3 Sestava):** definuj 2 jednotky přesilovky a 2 jednotky oslabení (každá až 5 míst, do oslabení stačí 3–4). Hráčka může být jen v jedné z jednotek (přesilovka 1/2, oslabení 1/2), vedle toho zůstává ve své řadě. Jde zkopírovat z posledního zápasu.
-- **Za zápasu:** když je na ledě nerovný počet hráček, objeví se nahoře velká tlačítka **⚡ Přesilovka 1/2** nebo **🛡 Oslabení 1/2**. Jedním klepnutím se jednotka nasadí. Vyloučená hráčka se nahradí jinou (viz výše). Ostatní hráčky z ledu jdou na konec fronty své pozice.
+- **Za zápasu:** když je na ledě nerovný počet hráček, objeví se nahoře velká tlačítka **⚡ Přesilovka 1/2** nebo **🛡 Oslabení 1/2**. Jedním klepnutím se jednotka nasadí. Vyloučená hráčka se přeskočí a místo zůstane prázdné. Ostatní hráčky z ledu jdou na konec fronty své pozice.
 - **Rychlá úprava jednotek při přerušení:** menu **⋯** → **Jednotky PP/OS** – změna hráček v jednotce a nasazení.
 - **↩ Zpět na řady** vrátí hru na běžné řady. Prázdné zůstane místo vyloučené hráčky.
 
