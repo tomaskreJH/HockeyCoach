@@ -1,0 +1,14 @@
+{
+  "name": "hokej-zapasy",
+  "version": "11.0.0",
+  "private": true,
+  "description": "Aplikace pro trenéry hokejového týmu: soupiska, sestavy, živý zápis, statistiky.",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve .",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
