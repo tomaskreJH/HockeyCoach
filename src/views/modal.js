@@ -4,7 +4,7 @@ import {ensureOp, save} from "../core/actions.js";
 import {isG, lineIds, liveIds, luPlayers, pl, pn, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, esc, norm, td, toast, uid} from "../core/utils.js";
-import {addPen, el_, fitLayout, goalPen, migrate, procExp} from "../domain/live-engine.js";
+import {addPen, el_, fitLayout, goalPen, logEv, migrate, procExp} from "../domain/live-engine.js";
 import {pickModal} from "./lineup-editor.js";
 import {render} from "./shell.js";
 
@@ -35,11 +35,11 @@ const sync=()=>{const t=$("#tm");if(t)M.time=t.value.trim()};
 el.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sync();const k=b.dataset.k,id=b.dataset.id;if(k==="on")M.on=M.on.includes(id)?M.on.filter(x=>x!==id):[...M.on,id];else{M[k]=M[k]===id?null:id;if(k==="scorer"&&M.scorer){if(M.a1===M.scorer)M.a1=null;if(M.a2===M.scorer)M.a2=null}}modal()});
 el.querySelectorAll("[data-line]").forEach(b=>b.onclick=()=>{sync();const ids=lineIds(lu,b.dataset.line);const all=ids.every(i=>M.on.includes(i));M.on=all?M.on.filter(i=>!ids.includes(i)):[...new Set([...M.on,...ids])];modal()});
 bindV(sync);el.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>{sync();M.all=true;modal()});$("#cl").onclick=()=>{S.M=null;modal()};
-$("#ok").onclick=()=>{sync();const e={id:M.eid||uid(),k:M.k,team:M.team,per:M.per,time:M.time};
+$("#ok").onclick=()=>{sync();const e={id:M.eid||uid(),k:M.k,team:M.team,per:M.per,time:M.time};{const at=M.eid?M.at:(m.live?el_(m.live):undefined);if(at!=null)e.at=at}
 if(M.k==="G"){e.sit=M.sit;if(M.team==="us"){if(!M.scorer)return toast("Vyber střelce");e.scorer=M.scorer;e.a1=M.a1||null;e.a2=M.a2||null;e.on=[...new Set([M.scorer,M.a1,M.a2,...M.on].filter(Boolean))]}else{e.on=M.on;e.gk=(M.on.map(pl).find(x=>isG(x))||{}).id||null}}
 else{e.min=M.min;e.reason=M.reason;if(M.team==="us"){if(!M.pid)return toast("Vyber hráče");e.pid=M.pid}}
 const n=clone(m);n.events=[...(n.events||[]).filter(x=>x.id!==M.eid),e].sort((a,b)=>a.per-b.per||(a.time||"99:99").localeCompare(b.time||"99:99"));if(m.live&&!M.eid&&(M.k==="P"||M.k==="G")){const L=n.live;migrate(L);const now=el_(L),snap=clone(L);delete snap.u;procExp(L,now);let ret=null;
-if(M.k==="P")addPen(L,{t:M.team,p:M.team==="us"?M.pid:null,min:M.min},now,m);else ret=goalPen(L,M.team,now);fitLayout(L,now);
+if(M.k==="P")addPen(L,{t:M.team,p:M.team==="us"?M.pid:null,min:M.min},now,m);else ret=goalPen(L,M.team,now);if(ret)logEv(n,{ty:"ret",p:ret,cause:"gól ukončil trest",at:now,per:L.per});fitLayout(L,now);
 L.u=[...(L.u||[]),{l:snap,ids:[e.id],t:M.k==="P"?"Vyloučení":"Gól"}].slice(-15);if(ret)toast("Gól ukončil trest – na led se vrací "+((pl(ret)||{}).name||""))}save(n);S.M=null;modal()};
 $("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}}}
 export function bindV(sync){$("#mod").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{sync&&sync();const k=b.dataset.v,v=b.dataset.val;S.M[k]=k==="home"?v==="1":(["per","min","plen"].includes(k)?+v:v);if(k==="team"&&S.M.k==="P")S.M.pid=null;modal()})}

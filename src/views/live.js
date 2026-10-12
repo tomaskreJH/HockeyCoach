@@ -4,7 +4,7 @@ import {upd} from "../core/actions.js";
 import {curM, liveIds, nomOf, ownCol, pl, pn, score, shots} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, LS, Q, cd, clone, esc, mmss, toast} from "../core/utils.js";
-import {SA, act, afterRemove, applyLine, applyUnit, doOShot, doShot, doSub, doUndo, el_, ela, initLive, leave, migrate, perMs, procExp, shiftMax, sk, skCount, toLines, toff} from "../domain/live-engine.js";
+import {SA, act, afterRemove, applyLine, applyUnit, doOShot, doShot, doSub, doUndo, el_, ela, initLive, leave, logEv, migrate, perMs, procExp, shiftMax, sk, skCount, toLines, toff} from "../domain/live-engine.js";
 import {benchGrouped, luEditor, matchDrag} from "./lineup-editor.js";
 import {qaClick, qaHtml, qaStart} from "./live-quick.js";
 import {modal} from "./modal.js";
@@ -78,11 +78,11 @@ Q2("[data-qb]").forEach(b=>b.onclick=()=>qaClick(b.dataset.qb,m,L));
 Q2("[data-qs]").forEach(b=>b.onclick=()=>{S.qa.sit=b.dataset.qs;liveRender()});
 e.querySelector("#lgk").onclick=()=>run?doOShot():toast("Hra je přerušena – střelu nelze zapsat");
 Q2("[data-ice]").forEach(b=>b.onclick=()=>{const p=L.ice[b.dataset.ice];if(p){if(run)doShot(p);else toast("Hra je přerušena – střelu nelze zapsat")}});
-Q2("[data-pline]").forEach(b=>b.onclick=()=>{const k=+b.dataset.pline;act(k+". pětka na led",(L2,n,ids,t)=>{const r=applyLine(L2,n,k,t);if(r.skip.length)toast("Nenasazeny (trest/nenominovány): "+r.skip.join(", "))})});
+Q2("[data-pline]").forEach(b=>b.onclick=()=>{const k=+b.dataset.pline;act(k+". pětka na led",(L2,n,ids,t)=>{const r=applyLine(L2,n,k,t);logEv(n,{ty:"unit",label:k+". pětka na led",at:t,per:L2.per});if(r.skip.length)toast("Nenasazeny (trest/nenominovány): "+r.skip.join(", "))})});
 Q2("[data-us]").forEach(b=>b.onclick=()=>{S.lsub="usel:"+b.dataset.us;liveRender()});
 Q2("[data-usp]").forEach(b=>b.onclick=()=>{const[,k,c]=S.lsub.split(":"),n=clone(m);n.sp=n.sp||{};n.sp[k]=n.sp[k]||{};if(b.dataset.usp)n.sp[k][c]=b.dataset.usp;else delete n.sp[k][c];S.lsub="units";upd(n)});
-Q2("[data-unit]").forEach(b=>b.onclick=()=>{const k=b.dataset.unit;S.lmenu=false;S.lsub=null;act(ULAB[k],(L2,n,ids,t)=>{const r=applyUnit(L2,n,k,t);if(r.skip.length)toast("Nenasazeny: "+r.skip.join(", ")+(r.rep.length?" – nahradily: "+r.rep.join(", "):""));else if(r.trim)toast("Jednotka zkrácena podle počtu hráček na ledě")})});
-Q2("[data-lines]").forEach(b=>b.onclick=()=>{S.lmenu=false;S.lsub=null;act("Zpět na řady",(L2,n,ids,t)=>toLines(L2,n,t))});
+Q2("[data-unit]").forEach(b=>b.onclick=()=>{const k=b.dataset.unit;S.lmenu=false;S.lsub=null;act(ULAB[k],(L2,n,ids,t)=>{const r=applyUnit(L2,n,k,t);logEv(n,{ty:"unit",label:ULAB[k],at:t,per:L2.per});if(r.skip.length)toast("Nenasazeny: "+r.skip.join(", ")+(r.rep.length?" – nahradily: "+r.rep.join(", "):""));else if(r.trim)toast("Jednotka zkrácena podle počtu hráček na ledě")})});
+Q2("[data-lines]").forEach(b=>b.onclick=()=>{S.lmenu=false;S.lsub=null;act("Zpět na řady",(L2,n,ids,t)=>{toLines(L2,n,t);logEv(n,{ty:"unit",label:"Zpět na řady",at:t,per:L2.per})})});
 Q2("[data-pcx]").forEach(b=>b.onclick=()=>act("Zrušení trestu",(L,n,i,t)=>{const c=L.pen.find(x=>x.id===b.dataset.pcx);if(!c)return;L.pen=L.pen.filter(x=>x!==c);afterRemove(L,c,t)}));
 lvDrag(e);
 if(S.lmenu){const cl=()=>{S.lmenu=false;S.lsub=null;S.injp=null;liveRender()};
@@ -92,14 +92,14 @@ if(k==="cl")cl();else if(k==="back"){S.lsub=(S.lsub||"").startsWith("usel:")?"un
 else if(k==="x"){S.lv=false;S.qa=null;cl();render()}
 else if(k==="gu")openLive("G","us");else if(k==="go")openLive("G","opp");else if(k==="pe")openLive("P");
 else if(["inj","gk","toi","set","off","units","lineup"].includes(k)){S.lsub=k;liveRender()}
-else if(k==="end"){cl();act("Konec třetiny",(L,n,i,t)=>{L.running=false;L.acc=t;L.t0=0;L.per=Math.min(4,L.per+1);L.pst=t})}
+else if(k==="end"){cl();act("Konec třetiny",(L,n,i,t)=>{L.running=false;L.acc=t;L.t0=0;logEv(n,{ty:"per",per:L.per,at:t});(L.ps=L.ps||[]).push(t);L.per=Math.min(4,L.per+1);L.pst=t})}
 else if(k==="re"){cl();act(null,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c])leave(L,L.ice[c],c,t)});const f=initLive(n);COLS.forEach(c=>{f.ice[c]=f.ice[c];if(f.ice[c])f.since[f.ice[c]]=t});Object.assign(L,{ice:f.ice,q:f.q,since:f.since,G:f.G})})}});
 Q2("[data-inj]").forEach(b=>b.onclick=()=>{S.injp=b.dataset.inj;liveRender()});
-const permInj=id=>{cl();act(null,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c]===id){leave(L,id,c,t);L.ice[c]=null}L.q[c]=L.q[c].filter(x=>x!==id)});L.tmp=(L.tmp||[]).filter(x=>x!==id);n.nom=nomOf(n).filter(x=>x!==id);Object.keys(n.lineup||{}).forEach(k=>{if(n.lineup[k]===id)delete n.lineup[k]});(n.injLog=n.injLog||[]).push({id,ty:"perm",per:L.per,time:mmss(ela(L,t))})});const p=pl(id);if(p){const r={...p};delete r.id;r.st="inj";S.db.doc("players/"+id).set(r)}toast("Trvalé zranění – hráčka je označena v soupisce")};
-Q2("[data-injt]").forEach(b=>b.onclick=()=>{const id=S.injp;if(!id)return;if(b.dataset.injt==="perm"){permInj(id);return}cl();act("Dočasně vyřazena: "+(pl(id)||{}).name,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c]===id){leave(L,id,c,t);L.ice[c]=null}L.q[c]=L.q[c].filter(x=>x!==id)});if(!(L.tmp=L.tmp||[]).includes(id))L.tmp.push(id);(n.injLog=n.injLog||[]).push({id,ty:"tmp",per:L.per,time:mmss(ela(L,t))})})});
-Q2("[data-tmpr]").forEach(b=>b.onclick=()=>{const id=b.dataset.tmpr;act("Návrat z ošetřování: "+(pl(id)||{}).name,(L,n,i,t)=>{L.tmp=(L.tmp||[]).filter(x=>x!==id);const oc=ownCol(n,id);if(oc&&nomOf(n).includes(id)&&!COLS.some(c=>L.ice[c]===id)&&!L.q[oc].includes(id))L.q[oc].push(id);(n.injLog=n.injLog||[]).push({id,ty:"back",per:L.per,time:mmss(ela(L,t))})})});
+const permInj=id=>{cl();act(null,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c]===id){leave(L,id,c,t);L.ice[c]=null}L.q[c]=L.q[c].filter(x=>x!==id)});L.tmp=(L.tmp||[]).filter(x=>x!==id);n.nom=nomOf(n).filter(x=>x!==id);Object.keys(n.lineup||{}).forEach(k=>{if(n.lineup[k]===id)delete n.lineup[k]});(n.injLog=n.injLog||[]).push({id,ty:"perm",per:L.per,time:mmss(ela(L,t)),at:t})});const p=pl(id);if(p){const r={...p};delete r.id;r.st="inj";S.db.doc("players/"+id).set(r)}toast("Trvalé zranění – hráčka je označena v soupisce")};
+Q2("[data-injt]").forEach(b=>b.onclick=()=>{const id=S.injp;if(!id)return;if(b.dataset.injt==="perm"){permInj(id);return}cl();act("Dočasně vyřazena: "+(pl(id)||{}).name,(L,n,i,t)=>{COLS.forEach(c=>{if(L.ice[c]===id){leave(L,id,c,t);L.ice[c]=null}L.q[c]=L.q[c].filter(x=>x!==id)});if(!(L.tmp=L.tmp||[]).includes(id))L.tmp.push(id);(n.injLog=n.injLog||[]).push({id,ty:"tmp",per:L.per,time:mmss(ela(L,t)),at:t})})});
+Q2("[data-tmpr]").forEach(b=>b.onclick=()=>{const id=b.dataset.tmpr;act("Návrat z ošetřování: "+(pl(id)||{}).name,(L,n,i,t)=>{L.tmp=(L.tmp||[]).filter(x=>x!==id);const oc=ownCol(n,id);if(oc&&nomOf(n).includes(id)&&!COLS.some(c=>L.ice[c]===id)&&!L.q[oc].includes(id))L.q[oc].push(id);(n.injLog=n.injLog||[]).push({id,ty:"back",per:L.per,time:mmss(ela(L,t)),at:t})})});
 Q2("[data-tmpp]").forEach(b=>b.onclick=()=>permInj(b.dataset.tmpp));
-Q2("[data-gkp]").forEach(b=>b.onclick=()=>{cl();act("Brankářka",L=>{L.G=b.dataset.gkp})});
+Q2("[data-gkp]").forEach(b=>b.onclick=()=>{cl();act("Brankářka",(L,n,i,t)=>{L.G=b.dataset.gkp;logEv(n,{ty:"gk",p:b.dataset.gkp,at:t,per:L.per})})});
 Q2("[data-off]").forEach(b=>b.onclick=()=>{const id=b.dataset.off;cl();act("Z ledu: "+(pl(id)||{}).name,(L,n,i,t)=>{const c=COLS.find(k=>L.ice[k]===id);if(!c)return;leave(L,id,c,t);L.ice[c]=null;L.q[ownCol(curM(),id)||c].push(id)})});
 Q2("[data-lim]").forEach(b=>b.onclick=()=>{LS.set("shiftMax",Math.max(30,shiftMax()+ +b.dataset.lim));liveRender()})}
 liveTick()}
@@ -110,4 +110,4 @@ COLS.forEach(k=>{const p=L.ice[k];if(!p)return;const t=now-(L.since[p]||0),x=doc
 if(t>=mx){w.push(pn(p)+" "+mmss(t));const key=p+"@"+(L.since[p]||0);if(!S.wd[key]){S.wd[key]=1;navigator.vibrate&&navigator.vibrate([200,100,200])}}});
 const z=$("#lwarn"),mx5=sk(L,"us",now),cnt=skCount(L);if(z)z.innerHTML=[cnt>mx5?"⚠️ Na ledě je "+cnt+" hráček, má být "+mx5+" – sundej hráčku (menu).":cnt<mx5&&COLS.some(c=>L.q[c].length)&&!(L.pen||[]).some(x=>x.t==="us"&&SA(x)&&x.end==null)?"ℹ️ Na ledě je "+cnt+" hráček, může být "+mx5+" – doplň hráčku.":"",w.length?"⚠️ Dlouhé střídání: "+w.join(" · "):""].filter(Boolean).join("<br>");
 document.querySelectorAll("[data-bx]").forEach(e=>{e.textContent=cd(+e.dataset.bx-now)});
-if((L.pen||[]).some(x=>x.end!=null&&x.ty!=="gm"&&x.end<=now)&&!S.pp){S.pp=1;act(false,(L2,n2,i,t)=>{const r=procExp(L2,t);if(r.length){toast("Trest skončil – na led se vrací: "+r.map(x=>(pl(x)||{}).name).join(", "));navigator.vibrate&&navigator.vibrate([150,80,150])}});setTimeout(()=>{S.pp=0},1500)}}
+if((L.pen||[]).some(x=>x.end!=null&&x.ty!=="gm"&&x.end<=now)&&!S.pp){S.pp=1;act(false,(L2,n2,i,t)=>{const r=procExp(L2,t);r.forEach(p=>logEv(n2,{ty:"ret",p,cause:"trest vypršel",at:t,per:L2.per}));if(r.length){toast("Trest skončil – na led se vrací: "+r.map(x=>(pl(x)||{}).name).join(", "));navigator.vibrate&&navigator.vibrate([150,80,150])}});setTimeout(()=>{S.pp=0},1500)}}

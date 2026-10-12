@@ -13,3 +13,5 @@ export const uid=()=>Math.random().toString(36).slice(2,10);
 export const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 export const cd=ms=>ms<0?"+"+mmss(-ms):mmss(Math.ceil(ms/1000)*1000);
 export const mmss=ms=>{const t=Math.floor(Math.max(0,ms)/1000);return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0")};
+// Stažení textového souboru (záloha, zápis, CSV)
+export function downloadFile(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}

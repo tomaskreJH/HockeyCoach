@@ -13,12 +13,14 @@ export const toff=L=>S.toffP===L.per?(S.toff||0):0;
 export const ela=(L,now)=>Math.max(0,now-L.pst+toff(L));
 export function initLive(m){const lu=m.lineup||{},L={running:false,t0:0,acc:0,per:1,pst:0,ice:{},q:{},since:{},sh:[],pen:[],seq:0,u:[],G:lu.G1||null};
 COLS.forEach(c=>{const q=[1,2,3,4].map(n=>lu[n+c]).filter(Boolean);L.ice[c]=q.shift()||null;L.q[c]=q;if(L.ice[c])L.since[L.ice[c]]=0});return L}
+// Záznam doplňujících událostí pro podrobný zápis (konec třetiny, nasazení jednotky, návrat z trestu...)
+export const logEv=(n,o)=>{(n.log=n.log||[]).push({id:uid(),...o})};
 export const leave=(L,p,c,now)=>{L.sh.push({p,c,a:L.since[p]||0,b:now,per:L.per});delete L.since[p]};
 export function putOn(L,p,c,now){COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));const out=L.ice[c];L.ice[c]=p;L.since[p]=now;if(out){leave(L,out,c,now);const oc=ownCol(curM(),out);if(oc)L.q[oc].push(out)}}
 export function act(label,fn){const m=curM();if(!m||!m.live||m.closed)return;const n=clone(m),L=n.live,snap=clone(L);delete snap.u;migrate(L);const ids=[];fn(L,n,ids,el_(L));fitLayout(L,el_(L));if(label===null)L.u=[];else if(label)L.u=[...(L.u||[]),{l:snap,ids,t:label}].slice(-15);upd(n)}
 export const doSub=(p,c)=>{const m=curM();if(!m||!m.live)return;const L=m.live,now=el_(L);if(!L.ice[c]&&skCount(L)>=sk(L,"us",now)){toast("Na ledě už je největší povolený počet hráček (trest).");return}act("Střídání: "+(pl(p)||{}).name,(L2,n,ids,t)=>putOn(L2,p,c,t))};
-export const doShot=p=>act("Střela: "+(pl(p)||{}).name,(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"us",per:L.per,time:mmss(ela(L,now)),shooter:p};n.events=[...(n.events||[]),e];ids.push(e.id)});
-export const doOShot=()=>act("Střela soupeře",(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"opp",per:L.per,time:mmss(ela(L,now)),gk:L.G||null};n.events=[...(n.events||[]),e];ids.push(e.id)});
+export const doShot=p=>act("Střela: "+(pl(p)||{}).name,(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"us",per:L.per,time:mmss(ela(L,now)),shooter:p,at:now};n.events=[...(n.events||[]),e];ids.push(e.id)});
+export const doOShot=()=>act("Střela soupeře",(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"opp",per:L.per,time:mmss(ela(L,now)),gk:L.G||null,at:now};n.events=[...(n.events||[]),e];ids.push(e.id)});
 export function doUndo(){const m=curM();if(!m||!m.live)return;const L=m.live,u=(L.u||[]).slice(-1)[0];if(!u)return;const n=clone(m);n.live={...u.l,u:L.u.slice(0,-1),running:L.running,t0:L.t0,acc:L.acc};n.events=(n.events||[]).filter(e=>!u.ids.includes(e.id));upd(n)}
 export const SA=x=>x.ty==="min"||x.ty==="maj";
 export const sk=(L,t,now)=>5-Math.min(2,(L.pen||[]).filter(x=>x.t===t&&SA(x)&&x.end!=null).length);
