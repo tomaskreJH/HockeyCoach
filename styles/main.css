@@ -139,11 +139,6 @@ th { color: var(--mu); font-size: 12px; }
 .lice.wr2 { background: #fde8e5; border-color: var(--no); box-shadow: 0 0 0 4px var(--no); }
 .lice.ov { outline: 4px solid var(--ok); }
 
-/* Vynucení BÍLÉHO pozadí pro hráče na ledě, i když mají přiřazenou formaci L1-L4 */
-.lice.L1, .lice.L2, .lice.L3, .lice.L4, .lice.L0 {
-  background: var(--cd) !important;
-}
-
 /* Hráči na střídačce (.lq) - bez stínů */
 .lq { min-height: 54px; border-radius: 10px; border: 1px solid var(--bd); background: var(--cd); color: var(--tx); font-size: 13px; padding: 3px; overflow: hidden; }
 .lq .n { font-size: 19px; }
@@ -161,11 +156,11 @@ th { color: var(--mu); font-size: 12px; }
 /* ==========================================================
    9. BAREVNÉ FORMACE (L1 - L4, L0) + PROPOJENÍ S RÁMEČKY
    ========================================================== */
-.L1 { background: #1e5bb8 !important; color: #fff !important; border-color: #143f82 !important; }
-.L2 { background: #f9c80e !important; color: #111 !important; border-color: #c99f00 !important; }
-.L3 { background: #2e7d32 !important; color: #fff !important; border-color: #1f5a23 !important; }
-.L4 { background: #d94f8a !important; color: #fff !important; border-color: #a82d61 !important; }
-.L0 { background: #6b7480 !important; color: #fff !important; border-color: #4b525b !important; }
+.L1 { background: #1e5bb8; color: #fff !important; border-color: #143f82 !important; }
+.L2 { background: #f9c80e; color: #111 !important; border-color: #c99f00 !important; }
+.L3 { background: #2e7d32; color: #fff !important; border-color: #1f5a23 !important; }
+.L4 { background: #d94f8a; color: #fff !important; border-color: #a82d61 !important; }
+.L0 { background: #6b7480; color: #fff !important; border-color: #4b525b !important; }
 
 /* Automatické přebírání barvy rámečku formace na ledě i střídačce */
 .lice.L1, .lq.L1 { border-color: #143f82 !important; }
