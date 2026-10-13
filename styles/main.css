@@ -155,8 +155,20 @@ th { color: var(--mu); font-size: 12px; }
 .lg .lq.tl,
 .lg .lice.tl:not(.wr):not(.wr2) { background: transparent !important; }
 
+/* Čitelné písmo na ledě a na střídačce, ve všech pětkách */
+.lg .lq.tl,
+.lg .lice.tl,
+.lg .lq.tl .n,
+.lg .lq.tl .nm,
+.lg .lice.tl .n,
+.lg .lice.tl .nm,
+.lg .lice.tl .t { color: var(--tx) !important; }
+
 /* Světlý pruh přes celou lajnu na ledě */
-.lg.ice-strip { background: rgba(26,143,76,.16); border-radius: 14px; padding: 8px 6px; }
+.lg.ice-strip { background: rgba(245, 248, 246, 0.856); border-radius: 14px; padding: 8px 6px; }
+
+/* Pruh pod hráči na řadě (první ve frontě) */
+.lg.nx-strip { background: var(--cd); border-radius: 14px; padding: 8px 6px; }
 
 
 /* ==========================================================
