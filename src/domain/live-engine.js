@@ -1,7 +1,7 @@
 // Jádro živého zápisu bez DOM: čas, střídání, tresty podle IIHF, jednotky, formace.
 import {COLS, LAYOUT} from "../config/constants.js";
 import {upd} from "../core/actions.js";
-import {curM, nomOf, ownCol, pl} from "../core/selectors.js";
+import {curM, nomOf, ownCol, pl, score} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {LS, clone, mmss, toast, uid} from "../core/utils.js";
 
@@ -15,13 +15,17 @@ export function initLive(m){const lu=m.lineup||{},L={running:false,t0:0,acc:0,pe
 COLS.forEach(c=>{const q=[1,2,3,4].map(n=>lu[n+c]).filter(Boolean);L.ice[c]=q.shift()||null;L.q[c]=q;if(L.ice[c])L.since[L.ice[c]]=0});return L}
 // Záznam doplňujících událostí pro podrobný zápis (konec třetiny, nasazení jednotky, návrat z trestu...)
 export const logEv=(n,o)=>{(n.log=n.log||[]).push({id:uid(),...o})};
+// Konec třetiny / zápasu: po 3. třetině rozhoduje skóre a nastavení prodloužení zápasu (m.ot)
+export const periodEndPlan=m=>{const L=m.live,[g,o]=score(m);if(L.per>=4)return"end";if(L.per===3)return g!==o||m.ot===false?"end":"ot";return"next"};
+export function endMatch(L,n,t){logEv(n,{ty:"per",per:L.per,at:t});L.running=false;L.acc=t;L.t0=0;n.end={per:L.per,at:t}}
+export function endPeriod(L,n,t){if(periodEndPlan(n)==="end")return endMatch(L,n,t);logEv(n,{ty:"per",per:L.per,at:t});L.running=false;L.acc=t;L.t0=0;(L.ps=L.ps||[]).push(t);L.per=Math.min(4,L.per+1);L.pst=t}
 export const leave=(L,p,c,now)=>{L.sh.push({p,c,a:L.since[p]||0,b:now,per:L.per});delete L.since[p]};
 export function putOn(L,p,c,now){COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));const out=L.ice[c];L.ice[c]=p;L.since[p]=now;if(out){leave(L,out,c,now);const oc=ownCol(curM(),out);if(oc)L.q[oc].push(out)}}
-export function act(label,fn){const m=curM();if(!m||!m.live||m.closed)return;const n=clone(m),L=n.live,snap=clone(L);delete snap.u;migrate(L);const ids=[];fn(L,n,ids,el_(L));fitLayout(L,el_(L));if(label===null)L.u=[];else if(label)L.u=[...(L.u||[]),{l:snap,ids,t:label}].slice(-15);upd(n)}
+export function act(label,fn){const m=curM();if(!m||!m.live||m.closed)return;const n=clone(m),L=n.live,snap=clone(L),end0=n.end?clone(n.end):null,ln=(n.log||[]).length;delete snap.u;migrate(L);const ids=[];fn(L,n,ids,el_(L));(n.log||[]).slice(ln).forEach(x=>ids.push(x.id));fitLayout(L,el_(L));if(label===null)L.u=[];else if(label)L.u=[...(L.u||[]),{l:snap,ids,t:label,end0}].slice(-15);upd(n)}
 export const doSub=(p,c)=>{const m=curM();if(!m||!m.live)return;const L=m.live,now=el_(L);if(!L.ice[c]&&skCount(L)>=sk(L,"us",now)){toast("Na ledě už je největší povolený počet hráček (trest).");return}act("Střídání: "+(pl(p)||{}).name,(L2,n,ids,t)=>putOn(L2,p,c,t))};
 export const doShot=p=>act("Střela: "+(pl(p)||{}).name,(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"us",per:L.per,time:mmss(ela(L,now)),shooter:p,at:now};n.events=[...(n.events||[]),e];ids.push(e.id)});
 export const doOShot=()=>act("Střela soupeře",(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"opp",per:L.per,time:mmss(ela(L,now)),gk:L.G||null,at:now};n.events=[...(n.events||[]),e];ids.push(e.id)});
-export function doUndo(){const m=curM();if(!m||!m.live)return;const L=m.live,u=(L.u||[]).slice(-1)[0];if(!u)return;const n=clone(m);n.live={...u.l,u:L.u.slice(0,-1),running:L.running,t0:L.t0,acc:L.acc};n.events=(n.events||[]).filter(e=>!u.ids.includes(e.id));upd(n)}
+export function doUndo(){const m=curM();if(!m||!m.live)return;const L=m.live,u=(L.u||[]).slice(-1)[0];if(!u)return;const n=clone(m);n.live={...u.l,u:L.u.slice(0,-1),running:L.running,t0:L.t0,acc:L.acc};n.events=(n.events||[]).filter(e=>!u.ids.includes(e.id));n.log=(n.log||[]).filter(x=>!u.ids.includes(x.id));if("end0" in u){if(u.end0)n.end=u.end0;else delete n.end}upd(n)}
 export const SA=x=>x.ty==="min"||x.ty==="maj";
 export const sk=(L,t,now)=>5-Math.min(2,(L.pen||[]).filter(x=>x.t===t&&SA(x)&&x.end!=null).length);
 export const skCount=L=>COLS.filter(k=>L.ice[k]).length;

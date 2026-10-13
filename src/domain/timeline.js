@@ -78,6 +78,7 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
       : `↩ Návrat z trestu: ${nameOf(x.p)} (${x.cause})`;
     push(t, x.ty === "per" ? 9 : 2, {kind: x.ty, per: x.per || pa.per, el: mmss(x.ty === "per" ? t - periodStart(m, x.per) : pa.el), text});
   });
+  if (m.end) push(m.end.at, 10, {kind: "end", per: m.end.per, el: mmss(m.end.at - periodStart(m, m.end.per)), text: "🏁 Konec zápasu"});
   if (subs && m.live) {
     const sh = shiftsOf(m), start = sh.filter(x => x.a === 0);
     if (start.length) push(0, 0, {kind: "start", per: 1, el: "00:00", text: "▶ Začátek zápasu – na ledě: " + COLS.map(c => { const x = start.find(y => y.c === c); return x ? c + " " + nameOf(x.p) : null; }).filter(Boolean).join(", ")});
@@ -102,4 +103,4 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
   return E;
 }
 
-export {nameOf, perLabel};
+export {nameOf, perLabel, evText as eventText};

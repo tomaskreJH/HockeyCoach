@@ -17,5 +17,7 @@ import * as m14 from "./views/live-quick.js";
 import * as m15 from "./views/report.js";
 import * as m16 from "./views/stats.js";
 import * as m17 from "./domain/timeline.js";
+import * as m18 from "./domain/corrections.js";
+import * as m19 from "./views/editor.js";
 
-export function installDebug(){window.__hk=Object.assign({},m17,m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16)}
+export function installDebug(){window.__hk=Object.assign({},m18,m19,m17,m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16)}
