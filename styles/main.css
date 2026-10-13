@@ -151,6 +151,13 @@ th { color: var(--mu); font-size: 12px; }
 .lb button { min-height: 62px; border-radius: 12px; font-weight: 700; border: 1px solid var(--ac); background: var(--cd); color: var(--ac); font-size: 15px; }
 .lb button.dd { opacity: .35; }
 
+/* Průhledná tlačítka na ledě a na střídačce */
+.lg .lq.tl,
+.lg .lice.tl:not(.wr):not(.wr2) { background: transparent !important; }
+
+/* Světlý pruh přes celou lajnu na ledě */
+.lg.ice-strip { background: rgba(26,143,76,.16); border-radius: 14px; padding: 8px 6px; }
+
 
 /* ==========================================================
    9. BAREVNÉ FORMACE (L1 - L4, L0) + PROPOJENÍ S RÁMEČKY
