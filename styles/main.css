@@ -70,13 +70,14 @@ nav button{font-size:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr
 #rp{display:none;position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:12px;padding-top:calc(12px + env(safe-area-inset-top,0px))}
 @media print{body>*:not(#rp){display:none!important}#rp{position:static!important;overflow:visible!important;padding:0!important;display:block!important}.noprint{display:none!important}body{background:#fff!important;color:#000!important}.cd{break-inside:avoid}.pb{break-before:page}}
 .msg{padding:26px 10px;text-align:center;color:var(--mu)}
-/* Živý zápas — rámeček hráček podle pětky. */
-.lq.L1,.lice.L1{border-color:#1e5bb8}
-.lq.L2,.lice.L2{border-color:#f9c80e}
-.lq.L3,.lice.L3{border-color:#2e7d32}
-.lq.L4,.lice.L4{border-color:#d94f8a}
-.lq.L0,.lice.L0{border-color:#6b7480}
 
-/* Výstraha dlouhého střídání má přednost před barvou pětky. */
-.lice.wr{border-color:var(--wa)}
-.lice.wr2{border-color:var(--no)}
+/* Pouze karty hráček v živém zápase. */
+.lq.L1,.lice.L1{background:var(--cd)!important;color:var(--tx)!important;border-color:#1e5bb8!important}
+.lq.L2,.lice.L2{background:var(--cd)!important;color:var(--tx)!important;border-color:#f9c80e!important}
+.lq.L3,.lice.L3{background:var(--cd)!important;color:var(--tx)!important;border-color:#2e7d32!important}
+.lq.L4,.lice.L4{background:var(--cd)!important;color:var(--tx)!important;border-color:#d94f8a!important}
+.lq.L0,.lice.L0{background:var(--cd)!important;color:var(--tx)!important;border-color:#6b7480!important}
+
+/* Výstraha dlouhého střídání je vždy silnější než barva pětky. */
+.lice.wr{background:#fff3dc!important;border-color:var(--wa)!important}
+.lice.wr2{background:#fde8e5!important;border-color:var(--no)!important}
