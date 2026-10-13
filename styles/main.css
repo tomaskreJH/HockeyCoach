@@ -132,7 +132,7 @@ th { color: var(--mu); font-size: 12px; }
 .lc small { text-align: center; color: var(--mu); font-size: 11px; }
 
 /* Hráči na ledě (.lice) */
-.lice { min-height: 92px; border-radius: 12px; border: 2px solid var(--bd); background: var(--a2); color: var(--tx); font-weight: 700; font-size: 13px; padding: 4px; margin-bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
+.lice { min-height: 92px; border-radius: 12px; border: 2px solid var(--bd); background: var(--cd); color: var(--tx); font-weight: 700; font-size: 13px; padding: 4px; margin-bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
 .lice span { font-weight: 400; color: var(--mu); }
 .lice.wr { background: #fff3dc; border-color: var(--wa); box-shadow: 0 0 0 4px var(--wa); }
 .lice.wr2 { background: #fde8e5; border-color: var(--no); box-shadow: 0 0 0 4px var(--no); }
