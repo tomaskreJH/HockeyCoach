@@ -90,7 +90,7 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 
 ## Živý zápis – rozložení a ovládání
 - **Horní lišta** (čas s šipkami ◀ ▶ pro posun o 5 s, skóre, situace) zůstává nahoře.
-- **Barvy podle pětek:** 1. pětka modrá, 2. bílá, 3. červená, 4. zelená, hráčka mimo pětky šedá. Z barev je vidět, jak se pětky míchají.
+- **Barvy hráček:** rámeček odpovídá pětce v sestavě (1. modrý, 2. bílý, 3. červený, 4. zelený, mimo pětky šedý). Podbarvení označuje hráčky na ledě (zelené), první v pořadí na střídání (žluté) a naposledy vystřídanou hráčku (šedomodré); oranžový okraj navíc zvýrazňuje první čekající v každém pořadí.
 - **Rozložení shora dolů:** tlačítka „Celá pětka na led“ → fronty čekajících hráček (nejblíž ledu je ta, která jde na řadu, zvýrazněná oranžově) → **hráčky na ledě** → mezera → **STŘELA NA NAŠI BRÁNU** → poslední čtyři akce z průběhu.
 - **Tlačítka hráček:** na ledě číslo (velké), pod ním přezdívka a čas na ledě. V čekání číslo a pod ním přezdívka.
 - **Střídání:** klepnutí na hráčku ve frontě ji pošle na led místo hráčky pod ní. Podržením a přetažením ji pošleš na jinou pozici. Tlačítko **N. pětka** pošle na led celou pětku najednou (např. když jsou řady rozházené).
