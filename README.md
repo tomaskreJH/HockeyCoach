@@ -1,11 +1,11 @@
-# Hokej – zápasy (samostatná verze, modulární projekt)
+# Hokej – zápasy (modulární projekt)
 
 Aplikace pro trenéry: soupiska, formace, nominace, zápasy s živým zápisem, soupeři, statistiky.
-Běží v prohlížeči, nepotřebuje Claude ani žádný vlastní server.
+Běží v prohlížeči, nepotřebuje Claude ani žádný vlastní server. Data jsou ve výchozím stavu jen lokálně v zařízení (JSON v úložišti prohlížeče).
 
 ## Struktura projektu
 ```
-hokej-app/
+HockeyCoach/
 ├─ index.html              vstupní stránka (načítá styly a src/main.js jako ES modul)
 ├─ styles/main.css         styly
 ├─ src/
@@ -14,7 +14,7 @@ hokej-app/
 │  ├─ config/constants.js  konstanty: pozice, důvody trestů, rozložení formací a jednotek
 │  ├─ core/                stav, pomocné funkce, čtecí selektory, akce (ukládání)
 │  │   ├─ state.js  utils.js  selectors.js  actions.js
-│  ├─ data/storage.js      datová vrstva: lokální úložiště + synchronizace se Supabase, záloha/obnova
+│  ├─ data/storage.js      datová vrstva: lokální úložiště (JSON), záloha/obnova, volitelně synchronizace se Supabase
 │  ├─ domain/              pravidla hry bez DOM
 │  │   ├─ lineup.js        nominace, náhradnice, způsobilost ke spuštění zápisu
 │  │   └─ live-engine.js   čas, střídání, tresty podle IIHF, jednotky, formace při oslabení
@@ -22,34 +22,30 @@ hokej-app/
 │      ├─ shell.js team.js matches.js opponents.js stats.js modal.js
 │      ├─ lineup-editor.js live.js live-quick.js report.js
 ├─ data/seed-data.json     počáteční data (soupiska, zápas, soupeř) k importu
-├─ db/supabase-setup.sql   jednorázové nastavení databáze pro synchronizaci
+├─ db/supabase-setup.sql   volitelné: nastavení databáze pro synchronizaci (aktuálně se nepoužívá)
 ├─ manifest.webmanifest, sw.js, icon-*.png   instalace na plochu a offline provoz
-├─ build.mjs, package.json sestavení do jednoho souboru
-└─ dist/hokej-samostatny.html   hotová aplikace v jednom souboru (dvojklik, bez serveru)
+└─ package.json            jen skript `npm start` (lokální server)
 ```
+Jednosouborová verze (`dist/`, `build.mjs`) byla zrušena a už se nevyvíjí. Aplikace se vždy spouští ze zdrojových modulů.
 **Pravidlo závislostí:** `config` → `core` → `domain` → `views` → `main`. Doména nikdy nesahá do DOM, obrazovky obsahují jen vykreslení a obsluhu.
 
 ## Jak aplikaci spustit
-**A) Dvojklikem (nejjednodušší):** otevři `dist/hokej-samostatny.html`. Je to celá aplikace v jednom souboru.
-
-**B) Ze zdrojových modulů (vývoj, hosting):** moduly se z `file://` v prohlížeči nenačtou, potřebují malý server.
+Moduly se z `file://` v prohlížeči nenačtou, aplikace potřebuje malý lokální server:
 - `npm start` (nebo `python3 -m http.server`) a otevři `http://localhost:3000` (resp. `:8000`).
-- Při hostingu nahraj na web celou složku (kromě `dist/` a `node_modules/`).
-
-**Sestavení jednosouborové verze:** `npm install` a pak `npm run build`. Vznikne `dist/hokej-samostatny.html`.
+- Při hostingu nahraj na web celou složku (kromě `node_modules/`).
 
 **První spuštění:** klepni na ⚙️ vpravo nahoře → Obnovit ze zálohy → `data/seed-data.json` → Nahradit vším.
-Dokud nepřipojíš synchronizaci, jsou data jen v prohlížeči daného zařízení. Dělej zálohy (⚙️ → Stáhnout zálohu).
+Data jsou jen v prohlížeči daného zařízení. Dělej zálohy (⚙️ → Stáhnout zálohu).
 
-## Provoz na telefonu a PC se společnými daty
-Potřebuješ (a) web, odkud se aplikace otevírá, a (b) databázi pro synchronizaci. Obojí jde zdarma.
+## Provoz na telefonu a PC
+Potřebuješ web, odkud se aplikace otevírá (a). Sdílení dat mezi zařízeními přes databázi (b) je **volitelné** a aktuálně se nevyužívá. Bez ní si data přenášíš zálohou (JSON).
 
 **a) Zveřejnění aplikace (HTTPS)** – vyber jednu možnost:
-- Netlify: *Add new site → Deploy manually* → přetáhni složku projektu (nebo jen soubor z `dist/`).
+- Netlify: *Add new site → Deploy manually* → přetáhni složku projektu.
 - GitHub Pages: nahraj soubory do repozitáře → Settings → Pages.
 HTTPS je nutné pro instalaci na plochu, offline režim a zámek displeje při živém zápisu.
 
-**b) Databáze (Supabase)**
+**b) Databáze (Supabase) – volitelné, aktuálně se nepoužívá**
 1. Na supabase.com založ projekt (zdarma).
 2. *SQL Editor → New query* → vlož obsah `db/supabase-setup.sql` → **Run**.
 3. *Project Settings → API*: zkopíruj **Project URL** a klíč **anon public**.
@@ -57,12 +53,12 @@ HTTPS je nutné pro instalaci na plochu, offline režim a zámek displeje při �
 
 **Android:** v Chrome otevři adresu aplikace → menu ⋮ → *Přidat na plochu / Instalovat aplikaci*.
 
-## Jak funguje synchronizace
+## Jak funguje synchronizace (jen pokud je Supabase připojený)
 - Zápis se uloží hned v zařízení a odešle na server. Bez signálu (hala) se změny řadí do fronty a odešlou se po připojení (stav vidíš v ⚙️).
 - Ostatní zařízení si změny stahují cca každých 5 s.
 - Při souběžné úpravě **stejné položky** na dvou zařízeních vyhrává poslední zápis. Živý zápis zápasu proto veď jen z jednoho telefonu.
 
-## Bezpečnost (důležité)
+## Bezpečnost (jen pokud je Supabase připojený)
 Nastavení z `supabase-setup.sql` dovoluje číst i zapisovat komukoli, kdo zná **URL projektu i klíč**. Adresu aplikace a klíč nikomu nedávej a nevkládej do veřejného repozitáře dokumentaci s klíčem. V aplikaci jsou jen přezdívky, přesto jde o data týmu. Pokud potřebuješ vyšší ochranu, je potřeba doplnit přihlášení (Supabase Auth) – v této verzi není.
 
 ## Záloha a přesun dat
@@ -88,11 +84,20 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 - **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
 - **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není.
 
+## Rotace dvou hráček na jednom místě
+Pro začátečnice: na jedno místo v řadě (např. C v 1. pětce) můžeš dát dvě hráčky, které se točí ob jedno střídání.
+- **Nastavení:** pod každou pětkou je řádek **⇄ rotace**. Klepnutím vybereš druhou hráčku (jen u místa, kde je hlavní hráčka). Pořadí změníš přetažením jedné hráčky na druhou: **hlavní místo nastupuje první**. Funguje v kroku Sestava, v záložce Team (základní formace) i v živém zápisu (menu ⋯ → 👥 Sestava). Jedna hráčka smí být jen na jednom místě.
+- **Za zápasu:** po konci střídání (výměna, sundání z ledu, nasazení pětky nebo jednotky) se do fronty zařadí partnerka a odcházející hráčka je „zaparkovaná“. Na dlaždici hráčky ve frontě je štítek **⇄ jméno**: kdo za ni skočí po jejím střídání.
+- **Ruční override:** klepnutím na štítek ⇄ přehodíš hráčku ve frontě za partnerku (např. když chce trenér rotaci přeskočit). Jde to opakovat a vrací to ↩ Zpět.
+- **Výjimky:** po trestu nebo zranění se hráčka vrací bez rotace. Partnerka, která je právě vyloučená, v ošetřování nebo na ledě, se přeskočí.
+- **Čas na ledě a statistiky** (střely, góly, +/-, střídání) se počítají jen hráčce, která byla opravdu na ledě. Počet zápasů (Z) dostanou obě. V zápisu utkání jsou obě hráčky místa vedle sebe.
+- **Formát dat:** v `lineup` je hlavní hráčka pod klíčem `"1C"` a partnerka pod `"1C+"` (třetí by byla `"1C++"`). Aktuální pořadí rotace za zápasu je v živém stavu `live.ri`, např. `{"1C": 1}` (index do seznamu hráček místa), takže ho vrací ↩ Zpět.
+
 ## Živý zápis – rozložení a ovládání
 - **Horní lišta** (čas s šipkami ◀ ▶ pro posun o 5 s, skóre, situace) zůstává nahoře.
 - **Barvy podle pětek:** 1. pětka modrá, 2. bílá, 3. červená, 4. zelená, hráčka mimo pětky šedá. Z barev je vidět, jak se pětky míchají.
 - **Rozložení shora dolů:** tlačítka „Celá pětka na led“ → fronty čekajících hráček (nejblíž ledu je ta, která jde na řadu, zvýrazněná oranžově) → **hráčky na ledě** → mezera → **STŘELA NA NAŠI BRÁNU** → poslední čtyři akce z průběhu.
-- **Tlačítka hráček:** na ledě číslo (velké), pod ním přezdívka a čas na ledě. V čekání číslo a pod ním přezdívka.
+- **Tlačítka hráček:** na ledě číslo (velké), pod ním přezdívka a čas na ledě. V čekání číslo a pod ním přezdívka (a u rotace štítek ⇄ s partnerkou, viz níže).
 - **Střídání:** klepnutí na hráčku ve frontě ji pošle na led místo hráčky pod ní. Podržením a přetažením ji pošleš na jinou pozici. Tlačítko **N. pětka** pošle na led celou pětku najednou (např. když jsou řady rozházené).
 - **Střela:** klepnutí na hráčku na ledě zapíše její střelu, tlačítko STŘELA NA NAŠI BRÁNU střelu soupeře. **Když je hra přerušená, střely zapsat nejdou.**
 - **Spodní lišta:** za běžící hry jen ↩ Zpět a velké Start/Přerušit. **Po přerušení** se přidají ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby (zranění, konec třetiny, brankářka, změna sestavy, jednotky a další).
@@ -157,7 +162,7 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
 - Tréninky, hodnocení hráček a dlouhodobý plán (zatím jen v původní verzi v Claude).
 - Přihlášení uživatelů.
-- Statistiky času na ledě za celou sezónu (v zápase je tabulka v statistiky zápasu v kroku 5).
+- Statistiky času na ledě za celou sezónu (v zápase je tabulka času na ledě v menu ⋯ → Čas na ledě a v zápisu utkání).
 
 ## Poznámky k datům z Claude
 - Historie kroků „vrátit akci“ v rozehraném zápase se do exportu nepřenesla (zápas, události ani statistiky ano).
