@@ -1,7 +1,7 @@
 // Seznam zápasů a detail zápasu (průvodce kroky).
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {save, upd} from "../core/actions.js";
-import {PG, nomOf, pl, pn, pri, score, shots, skaters, stOf} from "../core/selectors.js";
+import {PG, compactRot, nomOf, pl, pn, pri, score, shots, skaters, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, Q, clone, esc, fd, td, toast, uid} from "../core/utils.js";
 import {benchM, fillDef, readiness} from "../domain/lineup.js";
@@ -61,7 +61,7 @@ Q("#ra").onclick=()=>{const c=$("#rc").value.trim(),nm=$("#rn").value.trim();if(
 a.querySelectorAll("[data-rid]").forEach(i=>i.onchange=()=>{const n=clone(m),r=(n.opr||[]).find(x=>x.id===i.dataset.rid);if(r){r[i.dataset.f]=Math.max(0,+i.value||0);save(n)}});
 a.querySelectorAll("[data-rd]").forEach(b=>b.onclick=()=>{const n=clone(m);n.opr=(n.opr||[]).filter(x=>x.id!==b.dataset.rd);save(n)});
 if(!lk)a.querySelectorAll("[data-ee]").forEach(r=>r.onclick=()=>{const e=ge.find(x=>x.id===r.dataset.ee);if(!e)return;S.M={...clone(e),eid:e.id,all:true,on:clone(e.on||[])};modal()});
-const setNom=nm=>{const n=clone(m);n.nom=nm;n.lineup=n.lineup||{};Object.keys(n.lineup).forEach(k=>{if(!nm.includes(n.lineup[k]))delete n.lineup[k]});if(n.gk&&!nm.includes(n.gk))delete n.gk;if(!n.live)n.luOk=false;save(n)};
+const setNom=nm=>{const n=clone(m);n.nom=nm;n.lineup=n.lineup||{};Object.keys(n.lineup).forEach(k=>{if(!nm.includes(n.lineup[k]))delete n.lineup[k]});compactRot(n.lineup);if(n.gk&&!nm.includes(n.gk))delete n.gk;if(!n.live)n.luOk=false;save(n)};
 a.querySelectorAll("[data-nall]").forEach(b=>b.onclick=()=>setNom(S.pl.filter(p=>stOf(p)==="act").map(p=>p.id)));
 a.querySelectorAll("[data-nnone]").forEach(b=>b.onclick=()=>setNom([]));
 a.querySelectorAll("[data-tn]").forEach(b=>b.onclick=()=>{const id=b.dataset.tn;setNom(nom.includes(id)?nom.filter(x=>x!==id):[...nom,id])});
