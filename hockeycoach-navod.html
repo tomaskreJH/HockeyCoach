@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HockeyCoach – kompletní návod</title>
+<style>
+:root{--blue:#0b5fa5;--ice:#eef6fc;--line:#cfe3f2;--warn:#b45309}
+*{box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#16202a;margin:0;background:#f6f9fc}
+main{max-width:900px;margin:0 auto;background:#fff;padding:32px}
+h1{color:var(--blue);font-size:30px;margin:0 0 6px}
+h2{color:var(--blue);border-bottom:3px solid var(--line);padding-bottom:6px;margin-top:34px}
+h3{color:#123c5c;margin-top:24px}
+.card{background:var(--ice);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:bold}
+.step{background:#fff;border:2px solid var(--blue);border-radius:8px;padding:8px 12px}
+.arrow{color:var(--blue);font-size:20px}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{border:1px solid var(--line);padding:8px;vertical-align:top;text-align:left}
+th{background:var(--ice);color:#123c5c}
+code{background:#eef2f6;padding:2px 5px;border-radius:4px}
+.note{border-left:5px solid var(--warn);background:#fff7ed;padding:10px 14px;margin:12px 0}
+ul{margin:8px 0 8px 20px}
+@media print{body{background:#fff}main{padding:0;max-width:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>HockeyCoach – kompletní návod</h1>
+<p>Aplikace pro vedení hokejového týmu: soupiska, formace, nominace, zápasy, živý zápis, statistiky a zálohy. Běží v prohlížeči; data jsou ve výchozím stavu uložena lokálně v zařízení.</p>
+
+<h2>1. Spuštění aplikace</h2>
+<div class="card">
+<div class="flow"><span class="step">Otevřít aplikaci</span><span class="arrow">→</span><span class="step">První spuštění</span><span class="arrow">→</span><span class="step">⚙️ Nastavení</span></div>
+</div>
+<ul>
+<li><b>Lokálně na PC:</b> spusť <code>npm start</code> nebo <code>python3 -m http.server</code> a otevři <code>http://localhost:3000</code>, resp. <code>http://localhost:8000</code>.</li>
+<li><b>První spuštění:</b> ⚙️ → <b>Obnovit ze zálohy</b> → vyber <code>data/seed-data.json</code> → <b>Nahradit vším</b>.</li>
+<li><b>Telefon:</b> v Chrome otevři adresu aplikace → menu ⋮ → <b>Přidat na plochu / Instalovat aplikaci</b>.</li>
+<li><b>Stará verze po aktualizaci:</b> ⚙️ → <b>Načíst novou verzi</b>. Data zůstanou zachována.</li>
+</ul>
+<div class="note"><b>Důležité:</b> data jsou uložena v prohlížeči daného zařízení. Pravidelně dělej zálohu: ⚙️ → <b>Stáhnout zálohu (JSON)</b>.</div>
+
+<h2>2. Záložka Team – příprava týmu</h2>
+<h3>Základní formace</h3>
+<ul>
+<li>Nahoře nastav základní pětky a brankářky.</li>
+<li><b>Klepnutím</b> vybereš hráčku na místo.</li>
+<li><b>Podržením a přetažením</b> hráčku přesuneš; obsazené místo se prohodí.</li>
+<li>Základní formace se automaticky kopíruje do každého nového zápasu.</li>
+</ul>
+
+<h3>Náhradnice</h3>
+<ul>
+<li>Zobrazují se všechny nezařazené aktivní hráčky.</li>
+<li>Přetažením je můžeš dát do sestavy, prohodit mezi sebou nebo vrátit mezi náhradnice.</li>
+<li>Pořadí náhradnic si aplikace pamatuje.</li>
+</ul>
+
+<h3>Soupiska</h3>
+<ul>
+<li>Přidávej a upravuj hráčky, filtruj je a měň jejich stav.</li>
+<li>Export soupisky do Excelu: ⚙️ → <b>Soupiska (CSV)</b>.</li>
+</ul>
+
+<h3>Rotace dvou hráček na jednom místě</h3>
+<ul>
+<li>Pod pětkou použij řádek <b>⇄ rotace</b>.</li>
+<li>Vyber druhou hráčku pro stejné místo; hlavní hráčka nastupuje první.</li>
+<li>Pořadí změníš přetažením jedné hráčky na druhou.</li>
+<li>Po střídání se do fronty zařadí partnerka; štítek <b>⇄ jméno</b> ukazuje, kdo za hráčku skočí.</li>
+<li>Klepnutím na <b>⇄</b> rotaci ručně přehodíš; <b>↩ Zpět</b> ji vrátí.</li>
+<li>Po trestu nebo zranění se hráčka vrací bez rotace.</li>
+</ul>
+
+<h2>3. Záložka Matches – nový zápas</h2>
+<div class="card">
+<div class="flow">
+<span class="step">1. Zápas</span><span class="arrow">→</span>
+<span class="step">2. Sestava</span><span class="arrow">→</span>
+<span class="step">3. Zápas živě</span>
+</div>
+</div>
+
+<h3>Krok 1 – Zápas</h3>
+<ul>
+<li>Zadej <b>soupeře</b>, <b>datum</b>, <b>doma/venku</b> a <b>délku třetiny</b> (standardně 20 minut).</li>
+<li>Nastav, zda se hraje <b>prodloužení</b>: Ano (5 minut) / Ne.</li>
+<li>Můžeš zobrazit vzájemné uzavřené zápasy se soupeřem.</li>
+</ul>
+
+<h3>Krok 2 – Sestava</h3>
+<p><b>A) Nominace</b></p>
+<ul>
+<li>Klepnutím vyber hráčky, které jsou k dispozici.</li>
+<li>Minimálně musí být <b>1 brankářka</b> a <b>5 bruslařek</b>.</li>
+<li>Použij <b>Všechny aktivní</b> nebo <b>Zrušit vše</b>.</li>
+</ul>
+<p><b>B) Sestava</b></p>
+<ul>
+<li>Po přechodu se sestava naplní podle základní formace, ale pouze z nominovaných hráček.</li>
+<li>Uprav řady, náhradnice a jednotky přesilovky a oslabení.</li>
+<li><b>↻ Podle základní formace</b> sestavu znovu přepíše.</li>
+<li><b>✔ Uzavřít sestavu</b> potvrdí sestavu a umožní spustit živý zápis.</li>
+<li>Hráčka smí být jen v jedné přesilovkové jednotce a jedné oslabovací jednotce; v běžné řadě být může.</li>
+</ul>
+
+<h3>Krok 3 – Zápas živě</h3>
+<ul>
+<li>Zobrazuje průběh, jmenné statistiky, zápis utkání a opravy.</li>
+<li>Živý zápis lze spustit až po uzavření sestavy a splnění nominace.</li>
+<li>Po zahájení jsou uzamčeny nominace, soupeř, datum a domácí/venkovní utkání.</li>
+</ul>
+
+<h2>4. Živý zápis</h2>
+<h3>Rozložení obrazovky</h3>
+<table>
+<tr><th>Část</th><th>Funkce</th></tr>
+<tr><td>Horní lišta</td><td>Čas s posunem ◀ ▶ o 5 sekund, skóre a aktuální situace.</td></tr>
+<tr><td>Celá pětka na led</td><td>Nasazení celé pětky najednou.</td></tr>
+<tr><td>Fronty</td><td>Čekající hráčky; nejbližší hráčka jde na led jako první.</td></tr>
+<tr><td>Hráčky na ledě</td><td>Zobrazují číslo, přezdívku a čas na ledě.</td></tr>
+<tr><td>Spodní lišta</td><td>Za běhu: ↩ Zpět a Start/Přerušit. Po přerušení: góly, trest a další volby.</td></tr>
+</table>
+
+<h3>Střídání</h3>
+<ul>
+<li><b>Klepnutím na hráčku ve frontě</b> ji pošleš na led místo hráčky pod ní.</li>
+<li><b>Podržením a přetažením</b> ji pošleš na jinou pozici.</li>
+<li><b>N. pětka</b> nasadí celou pětku najednou.</li>
+</ul>
+
+<h3>Střely a góly</h3>
+<ul>
+<li><b>Klepnutím na hráčku na ledě</b> zapíšeš její střelu.</li>
+<li><b>STŘELA NA NAŠI BRÁNU</b> zapíše střelu soupeře.</li>
+<li>Při přerušené hře nelze střely zapsat.</li>
+<li><b>⚽ Gól naši:</b> vyber střelkyni, poté první a druhou asistenci nebo „Bez asistence“.</li>
+<li><b>⚽ Gól soupeř:</b> stačí jedno klepnutí.</li>
+</ul>
+
+<h3>Tresty</h3>
+<ul>
+<li>Po přerušení zvol <b>🚫 Trest</b>.</li>
+<li>Vyber hráčku nebo soupeře, délku trestu a důvod.</li>
+<li>Délky: 2 minuty, 2+2, 5 minut, 10 osobní, do konce.</li>
+<li>Hráčka sejde z ledu; po vypršení trestu se vrátí na svou pozici, na volné místo nebo do fronty.</li>
+<li>Gól ukončí nejstarší dvouminutový trest oslabeného týmu; pětiminutový trest gólem nekončí.</li>
+<li>U trestu lze použít <b>Zrušit</b>; poslední akci vrací i <b>↩ Zpět</b>.</li>
+</ul>
+
+<h3>Přesilovky a oslabení</h3>
+<ul>
+<li>Při nerovném počtu hráček se nahoře objeví <b>⚡ Přesilovka 1/2</b> nebo <b>🛡 Oslabení 1/2</b>.</li>
+<li>Jednotku nasadíš jedním klepnutím.</li>
+<li>Jednotky lze upravit při přerušení: ⋯ → <b>Jednotky PP/OS</b>.</li>
+<li><b>↩ Zpět na řady</b> vrátí hru na běžné řady.</li>
+<li>Oslabení se přizpůsobí počtu hráček: 4 hráčky nebo 3 hráčky.</li>
+</ul>
+
+<h3>Zranění</h3>
+<ul>
+<li>Menu ⋯ → <b>🤕 Zranění</b>.</li>
+<li><b>🩹 Dočasně:</b> hráčka je v ošetřování, mimo led a fronty, ale zůstává v nominaci a sestavě. Vrátíš ji přes <b>↩ Vrátit</b>.</li>
+<li><b>🤕 Trvale:</b> hráčka je odebrána z nominace i sestavy a v soupisce je označena jako zraněná.</li>
+</ul>
+
+<h3>Další funkce v menu ⋯</h3>
+<ul>
+<li><b>👥 Sestava:</b> změna sestavy během zápasu klepnutím nebo přetažením.</li>
+<li><b>Jednotky PP/OS:</b> úprava a nasazení jednotek.</li>
+<li><b>🤕 Zranění:</b> dočasné nebo trvalé zranění.</li>
+<li><b>Sundat z ledu:</b> ruční odstranění hráčky z ledu.</li>
+<li><b>Čas na ledě:</b> přehled časů a střídání.</li>
+<li><b>Nastavení:</b> například limit dlouhého střídání, výchozí 2:00.</li>
+<li><b>Konec třetiny / Konec zápasu:</b> po třetí třetině aplikace rozpozná, zda jde o prodloužení, nebo konec zápasu.</li>
+</ul>
+
+<h2>5. Zápis utkání a opravy</h2>
+<h3>Zápis utkání</h3>
+<ul>
+<li>Obsahuje výsledek, góly, asistence, sestavu, průběh a statistiky.</li>
+<li><b>Podrobný rozbor</b> ukazuje kompletní vývoj zápasu, střídání, střely, góly, tresty, zranění a nasazení jednotek.</li>
+<li>Dlouhá střídání jsou označena <b>⚠️</b>.</li>
+<li>Export: <b>🖨 Tisk / PDF</b>, <b>💾 HTML</b>, <b>⬇️ CSV vývoj</b>, <b>⬇️ CSV střídání</b>.</li>
+</ul>
+
+<h3>Opravit zápis</h3>
+<ul>
+<li>Karta <b>✏️ Opravit zápis</b> je dostupná, když hodiny stojí a zápas není uzavřený.</li>
+<li>Lze upravovat nebo mazat góly, vyloučení a střely.</li>
+<li>Lze měnit délky třetin, konec zápasu, prodloužení, soupeře, datum a domácí/venkovní utkání.</li>
+<li>Opravy se okamžitě promítnou do statistik a zápisu.</li>
+</ul>
+
+<h2>6. Záložky Opponents a Stats</h2>
+<ul>
+<li><b>Opponents:</b> správa soupeřů a jejich údajů.</li>
+<li><b>Stats:</b> přehled statistik týmů a hráček.</li>
+</ul>
+
+<h2>7. Záloha, přesun dat a synchronizace</h2>
+<table>
+<tr><th>Akce</th><th>Postup</th></tr>
+<tr><td>Záloha všech dat</td><td>⚙️ → <b>Stáhnout zálohu (JSON)</b></td></tr>
+<tr><td>Obnova dat</td><td>⚙️ → <b>Obnovit ze zálohy</b> → vyber JSON soubor</td></tr>
+<tr><td>Sloučení dat</td><td><b>Sloučit s daty</b> přidá nebo přepíše vybrané položky</td></tr>
+<tr><td>Nahrání nových dat</td><td><b>Nahradit vším</b> smaže stávající obsah a nahradí jej zálohou</td></tr>
+<tr><td>Export soupisky</td><td>⚙️ → <b>Soupiska (CSV)</b></td></tr>
+</table>
+<div class="note">Synchronizace přes Supabase je volitelná a aktuálně se nevyužívá. Bez ní přenášej data mezi zařízeními pomocí JSON zálohy.</div>
+
+<h2>8. Rychlá reference</h2>
+<table>
+<tr><th>Úkol</th><th>Kde</th></tr>
+<tr><td>Přidat hráčku</td><td>Team → Soupiska</td></tr>
+<tr><td>Nastavit pětky</td><td>Team → Základní formace</td></tr>
+<tr><td>Založit zápas</td><td>Matches → nový zápas</td></tr>
+<tr><td>Vybrat nominaci</td><td>Krok 2 → A Nominace</td></tr>
+<tr><td>Uzavřít sestavu</td><td>Krok 2 → ✔ Uzavřít sestavu</td></tr>
+<tr><td>Spustit živý zápis</td><td>Krok 3 → Start</td></tr>
+<tr><td>Zapsat střídání</td><td>Klepnutím na hráčku ve frontě</td></tr>
+<tr><td>Zapsat střelu</td><td>Klepnutím na hráčku na ledě</td></tr>
+<tr><td>Zapsat trest</td><td>Přerušit hru → 🚫 Trest</td></tr>
+<tr><td>Změnit sestavu za zápasu</td><td>⋯ → 👥 Sestava</td></tr>
+<tr><td>Opravit událost</td><td>Krok 3 → ✏️ Opravit zápis</td></tr>
+<tr><td>Vytvořit zálohu</td><td>⚙️ → Stáhnout zálohu (JSON)</td></tr>
+</table>
+</main>
+</body>
+</html>
