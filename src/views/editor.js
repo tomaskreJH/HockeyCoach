@@ -1,4 +1,4 @@
-// Opravy zápisu: úprava událostí, třetin, konce zápasu a základních údajů zápasu.
+// Opravy zápisu: úprava událostí, třetin, konce zápasu, základních údajů zápasu a střídání.
 import {REA, SIT} from "../config/constants.js";
 import {ensureOp, upd} from "../core/actions.js";
 import {curM, isG, nomOf, pl, pri} from "../core/selectors.js";
@@ -6,6 +6,7 @@ import {S} from "../core/state.js";
 import {$, clone, esc, fd, mmss, toast, uid} from "../core/utils.js";
 import {clearEnd, lastPer, moveBoundary, parseClock, periodEnd, removeOvertime, setEnd} from "../domain/corrections.js";
 import {eventText, nameOf, perLabel, periodStart} from "../domain/timeline.js";
+import {bindShifts, shiftFormHtml, shiftsHtml} from "./shift-editor.js";
 
 const chip = (k, v, label, on, attr = "data-ef") => `<button class="chip ${on ? "on" : ""}" ${attr}="${k}" data-v="${esc(v)}">${label}</button>`;
 const pool = (m, f, goalie) => [...new Set([...nomOf(m), f.scorer, f.a1, f.a2, f.pid, f.shooter, f.gk, ...(f.on || [])].filter(Boolean))]
@@ -61,7 +62,8 @@ export function renderEditor() {
   const ed = S.ed;
   if (!ed.b) ed.b = {home: m.home, ot: m.ot !== false};
   e.style.display = "block";
-  e.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">✏️ Opravy zápisu</h2><button class="p" id="edx">Hotovo</button></div><div class="mu" style="margin-bottom:10px">${esc(m.opp)} · ${fd(m.date)}</div>${ed.f ? formHtml(m, ed.f) : `<div class="chips">${[["ev", "Události"], ["tri", "Třetiny a konec"], ["zakl", "Základ"]].map(([k, t]) => `<button class="chip ${ed.tab === k ? "on" : ""}" data-etab="${k}">${t}</button>`).join("")}</div>${ed.tab === "tri" ? periodsHtml(m) : ed.tab === "zakl" ? baseHtml(m) : eventsHtml(m)}`}`;
+  // Formulář události / formulář střídání / záložky (Události, Třetiny a konec, Střídání, Základ)
+  e.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">✏️ Opravy zápisu</h2><button class="p" id="edx">Hotovo</button></div><div class="mu" style="margin-bottom:10px">${esc(m.opp)} · ${fd(m.date)}</div>${ed.f ? formHtml(m, ed.f) : ed.sf ? shiftFormHtml(m, ed.sf) : `<div class="chips">${[["ev", "Události"], ["tri", "Třetiny a konec"], ["sti", "Střídání"], ["zakl", "Základ"]].map(([k, t]) => `<button class="chip ${ed.tab === k ? "on" : ""}" data-etab="${k}">${t}</button>`).join("")}</div>${ed.tab === "tri" ? periodsHtml(m) : ed.tab === "zakl" ? baseHtml(m) : ed.tab === "sti" ? shiftsHtml(m) : eventsHtml(m)}`}`;
   bind(e, m);
 }
 
@@ -118,4 +120,6 @@ function bind(e, m) {
     const n = clone(m); Object.assign(n, {opp, date: $("#bd").value || m.date, home: ed.b.home, perLen: len, ot: ed.b.ot});
     ensureOp(opp); ed.o = ed.d = ed.l = null; ed.b = null; toast("Uloženo"); upd(n);
   });
+  // střídání (obsluhu řeší views/shift-editor.js)
+  bindShifts(e, m, renderEditor);
 }
