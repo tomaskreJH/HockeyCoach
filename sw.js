@@ -1,6 +1,31 @@
 // Service worker: síť má přednost, offline se použije uložená kopie. Moduly a styly se ukládají za běhu.
-const C="hokej-v14",CORE=["./","index.html","styles/main.css","src/main.js","manifest.webmanifest","icon-192.png","icon-512.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
-self.addEventListener("fetch",e=>{const u=new URL(e.request.url);if(e.request.method!=="GET"||u.origin!==location.origin)return;
- e.respondWith(fetch(new Request(e.request.url,{cache:"no-store"})).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match("index.html"))))});
+// Firebase SDK (verzované neměnné adresy na gstatic.com) se ukládá také, aby aplikace šla spustit offline.
+
+// ===== Konstanty =====
+const C = "hokej-v15", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const FB = "https://www.gstatic.com/firebasejs/";
+
+// ===== Instalace a aktivace =====
+self.addEventListener("install", e => { e.waitUntil(caches.open(C).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
+self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== C).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
+
+// ===== Načítání =====
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET") return;
+  // Firebase SDK: nejdřív z cache, jinak ze sítě a uložit
+  if (e.request.url.startsWith(FB)) {
+    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      if (res.ok) { const cp = res.clone(); caches.open(C).then(c => c.put(e.request, cp)); }
+      return res;
+    })));
+    return;
+  }
+  const u = new URL(e.request.url);
+  if (u.origin !== location.origin) return;
+  // Vlastní soubory: síť má přednost, offline uložená kopie
+  e.respondWith(fetch(new Request(e.request.url, {cache: "no-store"})).then(r => {
+    const cp = r.clone();
+    caches.open(C).then(c => c.put(e.request, cp));
+    return r;
+  }).catch(() => caches.match(e.request).then(r => r || caches.match("index.html"))));
+});

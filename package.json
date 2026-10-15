@@ -1,6 +1,6 @@
 {
   "name": "hokej-zapasy",
-  "version": "14.2.0",
+  "version": "15.0",
   "private": true,
   "description": "Aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráček, živý zápis, statistiky.",
   "type": "module",
