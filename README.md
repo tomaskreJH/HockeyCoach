@@ -1,5 +1,7 @@
 # Hokej – zápasy (modulární projekt)
 
+**Aktuální verze: v15.2 (16. 10. 2026)** – nově průměrný čas na ledě v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
+
 Aplikace pro trenéry a kustody: soupiska, formace, nominace, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
 
@@ -9,16 +11,16 @@ HockeyCoach/
 ├─ index.html vstupní stránka (načítá styly a src/main.js jako ES modul)
 ├─ styles/main.css styly
 ├─ src/
-│ ├─ main.js spuštění aplikace, odběr změn dat
+│ ├─ main.js spuštění aplikace, odběr změn dat, zapnutí řazení tabulek
 │ ├─ debug.js ladicí hák (stránka s ?debug zpřístupní funkce v window.__hk)
 │ ├─ config/constants.js konstanty: pozice, důvody trestů, rozložení formací a jednotek
-│ ├─ core/ stav, pomocné funkce, čtecí selektory, akce (ukládání)
-│ │ ├─ state.js utils.js selectors.js actions.js
+│ ├─ core/ stav, pomocné funkce, čtecí selektory, akce (ukládání), řazení tabulek
+│ │ ├─ state.js utils.js selectors.js actions.js table-sort.js
 │ ├─ data/
 │ │ ├─ storage.js datová vrstva: Firebase (Firestore + přihlášení Google), role, záloha/obnova, okno ⚙️
 │ │ └─ firebase-config.js nastavení Firebase projektu (vyplnit vlastními hodnotami)
 │ ├─ domain/ pravidla hry bez DOM
-│ │ ├─ lineup.js nominace, náhradnice, způsobilost ke spuštění zápisu
+│ │ ├─ lineup.js nominace, náhradnice, způsobilost ke spuštění živého zápisu
 │ │ ├─ live-engine.js čas, střídání, tresty podle IIHF, jednotky, formace při oslabení
 │ │ ├─ timeline.js úplná časová osa zápasu a statistika střídání
 │ │ ├─ corrections.js opravy konců třetin, konce zápasu a prodloužení
@@ -103,6 +105,19 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 - **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
 - **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není. Přidávat, upravovat a mazat hráčky smí jen trenér.
 
+## Celkové statistiky (záložka Statistiky)
+- **Statistiky hráčů** (jen uzavřené zápasy): Z (zápasy v sestavě), **Ø čas** (průměrný čas na ledě na zápas), střely, góly, procento, asistence, body, +/-, trestné minuty, góly v přesilovce, body doma a venku.
+- **Ø čas** = součet času na ledě ze všech uzavřených zápasů dělený počtem zápasů, ve kterých hráčka opravdu byla na ledě. Zápasy bez živého zápisu se do průměru nepočítají; hráčka bez ledového času má „–“. U rotace se čas počítá jen hráčce, která byla na ledě.
+- **Tým** (střely, góly, úspěšnost) a **Brankáři** (střely, góly, zákroky, úspěšnost).
+
+## Řazení tabulek statistik
+Všechny tabulky statistik se řadí **klepnutím na hlavičku sloupce** (`<th>`):
+- **Kde:** záložka Statistiky (hráči, tým, brankáři), statistiky zápasu (hráčky, brankářky) v kroku 3 i v zápisu utkání, tabulka Střídání hráček v podrobném rozboru a tabulka Čas na ledě v živém zápisu (menu ⋯). Tabulky Souhrn po třetinách a Sestava v zápisu utkání se neřadí.
+- **Ovládání:** první klepnutí řadí čísla a časy **sestupně** (největší nahoře), text **vzestupně** (A–Z). Další klepnutí na stejný sloupec přepíná ▲ vzestupně / ▼ sestupně. Aktuální sloupec a směr ukazuje šipka v hlavičce.
+- **Typy hodnot:** text se řadí podle české abecedy (jména s číslem `#5 Janča` se řadí podle čísla dresu a jména), čísla včetně znaménka (`+3`, `-2`), procent (`45 %`, `91,7 %`) i desetinné čárky, časy ve formátu `MM:SS` (včetně sloupce Ø čas a hodnoty `⚠️ 02:15 (…)` v tabulce střídání). Prázdné hodnoty (`–`) jsou vždy na konci. Při shodě zůstává původní pořadí.
+- **Pamatování:** zvolené řazení tabulky platí, dokud se aplikace nenačte znovu (po překreslení nebo změně dat zůstane zachováno). Tisk do PDF ponese aktuálně zvolené řazení (včetně šipky v hlavičce); HTML export zápisu a CSV mají pevné pořadí.
+- **Technicky:** `src/core/table-sort.js` – jeden delegovaný posluchač kliknutí a `MutationObserver`, který připraví nové tabulky po překreslení. Řazená tabulka má třídu `sortable` (tabulka času na ledě v živém zápisu je vybrána přes `#lv table`). Novou tabulku zařadíš přidáním třídy `sortable`.
+
 ## Rotace dvou hráček na jednom místě
 Pro začátečnice: na jedno místo v řadě (např. C v 1. pětce) můžeš dát dvě hráčky, které se točí ob jedno střídání.
 - **Nastavení:** pod každou pětkou je řádek **⇄ rotace**. Klepnutím vybereš druhou hráčku (jen u místa, kde je hlavní hráčka). Pořadí změníš přetažením jedné hráčky na druhou: **hlavní místo nastupuje první**. Funguje v kroku Sestava, v záložce Team (základní formace) i v živém zápisu (menu ⋯ → 👥 Sestava). Jedna hráčka smí být jen na jednom místě.
@@ -121,7 +136,7 @@ Pro začátečnice: na jedno místo v řadě (např. C v 1. pětce) můžeš dá
 - **Střela:** klepnutí na hráčku na ledě zapíše její střelu, tlačítko STŘELA NA NAŠI BRÁNU střelu soupeře. **Když je hra přerušená, střely zapsat nejdou.**
 - **Spodní lišta:** za běžící hry jen ↩ Zpět a velké Start/Přerušit. **Po přerušení** se přidají ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby (zranění, konec třetiny, brankářka, změna sestavy, jednotky a další).
 - **Gól naši:** klepneš střelkyni, pak 1. a 2. asistenci (nebo „Bez asistence“). Střelkyně se v asistencích nenabízí. Situaci nastaví aplikace sama. **Gól soupeře:** jedno klepnutí. **Trest:** hráčka → délka → důvod.
-- **Krok 3 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání. Jen pro čtení.
+- **Krok 3 Průběh:** nahoře časová osa (nejnovější nahoře, včetně střel), pod ní jmenné statistiky zápasu včetně času na ledě a počtu střídání (tabulku lze řadit klepnutím na hlavičku). Jen pro čtení.
 
 ## Oslabení – méně pozic a základní rozdělení
 - **Oslabení 4 hráčky:** střed (C), útočník (Ú), oba obránci (LO, PO). **Oslabení 3 hráčky:** střed a dva obránci. Základní rozdělení se definuje předem v kroku 2 (jednotky SH1–SH4), kombinace můžeš zvolit libovolně.
@@ -140,7 +155,7 @@ V kroku 3 (Zápas živě) je karta **Zápis utkání**. Otevře se zápis ve dvo
 2. **Podrobný rozbor zápasu** (při tisku začíná novou stranou):
    - **Kompletní vývoj zápasu** v pořadí, jak proběhl: začátek se základní pětkou, střídání (kdo odešel, kdo nastoupil a jak dlouho předtím hrál), střely naše i soupeře, góly s průběžným skóre, vyloučení, zranění (dočasné, trvalé, návrat), nasazení pětky nebo jednotky, výměna brankářky, návraty z trestů a konce třetin.
    - **Dlouhá střídání jsou označena** ⚠️ a zvýrazněna. Limit se nastavuje v živém zápisu (menu ⋯ → Nastavení, výchozí 2:00) a je uveden nad vývojem.
-   - **Střídání hráček:** pro každou hráčku počet střídání, čas na ledě, **průměrné** a **nejdelší střídání** (s časem, kdy skončilo) a počet dlouhých.
+   - **Střídání hráček:** pro každou hráčku počet střídání, čas na ledě, **průměrné** a **nejdelší střídání** (s časem, kdy skončilo) a počet dlouhých. Tabulku lze řadit klepnutím na hlavičku.
 3. **Tlačítka v zápisu:** 🖨 Tisk / PDF, 💾 HTML (samostatný soubor), ⬇️ CSV vývoj a ⬇️ CSV střídání (do Excelu). Přepínače **Střely ve vývoji** a **Střídání ve vývoji** zkrátí vývoj, když je podrobností moc, a platí pro tisk i HTML.
 - Podrobné údaje (časy střídání, střel a zranění) se ukládají od této verze. U dříve zapsaných zápasů se časy střel a gólů dopočítají z třetiny a času, takže pořadí může být přibližné, a chybí v nich zápisy jako konec třetiny nebo nasazení jednotky.
 - Střídání se počítá z herního času (když hodiny stojí, střídání neběží). Střídání, které na konci zápisu stále trvá, se počítá do konce.
@@ -176,15 +191,20 @@ Opravy se hned promítnou do statistik, zápisu i vývoje zápasu.
 - **↩ Zpět na řady** vrátí hru na běžné řady. Prázdné zůstane místo vyloučené hráčky.
 
 ## Když po nahrání nové verze vidíš starou
-Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, včetně `sw.js` a celé složky `src/`.
+Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, včetně `sw.js` a celé složky `src/` (včetně `src/core/table-sort.js`).
 
 ## Co aplikace zatím neumí
 - Modul docházky a tréninků s přihlašováním hráček (přístup hráček je zatím zablokován, pravidla databáze jsou připravená).
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
 - Hodnocení hráček a dlouhodobý plán (zatím jen v původní verzi v Claude).
 - Skrytí tlačítek podle role (oprávnění ale vynucují pravidla databáze).
-- Statistiky času na ledě za celou sezónu (v zápase je tabulka času na ledě v menu ⋯ → Čas na ledě a v zápisu utkání).
+- Celkový (sezónní) součet času na ledě; v celkových statistikách je jen průměr na zápas (v zápase je tabulka času na ledě v menu ⋯ → Čas na ledě a v zápisu utkání).
 
 ## Poznámky k datům z Claude
 - Historie kroků „vrátit akci“ v rozehraném zápase se do exportu nepřenesla (zápas, události ani statistiky ano).
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť.
+
+## Historie verzí
+- **v15.2 (16. 10. 2026):** sloupec Ø čas (průměrný čas na ledě na zápas) v celkových statistikách hráčů.
+- **v15.1 (16. 10. 2026):** řazení tabulek statistik klepnutím na hlavičku (▲/▼; text, čísla, časy MM:SS), nový soubor `src/core/table-sort.js`.
+- **v15.0:** přechod datové vrstvy na Firebase (Firestore + přihlášení Google, role trenér/kustod/hráčka), opravy střídání v Opravách zápisu.
