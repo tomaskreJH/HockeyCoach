@@ -106,8 +106,8 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 - **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není. Přidávat, upravovat a mazat hráčky smí jen trenér.
 
 ## Celkové statistiky (záložka Statistiky)
-- **Statistiky hráčů** (jen uzavřené zápasy): Z (zápasy v sestavě), **Ø čas** (průměrný čas na ledě na zápas), střely, góly, procento, asistence, body, +/-, trestné minuty, góly v přesilovce, body doma a venku.
-- **Ø čas** = součet času na ledě ze všech uzavřených zápasů dělený počtem zápasů, ve kterých hráčka opravdu byla na ledě. Zápasy bez živého zápisu se do průměru nepočítají; hráčka bez ledového času má „–“. U rotace se čas počítá jen hráčce, která byla na ledě.
+- **Statistiky hráčů** (jen uzavřené zápasy): Z (zápasy v sestavě), **Ø stř.** (průměrná délka střídání), střely, góly, procento, asistence, body, +/-, trestné minuty, góly v přesilovce, body doma a venku.
+- **Ø stř.** = součet času na ledě ze všech uzavřených zápasů dělený počtem střídání hráčky. Zápasy bez živého zápisu se do průměru nepočítají; hráčka bez střídání má „–“. U rotace se čas počítá jen hráčce, která byla na ledě.
 - **Tým** (střely, góly, úspěšnost) a **Brankáři** (střely, góly, zákroky, úspěšnost).
 
 ## Řazení tabulek statistik
@@ -205,6 +205,6 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť.
 
 ## Historie verzí
-- **v15.2 (16. 10. 2026):** sloupec Ø čas (průměrný čas na ledě na zápas) v celkových statistikách hráčů.
+- **v15.2 (16. 10. 2026):** sloupec Ø střídání (průměrná délka střídání) v celkových statistikách hráčů.
 - **v15.1 (16. 10. 2026):** řazení tabulek statistik klepnutím na hlavičku (▲/▼; text, čísla, časy MM:SS), nový soubor `src/core/table-sort.js`.
 - **v15.0:** přechod datové vrstvy na Firebase (Firestore + přihlášení Google, role trenér/kustod/hráčka), opravy střídání v Opravách zápisu.
