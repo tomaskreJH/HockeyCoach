@@ -1,6 +1,6 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v15.2 (16. 10. 2026)** – nově průměrný čas na ledě v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
+**Aktuální verze: v15.3 (16. 10. 2026)** – nově nápověda v aplikaci (tlačítko ❓), aktualizovaný návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
 
 Aplikace pro trenéry a kustody: soupiska, formace, nominace, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
@@ -8,10 +8,11 @@ Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data 
 ## Struktura projektu
 ```
 HockeyCoach/
-├─ index.html vstupní stránka (načítá styly a src/main.js jako ES modul)
+├─ index.html vstupní stránka (načítá styly a src/main.js jako ES modul, záhlaví s tlačítky ❓ a ⚙️)
+├─ hockeycoach-navod.html kompletní návod k ovládání (samostatná stránka, jde vytisknout do PDF)
 ├─ styles/main.css styly
 ├─ src/
-│ ├─ main.js spuštění aplikace, odběr změn dat, zapnutí řazení tabulek
+│ ├─ main.js spuštění aplikace, odběr změn dat, zapnutí řazení tabulek a nápovědy
 │ ├─ debug.js ladicí hák (stránka s ?debug zpřístupní funkce v window.__hk)
 │ ├─ config/constants.js konstanty: pozice, důvody trestů, rozložení formací a jednotek
 │ ├─ core/ stav, pomocné funkce, čtecí selektory, akce (ukládání), řazení tabulek
@@ -26,7 +27,7 @@ HockeyCoach/
 │ │ ├─ corrections.js opravy konců třetin, konce zápasu a prodloužení
 │ │ └─ shift-edit.js editace střídání (časy, předání, výměna hráčky, kontrola historie)
 │ └─ views/ obrazovky (DOM)
-│ ├─ shell.js team.js matches.js opponents.js stats.js modal.js
+│ ├─ shell.js team.js matches.js opponents.js stats.js modal.js help.js
 │ ├─ lineup-editor.js live.js live-quick.js report.js
 │ └─ editor.js shift-editor.js opravy zápisu (události, třetiny, střídání, základ)
 ├─ firestore.rules pravidla přístupu k databázi (vložit do Firebase Console)
@@ -40,7 +41,7 @@ Jednosouborová verze (`dist/`, `build.mjs`) byla zrušena a už se nevyvíjí. 
 ## Jak aplikaci spustit
 Moduly se z `file://` v prohlížeči nenačtou, aplikace potřebuje malý lokální server:
 - `npm start` (nebo `python3 -m http.server`) a otevři `http://localhost:3000` (resp. `:8000`).
-- Při hostingu nahraj na web celou složku (kromě `node_modules/`), včetně `sw.js`, `firestore.rules` a složky `src/`.
+- Při hostingu nahraj na web celou složku (kromě `node_modules/`), včetně `sw.js`, `firestore.rules`, `hockeycoach-navod.html` a složky `src/`.
 - Aplikace stahuje Firebase SDK z `gstatic.com`; první spuštění tedy vyžaduje internet, potom je SDK uloženo v offline paměti (service worker).
 
 ## Nastavení Firebase (jednorázově)
@@ -52,6 +53,12 @@ Moduly se z `file://` v prohlížeči nenačtou, aplikace potřebuje malý loká
 6. **Přenos stávajících dat:** ve staré verzi ⚙️ → Stáhnout zálohu (JSON), v nové po přihlášení ⚙️ → Obnovit ze zálohy → **Nahradit vším**. Alternativně `data/seed-data.json`.
 
 Hosting je možný kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages). HTTPS je nutné pro přihlášení, instalaci na plochu, offline režim a zámek displeje při živém zápisu.
+
+## Nápověda
+- **V aplikaci:** tlačítko **❓** v záhlaví (vedle ⚙️) otevře celoobrazovkový přehled ovládání rozdělený do rozbalovacích sekcí (přihlášení, Team, zápas, živý zápis, tresty, zápis utkání a opravy, statistiky, záloha, rychlá reference). Nahoře je **vyhledávání** (nevyhovující sekce se skryjí, vyhovující rozbalí). Zavře se tlačítkem Zavřít nebo klávesou Esc. Nápověda je čistě informační a funguje i offline.
+- **Za živého zápisu** je živá obrazovka přes celé záhlaví, nápovědu proto otevři před zahájením zápasu (nebo po ✕ Zavřít živý zápis).
+- **Samostatný návod:** soubor `hockeycoach-navod.html` (otevře se v prohlížeči, jde vytisknout do PDF). Obsahuje totéž podrobněji.
+- **Technicky:** `src/views/help.js` (obsah je pole `SECTIONS`, nová sekce = nový objekt `{t, h}`), tlačítko `#help` v `index.html`, napojení `initHelp()` v `src/main.js`. Při změně ovládání aktualizuj obě místa: `help.js` i `hockeycoach-navod.html`.
 
 ## Přihlášení, role a ochrana dat
 - **Přihlášení:** účtem Google. Přístup mají jen e-maily zapsané v kolekci `members` (Google účet se musí shodovat s e-mailem v seznamu). Neznámý účet po přihlášení nic neuvidí.
@@ -71,7 +78,7 @@ Hosting je možný kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages)
 - Dál dělej zálohy JSON (⚙️ → Stáhnout zálohu). Automatické zálohy Firestore vyžadují placený plán Blaze.
 
 ## Provoz na telefonu a PC
-**Android:** v Chrome otevři adresu aplikace → menu ⋮ → *Přidat na plochu / Instalovat aplikaci*. Přihlášení zůstává uložené, takže se nemusíš přihlašovat před každým zápasem.
+**Android:** v Chrome otevři adresu aplikace → menu ⋯ → *Přidat na plochu / Instalovat aplikaci*. Přihlášení zůstává uložené, takže se nemusíš přihlašovat před každým zápasem.
 Zadávání na telefonu a prohlížení výsledků na PC probíhá nad stejnou databází; změny se promítají během chvilky.
 
 ## Jak funguje synchronizace
@@ -114,7 +121,7 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 Všechny tabulky statistik se řadí **klepnutím na hlavičku sloupce** (`<th>`):
 - **Kde:** záložka Statistiky (hráči, tým, brankáři), statistiky zápasu (hráčky, brankářky) v kroku 3 i v zápisu utkání, tabulka Střídání hráček v podrobném rozboru a tabulka Čas na ledě v živém zápisu (menu ⋯). Tabulky Souhrn po třetinách a Sestava v zápisu utkání se neřadí.
 - **Ovládání:** první klepnutí řadí čísla a časy **sestupně** (největší nahoře), text **vzestupně** (A–Z). Další klepnutí na stejný sloupec přepíná ▲ vzestupně / ▼ sestupně. Aktuální sloupec a směr ukazuje šipka v hlavičce.
-- **Typy hodnot:** text se řadí podle české abecedy (jména s číslem `#5 Janča` se řadí podle čísla dresu a jména), čísla včetně znaménka (`+3`, `-2`), procent (`45 %`, `91,7 %`) i desetinné čárky, časy ve formátu `MM:SS` (včetně sloupce Ø čas a hodnoty `⚠️ 02:15 (…)` v tabulce střídání). Prázdné hodnoty (`–`) jsou vždy na konci. Při shodě zůstává původní pořadí.
+- **Typy hodnot:** text se řadí podle české abecedy (jména s číslem `#5 Janča` se řadí podle čísla dresu a jména), čísla včetně znaménka (`+3`, `-2`), procent (`45 %`, `91,7 %`) i desetinné čárky, časy ve formátu `MM:SS` (včetně sloupce Ø stř. a hodnoty `⚠️ 02:15 (…)` v tabulce střídání). Prázdné hodnoty (`–`) jsou vždy na konci. Při shodě zůstává původní pořadí.
 - **Pamatování:** zvolené řazení tabulky platí, dokud se aplikace nenačte znovu (po překreslení nebo změně dat zůstane zachováno). Tisk do PDF ponese aktuálně zvolené řazení (včetně šipky v hlavičce); HTML export zápisu a CSV mají pevné pořadí.
 - **Technicky:** `src/core/table-sort.js` – jeden delegovaný posluchač kliknutí a `MutationObserver`, který připraví nové tabulky po překreslení. Řazená tabulka má třídu `sortable` (tabulka času na ledě v živém zápisu je vybrána přes `#lv table`). Novou tabulku zařadíš přidáním třídy `sortable`.
 
@@ -191,20 +198,22 @@ Opravy se hned promítnou do statistik, zápisu i vývoje zápasu.
 - **↩ Zpět na řady** vrátí hru na běžné řady. Prázdné zůstane místo vyloučené hráčky.
 
 ## Když po nahrání nové verze vidíš starou
-Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, včetně `sw.js` a celé složky `src/` (včetně `src/core/table-sort.js`).
+Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, včetně `sw.js` a celé složky `src/` (včetně `src/core/table-sort.js` a `src/views/help.js`).
 
 ## Co aplikace zatím neumí
 - Modul docházky a tréninků s přihlašováním hráček (přístup hráček je zatím zablokován, pravidla databáze jsou připravená).
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
 - Hodnocení hráček a dlouhodobý plán (zatím jen v původní verzi v Claude).
 - Skrytí tlačítek podle role (oprávnění ale vynucují pravidla databáze).
-- Celkový (sezónní) součet času na ledě; v celkových statistikách je jen průměr na zápas (v zápase je tabulka času na ledě v menu ⋯ → Čas na ledě a v zápisu utkání).
+- Celkový (sezónní) součet času na ledě; v celkových statistikách je jen průměrná délka střídání (v zápase je tabulka času na ledě v menu ⋯ → Čas na ledě a v zápisu utkání).
+- Nápověda přímo v živém zápisu (tlačítko ❓ je v záhlaví, které živá obrazovka překrývá).
 
 ## Poznámky k datům z Claude
 - Historie kroků „vrátit akci“ v rozehraném zápase se do exportu nepřenesla (zápas, události ani statistiky ano).
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť.
 
 ## Historie verzí
-- **v15.2 (16. 10. 2026):** sloupec Ø střídání (průměrná délka střídání) v celkových statistikách hráčů.
+- **v15.3 (16. 10. 2026):** nápověda v aplikaci (❓ v záhlaví, rozbalovací sekce, hledání, nový soubor `src/views/help.js`), aktualizovaný návod `hockeycoach-navod.html` (Firebase, role, rotace, opravy střídání, statistiky, řazení).
+- **v15.2 (16. 10. 2026):** sloupec Ø stř. (průměrná délka střídání) v celkových statistikách hráčů.
 - **v15.1 (16. 10. 2026):** řazení tabulek statistik klepnutím na hlavičku (▲/▼; text, čísla, časy MM:SS), nový soubor `src/core/table-sort.js`.
 - **v15.0:** přechod datové vrstvy na Firebase (Firestore + přihlášení Google, role trenér/kustod/hráčka), opravy střídání v Opravách zápisu.

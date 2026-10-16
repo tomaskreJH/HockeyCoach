@@ -4,12 +4,15 @@ import {installDebug} from "./debug.js";
 import {syncOps} from "./core/actions.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
+import {initHelp} from "./views/help.js";
 import {liveTick} from "./views/live.js";
 import {render} from "./views/shell.js";
 
 if(new URLSearchParams(location.search).has("debug"))installDebug();
 // Řazení tabulek kliknutím na hlavičku (sleduje změny DOM, funguje i po překreslení)
 initTableSort();
+// Nápověda: tlačítko ❓ v záhlaví
+initHelp();
 setInterval(liveTick,500);
 (async()=>{render();try{const db=await HK.ready();
 S.db=db;const f={};const ok=k=>{f[k]=1;if(f.p&&f.m&&f.s&&f.o){S.ready=true}};
