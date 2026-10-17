@@ -1,6 +1,6 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v15.4 (16. 10. 2026)** – oprava nasazování jednotek při oslabení i přesilovce (čekající hráčky skrytých pozic jsou vidět, hráčka měnící pozici neztratí čas na ledě); dříve nápověda v aplikaci (tlačítko ❓), aktualizovaný návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
+**Aktuální verze: v15.5 (17. 10. 2026)** – přepracovaná logika střídání a rotace v živém zápisu (jednoznačný stav „na ledě / ve frontě / zaparkovaná“, atomické střídání, kontrola invariantů po každé akci, opravená nasazení jednotek a pětek při 5v5, přesilovce i oslabení); dříve oprava nasazování jednotek (v15.4), nápověda v aplikaci (tlačítko ❓), aktualizovaný návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
 
 Aplikace pro trenéry a kustody: soupiska, formace, nominace, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
@@ -21,8 +21,8 @@ HockeyCoach/
 │ │ ├─ storage.js datová vrstva: Firebase (Firestore + přihlášení Google), role, záloha/obnova, okno ⚙️
 │ │ └─ firebase-config.js nastavení Firebase projektu (vyplnit vlastními hodnotami)
 │ ├─ domain/ pravidla hry bez DOM
-│ │ ├─ lineup.js nominace, náhradnice, způsobilost ke spuštění živého zápisu
-│ │ ├─ live-engine.js čas, střídání, tresty podle IIHF, jednotky, formace při oslabení
+│ │ ├─ lineup.js nominace, náhradnice, způsobilost ke spuštění živého zápisu, synchronizace živého stavu se sestavou
+│ │ ├─ live-engine.js čas, střídání a rotace, tresty podle IIHF, jednotky, formace při oslabení, kontrola invariantů front
 │ │ ├─ timeline.js úplná časová osa zápasu a statistika střídání
 │ │ ├─ corrections.js opravy konců třetin, konce zápasu a prodloužení
 │ │ └─ shift-edit.js editace střídání (časy, předání, výměna hráčky, kontrola historie)
@@ -134,6 +134,22 @@ Pro začátečnice: na jedno místo v řadě (např. C v 1. pětce) můžeš dá
 - **Čas na ledě a statistiky** (střely, góly, +/-, střídání) se počítají jen hráčce, která byla opravdu na ledě. Počet zápasů (Z) dostanou obě. V zápisu utkání jsou obě hráčky místa vedle sebe.
 - **Formát dat:** v `lineup` je hlavní hráčka pod klíčem `"1C"` a partnerka pod `"1C+"` (třetí by byla `"1C++"`). Aktuální pořadí rotace za zápasu je v živém stavu `live.ri`, např. `{"1C": 1}` (index do seznamu hráček místa), takže ho vrací ↩ Zpět.
 
+## Stavový model střídání a rotace (v15.5)
+Technická poznámka pro vývoj (`src/domain/live-engine.js`, `src/domain/lineup.js`). Každá hráčka sestavy je v právě jednom ze tří stavů:
+- **Na ledě** – `L.ice[sloupec]`.
+- **Ve frontě** – `L.q[sloupec]`, připravená ke střídání. Na jedno místo sestavy (např. „1C“ s partnerkou „1C+“) připadá ve frontě a na ledě dohromady nejvýš jedna hráčka.
+- **Zaparkovaná** – partnerka z rotace, která teď není ani na ledě, ani ve frontě; na řadu přijde po střídání aktivní hráčky.
+
+`L.ri[místo]` je index hráčky, která je na ledě (nebo čeká ve frontě jako další). Hlídají ho tři funkce:
+- **`claimSlot(L,m,p)`** – volá se při každém příchodu na led (střídání, jednotka, pětka, návrat z trestu). Nastaví `L.ri` na hráčku, která skutečně nastoupila, a její partnerky odebere z front.
+- **`requeue` / `rotate`** – po odchodu hráčky vyberou další dostupnou partnerku (ne na ledě, ne vyloučenou, ne v ošetřování), odstraní všechny hráčky místa z front a vloží jedinou na konec fronty. Zbytek front se nemění (pole se vždy vytvářejí znovu). Hráčka mimo sestavu (nasazená jednotkou) nezmizí, vrací se do fronty svého sloupce.
+- **`settle(L,m)`** – kontrola invariantů, volá se z `fitLayout` po každé akci: bez duplicit ve frontách, nikdo není zároveň na ledě a ve frontě, každé místo sestavy má hráčku na ledě nebo ve frontě. Pokud `activeId` vrátí hráčku, která není ve hře, okamžitě se zařadí do fronty, takže se index rotace nikdy nerozejde s ledem.
+
+**Střídání** (`doSub` → `putOn`) je atomické: odchod hráčky z ledu a zápis střídání (`leave`, přesný začátek a konec), příchod nové hráčky (`L.ice`, `L.since`), nastavení indexu rotace a zařazení odcházející do fronty proběhnou v jedné akci (`act`) a vrací je ↩ Zpět.
+**Nasazení jednotky nebo pětky** (`applyMap`) probíhá v pořadí: odchod, příchod na led, teprve potom rotace odcházejících. Vyloučená hráčka v pětce se nahradí partnerkou z rotace (`applyLine`).
+**Oslabení** – `fitLayout` přesune hráčky ze skrytých pozic do pozic zredukované formace (4 hráčky: C, Ú, LO, PO; 3 hráčky: C, LO, PO). Fronty skrytých pozic zobrazuje `live.js` pod nejbližší viditelnou pozicí.
+**`syncLive`** (změna sestavy za zápasu) přepočítá fronty a index rotace podle skutečného stavu na ledě.
+
 ## Živý zápis – rozložení a ovládání
 - **Horní lišta** (čas s šipkami ◀ ▶ pro posun o 5 s, skóre, situace) zůstává nahoře.
 - **Barvy podle pětek:** 1. pětka modrá, 2. žlutá, 3. zelená, 4. růžová, hráčka mimo pětky šedá. Z barev je vidět, jak se pětky míchají.
@@ -213,6 +229,7 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť.
 
 ## Historie verzí
+- **v15.5 (17. 10. 2026):** přepracování střídání a rotace v živém zápisu (`src/domain/live-engine.js`, `src/domain/lineup.js`, `src/core/selectors.js`). (1) Nový stavový model na ledě / ve frontě / zaparkovaná, index rotace `L.ri` vždy míří na hráčku, která je skutečně na ledě (`claimSlot`). (2) Fronty bez duplicit, na jedno místo sestavy jedna hráčka, odcházející jde na konec fronty a hráčka mimo sestavu se neztratí (`requeue`, `rotate`). (3) Kontrola invariantů po každé akci (`settle`, volá ji `fitLayout`): `activeId` nikdy neukazuje na hráčku, která není ve hře. (4) `applyMap` (jednotky PP/OS, pětky) provádí odchod, příchod a rotaci ve správném pořadí; `applyLine` při vyloučené hráčce nasadí partnerku. (5) `syncLive` po změně sestavy přepočítá fronty i index rotace. (6) `activeId` ošetřuje neplatný index. Logika střel, gólů, trestů a časomíry beze změny.
 - **v15.4 (16. 10. 2026):** oprava nasazování při oslabení i přesilovce. (1) Nasazení jednotky nebo pětky: hráčka, která zůstane na ledě a jen změní pozici, už nemá uzavřené a znovu založené střídání (dřív se jí vynuloval čas na ledě, upozornění na dlouhé střídání a nafukoval počet střídání); změna v `src/domain/live-engine.js` (`applyMap`). (2) ↩ Zpět na řady při oslabení doplní prázdná místa z front skrytých pozic, takže je na ledě plný počet (`toLines`). (3) Zobrazení při oslabení: fronty skrytých pozic (PK; při 3 hráčkách i LK) se zobrazí pod nejbližší viditelnou pozicí, takže čekající hráčky jsou vidět a jdou nasadit klepnutím i přetažením. Změna je jen v zobrazení `src/views/live.js`, engine zůstává beze změny.
 - **v15.3 (16. 10. 2026):** nápověda v aplikaci (❓ v záhlaví, rozbalovací sekce, hledání, nový soubor `src/views/help.js`), aktualizovaný návod `hockeycoach-navod.html` (Firebase, role, rotace, opravy střídání, statistiky, řazení).
 - **v15.2 (16. 10. 2026):** sloupec Ø stř. (průměrná délka střídání) v celkových statistikách hráčů.

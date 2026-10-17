@@ -22,7 +22,8 @@ export const baseKey=k=>k.replace(/\+/g,"");
 export const slotIds=(lu,k)=>{const r=[];for(let s=k;lu&&lu[s];s+="+")r.push(lu[s]);return r};
 export const slotKey=(lu,id)=>Object.keys(lu||{}).find(k=>lu[k]===id&&k[0]!=="G");
 // aktivní hráčka slotu = player_ids[rotation_index]; index se drží v živém stavu (L.ri), aby ho vracelo Zpět
-export const activeId=(lu,L,k)=>{const r=slotIds(lu,k);return r.length?r[((L.ri||{})[k]||0)%r.length]:undefined};
+// Index se normalizuje (neplatná, záporná nebo příliš velká hodnota nikdy nevrátí undefined u neprázdného slotu)
+export const activeId=(lu,L,k)=>{const r=slotIds(lu,k);if(!r.length)return undefined;const i=Math.trunc(+((L&&L.ri)||{})[k])||0;return r[((i%r.length)+r.length)%r.length]};
 // po vyprázdnění hlavního místa posune partnerky nahoru (přepisuje jen sloty s mezerou)
 export const compactRot=lu=>{LN.forEach(n=>SL.forEach(c=>{const k=n+c,ks=[k,k+"+",k+"++"];if(!ks.some((x,i)=>!lu[x]&&ks.slice(i+1).some(y=>lu[y])))return;const ids=ks.map(x=>lu[x]).filter(Boolean);ks.forEach(x=>delete lu[x]);ids.forEach((id,i)=>lu[ks[i]]=id)}));return lu};
 export const ownCol=(m,id)=>{const k=slotKey(m.lineup,id);return k?baseKey(k).slice(1):null};
