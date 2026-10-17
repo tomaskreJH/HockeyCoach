@@ -67,12 +67,16 @@ const max=sk(L,"us",now);let trim=false;
 if(Object.keys(T).length>max){trim=true;const keep=["C","LO","PO","LK","PK"].filter(c=>T[c]).slice(0,max),N={};keep.forEach(c=>N[c]=T[c]);T=N}
 const rep=[];
 skipCols.forEach(c=>{if(Object.keys(T).length>=max)return;const sib={LK:"PK",PK:"LK",LO:"PO",PO:"LO"}[c],taken=new Set(Object.values(T)),cand=[...(L.q[c]||[]),...(sib?L.q[sib]||[]:[]),...COLS.flatMap(k=>L.q[k]||[])].find(id=>id&&!taken.has(id)&&!unav.has(id)&&nm.includes(id));if(cand){T[c]=cand;rep.push((pl(cand)||{}).name||"?")}});
-COLS.forEach(c=>{const cur=L.ice[c];if(cur&&T[c]!==cur){leave(L,cur,c,now);L.ice[c]=null;if(!Object.values(T).includes(cur))requeue(L,m,cur,null)}});
-COLS.forEach(c=>{const p=T[c];if(!p||L.ice[c]===p)return;const e=COLS.find(k=>L.ice[k]===p);if(e){leave(L,p,e,now);L.ice[e]=null}COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));L.ice[c]=p;L.since[p]=now});
+// Hráčka, která zůstává na ledě a jen změní pozici, nekončí střídání (zachová se čas na ledě); odcházející se uzavře střídání a zařadí se do fronty
+const stay=new Set(Object.values(T));
+COLS.forEach(c=>{const cur=L.ice[c];if(cur&&T[c]!==cur){if(stay.has(cur)){L.ice[c]=null}else{leave(L,cur,c,now);L.ice[c]=null;requeue(L,m,cur,null)}}});
+COLS.forEach(c=>{const p=T[c];if(!p||L.ice[c]===p)return;const e=COLS.find(k=>L.ice[k]===p);if(e){L.ice[e]=null}COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));L.ice[c]=p;if(L.since[p]==null)L.since[p]=now});
 return{skip,trim,rep}}
 export function applyUnit(L,m,key,now){const r=applyMap(L,m,(m.sp||{})[key]||{},now);L.unit=key;return r}
 export function applyLine(L,m,n,now){const u={};COLS.forEach(c=>{const p=activeId(m.lineup||{},L,n+c);if(p)u[c]=p});const r=applyMap(L,m,u,now);delete L.unit;return r}
 export function toLines(L,m,now){COLS.forEach(c=>{const p=L.ice[c];if(p){leave(L,p,c,now);L.ice[c]=null;requeue(L,m,p,c)}});
-const max=sk(L,"us",now),bx=(L.pen||[]).filter(x=>x.t==="us"&&x.p&&SA(x)).map(x=>ownCol(m,x.p)),lay=LAYOUT(max),order=[...lay.filter(c=>!bx.includes(c)),...lay.filter(c=>bx.includes(c))];let n=0;order.forEach(c=>{if(n>=max)return;const p=L.q[c].shift();if(p){L.ice[c]=p;L.since[p]=now;n++}});delete L.unit}
+const max=sk(L,"us",now),bx=(L.pen||[]).filter(x=>x.t==="us"&&x.p&&SA(x)).map(x=>ownCol(m,x.p)),lay=LAYOUT(max),order=[...lay.filter(c=>!bx.includes(c)),...lay.filter(c=>bx.includes(c))];let n=0;order.forEach(c=>{if(n>=max)return;const p=L.q[c].shift();if(p){L.ice[c]=p;L.since[p]=now;n++}});
+// při oslabení zůstávají fronty skrytých pozic (PK, LK): prázdná místa se doplní z nich, aby na ledě byl plný počet
+order.forEach(c=>{if(n>=max||L.ice[c])return;const k=[...COLS.filter(x=>!lay.includes(x)),...COLS].find(x=>(L.q[x]||[]).length);if(!k)return;const p=L.q[k].shift();L.ice[c]=p;L.since[p]=now;n++});delete L.unit}
 // rychlý zápis gólů a trestů
 export function autoSit(L,team,now){const us=sk(L,"us",now),op=sk(L,"opp",now);return team==="us"?(us>op?"PP":us<op?"SH":"E"):(op>us?"PP":op<us?"SH":"E")}

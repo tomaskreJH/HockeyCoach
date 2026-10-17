@@ -1,6 +1,6 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v15.3 (16. 10. 2026)** – nově nápověda v aplikaci (tlačítko ❓), aktualizovaný návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
+**Aktuální verze: v15.4 (16. 10. 2026)** – oprava nasazování jednotek při oslabení i přesilovce (čekající hráčky skrytých pozic jsou vidět, hráčka měnící pozici neztratí čas na ledě); dříve nápověda v aplikaci (tlačítko ❓), aktualizovaný návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
 
 Aplikace pro trenéry a kustody: soupiska, formace, nominace, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
@@ -147,7 +147,7 @@ Pro začátečnice: na jedno místo v řadě (např. C v 1. pětce) můžeš dá
 
 ## Oslabení – méně pozic a základní rozdělení
 - **Oslabení 4 hráčky:** střed (C), útočník (Ú), oba obránci (LO, PO). **Oslabení 3 hráčky:** střed a dva obránci. Základní rozdělení se definuje předem v kroku 2 (jednotky SH1–SH4), kombinace můžeš zvolit libovolně.
-- **V živém zápisu se při oslabení ukáže jen 4 resp. 3 pozice** (ostatní se skryjí). Hráčky na ledě se podle potřeby přeskupí do zbývajících pozic, po skončení trestu se pozice vrátí.
+- **V živém zápisu se při oslabení ukáže jen 4 resp. 3 pozice** (ostatní se skryjí). Hráčky na ledě se podle potřeby přeskupí do zbývajících pozic, po skončení trestu se pozice vrátí. Čekající hráčky skrytých pozic se ve frontách zobrazí pod nejbližší viditelnou pozicí (PK → LK, LK → C), takže je lze nasadit; po konci trestu se fronty vrátí na své pozice.
 - **Nasazení jednotky:** při oslabení se nabídnou jednotky pro příslušný počet hráček (4 nebo 3), při přesilovce přesilovky PP1/PP2.
 - **Vyloučená hráčka v jednotce:** při nasazení jednotky se její místo obsadí jinou hráčkou z fronty téže pozice (nebo z druhé strany), pokud to tresty dovolují. Aplikace to oznámí.
 
@@ -213,6 +213,7 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť.
 
 ## Historie verzí
+- **v15.4 (16. 10. 2026):** oprava nasazování při oslabení i přesilovce. (1) Nasazení jednotky nebo pětky: hráčka, která zůstane na ledě a jen změní pozici, už nemá uzavřené a znovu založené střídání (dřív se jí vynuloval čas na ledě, upozornění na dlouhé střídání a nafukoval počet střídání); změna v `src/domain/live-engine.js` (`applyMap`). (2) ↩ Zpět na řady při oslabení doplní prázdná místa z front skrytých pozic, takže je na ledě plný počet (`toLines`). (3) Zobrazení při oslabení: fronty skrytých pozic (PK; při 3 hráčkách i LK) se zobrazí pod nejbližší viditelnou pozicí, takže čekající hráčky jsou vidět a jdou nasadit klepnutím i přetažením. Změna je jen v zobrazení `src/views/live.js`, engine zůstává beze změny.
 - **v15.3 (16. 10. 2026):** nápověda v aplikaci (❓ v záhlaví, rozbalovací sekce, hledání, nový soubor `src/views/help.js`), aktualizovaný návod `hockeycoach-navod.html` (Firebase, role, rotace, opravy střídání, statistiky, řazení).
 - **v15.2 (16. 10. 2026):** sloupec Ø stř. (průměrná délka střídání) v celkových statistikách hráčů.
 - **v15.1 (16. 10. 2026):** řazení tabulek statistik klepnutím na hlavičku (▲/▼; text, čísla, časy MM:SS), nový soubor `src/core/table-sort.js`.
