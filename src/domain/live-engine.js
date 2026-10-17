@@ -1,13 +1,14 @@
 // Jádro živého zápisu bez DOM: čas, střídání, tresty podle IIHF, jednotky, formace.
-// Stavový model hráček (v15.5):
+// Stavový model hráček (v15.6):
 //   - NA LEDĚ: L.ice[sloupec]
 //   - VE FRONTĚ: L.q[sloupec] (hráčka připravená ke střídání; na každé místo sestavy nejvýš jedna)
 //   - ZAPARKOVANÁ: partnerka z rotace (k+, k++), která teď není na ledě ani ve frontě
 //   - L.ri[místo] = index hráčky, která je PRÁVĚ na ledě (nebo čeká ve frontě jako další na řadě)
+//   - L.unit = aktivní jednotka PP/OS (zobrazení fronty řeší live.js: ve frontě jsou hráčky druhé jednotky, bez rotace)
 // Každý příchod na led volá claimSlot (index rotace + úklid front), každá akce končí settle (kontrola invariantů).
-import {COLS, LAYOUT} from "../config/constants.js";
+import {COLS, LAYOUT, POS} from "../config/constants.js";
 import {upd} from "../core/actions.js";
-import {activeId, baseKey, curM, nomOf, ownCol, pl, score, slotIds, slotKey} from "../core/selectors.js";
+import {activeId, baseKey, curM, isG, nomOf, ownCol, pl, score, slotIds, slotKey} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {LS, clone, mmss, toast, uid} from "../core/utils.js";
 
@@ -34,20 +35,35 @@ export const leave=(L,p,c,now)=>{L.sh.push({p,c,a:L.since[p]||0,b:now,per:L.per}
 // ===== Sloty rotace a fronty =====
 // Hráčky, které nesmí na led (vyloučené, v ošetřování)
 const unavail=L=>new Set([...(L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p),...(L.tmp||[])]);
-// Místo sestavy hráčky: základní klíč (např. "1C") a seznam hráček místa v pořadí rotace
+// Místo sestavy hráčky: základní klíč (např. "1C") a seznam hráček místa v pořadí rotace; null = hráčka není v řadách
 const slotInfo=(m,p)=>{const lu=(m&&m.lineup)||{},k=slotKey(lu,p);return k?{b:baseKey(k),r:slotIds(lu,baseKey(k))}:null};
 // Odebrání hráček ze všech front (nová pole, ostatní pořadí zůstává)
 const dropQ=(L,ids)=>COLS.forEach(c=>{L.q[c]=(L.q[c]||[]).filter(x=>!ids.includes(x))});
+// Pozice, kterou sloupec vyžaduje (obránkyně na LO/PO, jinak útočnice) a zda hráčka na ni sedí (pozice, záložní pozice, neurčeno)
+const wantPos=c=>/^(LO|PO)$/.test(c)?POS[1]:POS[0];
+const fitsCol=(id,c)=>{const p=pl(id);return !!p&&(p.pos===wantPos(c)||p.alt===wantPos(c)||!p.pos)};
+const SIB={LK:"PK",PK:"LK",LO:"PO",PO:"LO"};
+// Kandidátka na volnou pozici c: nejdřív hráčka ze stejného sloupce, pak z vedlejšího, pak ostatní; vždy se dává přednost správné pozici.
+// qOnly = jen z front (hráčky na ledě se nevybírají). Vyloučené, nenominované a brankářky se přeskakují.
+function pickFor(L,m,c,taken,qOnly){const un=unavail(L),nm=nomOf(m),sib=SIB[c],ice=k=>qOnly?[]:[L.ice[k]];
+const list=[...ice(c),...(L.q[c]||[]),...(sib?[...ice(sib),...(L.q[sib]||[])]:[]),...COLS.flatMap(k=>ice(k)),...COLS.flatMap(k=>L.q[k]||[])];
+const ok=list.filter((id,i)=>id&&list.indexOf(id)===i&&!taken.has(id)&&!un.has(id)&&nm.includes(id)&&pl(id)&&!isG(pl(id)));
+return ok.find(id=>fitsCol(id,c))||ok[0]||null}
 // Hráčka p je na ledě: index rotace míří na ni a její partnerky se odeberou z front (jsou zaparkované)
 export function claimSlot(L,m,p){const s=slotInfo(m,p);if(!s)return;(L.ri=L.ri||{})[s.b]=s.r.indexOf(p);dropQ(L,s.r.filter(x=>x!==p))}
+// Fyzický příchod hráčky na led (z fronty): odebrání z front, zápis začátku střídání, index rotace
+const putIn=(L,m,id,c,now)=>{dropQ(L,[id]);L.ice[c]=id;L.since[id]=now;claimSlot(L,m,id)};
+// Hráčka p jde z ledu na ZAČÁTEK své fronty (bez rotace) – nucený přesun při změně formace
+const benchFront=(L,m,p,c,now)=>{leave(L,p,c,now);dropQ(L,[p]);if(slotInfo(m,p)){const oc=ownCol(m,p)||c;(L.q[oc]=L.q[oc]||[]).unshift(p)}};
 // Rotace: po konci střídání slot postoupí na další dostupnou hráčku (ne na ledě, ne vyloučenou); vrací, kdo půjde do fronty místo odcházející
 export function rotate(L,m,p){const s=slotInfo(m,p);if(!s||s.r.length<2)return p;
 const un=unavail(L),on=new Set(COLS.map(c=>L.ice[c]).filter(Boolean)),i=s.r.indexOf(p);
 for(let k=1;k<s.r.length;k++){const j=(i+k)%s.r.length,q=s.r[j];if(!un.has(q)&&!on.has(q)){(L.ri=L.ri||{})[s.b]=j;return q}}return p}
-// Odcházející hráčka p ze sloupce c: do fronty (na konec) jde další hráčka rotace; ve frontě je vždy jen jedna hráčka místa
-export function requeue(L,m,p,c){const s=slotInfo(m,p),nx=rotate(L,m,p),oc=ownCol(m,nx)||c||ownCol(m,p)||"C";
-dropQ(L,s?s.r:[nx]);
-if(s&&!s.r.some(x=>COLS.some(k=>L.ice[k]===x)))(L.ri=L.ri||{})[s.b]=s.r.indexOf(nx);
+// Odcházející hráčka p ze sloupce c: do fronty (na konec) jde další hráčka rotace; ve frontě je vždy jen jedna hráčka místa.
+// Hráčka, která není v řadách (nasazená jen jednotkou), se do fronty nezařazuje.
+export function requeue(L,m,p,c){const s=slotInfo(m,p);if(!s)return;const nx=rotate(L,m,p),oc=ownCol(m,nx)||c||ownCol(m,p)||"C";
+dropQ(L,s.r);
+if(!s.r.some(x=>COLS.some(k=>L.ice[k]===x)))(L.ri=L.ri||{})[s.b]=s.r.indexOf(nx);
 (L.q[oc]=L.q[oc]||[]).push(nx)}
 // Ruční override: ve frontě přehodí aktivní hráčku slotu za partnerku (opakovaně = další v pořadí)
 export function swapRot(L,m,p){const lu=m.lineup||{},k=slotKey(lu,p);if(!k)return;const b=baseKey(k),r=slotIds(lu,b),c=b.slice(1),at=(L.q[c]||[]).indexOf(p);if(at<0||r.length<2)return;
@@ -83,10 +99,11 @@ if(L.box||L.obox){(L.box||[]).forEach(b=>L.pen.push({id:uid(),t:"us",p:b.p,ty:"m
 export function schedule(L,t,now){const P=L.pen;let n=P.filter(x=>x.t===t&&SA(x)&&x.end!=null).length;
 P.filter(x=>x.t===t&&!SA(x)&&x.end==null).forEach(x=>{x.end=now+x.rem});
 P.filter(x=>x.t===t&&SA(x)&&x.end==null).sort((a,b)=>a.seq-b.seq).forEach(w=>{if(n>=2)return;if(P.some(y=>y!==w&&y.p&&y.p===w.p&&y.seq<w.seq))return;w.end=now+w.rem;n++})}
-// Návrat hráčky z trestu: bez rotace, na svou pozici / volné místo, jinak na začátek fronty
-export function retIce(L,p,now,bench){const own=ownCol(curM(),p)||"C";COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));
-if(bench){L.q[own].unshift(p);return}
-const c=!L.ice[own]?own:COLS.find(k=>!L.ice[k]);if(c){L.ice[c]=p;L.since[p]=now;claimSlot(L,curM(),p)}else L.q[own].unshift(p)}
+// Návrat hráčky z trestu: bez rotace, na svou pozici / volné místo (přednost má místo odpovídající pozici), jinak na začátek fronty.
+// Hráčka mimo řady (nasazená jen jednotkou) se do fronty nezařazuje.
+export function retIce(L,p,now,bench){const m=curM(),inLu=!!slotKey((m&&m.lineup)||{},p),own=ownCol(m,p)||"C";COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));
+if(bench){if(inLu)L.q[own].unshift(p);return}
+const c=!L.ice[own]?own:(COLS.find(k=>!L.ice[k]&&fitsCol(p,k))||COLS.find(k=>!L.ice[k]));if(c){L.ice[c]=p;L.since[p]=now;claimSlot(L,m,p)}else if(inLu)L.q[own].unshift(p)}
 export function afterRemove(L,c,now){if(c.p&&c.t==="us"&&!L.pen.some(x=>x.p===c.p))retIce(L,c.p,now,c.ty==="mis"||c.ty==="gm");schedule(L,c.t,now)}
 export function procExp(L,now){const out=[];for(;;){const x=L.pen.filter(y=>y.end!=null&&y.end<=now&&y.ty!=="gm").sort((a,b)=>a.end-b.end)[0];if(!x)break;L.pen=L.pen.filter(y=>y!==x);
 if(x.p&&x.t==="us"&&!L.pen.some(y=>y.p===x.p)){retIce(L,x.p,x.end,x.ty==="mis");if(x.ty!=="mis")out.push(x.p)}
@@ -101,32 +118,45 @@ const c=L.pen.filter(x=>x.t===other&&x.ty==="min"&&x.end!=null).sort((a,b)=>a.se
 L.pen=L.pen.filter(x=>x!==c);afterRemove(L,c,now);return c.p&&!L.pen.some(x=>x.p===c.p)&&c.t==="us"?c.p:null}
 
 // ===== Formace a jednotky =====
-// Při oslabení se hráčky ze skrytých pozic přesunou do pozic zredukované formace; poté se zkontrolují invarianty front (settle)
-export function fitLayout(L,now,m){const n=sk(L,"us",now);if(n<5){const lay=LAYOUT(n);
-COLS.filter(c=>!lay.includes(c)&&L.ice[c]).forEach(c=>{const p=L.ice[c],pref=(c==="LK"||c==="PK")?["LK","C"]:(c==="LO"||c==="PO")?["LO","PO"]:["C"],free=[...pref,...lay].find(k=>lay.includes(k)&&!L.ice[k]);if(free){L.ice[c]=null;L.ice[free]=p}})}
+// Při oslabení se hráčky ze skrytých pozic přesunou do pozic zredukované formace (4 hráčky: C, Ú, LO, PO; 3 hráčky: C, LO, PO).
+// Nejdřív na odpovídající volnou pozici; není-li, zaujme volnou pozici hráčka z fronty správné pozice (obránkyně za obránkyni)
+// a přesunutá hráčka jde na začátek své fronty. Teprve když taková hráčka není, přejde hráčka na volné místo sama. Nakonec settle.
+export function fitLayout(L,now,m){m=m||curM();const n=sk(L,"us",now);
+if(n<5){const lay=LAYOUT(n);
+COLS.filter(c=>!lay.includes(c)&&L.ice[c]).forEach(c=>{const p=L.ice[c],pref=(c==="LK"||c==="PK")?["LK","C"]:(c==="LO"||c==="PO")?["LO","PO"]:["C"],free=pref.find(k=>lay.includes(k)&&!L.ice[k]);
+if(free){L.ice[c]=null;L.ice[free]=p;return}
+const any=lay.find(k=>!L.ice[k]);if(!any)return;
+const cand=pickFor(L,m,any,new Set(),true);L.ice[c]=null;
+if(cand&&fitsCol(cand,any)){benchFront(L,m,p,c,now);putIn(L,m,cand,any,now)}else L.ice[any]=p})}
 settle(L,m||curM())}
-// Nasazení mapy pozic (jednotka PP/OS, pětka). Hráčka, která zůstává na ledě a jen změní pozici, nekončí střídání.
-// Pořadí: 1) odchod, 2) příchod na led (claimSlot), 3) teprve potom rotace odcházejících (aby rotace nevybrala partnerku, která právě nastupuje)
-export function applyMap(L,m,u,now){const unav=new Set([...(L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p),...(L.tmp||[])]),nm=nomOf(m),skip=[],skipCols=[];
-let T={};COLS.forEach(c=>{const p=u[c];if(!p)return;if(unav.has(p)||!nm.includes(p)){skip.push((pl(p)||{}).name||"?");skipCols.push(c);return}T[c]=p});
-const max=sk(L,"us",now);let trim=false;
-if(Object.keys(T).length>max){trim=true;const keep=["C","LO","PO","LK","PK"].filter(c=>T[c]).slice(0,max),N={};keep.forEach(c=>N[c]=T[c]);T=N}
-const rep=[];
-skipCols.forEach(c=>{if(Object.keys(T).length>=max)return;const sib={LK:"PK",PK:"LK",LO:"PO",PO:"LO"}[c],taken=new Set(Object.values(T)),cand=[...(L.q[c]||[]),...(sib?L.q[sib]||[]:[]),...COLS.flatMap(k=>L.q[k]||[])].find(id=>id&&!taken.has(id)&&!unav.has(id)&&nm.includes(id));if(cand){T[c]=cand;rep.push((pl(cand)||{}).name||"?")}});
+// Nasazení mapy pozic (jednotka PP/OS, pětka). Pravidla:
+//  - nominované a nevyloučené hráčky se nasadí na své sloupce; pozice mimo zredukovanou formaci (podle počtu hráček) se vynechají,
+//  - prázdné pozice formace se doplní (přednost má hráčka, která už na ledě je, pak fronta; vždy podle pozice),
+//  - hráčka, která zůstává na ledě a jen změní pozici, nekončí střídání,
+//  - nelze-li nasadit nikoho, nic se nezmění (none).
+// Pořadí: 1) odchod, 2) příchod na led (claimSlot), 3) teprve potom rotace odcházejících.
+export function applyMap(L,m,u,now){const un=unavail(L),nm=nomOf(m),skip=[],rep=[];
+let T={};COLS.forEach(c=>{const p=u[c];if(!p||Object.values(T).includes(p))return;if(un.has(p)||!nm.includes(p)||!pl(p)){skip.push((pl(p)||{}).name||"?");return}T[c]=p});
+const max=sk(L,"us",now),lay=LAYOUT(max);let trim=false;
+Object.keys(T).forEach(c=>{if(!lay.includes(c)){delete T[c];trim=true}});
+lay.filter(c=>!T[c]).forEach(c=>{const id=pickFor(L,m,c,new Set(Object.values(T)),false);if(!id)return;T[c]=id;if(!COLS.some(k=>L.ice[k]===id))rep.push((pl(id)||{}).name||"?")});
+if(!Object.keys(T).length)return{skip,trim,rep,none:true};
 const stay=new Set(Object.values(T)),gone=[];
 // 1) odchod: zůstávající jen uvolní místo, ostatním se uzavře střídání
-COLS.forEach(c=>{const cur=L.ice[c];if(cur&&T[c]!==cur){if(stay.has(cur)){L.ice[c]=null}else{leave(L,cur,c,now);L.ice[c]=null;gone.push([cur,c])}}});
+COLS.forEach(c=>{const cur=L.ice[c];if(cur&&T[c]!==cur){if(stay.has(cur))L.ice[c]=null;else{leave(L,cur,c,now);L.ice[c]=null;gone.push([cur,c])}}});
 // 2) příchod: hráčka jde fyzicky na led, index rotace míří na ni
-COLS.forEach(c=>{const p=T[c];if(!p||L.ice[c]===p)return;const e=COLS.find(k=>L.ice[k]===p);if(e){L.ice[e]=null}COLS.forEach(k=>L.q[k]=L.q[k].filter(x=>x!==p));L.ice[c]=p;if(L.since[p]==null)L.since[p]=now;claimSlot(L,m,p)});
+COLS.forEach(c=>{const p=T[c];if(!p||L.ice[c]===p)return;dropQ(L,[p]);L.ice[c]=p;if(L.since[p]==null)L.since[p]=now;claimSlot(L,m,p)});
 // 3) odcházející rotují do front
 gone.forEach(([p,c])=>requeue(L,m,p,c));
-return{skip,trim,rep}}
-export function applyUnit(L,m,key,now){const r=applyMap(L,m,(m.sp||{})[key]||{},now);L.unit=key;return r}
+return{skip,trim,rep,none:false}}
+export function applyUnit(L,m,key,now){const r=applyMap(L,m,(m.sp||{})[key]||{},now);if(!r.none)L.unit=key;return r}
 // Nasazení celé pětky: z každého místa se bere aktivní hráčka; je-li vyloučená / v ošetřování, vezme se její partnerka z rotace
-export function applyLine(L,m,n,now){const u={},un=unavail(L),lu=m.lineup||{};COLS.forEach(c=>{const k=n+c,r=slotIds(lu,k),a=activeId(lu,L,k),p=a&&!un.has(a)?a:r.find(x=>!un.has(x));if(p)u[c]=p});const r=applyMap(L,m,u,now);delete L.unit;return r}
+export function applyLine(L,m,n,now){const u={},un=unavail(L),lu=m.lineup||{};COLS.forEach(c=>{const k=n+c,r=slotIds(lu,k),a=activeId(lu,L,k),p=a&&!un.has(a)?a:r.find(x=>!un.has(x));if(p)u[c]=p});const r=applyMap(L,m,u,now);if(!r.none)delete L.unit;return r}
+// Zpět na řady: všichni z ledu (s rotací do front), pak se pozice zredukované formace obsadí z front (přednost mají nepenalizované pozice)
 export function toLines(L,m,now){COLS.forEach(c=>{const p=L.ice[c];if(p){leave(L,p,c,now);L.ice[c]=null;requeue(L,m,p,c)}});
-const max=sk(L,"us",now),bx=(L.pen||[]).filter(x=>x.t==="us"&&x.p&&SA(x)).map(x=>ownCol(m,x.p)),lay=LAYOUT(max),order=[...lay.filter(c=>!bx.includes(c)),...lay.filter(c=>bx.includes(c))];let n=0;order.forEach(c=>{if(n>=max)return;const p=L.q[c].shift();if(p){L.ice[c]=p;L.since[p]=now;claimSlot(L,m,p);n++}});
-// při oslabení zůstávají fronty skrytých pozic (PK, LK): prázdná místa se doplní z nich, aby na ledě byl plný počet
-order.forEach(c=>{if(n>=max||L.ice[c])return;const k=[...COLS.filter(x=>!lay.includes(x)),...COLS].find(x=>(L.q[x]||[]).length);if(!k)return;const p=L.q[k].shift();L.ice[c]=p;L.since[p]=now;claimSlot(L,m,p);n++});delete L.unit}
+const max=sk(L,"us",now),bx=(L.pen||[]).filter(x=>x.t==="us"&&x.p&&SA(x)).map(x=>ownCol(m,x.p)),lay=LAYOUT(max),order=[...lay.filter(c=>!bx.includes(c)),...lay.filter(c=>bx.includes(c))];let n=0;
+order.forEach(c=>{if(n>=max)return;const p=(L.q[c]||[]).shift();if(p){putIn(L,m,p,c,now);n++}});
+// prázdná místa se doplní z front ostatních pozic (správná pozice má přednost), aby na ledě byl plný počet
+order.forEach(c=>{if(n>=max||L.ice[c])return;const id=pickFor(L,m,c,new Set(),true);if(!id)return;putIn(L,m,id,c,now);n++});delete L.unit}
 // rychlý zápis gólů a trestů
 export function autoSit(L,team,now){const us=sk(L,"us",now),op=sk(L,"opp",now);return team==="us"?(us>op?"PP":us<op?"SH":"E"):(op>us?"PP":op<us?"SH":"E")}

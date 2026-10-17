@@ -11,7 +11,7 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v15.5 · 17. 10. 2026";
+const VERSION = "v15.6 · 17. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 const COLL = ["players", "matches", "opponents", "settings"];           // kolekce aplikace
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
