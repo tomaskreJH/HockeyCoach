@@ -11,9 +11,9 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v15.7 · 17. 10. 2026";
+const VERSION = "v16.0 · 17. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
-const COLL = ["players", "matches", "opponents", "settings"];           // kolekce aplikace
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance"]; // kolekce aplikace (events = tréninky, attendance = docházka)
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s přístupem do aplikace
 
@@ -205,12 +205,13 @@ function exportCSV() {
   downloadFile("soupiska-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(q).join(";")).join("\r\n"), "text/csv");
 }
 // Import po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu
+// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí a docházky je nesmaže)
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
   const ops = [];
   COLL.forEach(c => {
     const src = obj.data[c] || {};
-    if (replace) Object.keys(data[c]).forEach(id => { if (!(id in src)) ops.push(["del", c, id]); });
+    if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src)) ops.push(["del", c, id]); });
     Object.entries(src).forEach(([id, d]) => ops.push(["set", c, id, d]));
   });
   for (let i = 0; i < ops.length; i += 400) {

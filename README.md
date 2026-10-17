@@ -1,8 +1,8 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v15.7 (17. 10. 2026)** – vrácen přehled **Čas na ledě** do menu ⋯ při přerušení živého zápisu (trenérská analýza); dříve oprava přesilovek a oslabení v živém zápisu (v15.6), přepracovaná logika střídání a rotace (v15.5), oprava nasazování jednotek (v15.4), nápověda v aplikaci (tlačítko ❓), aktualizovaný návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek statistik klepnutím na hlavičku sloupce.
+**Aktuální verze: v16.0 (17. 10. 2026)** – první verze modulu **Události a docházka**: záložky Zápasy a Tréninky jsou sloučené pod **Události** (seznam + kalendář), členové se přihlašují na události volbou Jdu / Nejdu (s důvodem) / Nejsem jistý, každá událost má konečný termín přihlašování a trénink umí rozdělit přihlášené do pětek (modrá, žlutá, zelená, růžová) podle základní formace. Dříve: vrácen přehled **Čas na ledě** (v15.7), oprava přesilovek a oslabení v živém zápisu (v15.6), přepracovaná logika střídání a rotace (v15.5), oprava nasazování jednotek (v15.4), nápověda v aplikaci (tlačítko ❓), návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek klepnutím na hlavičku.
 
-Aplikace pro trenéry a kustody: soupiska, formace, nominace, zápasy s živým zápisem, soupeři, statistiky.
+Aplikace pro trenéry a kustody: soupiska, formace, nominace, události a docházka, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
 
 ## Struktura projektu
@@ -28,6 +28,7 @@ HockeyCoach/
 │ │ └─ shift-edit.js editace střídání (časy, předání, výměna hráčky, kontrola historie)
 │ └─ views/ obrazovky (DOM)
 │ ├─ shell.js team.js matches.js opponents.js stats.js modal.js help.js
+│ ├─ events.js události a docházka (seznam, kalendář, detail, přihlašování, pětky na tréninku)
 │ ├─ lineup-editor.js live.js live-quick.js report.js
 │ └─ editor.js shift-editor.js opravy zápisu (události, třetiny, střídání, základ)
 ├─ firestore.rules pravidla přístupu k databázi (vložit do Firebase Console)
@@ -46,7 +47,7 @@ Moduly se z `file://` v prohlížeči nenačtou, aplikace potřebuje malý loká
 
 ## Nastavení Firebase (jednorázově)
 1. **Projekt:** na console.firebase.google.com založ projekt. *Build → Firestore Database → Create database*, region v EU (`eur3` nebo `europe-west3`).
-2. **Pravidla:** *Firestore → Rules* → vlož obsah `firestore.rules` → **Publish**.
+2. **Pravidla:** *Firestore → Rules* → vlož obsah `firestore.rules` → **Publish**. Od v16.0 musí pravidla obsahovat i kolekce `events` a `attendance` (viz „Události a docházka“).
 3. **Přihlášení:** *Authentication → Sign-in method → Google → Enable*. V *Settings → Authorized domains* musí být doména, odkud aplikaci otevíráš (`localhost` bývá přidaný, hosting přidej ručně).
 4. **Konfigurace:** *Project settings → Your apps → Web app (</>)* → hodnoty vlož do `src/data/firebase-config.js`.
 5. **První trenér (ručně):** *Firestore → Start collection* `members` → ID dokumentu = tvůj e-mail **malými písmeny**, pole `role` (string) = `trener`. Další členy pak přidáváš v aplikaci (⚙️ → Členové týmu).
@@ -59,6 +60,7 @@ Hosting je možný kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages)
 - **Za živého zápisu** je živá obrazovka přes celé záhlaví, nápovědu proto otevři před zahájením zápasu (nebo po ✕ Zavřít živý zápis).
 - **Samostatný návod:** soubor `hockeycoach-navod.html` (otevře se v prohlížeči, jde vytisknout do PDF). Obsahuje totéž podrobněji.
 - **Technicky:** `src/views/help.js` (obsah je pole `SECTIONS`, nová sekce = nový objekt `{t, h}`), tlačítko `#help` v `index.html`, napojení `initHelp()` v `src/main.js`. Při změně ovládání aktualizuj obě místa: `help.js` i `hockeycoach-navod.html`.
+- **Pozor:** nápověda a návod zatím **neobsahují** záložku Události a docházku (v16.0). Doplní se, až se modul ustálí.
 
 ## Přihlášení, role a ochrana dat
 - **Přihlášení:** účtem Google. Přístup mají jen e-maily zapsané v kolekci `members` (Google účet se musí shodovat s e-mailem v seznamu). Neznámý účet po přihlášení nic neuvidí.
@@ -66,16 +68,56 @@ Hosting je možný kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages)
 
 | Role | Čtení | Zápis |
 |---|---|---|
-| **trener** | vše | vše: soupiska, zápasy, soupeři, formace, členové týmu, obnova ze zálohy |
-| **kustod** | vše | zápasy (nominace, sestava, živý zápis, opravy), soupeři, základní formace; v soupisce jen stav hráčky (např. trvalé zranění ze živého zápisu) |
-| **hracka** | vše | jen vlastní docházka (modul docházky se připravuje) |
+| **trener** | vše | vše: soupiska, zápasy, soupeři, formace, události, docházka (za kohokoli), členové týmu, obnova ze zálohy |
+| **kustod** | vše | zápasy (nominace, sestava, živý zápis, opravy), soupeři, základní formace, události, docházka (za kohokoli); v soupisce jen stav hráčky (např. trvalé zranění ze živého zápisu) |
+| **hracka** | vše | jen vlastní docházka (přihlášení hráček zatím není povolené) |
 
-- **Hráčky:** přihlášení je zatím zablokováno hláškou, že přístup přijde s modulem docházky a tréninků. Pravidla pro docházku jsou už připravená (kolekce `attendance`, dokument `{eventId}_{playerId}`; hráčka zapíše jen svůj).
+- **Hráčky:** přihlášení je zatím zablokováno hláškou, že přístup přijde s modulem docházky a tréninků. Docházku proto zatím zapisuje trenér nebo kustod za hráčky (viz níže). Pravidlo pro hráčky (`attendance`, dokument `{eventId}_{playerId}`, hráčka zapíše jen svůj) se doplní s jejich přihlášením.
 - **Jen pro trenéry:** kolekce `coach` (pro budoucí hodnocení hráček a poznámky) je pro ostatní role nečitelná. Pravidla Firestore omezují celé dokumenty, ne jednotlivá pole; údaje pro trenéry proto patří do oddělené kolekce.
 - **Kustod** nemůže přidávat a mazat hráčky ani měnit jejich jména a pozice. V aplikaci to zatím není skryté, zobrazí se hláška `permission-denied`.
 - **Klíč Firebase** v `firebase-config.js` není tajný. Ochranu dat zajišťují pravidla a přihlášení.
 - **Data v databázi:** jen přezdívky, čísla a statistiky. Věk hráček se neukládá.
 - Dál dělej zálohy JSON (⚙️ → Stáhnout zálohu). Automatické zálohy Firestore vyžadují placený plán Blaze.
+
+## Události a docházka (v16.0)
+První jednoduchá verze modulu; další funkce se budou doplňovat postupně.
+
+### Záložka Události
+Horní menu je nově **Události · Team · Statistiky · Soupeři**. Záložka **Události** sloučila dřívější Zápasy a přidala tréninky. Zápasy se zakládají a vedou stejně jako dřív: klepnutím na zápas se otevře detail události a tlačítko **🏒 Otevřít zápas** přejde do karty zápasu (nominace, sestava, živý zápis, opravy…). Návrat je klepnutím na **Události** v horním menu.
+- **Zapisuji účast za:** nahoře se vybere hráčka (pamatuje se v zařízení). Rychlá tlačítka **✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý** v seznamu pak zapisují za ni. Až se přihlásí hráčky samy, doplní se to automaticky.
+- **Seznam:** přepínač Nadcházející / Minulé / **Kalendář** (měsíční mřížka, tečky u dnů s událostí, klepnutím na den se seznam zúží). U každé události je termín přihlášení, počty ✅ ❓ ❌ a vaše odpověď.
+- **Jdu:** zapíše se hned (opakované klepnutí odpověď zruší). **Nejdu** vyžaduje důvod (rychlé volby Nemoc, Zranění, Škola, Práce, Rodina, Jiné, nebo vlastní text). **Nejsem jistý** má důvod nepovinný. V okně s důvodem jde odpověď i zrušit.
+- **Konečný termín přihlašování** je povinný u tréninku a nastavuje se u každé události (datum a čas). Výchozí hodnota je den před událostí v 18:00. Po termínu (a po dni události) jsou rychlá tlačítka v seznamu zamčená 🔒; trenér a kustod mohou v detailu odpovědi měnit i po termínu. Termín zápasu se nastavuje v detailu události (✏️ Čas, místo, termín).
+- **Detail události:** souhrn (jdou / nejistí / nejdou / bez odpovědi), seznam všech aktivních hráček podle pozic s odpovědí, důvodem a tlačítky pro změnu (trenér tak zapíše odpověď za kohokoli). Trénink lze upravit nebo smazat (smaže i odpovědi).
+- **Trénink – rozdělení do pětek:** v detailu tréninku jsou hráčky, které jdou (bez brankářek). Každé se jedním klepnutím přiřadí 1.–4. pětka (barvy jako v živém zápisu: modrá, žlutá, zelená, růžová) nebo „–“. Tlačítko **↻ Podle základní formace** rozdělí přihlášené hráčky podle základní formace v záložce Team (partnerky z rotace patří do téže pětky); **Vymazat** rozdělení zruší.
+
+### Datový model
+- **`events/{id}`** (jen tréninky): `{type:"training", title, date:"YYYY-MM-DD", time:"HH:MM", place, dl:"YYYY-MM-DDTHH:mm", note, lines:{<playerId>: 1–4}}`.
+- **Zápasy** zůstávají v `matches`; přibyla volitelná pole `time`, `place` a `dl` (termín přihlašování). Starší zápasy je nemají (termín je „nenastaven“, zápas se zamkne po dni konání).
+- **`attendance/{eventId}_{playerId}`:** `{eid, pid, st:"yes"|"no"|"maybe", reason, at:ISO, by:e-mail}`. `eventId` je id tréninku nebo zápasu. Bez dokumentu = bez odpovědi.
+- Kolekce `events` a `attendance` jsou součástí zálohy JSON. „Nahradit vším“ ze staré zálohy bez těchto kolekcí je nesmaže.
+- Pokud pravidla databáze kolekce nepovolí, aplikace běží dál (zápasy, živý zápis…) a v záložce Události se zobrazí červená hláška s kódem chyby.
+
+### Pravidla databáze (doplnit do `firestore.rules`)
+Soubor `firestore.rules` nebyl při vzniku v16.0 k dispozici, proto je blok uveden zde. Vlož ho do sekce `match /databases/{database}/documents { … }` a **Publish**. Pokud už pravidlo pro `attendance` existuje (pouze vlastní docházka hráčky), uprav ho tak, aby trenér a kustod směli zapisovat za kohokoli.
+```
+function role() {
+  return get(/databases/$(database)/documents/members/$(request.auth.token.email.lower())).data.role;
+}
+function isStaff() {
+  return request.auth != null && exists(/databases/$(database)/documents/members/$(request.auth.token.email.lower()))
+    && role() in ['trener', 'kustod'];
+}
+match /events/{id} {
+  allow read: if isStaff();
+  allow write: if isStaff();
+}
+match /attendance/{id} {
+  allow read: if isStaff();
+  allow write: if isStaff();
+}
+```
+(Pokud už v souboru funkce `role()` nebo `isStaff()` jsou, použij ty existující.)
 
 ## Provoz na telefonu a PC
 **Android:** v Chrome otevři adresu aplikace → menu ⋯ → *Přidat na plochu / Instalovat aplikaci*. Přihlášení zůstává uložené, takže se nemusíš přihlašovat před každým zápasem.
@@ -84,18 +126,18 @@ Zadávání na telefonu a prohlížení výsledků na PC probíhá nad stejnou d
 ## Jak funguje synchronizace
 - Zápis se uloží hned v zařízení a odešle na server. Bez signálu (hala) se změny řadí do offline fronty a odešlou se po připojení (stav vidíš v ⚙️).
 - Ostatní zařízení dostávají změny okamžitě (živý poslech Firestore).
-- Ukládá se vždy celý dokument (např. celý zápas). Při souběžné úpravě **stejného zápasu** na dvou zařízeních vyhrává poslední zápis. Živý zápis zápasu proto veď jen z jednoho telefonu.
+- Ukládá se vždy celý dokument (např. celý zápas). Při souběžné úpravě **stejného zápasu** na dvou zařízeních vyhrává poslední zápis. Živý zápis zápasu proto veď jen z jednoho telefonu. Docházka je ukládána po jednotlivých odpovědích (jeden dokument na hráčku a událost), takže se souběžné přihlašování nepřepisuje.
 - Zápis se v aplikaci potvrzuje hned lokálně. Pokud ho server odmítne (např. chybějící práva), zobrazí se hláška „Uložení se nepovedlo“ a změna se vrátí.
 - Firestore umožňuje dokument do 1 MB. Zápas se živým zápisem má desítky až stovky kB, což stačí.
 
 ## Záloha a přesun dat
-- ⚙️ → **Stáhnout zálohu (JSON)** vytvoří kompletní zálohu (hráčky, zápasy, soupeři, formace). Smí každý přihlášený člen.
+- ⚙️ → **Stáhnout zálohu (JSON)** vytvoří kompletní zálohu (hráčky, zápasy, soupeři, formace, události, docházka). Smí každý přihlášený člen.
 - ⚙️ → **Soupiska (CSV)** vyexportuje soupisku pro Excel.
-- ⚙️ → **Obnovit ze zálohy** (jen trenér): **Sloučit s daty** přidá/přepíše položky ze zálohy, **Nahradit vším** nahradí celý obsah. Vyžaduje připojení k internetu.
+- ⚙️ → **Obnovit ze zálohy** (jen trenér): **Sloučit s daty** přidá/přepíše položky ze zálohy, **Nahradit vším** nahradí obsah kolekcí, které záloha obsahuje. Vyžaduje připojení k internetu.
 - ⚙️ → **Členové týmu** (jen trenér): přidání a odebrání e-mailů s rolí. Vlastní účet nelze odebrat.
 
 ## Postup zápasu (3 kroky)
-Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav příprav (✅/⛔ Nominace, Sestava). Pod ním jsou kroky, dole tlačítko pro další krok.
+Zápas se otevře v záložce **Události** (klepnutím na zápas → **🏒 Otevřít zápas**) nebo se založí tlačítkem **+ Zápas**. Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav příprav (✅/⛔ Nominace, Sestava). Pod ním jsou kroky, dole tlačítko pro další krok.
 1. **Zápas** – soupeř, datum, délka třetiny (standard 20 min), vzájemné zápasy (jen uzavřené) a karta živého zápisu.
 2. **Sestava** – dvě části (A a B):
    - **A Nominace:** klepnutím vybereš hráčky, které máš k dispozici (jsou seřazené podle pozic, Všechny aktivní / Zrušit vše). Dál se jde až po splnění minima (1 brankářka a 5 bruslařek).
@@ -108,7 +150,7 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 - **Hráčka se nesmí opakovat ve více formacích téhož druhu.** Druhy jsou tři: řady 5:5 (jedno místo), přesilovky (jen jedna z PP1/PP2) a oslabení (zvlášť 4 hráčky: SH1/SH2, a 3 hráčky: SH3/SH4). Mezi druhy se hráčka překrývat smí (např. v řadě a zároveň v oslabení).
 
 ## Záložka Team
-- **Základní formace** nahoře: klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Sestava se kopíruje do každého nového zápasu.
+- **Základní formace** nahoře: klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Sestava se kopíruje do každého nového zápasu a používá se i pro rozdělení do pětek na tréninku.
 - **Náhradnice** pod ní: všechny nezařazené hráčky (bez těch, které skončily). Přetažením je dáš na místo v sestavě (hráčka z místa jde na její místo mezi náhradnice), prohodíš je mezi sebou, nebo hráčku ze sestavy přetáhneš na plochu náhradnic. Pořadí náhradnic se pamatuje.
 - **Soupiska** (přidání, úprava, filtry, stav hráček) je pod tím, na stejné stránce. Samostatná záložka Soupiska už není. Přidávat, upravovat a mazat hráčky smí jen trenér.
 
@@ -119,7 +161,7 @@ Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav p�
 
 ## Řazení tabulek statistik
 Všechny tabulky statistik se řadí **klepnutím na hlavičku sloupce** (`<th>`):
-- **Kde:** záložka Statistiky (hráči, tým, brankáři), statistiky zápasu (hráčky, brankářky) v kroku 3 i v zápisu utkání, tabulka Střídání hráček v podrobném rozboru a tabulka Čas na ledě v živém zápisu (menu ⋯). Tabulky Souhrn po třetinách a Sestava v zápisu utkání se neřadí.
+- **Kde:** záložka Statistiky (hráči, tým, brankáři), statistiky zápasu (hráčky, brankářky) v kroku 3 i v zápisu utkání, tabulka Střídání hráčů v podrobném rozboru a tabulka Čas na ledě v živém zápisu (menu ⋯). Tabulky Souhrn po třetinách a Sestava v zápisu utkání se neřadí.
 - **Ovládání:** první klepnutí řadí čísla a časy **sestupně** (největší nahoře), text **vzestupně** (A–Z). Další klepnutí na stejný sloupec přepíná ▲ vzestupně / ▼ sestupně. Aktuální sloupec a směr ukazuje šipka v hlavičce.
 - **Typy hodnot:** text se řadí podle české abecedy (jména s číslem `#5 Janča` se řadí podle čísla dresu a jména), čísla včetně znaménka (`+3`, `-2`), procent (`45 %`, `91,7 %`) i desetinné čárky, časy ve formátu `MM:SS` (včetně sloupce Ø stř. a hodnoty `⚠️ 02:15 (…)` v tabulce střídání). Prázdné hodnoty (`–`) jsou vždy na konci. Při shodě zůstává původní pořadí.
 - **Pamatování:** zvolené řazení tabulky platí, dokud se aplikace nenačte znovu (po překreslení nebo změně dat zůstane zachováno). Tisk do PDF ponese aktuálně zvolené řazení (včetně šipky v hlavičce); HTML export zápisu a CSV mají pevné pořadí.
@@ -220,21 +262,24 @@ Opravy se hned promítnou do statistik, zápisu i vývoje zápasu.
 - **↩ Zpět na řady** vrátí hru na běžné řady (odcházející hráčky rotují do front, prázdná místa se doplní podle pozic). Nasazení pětky tlačítkem „N. pětka“ jednotku také ukončí.
 
 ## Když po nahrání nové verze vidíš starou
-Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, včetně `sw.js` a celé složky `src/` (včetně `src/core/table-sort.js` a `src/views/help.js`).
+Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, including `sw.js` a celá složka `src/` (včetně `src/core/table-sort.js`, `src/views/help.js` a `src/views/events.js`).
 
 ## Co aplikace zatím neumí
-- Modul docházky a tréninků s přihlašováním hráček (přístup hráček je zatím zablokován, pravidla databáze jsou připravená).
+- Přihlášení hráček a jejich vlastní zápis docházky (zatím zapisuje trenér nebo kustod za hráčky; pravidlo pro hráčky v databázi se doplní).
+- Modul tréninku nad rámec účasti a rozdělení do pětek (např. docházkové statistiky, opakující se tréninky, upozornění na blížící se termín).
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
 - Hodnocení hráček a dlouhodobý plán (zatím jen v původní verzi v Claude).
 - Skrytí tlačítek podle role (oprávnění ale vynucují pravidla databáze).
 - Celkový (sezónní) součet času na ledě; v celkových statistikách je jen průměrná délka střídání (v zápase je tabulka času na ledě v menu ⋯ → Čas na ledě a v zápisu utkání).
 - Nápověda přímo v živém zápisu (tlačítko ❓ je v záhlaví, které živá obrazovka překrývá).
+- Nápověda ❓ a návod zatím nepopisují záložku Události.
 
 ## Poznámky k datům z Claude
 - Historie kroků „vrátit akci“ v rozehraném zápase se do exportu nepřenesla (zápas, události ani statistiky ano).
-- Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť.
+- Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť. Totéž platí pro výběr hráčky v záložce Události.
 
 ## Historie verzí
+- **v16.0 (17. 10. 2026):** modul **Události a docházka** (první jednoduchá verze). Nový soubor `src/views/events.js`; změny v `src/views/shell.js` (záložka Události místo Zápasy, otevřený zápas se zobrazuje v ní), `src/main.js` (odběr kolekcí `events` a `attendance`, jejich chyba neblokuje zbytek aplikace), `src/core/state.js`, `src/data/storage.js` (nové kolekce v záloze, „Nahradit vším“ nemaže kolekce, které záloha neobsahuje), `sw.js` (hokej-v23), `package.json`. Zápasy, živý zápis, střely, góly, tresty a časomíra beze změny. Nutné doplnit pravidla databáze pro `events` a `attendance`.
 - **v15.7 (17. 10. 2026):** vrácen přehled **Čas na ledě** do hlavního menu ⋯ živého zápisu (`src/views/live.js`). Obrazovka přehledu i její obsluha v kódu zůstaly, chybělo jen tlačítko `data-m="toi"` v hlavním menu (po přerušení hry). Přidáno tlačítko „📊 Čas na ledě“; střely, góly, tresty, časomíra a střídání beze změny. Zvýšena verze (`storage.js`, `package.json`) a název cache v `sw.js` (hokej-v22).
 - **v15.6 (17. 10. 2026):** oprava přesilovek a oslabení (`src/domain/live-engine.js`, `src/views/live.js`). (1) Při aktivní jednotce se ve frontě zobrazují hráčky druhé jednotky téhož druhu bez štítků rotace (dřív řadové hráčky s rotací). (2) `applyMap`: prázdné a vyloučené pozice se doplňují podle pozic (`pickFor`, přednost hráčce na ledě, pak fronta), pozice mimo zredukovanou formaci se nenasazují, a když nelze nasadit nikoho, led se nevyprázdní (`none`). (3) `fitLayout`: při oslabení nastoupí na uvolněné místo čekající hráčka správné pozice, přesunutá hráčka jde na začátek své fronty. (4) `requeue` a `retIce` nezařazují do front hráčky mimo řady (nasazené jen jednotkou), takže se při „Zpět na řady“ nenasadí na špatná místa. (5) `toLines` doplňuje prázdná místa podle pozic. Střely, góly, tresty a časomíra beze změny.
 - **v15.5 (17. 10. 2026):** přepracování střídání a rotace v živém zápisu (`src/domain/live-engine.js`, `src/domain/lineup.js`, `src/core/selectors.js`). (1) Nový stavový model na ledě / ve frontě / zaparkovaná, index rotace `L.ri` vždy míří na hráčku, která je skutečně na ledě (`claimSlot`). (2) Fronty bez duplicit, na jedno místo sestavy jedna hráčka, odcházející jde na konec fronty (`requeue`, `rotate`). (3) Kontrola invariantů po každé akci (`settle`, volá ji `fitLayout`): `activeId` nikdy neukazuje na hráčku, která není ve hře. (4) `applyMap` provádí odchod, příchod a rotaci ve správném pořadí; `applyLine` při vyloučené hráčce nasadí partnerku. (5) `syncLive` po změně sestavy přepočítá fronty i index rotace. (6) `activeId` ošetřuje neplatný index.
