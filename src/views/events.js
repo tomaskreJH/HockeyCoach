@@ -2,7 +2,8 @@
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
 // Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo a termín přihlašování jsou v polích time, place, dl zápasu);
 // odpovědi jsou v kolekci "attendance" (id dokumentu = {eventId}_{playerId}).
-// Zápasy se nadále zakládají a vedou stejně jako dřív (karta zápasu se otevře tlačítkem v detailu události).
+// Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.role() === "hracka") vidí události, mění jen svoji odpověď
+// a jen do termínu přihlašování. Zápasy se nadále zakládají a vedou stejně jako dřív (karta zápasu je jen pro trenéra a kustoda).
 
 // ===== Importy =====
 import {strip, upd} from "../core/actions.js";
@@ -19,7 +20,6 @@ const ORD = ["yes", "no", "maybe"];                                   // pořad�
 const REASONS = ["Nemoc", "Zranění", "Škola", "Práce", "Rodina", "Jiné"]; // rychlé důvody
 const DAYS = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
 const MONTHS = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
-const STAFF = ["trener", "kustod"];                                   // role, které smí měnit odpovědi i po termínu
 // Styly jen pro tuto obrazovku (main.css se nemění)
 const CSS = `<style>
 #evw .evi{cursor:pointer}
@@ -46,7 +46,8 @@ const CSS = `<style>
 
 // ===== Pomocné funkce =====
 const pad = n => String(n).padStart(2, "0");
-const staff = () => STAFF.includes(HK.role());
+const staff = () => HK.isStaff();                                    // trenér / kustod
+const isPl = () => HK.role() === "hracka";                           // přihlášená hráčka (omezený přístup)
 const dayOf = s => new Date(s + "T00:00:00");
 const fDay = s => DAYS[dayOf(s).getDay()] + " " + fd(s);
 const fDl = dl => { const d = new Date(dl); return isNaN(d) ? "" : d.getDate() + ". " + (d.getMonth() + 1) + ". " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
@@ -80,11 +81,13 @@ function setAt(eid, pid, st, reason) {
     .catch(() => toast("Uložení se nepovedlo"));
 }
 const clearAt = (eid, pid) => S.db.doc("attendance/" + eid + "_" + pid).delete().catch(() => toast("Smazání se nepovedlo"));
-// Změna odpovědi: „Jdu“ se zapíše hned (opakované klepnutí ji zruší), „Nejdu“ a „Nejsem jistý“ otevřou okno s důvodem
+// Změna odpovědi: „Jdu“ se zapíše hned (opakované klepnutí ji zruší), „Nejdu“ a „Nejsem jistý“ otevřou okno s důvodem.
+// Hráčka smí měnit jen svoji odpověď a jen do termínu; trenér a kustod kdykoli a za kohokoli.
 function answer(eid, pid, st) {
   const ev = allEvents().find(x => x.id === eid);
   if (!ev) return;
   if (!pid) return toast("Nejdřív vyber hráčku");
+  if (isPl() && pid !== HK.pid()) return toast("Můžeš měnit jen svoji odpověď");
   if (isLocked(ev) && !staff()) return toast("Přihlašování je uzavřeno");
   const cur = (atMap()[eid] || {})[pid];
   if (st === "yes") { if (cur && cur.st === "yes") clearAt(eid, pid); else setAt(eid, pid, "yes", ""); return; }
@@ -113,33 +116,38 @@ function calHtml(evs, today) {
 }
 const quick = (e, mine, dis) => `<div class="evq">${ORD.map(k => `<button class="${mine && mine.st === k ? "on-" + k : ""}" data-qa="${e.id}|${k}" ${dis ? "disabled" : ""}>${ANS[k].ic} ${ANS[k].t}</button>`).join("")}</div>`;
 function card(e, AT, P) {
-  const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, lk = isLocked(e), mt = e.type === "match", m = e.raw;
+  const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, lk = isLocked(e) && !staff(), mt = e.type === "match", m = e.raw;
   const sc = mt && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
   return `<div class="cd evi" data-eo="${e.id}"><div class="evh"><b>${mt ? "🆚" : "🏒"} ${esc(e.title)}</b>${sc}</div>
 <div class="mu">${whenLine(e)}${mt ? (m.home ? " · doma" : " · venku") : ""}</div>
-<div class="mu">${dlLine(e, lk)} · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}</div>
+<div class="mu">${dlLine(e, isLocked(e))} · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}</div>
 ${quick(e, mine, lk || !S.evp)}${mine && mine.reason ? `<div class="mu" style="margin-top:6px">${esc(mine.reason)}</div>` : ""}</div>`;
 }
 function list(a) {
-  const P = activePl(), AT = atMap(), evs = allEvents(), today = td();
+  const P = activePl(), AT = atMap(), evs = allEvents(), today = td(), pl_ = isPl();
   if (!S.evc) { const n = new Date(); S.evc = {y: n.getFullYear(), m: n.getMonth()}; }
-  if (!S.evp) { const s = LS.get("evPlayer"); if (s) S.evp = s; }
+  if (pl_) S.evp = HK.pid();                                          // hráčka zapisuje vždy jen sama za sebe
+  else if (!S.evp) { const s = LS.get("evPlayer"); if (s) S.evp = s; }
   if (S.evp && !P.some(p => p.id === S.evp)) S.evp = null;
   const mode = S.evm || "up";
   let shown;
   if (mode === "up") shown = evs.filter(e => e.date >= today).sort(asc);
   else if (mode === "past") shown = evs.filter(e => e.date < today).sort((x, y) => asc(y, x));
   else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)).sort(asc); }
+  const head = pl_
+    ? (S.evp ? `<div class="cd"><div class="mu">Zapisuješ účast za</div><b>${pn(S.evp)}</b></div>` : '<div class="cd" style="color:var(--no)">Tvůj účet není propojen s aktivní hráčkou. Požádej trenéra.</div>')
+    : `<div class="cd"><label>Zapisuji účast za</label><select id="evpl" style="margin-bottom:0"><option value="">— vyber hráčku —</option>${P.map(p => `<option value="${p.id}" ${p.id === S.evp ? "selected" : ""}>${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("")}</select></div>
+<div class="row" style="margin-bottom:12px"><button class="p" id="evnt">+ Trénink</button><button class="s" id="evnm">+ Zápas</button></div>`;
   a.innerHTML = CSS + `<div id="evw">${S.evErr ? `<div class="cd" style="color:var(--no)">Události nebo docházku se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : ""}
-<div class="cd"><label>Zapisuji účast za</label><select id="evpl" style="margin-bottom:0"><option value="">— vyber hráčku —</option>${P.map(p => `<option value="${p.id}" ${p.id === S.evp ? "selected" : ""}>${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("")}</select></div>
-<div class="row" style="margin-bottom:12px"><button class="p" id="evnt">+ Trénink</button><button class="s" id="evnm">+ Zápas</button></div>
+${head}
 <div class="chips">${[["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"]].map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>
 ${mode === "cal" ? calHtml(evs, today) : ""}
 ${shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml();
   // Eventy seznamu
-  a.querySelector("#evpl").onchange = e => { S.evp = e.target.value || null; LS.set("evPlayer", S.evp || ""); render(); };
-  a.querySelector("#evnt").onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true}; render(); };
-  a.querySelector("#evnm").onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
+  const sel = a.querySelector("#evpl"), nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
+  if (sel) sel.onchange = e => { S.evp = e.target.value || null; LS.set("evPlayer", S.evp || ""); render(); };
+  if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true}; render(); };
+  if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
   a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
   a.querySelectorAll("[data-cn]").forEach(b => b.onclick = () => { const c = S.evc; c.m += +b.dataset.cn; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } S.evd = null; render(); });
   a.querySelectorAll("[data-cd]").forEach(b => b.onclick = () => { S.evd = S.evd === b.dataset.cd ? null : b.dataset.cd; render(); });
@@ -149,32 +157,39 @@ ${shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Ž�
 }
 
 // ===== Vykreslení: detail události =====
-// Rozdělení do pětek (jen trénink): hráčky, které jdou, a barevné volby 1.–4. pětky
-function linesHtml(ev, A, P) {
+// Rozdělení do pětek (jen trénink): hráčky, které jdou, a barevné volby 1.–4. pětky; hráčka vidí rozdělení jen ke čtení
+function linesHtml(ev, A, P, ro) {
   const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)), L = ev.raw.lines || {};
   const cnt = n => going.filter(p => L[p.id] === n).length, free = going.filter(p => !L[p.id]).length;
+  const row = p => ro
+    ? `<div class="pr"><div>${pn(p.id)}</div><div>${L[p.id] ? `<span class="evl L${L[p.id]}">${L[p.id]}. pětka</span>` : '<span class="mu">–</span>'}</div></div>`
+    : `<div class="pr"><div>${pn(p.id)}</div><div class="evln">${[0, 1, 2, 3, 4].map(n => `<button class="chip ${(L[p.id] || 0) === n ? (n ? "L" + n : "on") : ""}" data-ln="${p.id}|${n}">${n || "–"}</button>`).join("")}</div></div>`;
   return `<div class="cd"><h2>Rozdělení do pětek</h2><div class="mu" style="margin-bottom:8px">Z hráček, které jdou (bez brankářek). Barvy jako v živém zápisu.</div>
 <div style="margin-bottom:10px">${[1, 2, 3, 4].map(n => `<span class="evl L${n}">${n}. pětka: ${cnt(n)}</span>`).join("")}<span class="evl L0">bez pětky: ${free}</span></div>
-<div class="row" style="margin-bottom:8px"><button class="s" id="evlb">↻ Podle základní formace</button><button class="s" id="evlc">Vymazat</button></div>
-${going.length ? going.map(p => `<div class="pr"><div>${pn(p.id)}</div><div class="evln">${[0, 1, 2, 3, 4].map(n => `<button class="chip ${(L[p.id] || 0) === n ? (n ? "L" + n : "on") : ""}" data-ln="${p.id}|${n}">${n || "–"}</button>`).join("")}</div></div>`).join("") : '<div class="msg">Zatím se nikdo nepřihlásil.</div>'}</div>`;
+${ro ? "" : '<div class="row" style="margin-bottom:8px"><button class="s" id="evlb">↻ Podle základní formace</button><button class="s" id="evlc">Vymazat</button></div>'}
+${going.length ? going.map(row).join("") : '<div class="msg">Zatím se nikdo nepřihlásil.</div>'}</div>`;
 }
 function detail(a, ev) {
-  const P = activePl(), AT = atMap(), A = AT[ev.id] || {}, c = counts(ev, AT, P), lk = isLocked(ev), mt = ev.type === "match", can = !lk || staff();
+  const P = activePl(), AT = atMap(), A = AT[ev.id] || {}, c = counts(ev, AT, P), lk = isLocked(ev), mt = ev.type === "match", ownP = isPl(), me = HK.pid();
+  const can = !lk || staff();
   const rows = P.map((p, i) => {
-    const x = A[p.id];
+    const x = A[p.id], mine = p.id === me, ok = can && (!ownP || mine);   // hráčka mění jen svůj řádek
+    const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen trenér a kustod
     return (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") +
-      `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${x && x.reason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${can ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
+      `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
   const key = "ev" + ev.id;
+  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`}</div>`;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">← Události</button>
 <div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
-<div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}
-<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`}</div></div>
-<div class="cd"><h2>Docházka</h2>${lk ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." : "Přihlašování je uzavřeno."}</div>` : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}</div>
-${mt ? "" : linesHtml(ev, A, P)}</div>` + sheetHtml();
+<div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}${btns}</div>
+<div class="cd"><h2>Docházka</h2>${lk ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." : "Přihlašování je uzavřeno."}</div>` : ""}${ownP ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}</div>
+${mt ? "" : linesHtml(ev, A, P, ownP)}</div>` + sheetHtml();
   // Eventy detailu
   a.querySelector("#evb").onclick = () => { S.evid = null; render(); };
   a.querySelectorAll("[data-pa]").forEach(b => b.onclick = () => { const [pid, st] = b.dataset.pa.split("|"); answer(ev.id, pid, st); });
+  bindSheet(a);
+  if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
   a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl}; render(); };
@@ -194,7 +209,6 @@ ${mt ? "" : linesHtml(ev, A, P)}</div>` + sheetHtml();
   const lb = a.querySelector("#evlb"), lc = a.querySelector("#evlc");
   if (lb) lb.onclick = () => saveLines(ev, baseLines(P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)).map(p => p.id)));
   if (lc) lc.onclick = () => saveLines(ev, {});
-  bindSheet(a);
 }
 
 // ===== Vykreslení: okno s důvodem =====
@@ -262,7 +276,7 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
 
 // ===== Export =====
 export function eventsView(a) {
-  if (S.evf) return formView(a);
+  if (S.evf && !isPl()) return formView(a);
   if (S.evid) { const ev = allEvents().find(x => x.id === S.evid); if (ev) return detail(a, ev); S.evid = null; }
   list(a);
 }

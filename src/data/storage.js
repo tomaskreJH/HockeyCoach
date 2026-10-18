@@ -11,13 +11,13 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v16.0 · 17. 10. 2026";
+const VERSION = "v16.1 · 17. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 const COLL = ["players", "matches", "opponents", "settings", "events", "attendance"]; // kolekce aplikace (events = tréninky, attendance = docházka)
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
-const STAFF = ["trener", "kustod"];                                     // role s přístupem do aplikace
+const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
 
-let fs = null, auth = null, user = null, role = null, isReady = false, readyP = null;
+let fs = null, auth = null, user = null, role = null, pid = null, isReady = false, readyP = null; // pid = hráčka propojená s účtem (jen role Hráčka)
 const data = {};                       // zrcadlo dat pro export a zálohy
 const subs = {};                       // odběratelé změn podle kolekce
 const first = {};                      // už dorazil první snapshot kolekce?
@@ -29,6 +29,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const stamp = () => new Date().toISOString().slice(0, 10);
 const say = m => toast(m);
 const errTxt = e => (e && (e.code || e.message)) || String(e);
+const isStaff = () => STAFF.includes(role);
 const configOk = () => !!FIREBASE_CONFIG.apiKey && !/^VLOZ/.test(FIREBASE_CONFIG.apiKey) && !!FIREBASE_CONFIG.projectId && !/^VLOZ/.test(FIREBASE_CONFIG.projectId);
 
 // ===== Data: poslech změn a zápis =====
@@ -97,9 +98,9 @@ async function doLogin() {
     return null;
   }
 }
-// Role z dokumentu members/{email} (e-mail malými písmeny)
+// Role (a u hráčky propojené id hráčky) z dokumentu members/{email} (e-mail malými písmeny)
 async function checkRole() {
-  try { const s = await getDoc(fsDoc(fs, "members", user.email.toLowerCase())); return {role: s.exists() ? (s.data().role || null) : null}; }
+  try { const s = await getDoc(fsDoc(fs, "members", user.email.toLowerCase())); const d = s.exists() ? s.data() : {}; return {role: d.role || null, pid: d.pid || null}; }
   catch (e) { return {err: e}; }
 }
 // Spuštění: přihlášení -> kontrola role -> teprve potom se vrátí databáze
@@ -120,11 +121,12 @@ async function boot() {
       if (g === "out") { await signOut(auth); user = null; }
       continue;
     }
-    role = r.role;
-    if (STAFF.includes(role)) break;
-    const msg = role === "hracka" ? "Přístup hráček se zpřístupní s modulem docházky a tréninků." : "Účet <b>" + esc(user.email) + "</b> nemá přístup. Požádej trenéra, ať ti ho přidá.";
+    role = r.role; pid = r.pid;
+    // Trenér a kustod vstupují vždy; hráčka jen tehdy, když ji trenér propojil s hráčkou v soupisce
+    if (STAFF.includes(role) || (role === "hracka" && pid)) break;
+    const msg = role === "hracka" ? "Účet <b>" + esc(user.email) + "</b> zatím není propojen s hráčkou v soupisce. Požádej trenéra, ať ho propojí (⚙️ → Členové týmu)." : "Účet <b>" + esc(user.email) + "</b> nemá přístup. Požádej trenéra, ať ti ho přidá.";
     await screen("Přístup zatím není povolen", msg, [["out", "Odhlásit jiným účtem", "p"]]);
-    await signOut(auth); user = null;
+    await signOut(auth); user = null; role = null; pid = null;
   }
   document.getElementById("nav").style.display = "";
   isReady = true;
@@ -133,13 +135,20 @@ async function boot() {
 
 // ===== Okno nastavení =====
 let pendingImport = null;
+// Hráčky pro výběr při propojení účtu (bez ukončených), seřazené podle jména
+const playerOpts = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
+  .map(([id, p]) => `<option value="${esc(id)}">${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("");
 async function renderMembers(el) {
   const box = el.querySelector("#cmb");
   box.textContent = "Načítám…";
   try {
     const s = await getDocs(fsCol(fs, "members"));
-    const rows = s.docs.map(d => ({email: d.id, role: d.data().role})).sort((a, b) => a.email.localeCompare(b.email));
-    box.innerHTML = rows.map(r => `<div class="it" style="cursor:default"><div><b>${esc(r.email)}</b><div class="mu">${esc(ROLES[r.role] || r.role || "?")}</div></div>${r.email === user.email.toLowerCase() ? "" : `<button class="d" data-md="${esc(r.email)}" style="padding:8px 12px">Odebrat</button>`}</div>`).join("") || "–";
+    const rows = s.docs.map(d => ({email: d.id, role: d.data().role, pid: d.data().pid})).sort((a, b) => a.email.localeCompare(b.email));
+    box.innerHTML = rows.map(r => {
+      const p = r.pid && data.players[r.pid];
+      const who = r.role === "hracka" ? (p ? " · " + esc((p.num ? "#" + p.num + " " : "") + p.name) : " · ⚠️ bez hráčky") : "";
+      return `<div class="it" style="cursor:default"><div><b>${esc(r.email)}</b><div class="mu">${esc(ROLES[r.role] || r.role || "?")}${who}</div></div>${r.email === user.email.toLowerCase() ? "" : `<button class="d" data-md="${esc(r.email)}" style="padding:8px 12px">Odebrat</button>`}</div>`;
+    }).join("") || "–";
     box.querySelectorAll("[data-md]").forEach(b => { b.onclick = async () => {
       if (!confirm("Odebrat přístup: " + b.dataset.md + "?")) return;
       try { await deleteDoc(fsDoc(fs, "members", b.dataset.md)); renderMembers(el); } catch (e) { say("Nepovedlo se: " + errTxt(e)); }
@@ -147,24 +156,29 @@ async function renderMembers(el) {
   } catch (e) { box.textContent = "Nelze načíst: " + errTxt(e); }
 }
 function openCfg() {
-  const el = document.getElementById("cfg"), coach = role === "trener", q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
+  const el = document.getElementById("cfg"), coach = role === "trener", staff = isStaff(), q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
   pendingImport = null;
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
- <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
- ${coach ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet).</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr"><option value="trener">Trenér</option><option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
- <h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>
+ <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
+ ${coach ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka.</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr"><option value="trener">Trenér</option><option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><select id="cmp" style="display:none"><option value="">— vyber hráčku —</option>${playerOpts()}</select><button class="p w" id="cma">Přidat člena</button>` : ""}
+ ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close; q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#clo").onclick = async () => { await signOut(auth); location.reload(); };
-  q("#ce").onclick = exportJSON; q("#cc").onclick = exportCSV;
+  if (staff) { q("#ce").onclick = exportJSON; q("#cc").onclick = exportCSV; }
   if (!coach) return;
   renderMembers(el);
+  // Výběr hráčky se ukáže jen u role Hráčka
+  q("#cmr").onchange = () => { q("#cmp").style.display = q("#cmr").value === "hracka" ? "" : "none"; };
   q("#cma").onclick = async () => {
-    const em = q("#cme").value.trim().toLowerCase();
+    const em = q("#cme").value.trim().toLowerCase(), rl = q("#cmr").value, pp = q("#cmp").value;
     if (!/^\S+@\S+\.\S+$/.test(em)) return say("Zadej platný e-mail");
-    try { await setDoc(fsDoc(fs, "members", em), {role: q("#cmr").value, addedBy: user.email}); q("#cme").value = ""; renderMembers(el); }
+    if (rl === "hracka" && !pp) return say("Vyber hráčku");
+    const d = {role: rl, addedBy: user.email};
+    if (rl === "hracka") d.pid = pp;
+    try { await setDoc(fsDoc(fs, "members", em), d); q("#cme").value = ""; q("#cmp").value = ""; renderMembers(el); }
     catch (e) { say("Nepovedlo se: " + errTxt(e)); }
   };
   q("#cf").onchange = () => {
@@ -223,6 +237,6 @@ async function importData(obj, replace) {
 
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
-export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, role: () => role, user: () => user};
+export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, role: () => role, pid: () => pid, isStaff, user: () => user};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
