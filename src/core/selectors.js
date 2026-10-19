@@ -11,6 +11,10 @@ export const PG=["Brankářky","Obránkyně","Útočnice","Neurčeno"];
 export const stOf=p=>p.st||"act";
 export const pl=id=>S.pl.find(p=>p.id===id);
 export const pn=id=>{const p=pl(id);return p?(p.num?"#"+esc(p.num)+" ":"")+esc(p.name)+(stOf(p)==="inj"?" 🤕":stOf(p)==="end"?" ⛔":""):"?"};
+// Přihlášené hráčky (odpověď „Jdu“) na událost; id události = id zápasu nebo tréninku. Do nominace zápasu smí jen ony.
+export const goingOf=eid=>[...new Set(S.at.filter(a=>a.eid===eid&&a.st==="yes").map(a=>a.pid))].filter(id=>pl(id));
+// Člen realizačního týmu (trenér, kustod…) podle id
+export const trOf=id=>S.tr.find(t=>t.id===id);
 export const lineIds=(lu,n)=>SL.map(s=>lu[n+s]).filter(Boolean);
 export const luPlayers=lu=>[...new Set(Object.values(lu||{}).filter(Boolean))];
 export const skaters=lu=>[...new Set(LN.flatMap(n=>SL.flatMap(x=>slotIds(lu,n+x))))];

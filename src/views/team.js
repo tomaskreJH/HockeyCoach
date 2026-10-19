@@ -1,28 +1,39 @@
-// Záložka Team: soupiska, základní formace, náhradnice, přetahování.
-import {POS, ST} from "../config/constants.js";
+// Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování.
+import {KIND, POS, ST} from "../config/constants.js";
 import {saveDef} from "../core/actions.js";
 import {PG, pl, pn, pri, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, esc, toast} from "../core/utils.js";
 import {benchOrder} from "../domain/lineup.js";
+import {PAY, payOf} from "../domain/payments.js";
 import {luEditor} from "./lineup-editor.js";
 import {modal} from "./modal.js";
 import {render} from "./shell.js";
 
 export function players(a){const cnt=k=>S.pl.filter(p=>stOf(p)===k).length;const l=S.pl.filter(p=>(S.pf==="all"||stOf(p)===S.pf)&&(S.pq==="all"||(p.pos||"")===S.pq)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));
+const T=[...S.tr].sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs"));
 a.innerHTML=`<div class="cd"><h2>Přidat hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="n"></div><div><label>Číslo</label><input id="c" inputmode="numeric"></div></div>
 <div class="row"><div><label>Pozice</label><select id="p">${POS.map(x=>`<option>${x}</option>`).join("")}<option value="">Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="q"><option value="">–</option>${POS.map(x=>`<option>${x}</option>`).join("")}</select></div></div>
+<label>Platba</label><select id="py">${Object.entries(PAY).map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select>
 <button class="p w" id="add">Přidat</button></div>
 <div class="cd"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">Soupiska (${l.length})</h2><button class="s" id="ft" style="flex:none">Filtry ${S.fo?"▴":"▾"}</button></div>
 <div class="mu" style="margin:6px 0 4px">${({act:"Aktivní",inj:"Zranění",end:"Ukončili",all:"Všichni"})[S.pf]} · ${S.pq==="all"?"všechny pozice":S.pq===""?"Neurčeno":S.pq}</div>
 ${S.fo?`<h3>Pozice</h3><div class="chips">${[["all","Všechny"],...POS.map(x=>[x,x+" ("+S.pl.filter(p=>p.pos===x&&(S.pf==="all"||stOf(p)===S.pf)).length+")"]),["","Neurčeno"]].map(([k,t])=>`<button class="chip ${S.pq===k?"on":""}" data-pq="${k}">${t}</button>`).join("")}</div><h3>Stav</h3><div class="chips">${[["act","Aktivní ("+cnt("act")+")"],["inj","Zranění ("+cnt("inj")+")"],["end","Ukončili ("+cnt("end")+")"],["all","Všichni ("+S.pl.length+")"]].map(([k,t])=>`<button class="chip ${S.pf===k?"on":""}" data-pf="${k}">${t}</button>`).join("")}</div>`:""}
-${l.length?l.map((p,i)=>(S.pq==="all"&&(i===0||pri(l[i-1])!==pri(p))?`<h3>${PG[pri(p)]}</h3>`:"")+`<div class="it"><div><b>${pn(p.id)}</b><div class="mu">${esc(p.pos||"")}${p.alt?" / "+esc(p.alt):""}${stOf(p)!=="act"?` · <span class="tag ${stOf(p)==="inj"?"sh":"red"}">${ST[stOf(p)]}</span>`:""}</div></div><div class="row" style="flex:none;flex-wrap:nowrap"><button class="s" data-e="${p.id}" style="padding:8px 12px">Upravit</button><button class="d" data-d="${p.id}" style="padding:8px 12px;${S.cf===p.id?"background:var(--no);color:#fff":""}">${S.cf===p.id?"Opravdu smazat?":"Smazat"}</button></div></div>`).join(""):'<div class="msg">V tomto výběru nikdo není.</div>'}</div>`;
+${l.length?l.map((p,i)=>(S.pq==="all"&&(i===0||pri(l[i-1])!==pri(p))?`<h3>${PG[pri(p)]}</h3>`:"")+`<div class="it"><div><b>${pn(p.id)}</b><div class="mu">${esc(p.pos||"")}${p.alt?" / "+esc(p.alt):""}${payOf(p)!=="monthly"?` · <span class="tag">${PAY[payOf(p)]}</span>`:""}${stOf(p)!=="act"?` · <span class="tag ${stOf(p)==="inj"?"sh":"red"}">${ST[stOf(p)]}</span>`:""}</div></div><div class="row" style="flex:none;flex-wrap:nowrap"><button class="s" data-e="${p.id}" style="padding:8px 12px">Upravit</button><button class="d" data-d="${p.id}" style="padding:8px 12px;${S.cf===p.id?"background:var(--no);color:#fff":""}">${S.cf===p.id?"Opravdu smazat?":"Smazat"}</button></div></div>`).join(""):'<div class="msg">V tomto výběru nikdo není.</div>'}</div>
+<div class="cd"><h2>Realizační tým (${T.length})</h2><div class="mu" style="margin-bottom:8px">Trenéři a další členové týmu se zapisují do docházky na události. Neplatí a nenominují se do zápasu. Spravuje trenér.</div>
+${T.length?T.map(t=>`<div class="it"><div><b>${esc(t.name)}</b><div class="mu">${esc(t.kind||"")}</div></div><div class="row" style="flex:none;flex-wrap:nowrap"><button class="s" data-te="${t.id}" style="padding:8px 12px">Upravit</button><button class="d" data-td="${t.id}" style="padding:8px 12px;${S.cf==="t"+t.id?"background:var(--no);color:#fff":""}">${S.cf==="t"+t.id?"Opravdu smazat?":"Smazat"}</button></div></div>`).join(""):'<div class="msg">Zatím nikdo.</div>'}
+<div class="row" style="margin-top:10px"><div style="flex:3"><label>Jméno</label><input id="stn"></div><div><label>Funkce</label><select id="stk">${KIND.map(k=>`<option>${k}</option>`).join("")}</select></div></div>
+<button class="p w" id="stadd">Přidat do realizačního týmu</button></div>`;
 $("#ft").onclick=()=>{S.fo=!S.fo;render()};
 a.querySelectorAll("[data-pq]").forEach(b=>b.onclick=()=>{S.pq=b.dataset.pq;render()});
 a.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{S.pf=b.dataset.pf;render()});
-$("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;S.db.collection("players").add({name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act"}).catch(()=>toast("Uložení se nepovedlo"))};
-a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p)};modal()});
-a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(S.cf===id){S.cf=null;S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))}else{S.cf=id;render();setTimeout(()=>{if(S.cf===id){S.cf=null;render()}},4000)}})}
+$("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;S.db.collection("players").add({name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act",pay:$("#py").value}).catch(()=>toast("Uložení se nepovedlo"))};
+a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),pay:payOf(p)};modal()});
+a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(S.cf===id){S.cf=null;S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))}else{S.cf=id;render();setTimeout(()=>{if(S.cf===id){S.cf=null;render()}},4000)}});
+// Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka)
+$("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast("Uložení se nepovedlo"))};
+a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:t.kind||KIND[0]};modal()});
+a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td,k="t"+id;if(S.cf===k){S.cf=null;S.at.filter(x=>x.pid===id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))}else{S.cf=k;render();setTimeout(()=>{if(S.cf===k){S.cf=null;render()}},4000)}})}
 export function formV(a){const lu=S.def.lu||{},B=benchOrder();
 a.innerHTML=`<div class="cd"><h2>Základní formace</h2><div class="mu" style="margin-bottom:10px">Tato sestava se zkopíruje do každého nového zápasu, kde ji můžeš upravit.</div><div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo. Podržením a přetažením ji přesuneš na jiné místo nebo mezi náhradnice (obsazené místo se prohodí).</div><div class="tw">${luEditor(lu,0,"d:")}</div></div>
 <div class="cd"><h2>Náhradnice (${B.length})</h2><div class="mu" style="margin-bottom:8px">Nezařazené hráčky. Přetažením je dáš na místo v sestavě, nebo je prohodíš mezi sebou. Sestavu sem můžeš vrátit přetažením místa na tuto plochu.</div><div class="bz" data-bz="1">${B.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny hráčky jsou v sestavě.</span>'}</div></div>

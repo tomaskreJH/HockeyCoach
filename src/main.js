@@ -1,5 +1,6 @@
 // Spuštění aplikace: připojení k úložišti, odběr změn dat, první vykreslení.
-// Kolekce events a attendance (docházka) nesmí blokovat zbytek aplikace: při chybě (např. chybějící pravidla) se jen zobrazí hláška v záložce Události.
+// Kolekce events, attendance (docházka) a staff (realizační tým) nesmí blokovat zbytek aplikace: při chybě (např. chybějící pravidla) se jen zobrazí hláška v záložce Události.
+// Kolekce payments (platby za události) se poslouchá jen u trenéra a kustoda; její chyba se zobrazí jen v kartě Platby.
 // Automatické zakládání soupeřů (syncOps) je zápis do databáze, proto běží jen u trenéra a kustoda (hráčka nemá právo zápisu).
 import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
@@ -25,4 +26,6 @@ db.collection("matches").onSnapshot(s=>{S.ma=s.docs.map(d=>({id:d.id,...d.data()
 db.collection("opponents").onSnapshot(s=>{S.op=s.docs.map(d=>({id:d.id,...d.data()}));ok("o");render();if(S.ready&&HK.isStaff())syncOps()},er);
 db.collection("events").onSnapshot(s=>{S.ev=s.docs.map(d=>({id:d.id,...d.data()}));ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{S.at=s.docs.map(d=>({id:d.id,...d.data()}));ok("a");render()},erX("a"));
+db.collection("staff").onSnapshot(s=>{S.tr=s.docs.map(d=>({id:d.id,...d.data()}));render()},erX("t"));
+if(HK.isStaff())db.collection("payments").onSnapshot(s=>{S.pay=s.docs.map(d=>({id:d.id,...d.data()}));S.payErr=null;render()},e=>{S.payErr=e.code||e.message;render()});
 db.doc("settings/lineup").onSnapshot(s=>{S.def=s.exists?s.data():{};ok("s");render()},er)}catch(e){S.err="Nepodařilo se spustit úložiště: "+(e&&e.message||e);render()}})();

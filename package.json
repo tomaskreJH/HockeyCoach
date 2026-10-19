@@ -1,8 +1,8 @@
 {
   "name": "hokej-zapasy",
-  "version": "16.1",
+  "version": "16.2",
   "private": true,
-  "description": "Aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráček, živý zápis, statistiky, události a docházka.",
+  "description": "Aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráček, živý zápis, statistiky, události, docházka a platby za události.",
   "type": "module",
   "scripts": {
     "start": "npx --yes serve ."

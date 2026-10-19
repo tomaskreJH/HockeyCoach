@@ -11,9 +11,10 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v16.1 · 17. 10. 2026";
+const VERSION = "v16.2 · 19. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
-const COLL = ["players", "matches", "opponents", "settings", "events", "attendance"]; // kolekce aplikace (events = tréninky, attendance = docházka)
+// kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým, payments = platby hráček za události)
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "payments"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
 
@@ -215,11 +216,11 @@ async function refresh() {
 function exportJSON() { downloadFile("hokej-zaloha-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", version: 1, exported: new Date().toISOString(), data}, null, 1), "application/json"); }
 function exportCSV() {
   const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act"])];
+  const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Platba"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.pay || "monthly"])];
   downloadFile("soupiska-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(q).join(";")).join("\r\n"), "text/csv");
 }
 // Import po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu
-// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí a docházky je nesmaže)
+// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a plateb je nesmaže)
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
   const ops = [];

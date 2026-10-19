@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Pomocné funkce =====
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function mail() { return request.auth.token.email.lower(); }
+    function memberPath() { return /databases/$(database)/documents/members/$(mail()); }
+    function isMember() { return signedIn() && exists(memberPath()); }
+    function role() { return get(memberPath()).data.role; }
+    function isCoach() { return isMember() && role() == 'trener'; }
+    function isStaff() { return isMember() && role() in ['trener', 'kustod']; }
+    // Hráčka smí zapisovat jen tehdy, když ji trenér propojil s hráčkou v soupisce (pole pid)
+    function isPlayer() { return isMember() && role() == 'hracka' && get(memberPath()).data.pid is string; }
+    function myPid() { return get(memberPath()).data.pid; }
+
+    // ===== Členové týmu: role a (u hráček) propojení se soupiskou (pole pid) =====
+    match /members/{email} {
+      allow read: if signedIn() && (email == mail() || isCoach());
+      allow write: if isCoach();
+    }
+
+    // ===== Soupiska: spravuje trenér; kustod smí jen měnit stav (např. trvalé zranění ze živého zápisu) =====
+    // Pole pay (způsob placení: monthly / single / exempt) mění jen trenér
+    match /players/{id} {
+      allow read: if isMember();
+      allow create, delete: if isCoach();
+      allow update: if isCoach() || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st']));
+    }
+
+    // ===== Realizační tým (trenéři, kustodi…): čtou všichni členové (docházka), spravuje trenér =====
+    match /staff/{id} { allow read: if isMember(); allow write: if isCoach(); }
+
+    // ===== Zápasy, soupeři, základní formace: trenér i kustod =====
+    match /matches/{id}   { allow read: if isMember(); allow write: if isStaff(); }
+    match /opponents/{id} { allow read: if isMember(); allow write: if isStaff(); }
+    match /settings/{id}  { allow read: if isMember(); allow write: if isStaff(); }
+
+    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod =====
+    match /events/{id} { allow read: if isMember(); allow write: if isStaff(); }
+
+    // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, reason, at, by =====
+    // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
+    match /attendance/{id} {
+      allow read: if isMember();
+      allow create, update: if isStaff() || (isPlayer()
+        && request.resource.data.pid == myPid()
+        && id == request.resource.data.eid + '_' + myPid());
+      allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
+    }
+
+    // ===== Platby hráček za události: dokument {eid}_{pid} s poli eid, pid, amt, paid, paidAt, by; jen trenér a kustod =====
+    match /payments/{id} { allow read, write: if isStaff(); }
+
+    // ===== Jen pro trenéry (hodnocení hráček, poznámky) – hráčky ani kustodi nevidí =====
+    match /coach/{doc=**} { allow read, write: if isCoach(); }
+  }
+}
