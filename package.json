@@ -1,6 +1,6 @@
 {
   "name": "hokej-zapasy",
-  "version": "17.0.1",
+  "version": "17.0.2",
   "private": true,
   "description": "Aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráček, živý zápis, statistiky, události, docházka a platby za události s přehledem dluhů.",
   "type": "module",

@@ -12,7 +12,7 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v17.0.1 · 20. 10. 2026";
+const VERSION = "v17.0.2 · 20. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým, payments = staré platby (jen pro migraci),
 // charges = předpisy, cash = pokladna (příjmy a výdaje), audit = záznamy o uzavření a znovuotevření vyúčtování)
