@@ -1,20 +1,22 @@
 // Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování.
-import {KIND, POS, ST} from "../config/constants.js";
+// Struktura: Importy -> players (soupiska a realizační tým) -> formV (základní formace) -> teamDrag (přetahování).
+import {KIND,POS,ST} from "../config/constants.js";
 import {saveDef} from "../core/actions.js";
-import {PG, isG, pl, pn, pri, stOf} from "../core/selectors.js";
+import {PG,isG,pl,pn,pri,stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {$, clone, esc, toast} from "../core/utils.js";
+import {$,clone,esc,toast} from "../core/utils.js";
 import {benchOrder} from "../domain/lineup.js";
-import {FXV, GRP, fxOf, grpOf} from "../domain/cash.js";
+import {FXV,GRP,fxOf,grpOf} from "../domain/cash.js";
 import {luEditor} from "./lineup-editor.js";
 import {modal} from "./modal.js";
 import {render} from "./shell.js";
 
+// ===== Soupiska a realizační tým =====
 export function players(a){const cnt=k=>S.pl.filter(p=>stOf(p)===k).length;const l=S.pl.filter(p=>(S.pf==="all"||stOf(p)===S.pf)&&(S.pq==="all"||(p.pos||"")===S.pq)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));
 const T=[...S.tr].sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs"));
 a.innerHTML=`<div class="cd"><h2>Přidat hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="n"></div><div><label>Číslo</label><input id="c" inputmode="numeric"></div></div>
 <div class="row"><div><label>Pozice</label><select id="p">${POS.map(x=>`<option>${x}</option>`).join("")}<option value="">Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="q"><option value="">–</option>${POS.map(x=>`<option>${x}</option>`).join("")}</select></div></div>
-<div class="row"><div><label>Skupina plateb</label><select id="py">${Object.entries(GRP).map(([k,t])=><option value="${k}">${t}</option>).join("")}</select></div><div><label>Koeficient (fx)</label><select id="pfx">${FXV.map(([v,t])=><option value="${v}">${t}</option>).join("")}</select></div></div><label>Poznámka k platbám (např. kompenzace)</label><input id="pnt">
+<div class="row"><div><label>Skupina plateb</label><select id="py">${Object.entries(GRP).map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select></div><div><label>Koeficient (fx)</label><select id="pfx">${FXV.map(([v,t])=>`<option value="${v}">${t}</option>`).join("")}</select></div></div><label>Poznámka k platbám (např. kompenzace)</label><input id="pnt">
 <button class="p w" id="add">Přidat</button></div>
 <div class="cd"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">Soupiska (${l.length})</h2><button class="s" id="ft" style="flex:none">Filtry ${S.fo?"▴":"▾"}</button></div>
 <div class="mu" style="margin:6px 0 4px">${({act:"Aktivní",inj:"Zranění",end:"Ukončili",all:"Všichni"})[S.pf]} · ${S.pq==="all"?"všechny pozice":S.pq===""?"Neurčeno":S.pq}</div>
@@ -34,11 +36,15 @@ a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;if
 $("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast("Uložení se nepovedlo"))};
 a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:t.kind||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
 a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td,k="t"+id;if(S.cf===k){S.cf=null;S.at.filter(x=>x.pid===id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))}else{S.cf=k;render();setTimeout(()=>{if(S.cf===k){S.cf=null;render()}},4000)}})}
+
+// ===== Základní formace a náhradnice =====
 export function formV(a){const lu=S.def.lu||{},B=benchOrder();
 a.innerHTML=`<div class="cd"><h2>Základní formace</h2><div class="mu" style="margin-bottom:10px">Tato sestava se zkopíruje do každého nového zápasu, kde ji můžeš upravit.</div><div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo. Podržením a přetažením ji přesuneš na jiné místo nebo mezi náhradnice (obsazené místo se prohodí).</div><div class="tw">${luEditor(lu,0,"d:")}</div></div>
 <div class="cd"><h2>Náhradnice (${B.length})</h2><div class="mu" style="margin-bottom:8px">Nezařazené hráčky. Přetažením je dáš na místo v sestavě, nebo je prohodíš mezi sebou. Sestavu sem můžeš vrátit přetažením místa na tuto plochu.</div><div class="bz" data-bz="1">${B.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny hráčky jsou v sestavě.</span>'}</div></div>
 <div id="plw"></div>`;
 teamDrag(a);players($("#plw"))}
+
+// ===== Přetahování (sestava, náhradnice) =====
 export function teamDrag(root){let D=null,timer=null,blk=false;const SEL='[data-sl^="d:"],[data-bn],[data-bz]';
 const closest=(x,y)=>{const e=document.elementFromPoint(x,y);return e&&e.closest?e.closest(SEL):null};
 const info=b=>b.dataset.bn?{t:"b",id:b.dataset.bn}:b.dataset.sl?{t:"s",k:b.dataset.sl.slice(2)}:{t:"z"};
