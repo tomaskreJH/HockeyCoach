@@ -1,10 +1,11 @@
-// Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události a rozdělení do pětek na tréninku.
+// Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku a přehled plateb.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
 // Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo, termín přihlašování a cena jsou v polích time, place, dl, fee, pm zápasu);
 // odpovědi jsou v kolekci "attendance" (id dokumentu = {eventId}_{memberId}), členem je hráčka nebo člen realizačního týmu (kolekce "staff").
 // Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.role() === "hracka") vidí události, mění jen svoji odpověď
 // a jen do termínu přihlašování. Zápasy se nadále zakládají a vedou stejně jako dřív (karta zápasu je jen pro trenéra a kustoda).
-// Platby za události (cena, způsob úhrady, vyúčtování) řeší views/payments.js a domain/payments.js.
+// Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se předvybere sám a přihlašuje se jedním klepnutím.
+// Platby za události (cena, způsob úhrady, vyúčtování) řeší views/payments.js a domain/payments.js, přehled plateb a dluhů views/finance.js (režim „💰 Platby“).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -14,6 +15,7 @@ import {S} from "../core/state.js";
 import {LS, clone, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {HINTS, MODES, feeOf, kc, modeOf} from "../domain/payments.js";
+import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
 import {bindPay, payHtml} from "./payments.js";
 import {render} from "./shell.js";
@@ -47,6 +49,7 @@ const CSS = `<style>
 #evw .evln{display:flex;gap:4px}
 #evw .evln .chip{padding:8px 0;min-width:38px;text-align:center}
 </style>`;
+let autoMe = false;                                                   // vlastní záznam trenéra se předvybírá jen jednou za spuštění
 
 // ===== Pomocné funkce =====
 const pad = n => String(n).padStart(2, "0");
@@ -67,6 +70,8 @@ const trs = () => [...S.tr].sort((x, y) => (x.name || "").localeCompare(y.name |
 const isTr = id => S.tr.some(t => t.id === id);
 // Jméno člena pro výpis (hráčka s číslem, nebo člen týmu s ikonou)
 const who = id => { const t = S.tr.find(x => x.id === id); return pl(id) ? pn(id) : t ? "🎓 " + esc(t.name) : "?"; };
+// Vlastní záznam přihlášeného trenéra / kustoda v realizačním týmu (propojení members/{email}.tid), nebo null
+const myTr = () => { const t = isPl() ? null : HK.tid(); return t && isTr(t) ? S.tr.find(x => x.id === t) : null; };
 // Sjednocený seznam událostí: tréninky (events) + zápasy (matches)
 function allEvents() {
   const t = S.ev.map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", place: e.place || "", dl: e.dl || "", note: e.note || "", raw: e}));
@@ -152,27 +157,41 @@ function list(a) {
   if (pl_) S.evp = HK.pid();                                          // hráčka zapisuje vždy jen sama za sebe
   else if (!S.evp) { const s = LS.get("evPlayer"); if (s) S.evp = s; }
   if (S.evp && !P.some(p => p.id === S.evp) && !isTr(S.evp)) S.evp = null;
-  const mode = S.evm || "up";
+  // Trenér / kustod propojený s realizačním týmem: při prvním otevření se předvybere sám (bez uloženého výběru)
+  const me = myTr();
+  if (me && !S.evp && !autoMe) { S.evp = me.id; autoMe = true; }
+  const mode = S.evm === "pay" && !staff() ? "up" : (S.evm || "up");
+  const T = trs();
+  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(staff() ? [["pay", "💰 Platby"]] : [])];
+  const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
+  const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
+  const bindModes = () => a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
+  // Režim Platby: přehled plateb a dluhů (jen trenér a kustod)
+  if (mode === "pay") {
+    a.innerHTML = CSS + `<div id="evw">${errH}${chipsH}${financeHtml(evs, AT)}</div>`;
+    bindModes(); bindFinance(a);
+    return;
+  }
   let shown;
   if (mode === "up") shown = evs.filter(e => e.date >= today).sort(asc);
   else if (mode === "past") shown = evs.filter(e => e.date < today).sort((x, y) => asc(y, x));
   else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)).sort(asc); }
-  const T = trs();
   const head = pl_
     ? (S.evp ? `<div class="cd"><div class="mu">Zapisuješ účast za</div><b>${pn(S.evp)}</b></div>` : '<div class="cd" style="color:var(--no)">Tvůj účet není propojen s aktivní hráčkou. Požádej trenéra.</div>')
-    : `<div class="cd"><label>Zapisuji účast za</label><select id="evpl" style="margin-bottom:0"><option value="">— vyber —</option><optgroup label="Hráčky">${P.map(p => `<option value="${p.id}" ${p.id === S.evp ? "selected" : ""}>${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("")}</optgroup>${T.length ? `<optgroup label="Realizační tým">${T.map(t => `<option value="${t.id}" ${t.id === S.evp ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</optgroup>` : ""}</select></div>
+    : `<div class="cd"><label>Zapisuji účast za</label><select id="evpl" style="margin-bottom:0"><option value="">— vyber —</option><optgroup label="Hráčky">${P.map(p => `<option value="${p.id}" ${p.id === S.evp ? "selected" : ""}>${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("")}</optgroup>${T.length ? `<optgroup label="Realizační tým">${T.map(t => `<option value="${t.id}" ${t.id === S.evp ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</optgroup>` : ""}</select>${me ? `<button class="s w" id="evme" style="margin-top:8px">👤 Přihlašuji se sám za sebe: ${esc(me.name)}</button>` : ""}</div>
 <div class="row" style="margin-bottom:12px"><button class="p" id="evnt">+ Trénink</button><button class="s" id="evnm">+ Zápas</button></div>`;
-  a.innerHTML = CSS + `<div id="evw">${S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : ""}
+  a.innerHTML = CSS + `<div id="evw">${errH}
 ${head}
-<div class="chips">${[["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"]].map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>
+${chipsH}
 ${mode === "cal" ? calHtml(evs, today) : ""}
 ${shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml();
   // Eventy seznamu
-  const sel = a.querySelector("#evpl"), nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
+  const sel = a.querySelector("#evpl"), nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm"), meB = a.querySelector("#evme");
   if (sel) sel.onchange = e => { S.evp = e.target.value || null; LS.set("evPlayer", S.evp || ""); render(); };
+  if (meB) meB.onclick = () => { S.evp = me.id; LS.set("evPlayer", me.id); render(); };
   if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true, fee: "", pm: "contrib", settle: null}; render(); };
   if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
-  a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
+  bindModes();
   a.querySelectorAll("[data-cn]").forEach(b => b.onclick = () => { const c = S.evc; c.m += +b.dataset.cn; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } S.evd = null; render(); });
   a.querySelectorAll("[data-cd]").forEach(b => b.onclick = () => { S.evd = S.evd === b.dataset.cd ? null : b.dataset.cd; render(); });
   a.querySelectorAll("[data-eo]").forEach(c => c.onclick = () => { S.evid = c.dataset.eo; render(); window.scrollTo(0, 0); });

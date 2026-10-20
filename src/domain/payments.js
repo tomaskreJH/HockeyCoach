@@ -1,12 +1,14 @@
-// Doména: platby za jednotlivé události – způsob placení hráček a výpočet vyúčtování (čisté funkce bez DOM).
-// Struktura: Konstanty -> Pomocné funkce -> Výpočet vyúčtování.
+// Doména: platby za jednotlivé události – způsob placení hráček, výpočet vyúčtování a přehled dluhů (čisté funkce bez DOM).
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Výpočet vyúčtování -> Přehled dluhů.
 // Pravidla:
 //  - hráčka platí buď měsíční příspěvek (monthly), nebo za jednotlivou událost (single), nebo je osvobozená (exempt); chybějící hodnota = monthly,
 //  - trenéři, kustodi a další členové realizačního týmu neplatí a do počtu účastnic se nezapočítávají,
-//  - cena na osobu = cena události ÷ (přihlášené hráčky − osvobozené), zaokrouhleno nahoru na celé Kč,
+//  - cena na osobu = cena události ÷ VŠECHNY přihlášené hráčky (osvobozené se do dělení počítají, jen samy neplatí a jejich podíl nikdo nedoplácí),
+//    zaokrouhleno nahoru na celé Kč,
 //  - způsob úhrady události: contrib = hrazeno příspěvkem, platí jen hráčky „za událost“ (pravidelné tréninky, domácí zápasy),
 //    all = platí všechny účastnice kromě osvobozených (mimořádné tréninky), none = bez vyúčtování (venkovní zápasy v režii soupeře).
 
+// ===== Importy =====
 import {pl} from "../core/selectors.js";
 
 // ===== Konstanty =====
@@ -29,9 +31,10 @@ export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " K
 
 // ===== Výpočet vyúčtování =====
 // ev = {id, type, raw}; going = id přihlášených hráček (bez realizačního týmu)
+// base = počet, kterým se cena dělí = všechny přihlášené hráčky (včetně osvobozených)
 export function calc(ev, going) {
   const mode = modeOf(ev), fee = feeOf(ev), P = going.map(id => pl(id)).filter(Boolean);
-  const n = P.length, ex = P.filter(p => payOf(p) === "exempt").length, base = n - ex;
+  const n = P.length, ex = P.filter(p => payOf(p) === "exempt").length, base = n;
   const per = mode === "none" || !fee || base < 1 ? 0 : Math.ceil(fee / base / STEP) * STEP;
   const payers = per ? P.filter(p => (mode === "all" ? payOf(p) !== "exempt" : payOf(p) === "single")).map(p => ({pid: p.id, amt: per})) : [];
   return {
@@ -39,4 +42,20 @@ export function calc(ev, going) {
     monthly: P.filter(p => payOf(p) === "monthly").length,
     single: P.filter(p => payOf(p) === "single").length
   };
+}
+
+// ===== Přehled dluhů =====
+// pay = seznam plateb (S.pay), evOf = funkce id události -> událost (nebo undefined); platby smazaných událostí a hráček se přeskočí.
+// Vrací řádky po hráčkách {pid, items, debt (nezaplaceno), paid (zaplaceno), open (počet nezaplacených)} a součty.
+export function ledger(pay, evOf) {
+  const by = {};
+  let owed = 0, got = 0;
+  pay.forEach(x => {
+    if (!pl(x.pid) || !evOf(x.eid)) return;
+    const amt = +x.amt || 0, r = by[x.pid] = by[x.pid] || {pid: x.pid, items: [], debt: 0, paid: 0, open: 0};
+    r.items.push(x);
+    if (x.paid) { r.paid += amt; got += amt; } else { r.debt += amt; r.open++; owed += amt; }
+  });
+  const rows = Object.values(by);
+  return {rows, owed, got, debtors: rows.filter(r => r.debt > 0).length};
 }

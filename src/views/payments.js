@@ -3,6 +3,8 @@
 // Data: kolekce "payments" (id dokumentu = {eventId}_{playerId}: {eid, pid, amt, paid, paidAt, by});
 // snímek vyúčtování je v dokumentu události (pole settle). Vyúčtování se vytváří automaticky při uzavření zápasu
 // nebo ručně tlačítkem „Potvrdit vyúčtování“ (tréninky, zápasy před uzavřením); „Přepočítat“ zachová stav zaplaceno.
+// Cena se dělí všemi přihlášenými hráčkami včetně osvobozených (osvobozené jen neplatí).
+// Celkový přehled plateb a dluhů za všechny události je ve views/finance.js.
 
 // ===== Importy =====
 import {strip} from "../core/actions.js";
@@ -34,7 +36,8 @@ export function settleEvent(ev, raw) {
   Object.values(have).forEach(o => { if (!keep.has(o.pid) && !o.paid) S.db.doc("payments/" + payId(ev.id, o.pid)).delete().catch(() => {}); });
   return c;
 }
-function togglePaid(eid, pid, paid) {
+// Označení platby jako zaplacené / nezaplacené (používá i přehled plateb ve finance.js)
+export function togglePaid(eid, pid, paid) {
   const o = payMap(eid)[pid];
   if (!o) return;
   S.db.doc("payments/" + payId(eid, pid)).set({eid, pid, amt: o.amt, paid, paidAt: paid ? new Date().toISOString() : "", by: who()}).catch(() => toast("Uložení platby se nepovedlo"));
@@ -48,7 +51,8 @@ export function payHtml(ev) {
   if (c.mode === "none") return `<div class="cd">${h}${err}<div class="mu">${MODES.none} – např. venkovní zápas je v režii soupeře. Způsob úhrady změníš v ✏️ Upravit.</div></div>`;
   if (!c.fee) return `<div class="cd">${h}${err}<div class="mu">Cena události není nastavena. Zadej ji v ✏️ Upravit.</div></div>`;
   const grid = `<div class="grid3"><div class="stat"><b>${c.n}</b>účastnic</div><div class="stat"><b>${c.ex}</b>osvobozených</div><div class="stat"><b>${kc(c.per)}</b>na osobu</div></div>`;
-  const calcTxt = c.base < 1 ? "Není žádná účastnice k vyúčtování." : `Cena ${kc(c.fee)} ÷ ${c.base} (účastnice bez osvobozených) = ${kc(c.per)} na osobu (zaokrouhleno nahoru na celé Kč).`;
+  // Dělí se všemi přihlášenými hráčkami; osvobozené se počítají, jen neplatí
+  const calcTxt = c.base < 1 ? "Není žádná účastnice k vyúčtování." : `Cena ${kc(c.fee)} ÷ ${c.base} (všechny přihlášené hráčky včetně osvobozených) = ${kc(c.per)} na osobu (zaokrouhleno nahoru na celé Kč). Osvobozené neplatí, jejich podíl nikdo nedoplácí.`;
   const split = c.mode === "contrib"
     ? `Hrazeno příspěvkem: ${c.monthly} · platí za událost: ${c.single}`
     : `Platí všechny účastnice kromě osvobozených: ${c.payers.length}`;
