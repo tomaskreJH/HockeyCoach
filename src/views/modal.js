@@ -1,37 +1,54 @@
 // Modální okna (gól, vyloučení, nový zápas, úprava hráčky, úprava člena realizačního týmu).
-import {KIND, LN, POS, REA, SIT, ST} from "../config/constants.js";
-import {ensureOp, save} from "../core/actions.js";
-import {compactRot, isG, lineIds, liveIds, luPlayers, pl, pn} from "../core/selectors.js";
+// Struktura: Importy -> Pomocné funkce (chips, opts) -> modal() (výběr hráčky, nový zápas, hráčka, člen týmu, gól/vyloučení) -> bindV.
+import {KIND,LN,POS,REA,SIT,ST} from "../config/constants.js";
+import {ensureOp,save} from "../core/actions.js";
+import {compactRot,isG,lineIds,liveIds,luPlayers,pl,pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {$, clone, esc, norm, td, toast, uid} from "../core/utils.js";
-import {addPen, el_, fitLayout, goalPen, logEv, migrate, procExp} from "../domain/live-engine.js";
-import {FXV, GRP, STAFF_PAY} from "../domain/cash.js";
+import {$,clone,esc,norm,td,toast,uid} from "../core/utils.js";
+import {addPen,el_,fitLayout,goalPen,logEv,migrate,procExp} from "../domain/live-engine.js";
+import {FXV,GRP,STAFF_PAY} from "../domain/cash.js";
 import {pickModal} from "./lineup-editor.js";
 import {render} from "./shell.js";
 
+// ===== Pomocné funkce =====
 export function chips(key,ids,sel,multi){return`<div class="chips">${ids.map(id=>`<button class="chip ${(multi?(sel||[]).includes(id):sel===id)?"on":""}" data-k="${key}" data-id="${id}">${pn(id)}</button>`).join("")||'<span class="mu">Nejdřív nastav sestavu zápasu.</span>'}</div>`}
 export function opts(key,arr,sel){return`<div class="chips">${arr.map(([v,l])=>`<button class="chip ${String(sel)===String(v)?"on":""}" data-v="${key}" data-val="${v}">${l}</button>`).join("")}</div>`}
+
+// ===== Hlavní funkce =====
 export function modal(){const el=$("#mod");const M=S.M;
+
+// --- Výběr hráčky na místo v sestavě ---
 if(S.pick){el.innerHTML=pickModal();const P=S.pick;
 el.querySelectorAll("[data-pp]").forEach(b=>b.onclick=()=>{const v=b.dataset.pp;if(v==="all"){S.pickAll=true;return modal()}if(v==="x"){S.pick=null;return modal()}const lu=P.get();Object.keys(lu).forEach(k=>{if(v&&lu[k]===v)delete lu[k]});if(v)lu[P.slot]=v;else delete lu[P.slot];compactRot(lu);S.pick=null;P.onCh(lu);modal()});
 $("#bg").onclick=e=>{if(e.target.id==="bg"){S.pick=null;modal()}};return}
 if(!M){el.innerHTML="";return}
+
+// --- Nový zápas / úprava zápasu ---
 if(M.k==="NEW"||M.k==="EM"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>${M.k==="EM"?"Upravit zápas":"Nový zápas"}</h2><label>Soupeř (vyber, nebo napiš nového)</label>${S.op.length?`<div class="chips">${[...S.op].sort((x,y)=>x.name.localeCompare(y.name,"cs")).map(o=>`<button class="chip ${norm(M.opp)===norm(o.name)?"on":""}" data-oc="${o.id}">${esc(o.name)}</button>`).join("")}</div>`:""}<input id="o" value="${esc(M.opp)}" placeholder="Název soupeře"><label>Datum</label><input type="date" id="d" value="${M.date}">${opts("home",[[1,"Doma"],[0,"Venku"]],M.home?1:0)}${M.k==="NEW"?`<label>Délka třetiny</label>${opts("plen",[[15,"15 min"],[20,"20 min"],[25,"25 min"]],M.perLen||20)}<label>Prodloužení (jen při nerozhodném stavu po 3. třetině)</label>${opts("ot",[[1,"Ano (5 min)"],[0,"Ne – soutěž ho nehraje"]],M.ot===false?0:1)}`:""}<div class="row"><button class="p" id="ok">${M.k==="EM"?"Uložit":"Vytvořit"}</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
 const sy=()=>{M.opp=$("#o").value;M.date=$("#d").value};bindV(sy);el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{sy();M.opp=S.op.find(o=>o.id===b.dataset.oc).name;modal()});$("#cl").onclick=()=>{S.M=null;modal()};
 // Nový zápas vzniká bez nominace a sestavy: nominovat jdou jen hráčky přihlášené na událost (viz krok Sestava → A Nominace)
 $("#ok").onclick=async()=>{sy();const o=M.opp.trim();if(!o)return toast("Zadej soupeře");if(M.k==="EM"){const mm=S.ma.find(x=>x.id===M.id);if(mm&&mm.live)toast("Zápas je zahájen – údaje nelze měnit");else if(mm){save({...clone(mm),opp:o,date:M.date||td(),home:M.home});ensureOp(o)}S.M=null;return modal()}const r=await S.db.collection("matches").add({date:M.date||td(),opp:o,home:M.home,perLen:M.perLen||20,ot:M.ot!==false,lineup:{},nom:[],events:[]}).catch(()=>toast("Uložení se nepovedlo"));S.M=null;if(r){S.mid=r.id;S.step=1;ensureOp(o)}render()};return}
-if(M.k==="EP"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>Upravit hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="en" value="${esc(M.name)}"></div><div><label>Číslo</label><input id="ec" inputmode="numeric" value="${esc(M.num)}"></div></div><div class="row"><div><label>Pozice</label><select id="ep">${POS.map(x=>`<option ${x===M.pos?"selected":""}>${x}</option>`).join("")}<option value="" ${M.pos?"":"selected"}>Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="eq"><option value="">–</option>${POS.map(x=>`<option ${x===M.alt?"selected":""}>${x}</option>`).join("")}</select></div></div><label>Stav</label><div class="chips">${Object.entries(ST).map(([k,t])=>`<button class="chip ${M.st===k?"on":""}" data-es="${k}">${t}</button>`).join("")}</div><label>Skupina plateb</label><div class="chips">${Object.entries(GRP).map(([k,t])=>`<button class="chip ${M.grp===k?"on":""}" data-ey="${k}">${t}</button>`).join("")}</div><label>Koeficient (fx)</label><div class="chips">${FXV.map(([v,t])=>`<button class="chip ${+M.fx===v?"on":""}" data-ex="${v}">${t}</button>`).join("")}</div><label>Poznámka k platbám (např. kompenzace)</label><input id="enp" value="${esc(M.note||"")}"><div class="mu" style="margin-bottom:10px">Příspěvek = platí měsíčně; Za událost = platí podíl z ceny události. fx 0 = osvobozená (do dělení ceny se počítá, sama neplatí), 0,5 = platí polovinu. Brankářky neplatí.</div><div class="mu" style="margin-bottom:10px">Ukončení hráči zmizí z výběrů a ze soupisky, zůstanou jen v historických statistikách.</div><div class="row"><button class="p" id="ok">Uložit</button><button class="s" id="cl">Zrušit</button></div></div></div>`;}
+
+// --- Úprava hráčky ---
+if(M.k==="EP"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>Upravit hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="en" value="${esc(M.name)}"></div><div><label>Číslo</label><input id="ec" inputmode="numeric" value="${esc(M.num)}"></div></div><div class="row"><div><label>Pozice</label><select id="ep">${POS.map(x=>`<option ${x===M.pos?"selected":""}>${x}</option>`).join("")}<option value="" ${M.pos?"":"selected"}>Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="eq"><option value="">–</option>${POS.map(x=>`<option ${x===M.alt?"selected":""}>${x}</option>`).join("")}</select></div></div><label>Stav</label><div class="chips">${Object.entries(ST).map(([k,t])=>`<button class="chip ${M.st===k?"on":""}" data-es="${k}">${t}</button>`).join("")}</div><label>Skupina plateb</label><div class="chips">${Object.entries(GRP).map(([k,t])=>`<button class="chip ${M.grp===k?"on":""}" data-ey="${k}">${t}</button>`).join("")}</div><label>Koeficient (fx)</label><div class="chips">${FXV.map(([v,t])=>`<button class="chip ${+M.fx===v?"on":""}" data-ex="${v}">${t}</button>`).join("")}</div><label>Poznámka k platbám (např. kompenzace)</label><input id="enp" value="${esc(M.note||"")}"><div class="mu" style="margin-bottom:10px">Příspěvek = platí měsíčně; Za událost = platí podíl z ceny události. fx 0 = osvobozená (do dělení ceny se počítá, sama neplatí), 0,5 = platí polovinu. Brankářky neplatí.</div><div class="mu" style="margin-bottom:10px">Ukončení hráči zmizí z výběrů a ze soupisky, zůstanou jen v historických statistikách.</div><div class="row"><button class="p" id="ok">Uložit</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
 $("#cl").onclick=()=>{S.M=null;modal()};$("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}};
 const rd=()=>{M.name=$("#en").value;M.num=$("#ec").value;M.pos=$("#ep").value;M.alt=$("#eq").value;M.note=$("#enp").value};
 el.querySelectorAll("[data-es]").forEach(b=>b.onclick=()=>{rd();M.st=b.dataset.es;modal()});
-el.querySelectorAll("[data-ey]").forEach(b=>b.onclick=()=>{rd();M.grp=b.dataset.ey;modal()});el.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{rd();M.fx=+b.dataset.ex;modal()});
+el.querySelectorAll("[data-ey]").forEach(b=>b.onclick=()=>{rd();M.grp=b.dataset.ey;modal()});
+el.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{rd();M.fx=+b.dataset.ex;modal()});
 $("#ok").onclick=()=>{rd();const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("players/"+M.id).set({name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st,grp:M.grp||"monthly",fx:M.fx==null?1:M.fx,note:(M.note||"").trim()}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
-// Člen realizačního týmu (kolekce staff): jméno a funkce
-if(M.k==="ES"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>Upravit člena realizačního týmu</h2><label>Jméno</label><input id="sn" value="${esc(M.name)}"><label>Funkce</label><div class="chips">${KIND.map(k=>`<button class="chip ${M.kind===k?"on":""}" data-sk="${k}">${k}</button>`).join("")}</div><label>Plat</label><div class="chips">${Object.entries(STAFF_PAY).map(([k,t])=>`<button class="chip ${((M.pay||{}).m||"none")===k?"on":""}" data-sm="${k}">${t}</button>`).join("")}</div><label>Částka (Kč za měsíc / za událost)</label><input id="sa" type="number" min="0" value="${(M.pay||{}).amt||""}" style="max-width:160px"><div class="row"><button class="p" id="ok">Uložit</button><button class="s" id="cl">Zrušit</button></div></div></div>`;}
+
+// --- Člen realizačního týmu (kolekce staff): jméno, funkce, plat ---
+if(M.k==="ES"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>Upravit člena realizačního týmu</h2><label>Jméno</label><input id="sn" value="${esc(M.name)}"><label>Funkce</label><div class="chips">${KIND.map(k=>`<button class="chip ${M.kind===k?"on":""}" data-sk="${k}">${k}</button>`).join("")}</div><label>Plat</label><div class="chips">${Object.entries(STAFF_PAY).map(([k,t])=>`<button class="chip ${((M.pay||{}).m||"none")===k?"on":""}" data-sm="${k}">${t}</button>`).join("")}</div><label>Částka (Kč za měsíc / za událost)</label><input id="sa" type="number" min="0" value="${(M.pay||{}).amt||""}" style="max-width:160px"><div class="row"><button class="p" id="ok">Uložit</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
 $("#cl").onclick=()=>{S.M=null;modal()};$("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}};
-const rs=()=>{M.name=$("#sn").value;M.pay=M.pay||{m:"none",amt:0};M.pay.amt=+$("#sa").value||0};el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{rs();M.kind=b.dataset.sk;modal()});el.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{rs();M.pay.m=b.dataset.sm;modal()});
-$("#ok").onclick=()=>{rs();const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("staff/"+M.id).set({name:n,kind:M.kind||KIND[0],pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return
-const m=S.ma.find(x=>x.id===S.mid),lu=m.lineup||{},inl=luPlayers(lu);const lvA=m.live&&!M.all?liveIds(m.live):inl,lvS=m.live&&!M.all?liveIds(m.live).filter(i=>i!==m.live.G):inl;
+const rs=()=>{M.name=$("#sn").value;M.pay=M.pay||{m:"none",amt:0};M.pay.amt=+$("#sa").value||0};
+el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{rs();M.kind=b.dataset.sk;modal()});
+el.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{rs();M.pay.m=b.dataset.sm;modal()});
+$("#ok").onclick=()=>{rs();const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("staff/"+M.id).set({name:n,kind:M.kind||KIND[0],pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
+
+// --- Gól / vyloučení (ruční zadání do zápasu) ---
+const m=S.ma.find(x=>x.id===S.mid);if(!m){S.M=null;el.innerHTML="";return}
+const lu=m.lineup||{},inl=luPlayers(lu);const lvA=m.live&&!M.all?liveIds(m.live):inl,lvS=m.live&&!M.all?liveIds(m.live).filter(i=>i!==m.live.G):inl;
 let h=`<h2>${M.eid?"✏️ ":""}${M.k==="G"?(M.team==="us"?"⚽ Gól HC Střely":"⚽ Gól soupeře"):"🚫 Vyloučení"}</h2><label>Třetina</label>${opts("per",[[1,"1."],[2,"2."],[3,"3."],...(m.ot===false?[]:[[4,"Prodl."]])],M.per)}<label>Čas ve třetině (volitelně)</label><input id="tm" placeholder="např. 12:35" value="${esc(M.time)}" style="max-width:160px">${m.live&&!M.all?'<div><button class="s" data-all style="margin-bottom:10px">Zobrazit celou sestavu</button></div>':""}`;
 if(M.k==="G"){h+=`<label>Situace</label>${opts("sit",Object.entries(SIT),M.sit)}`;
 if(M.team==="us")h+=`<label>Střelec</label>${chips("scorer",lvS,M.scorer)}<label>Asistence 1</label>${chips("a1",lvS.filter(i=>i!==M.scorer&&i!==M.a2),M.a1)}<label>Asistence 2</label>${chips("a2",lvS.filter(i=>i!==M.scorer&&i!==M.a1),M.a2)}`;
@@ -49,5 +66,8 @@ else{e.min=M.min;e.reason=M.reason;if(M.team==="us"){if(!M.pid)return toast("Vyb
 const n=clone(m);n.events=[...(n.events||[]).filter(x=>x.id!==M.eid),e].sort((a,b)=>a.per-b.per||(a.time||"99:99").localeCompare(b.time||"99:99"));if(m.live&&!M.eid&&(M.k==="P"||M.k==="G")){const L=n.live;migrate(L);const now=el_(L),snap=clone(L);delete snap.u;procExp(L,now);let ret=null;
 if(M.k==="P")addPen(L,{t:M.team,p:M.team==="us"?M.pid:null,min:M.min},now,m);else ret=goalPen(L,M.team,now);if(ret)logEv(n,{ty:"ret",p:ret,cause:"gól ukončil trest",at:now,per:L.per});fitLayout(L,now);
 L.u=[...(L.u||[]),{l:snap,ids:[e.id],t:M.k==="P"?"Vyloučení":"Gól"}].slice(-15);if(ret)toast("Gól ukončil trest – na led se vrací "+((pl(ret)||{}).name||""))}save(n);S.M=null;modal()};
-$("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}}
+$("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}};
+}
+
+// ===== Obsluha přepínačů (data-v) =====
 export function bindV(sync){$("#mod").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{sync&&sync();const k=b.dataset.v,v=b.dataset.val;S.M[k]=k==="home"||k==="ot"?v==="1":(["per","min","plen"].includes(k)?+v:v);if(k==="team"&&S.M.k==="P")S.M.pid=null;modal()})}
