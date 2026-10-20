@@ -1,6 +1,6 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v16.3 (20. 10. 2026)** – **přehled plateb a dlužných částek** (Události → 💰 Platby), **oprava výpočtu ceny na osobu** (osvobozené hráčky se do dělení ceny počítají, jen neplatí) a **přihlášení trenérů a kustodů do událostí sami za sebe** (propojení účtu s členem realizačního týmu). Dříve: platby za události a realizační tým (v16.2), přihlášení hráček a jejich vlastní zápis docházky (v16.1), modul **Události a docházka** (v16.0), přehled **Čas na ledě** (v15.7), oprava přesilovek a oslabení v živém zápisu (v15.6), přepracovaná logika střídání a rotace (v15.5), oprava nasazování jednotek (v15.4), nápověda v aplikaci (tlačítko ❓), návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek klepnutím na hlavičku.
+**Aktuální verze: v17.0 (20. 10. 2026)** – **modul Pokladna, fáze F1** (osoby a role, koeficient fx, nastavení pokladny a šablony událostí, výpočet a uzavření vyúčtování → předpisy, migrace plateb). Dříve: v16.3 – **přehled plateb a dlužných částek** (Události → 💰 Platby), **oprava výpočtu ceny na osobu** (osvobozené hráčky se do dělení ceny počítají, jen neplatí) a **přihlášení trenérů a kustodů do událostí sami za sebe** (propojení účtu s členem realizačního týmu). Dříve: platby za události a realizační tým (v16.2), přihlášení hráček a jejich vlastní zápis docházky (v16.1), modul **Události a docházka** (v16.0), přehled **Čas na ledě** (v15.7), oprava přesilovek a oslabení v živém zápisu (v15.6), přepracovaná logika střídání a rotace (v15.5), oprava nasazování jednotek (v15.4), nápověda v aplikaci (tlačítko ❓), návod `hockeycoach-navod.html`, průměrná délka střídání v celkových statistikách a řazení tabulek klepnutím na hlavičku.
 
 Aplikace pro trenéry, kustody a hráčky: soupiska, formace, nominace, události a docházka, platby za události, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
@@ -26,14 +26,15 @@ HockeyCoach/
 │ │ ├─ timeline.js úplná časová osa zápasu a statistika střídání
 │ │ ├─ corrections.js opravy konců třetin, konce zápasu a prodloužení
 │ │ ├─ shift-edit.js editace střídání (časy, předání, výměna hráčky, kontrola historie)
-│ │ └─ payments.js způsoby placení, výpočet vyúčtování události, přehled dluhů (ledger)
+│ │ └─ cash.js (pokladna: skupiny, fx, šablony, výpočet předpisů, přehled dluhů, migrace)
 │ └─ views/ obrazovky (DOM)
 │ ├─ shell.js team.js matches.js opponents.js stats.js modal.js help.js
 │ ├─ events.js události a docházka (seznam, kalendář, detail, přihlašování, pětky na tréninku, omezený pohled hráčky, režim Platby)
-│ ├─ payments.js platby u jedné události (vyúčtování, zaplaceno)
+│ ├─ payments.js pokladna u události (náklady, kdo platí, uzavření vyúčtování)
 │ ├─ finance.js přehled plateb a dluhů za všechny události (po hráčkách, po událostech, nevyúčtované události)
 │ ├─ lineup-editor.js live.js live-quick.js report.js
-│ └─ editor.js shift-editor.js opravy zápisu (události, třetiny, střídání, základ)
+│ ├─ editor.js shift-editor.js opravy zápisu (události, třetiny, střídání, základ)
+│ └─ cash-settings.js (nastavení pokladny)
 ├─ firestore.rules pravidla přístupu k databázi (vložit do Firebase Console)
 ├─ data/seed-data.json počáteční data (soupiska, zápas, soupeř) k importu
 ├─ manifest.webmanifest, sw.js, icon-*.png instalace na plochu a offline provoz
@@ -72,9 +73,9 @@ Hosting je možný kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages)
 | Role | Čtení | Zápis |
 |---|---|---|
 | **trener** | vše | vše: soupiska, zápasy, soupeři, formace, události, docházka (za kohokoli), platby, realizační tým, členové týmu, obnova ze zálohy |
-| **kustod** | vše | zápasy (nominace, sestava, živý zápis, opravy), soupeři, základní formace, události, docházka (za kohokoli), platby; v soupisce jen stav hráčky (např. trvalé zranění ze živého zápisu) |
+| **kustod** | vše | zápasy (nominace, sestava, živý zápis, opravy), soupeři, základní formace, události, docházka (za kohokoli), platby; v soupisce jen stav hráčky (např. trvalé zranění ze živého zápisu) |Kustod po v17.0 platby nevidí
 | **hracka** | vše kromě plateb (data se zobrazují jen v záložce Události) | jen vlastní docházka (`attendance/{eventId}_{svojePid}`) |
-
+**pokladník**: příznak cash:true v members/{email} navíc k roli. Zápis: předpisy, pokladna, nastavení pokladny, skupina plateb hráček (grp, fx, note), plat člena týmu (pay), pole pokladny v událostech a zápasech, přidávání členů (ne s rolí trenér).
 - **Hráčky (v16.1):** účet hráčky je `members/{email}` s `role: "hracka"` a polem `pid` = id hráčky v kolekci `players`. Trenér ho vytvoří v ⚙️ → Členové týmu (role Hráčka + výběr hráčky ze soupisky; stejný e-mail znovu = změna propojení). Hráčka bez `pid` se do aplikace nedostane (hláška, ať ji trenér propojí).
 - **Trenéři a kustodi v docházce (v16.3):** trenér a kustod se do události hlásí jako **člen realizačního týmu** (kolekce `staff`, Team → Realizační tým). Aby se mohli přihlásit sami jedním klepnutím, propojí trenér jejich účet s členem týmu: ⚙️ → Členové týmu → e-mail + role Trenér/Kustod + výběr člena realizačního týmu (pole `tid` v `members/{email}`). Takto propojený uživatel má v Událostech předvybraný sám sebe a tlačítko **👤 Přihlašuji se sám za sebe**. Bez propojení se vybere ručně v seznamu „Zapisuji účast za“ (skupina Realizační tým). Propojení je v `members`, které čte jen trenér a daný uživatel (e-maily trenérů tedy hráčky nevidí).
 - **Co vidí a smí hráčka:** jen záložku **Události** (seznam, kalendář, detail, rozdělení do pětek jen ke čtení). Zapisuje vždy jen za sebe; po termínu přihlašování (nebo po dni události) se její tlačítka zamknou a odpověď změní jen trenér nebo kustod. V detailu vidí odpovědi ostatních, ale **důvody ostatních vidí jen trenér a kustod**. Nevidí kartu zápasu, Team, Statistiky, Soupeře, platby, nemůže zakládat ani upravovat události. V ⚙️ nemá zálohu ani správu členů.
@@ -98,17 +99,15 @@ Horní menu je **Události · Team · Statistiky · Soupeři** (hráčka vidí j
 - **Detail události:** souhrn (jdou / nejistí / nejdou / bez odpovědi), seznam všech aktivních hráček podle pozic a realizačního týmu s odpovědí, důvodem a tlačítky pro změnu (trenér tak zapíše odpověď za kohokoli, hráčka jen za sebe), u trenéra a kustoda karta Platby. Trénink lze upravit nebo smazat (smaže i odpovědi a platby).
 - **Trénink – rozdělení do pětek:** v detailu tréninku jsou hráčky, které jdou (bez brankářek). Každé se jedním klepnutím přiřadí 1.–4. pětka (barvy jako v živém zápisu: modrá, žlutá, zelená, růžová) nebo „–“. Tlačítko **↻ Podle základní formace** rozdělí přihlášené hráčky podle základní formace v záložce Team (partnerky z rotace patří do téže pětky); **Vymazat** rozdělení zruší. Hráčka vidí rozdělení jen ke čtení.
 
-### Platby za události (v16.2, opraveno a doplněno ve v16.3)
-- **Způsob placení hráčky** (Team → Soupiska → Upravit → Platba): **Příspěvek** (platí měsíčně, výchozí), **Za událost** (platí podíl z ceny každé události), **Osvobozená** (neplatí). Trenéři, kustodi a další členové realizačního týmu neplatí a do počtu se nezapočítávají.
-- **Cena a způsob úhrady události** se nastavují v ✏️ u události: **Příspěvek + platící za událost** (pravidelné tréninky a domácí zápasy: platí jen hráčky „Za událost“), **Platí všechny účastnice** (mimořádné události: platí všechny kromě osvobozených), **Bez vyúčtování** (venkovní zápasy v režii soupeře; výchozí u zápasů venku).
-- **Výpočet (opraveno ve v16.3):** cena na osobu = cena události ÷ **všechny přihlášené hráčky včetně osvobozených**, zaokrouhleno nahoru na celé Kč. Osvobozené hráčky se tedy do dělení **počítají**, jen samy neplatí a jejich podíl nikdo nedoplácí. Dříve se osvobozené z dělitele odebíraly, což bylo chybné. Příklad: cena 1 200 Kč, přihlášeno 12 hráček (z toho 2 osvobozené) → 100 Kč na osobu; platí tedy jen ostatní plátkyně po 100 Kč.
-- **Vyúčtování** vznikne automaticky při uzavření zápasu, u tréninku (a zápasu před uzavřením) ho potvrdí tlačítko **💰 Potvrdit vyúčtování**. **↻ Přepočítat vyúčtování** zachová stav zaplaceno. Změní-li se docházka, cena nebo způsob úhrady, karta upozorní, že je potřeba vyúčtování přepočítat. **Po nahrání v16.3 přepočítej již vyúčtované události**, u nichž byly osvobozené hráčky (dřívější částky byly počítané podle starého vzorce).
-- **Přehled plateb a dluhů (v16.3):** Události → **💰 Platby** (jen trenér a kustod).
-  - **Souhrn:** dluh celkem, vybráno, počet dlužnic.
-  - **Podle hráček:** seřazeno od největšího dluhu; u každé hráčky nezaplacený počet a částka, zaplaceno celkem a účast (kolikrát „Jdu“ z uplynulých událostí). Klepnutím na hráčku se rozbalí její platby po událostech s tlačítkem Zaplaceno / Nezaplaceno a tlačítkem **✅ Zaplatila vše** (potvrzuje se druhým klepnutím). Přepínač **Zobrazit i bez dluhu**.
-  - **Podle událostí:** nejnovější nahoře, u každé počet zaplacených, vybraná částka z celku a jména těch, kdo nezaplatily; klepnutím se otevře detail události.
-  - **Nevyúčtované události:** uplynulé události s cenou, které ještě nemají vyúčtování (nahoře v obou pohledech).
-  - Do přehledu se počítají jen platby existujících hráček a událostí.
+### Pokladna (v17.0, fáze F1):
+- Osoby: players má pole grp (monthly|single), fx (0, 0.5, 1; výchozí 1) a note. Brankářky a realizační tým neplatí. staff.pay = {m:"none"|"month"|"event", amt} (využije F4). Nahrazuje staré pole pay.
+Nastavení: ⚙️ → Nastavení pokladny, dokument settings/cash: iban, contrib, due{ev, cm}, cats{in, out}, tpls. Výchozí šablony: Pravidelný trénink, Mimořádný trénink, Domácí zápas, Venkovní zápas (bez vyúčtování hráčkám). Vlastní šablony mají klíč t_….
+Událost: pole tpl, cost[{cat,payee,amt}], who{monthly,single,exempt} (každá skupina {pays, mode:"calc"|"flat", flat}), due, settle (snapshot).
+Výpočet: cena = (součet nákladů ÷ všechny přihlášené hráčky v poli, bez brankářek a realizačního týmu, osvobozené se počítají) nebo pevná částka, × fx, zaokrouhleno nahoru na Kč. Před uzavřením se zobrazí „vybereme X z Y“.
+Uzavření: vznikne snapshot a charges/{eid}_{mid} {eid, mid, amt, paid, due, kind, vs}. paid je zaplacená částka. Po uzavření nikdy žádný automatický přepočet. „Znovu otevřít → upravit → uzavřít“ je jen ručně a loguje se do audit. Uzavření zápasu uzavře vyúčtování automaticky jen u trenéra a pokladníka a jen pokud vzniká aspoň jeden předpis.
+Úhrada ve F1: plná, tlačítkem 💳 (cash.in + charges.paid v jedné dávce writeBatch). Částečné úhrady, vklady a výdaje přijdou ve F2.
+Splatnost: due události, jinak datum události + N dní (šablona nebo výchozí 3), 23:59.
+VS: číselný hash id předpisu.
 
 ### Propojení hráčky s účtem (trenér)
 1. Hráčka musí být v soupisce (Team → Soupiska).
@@ -131,6 +130,7 @@ Horní menu je **Události · Team · Statistiky · Soupeři** (hráčka vidí j
 - **`payments/{eventId}_{playerId}`:** `{eid, pid, amt, paid, paidAt:ISO, by:e-mail}`; zaplacené platby zůstávají i po přepočtu vyúčtování.
 - Kolekce `events`, `attendance`, `staff` a `payments` jsou součástí zálohy JSON (`members` ne). „Nahradit vším“ ze staré zálohy bez těchto kolekcí je nesmaže.
 - Pokud pravidla databáze kolekce nepovolí, aplikace běží dál (zápasy, živý zápis…) a v záložce Události se zobrazí červená hláška s kódem chyby.
+- charges, cash/{id} {d,k,amt,cat,mid?,cid?,eid?,note,by}, audit/{id} {ts,by,eid,act,note}, members.cash. Kolekce jsou součástí zálohy JSON, ale jen ty, které se v zařízení načetly.
 
 ### Pravidla databáze (`firestore.rules`)
 Pravidla jsou v souboru `firestore.rules`. Po změně je vlož do *Firestore → Rules* a **Publish**.
@@ -145,65 +145,12 @@ Pravidla jsou v souboru `firestore.rules`. Po změně je vlož do *Firestore →
 - **Termín přihlašování** pravidla nekontrolují (hlídá ho jen aplikace).
 - Přihlášení vyžaduje ověřený e-mail Google účtu (`email_verified`).
 ```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // ===== Pomocné funkce =====
-    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
-    function mail() { return request.auth.token.email.lower(); }
-    function memberPath() { return /databases/$(database)/documents/members/$(mail()); }
-    function isMember() { return signedIn() && exists(memberPath()); }
-    function role() { return get(memberPath()).data.role; }
-    function isCoach() { return isMember() && role() == 'trener'; }
-    function isStaff() { return isMember() && role() in ['trener', 'kustod']; }
-    // Hráčka smí zapisovat jen tehdy, když ji trenér propojil s hráčkou v soupisce (pole pid)
-    function isPlayer() { return isMember() && role() == 'hracka' && get(memberPath()).data.pid is string; }
-    function myPid() { return get(memberPath()).data.pid; }
-
-    // ===== Členové týmu: role a (u hráček) propojení se soupiskou (pole pid) =====
-    match /members/{email} {
-      allow read: if signedIn() && (email == mail() || isCoach());
-      allow write: if isCoach();
-    }
-
-    // ===== Soupiska: spravuje trenér; kustod smí jen měnit stav (např. trvalé zranění ze živého zápisu) =====
-    // Pole pay (způsob placení: monthly / single / exempt) mění jen trenér
-    match /players/{id} {
-      allow read: if isMember();
-      allow create, delete: if isCoach();
-      allow update: if isCoach() || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st']));
-    }
-
-    // ===== Realizační tým (trenéři, kustodi…): čtou všichni členové (docházka), spravuje trenér =====
-    match /staff/{id} { allow read: if isMember(); allow write: if isCoach(); }
-
-    // ===== Zápasy, soupeři, základní formace: trenér i kustod =====
-    match /matches/{id}   { allow read: if isMember(); allow write: if isStaff(); }
-    match /opponents/{id} { allow read: if isMember(); allow write: if isStaff(); }
-    match /settings/{id}  { allow read: if isMember(); allow write: if isStaff(); }
-
-    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod =====
-    match /events/{id} { allow read: if isMember(); allow write: if isStaff(); }
-
-    // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, reason, at, by =====
-    // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
-    match /attendance/{id} {
-      allow read: if isMember();
-      allow create, update: if isStaff() || (isPlayer()
-        && request.resource.data.pid == myPid()
-        && id == request.resource.data.eid + '_' + myPid());
-      allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
-    }
-
-    // ===== Platby hráček za události: dokument {eid}_{pid} s poli eid, pid, amt, paid, paidAt, by; jen trenér a kustod =====
-    match /payments/{id} { allow read, write: if isStaff(); }
-
-    // ===== Jen pro trenéry (hodnocení hráček, poznámky) – hráčky ani kustodi nevidí =====
-    match /coach/{doc=**} { allow read, write: if isCoach(); }
-  }
-}
+Aktuální pravidla jsou v souboru firestore.rules (vlož do Firestore → Rules → Publish). Verze 17.0 pravidla mění, je nutné je znovu publikovat.
 ```
+„Migrace“:
+Po nahrání v17.0 a publikování pravidel spusť jako trenér ⚙️ → Spustit migraci (druhým klepnutím).
+Převede pay → grp/fx, události fee/pm → cost/who, payments → charges (+ cash.in u zaplacených) a založí settings/cash.
+Je idempotentní. Kolekci payments lze po kontrole smazat.
 
 ## Provoz na telefonu a PC
 **Android:** v Chrome otevři adresu aplikace → menu ⋯ → *Přidat na plochu / Instalovat aplikaci*. Přihlášení zůstává uložené, takže se nemusíš přihlašovat před každým zápasem.
@@ -354,8 +301,7 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 ## Co aplikace zatím neumí
 - Vynucení termínu přihlašování v pravidlech databáze (hlídá ho zatím jen aplikace).
 - Oddělení citlivých údajů (důvody nepřítomnosti) tak, aby je hráčky nemohly přečíst ani mimo aplikaci.
-- Hráčka nevidí své vlastní platby ani dluh (kolekce `payments` je jen pro trenéra a kustoda; zobrazení vlastních plateb by vyžadovalo úpravu pravidel).
-- Exporty přehledu plateb (CSV) a hromadné upomínky dlužnicím.
+- F2: úhrady (částečné), vklady, výdaje, kategorie, zůstatek · F3: Moje pokladna, upozornění, splatnost, blokace, QR · F4: měsíční příspěvky, platy trenérů, přehled hospodaření, CSV.
 - Docházkové statistiky za sezónu mimo počtu účastí v přehledu plateb, opakující se tréninky, upozornění na blížící se termín.
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
 - Hodnocení hráček a dlouhodobý plán (zatím jen v původní verzi v Claude).
@@ -369,6 +315,16 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť. Totéž platí pro výběr člena v záložce Události (u trenéra a kustoda).
 
 ## Historie verzí
+- **v17.0 (20. 10. 2026):** modul Pokladna, fáze F1.
+Nové: src/domain/cash.js, src/views/cash-settings.js.
+Přepsáno: src/views/payments.js, src/views/finance.js.
+Změněno: storage.js (role pokladníka, db.batch, migrace, záloha jen načtených kolekcí), main.js, state.js, firestore.rules, events.js, team.js, modal.js.
+Smazáno: src/domain/payments.js.
+Zápasy, živý zápis, střely, góly, tresty a časomíra beze změny. Cache sw.js hokej-v27.
+Po nahrání: publikuj pravidla a spusť migraci.
+Poznámky:
+matches.js (import evOfMatch, settleEvent), shell.js a help.js jsem nechal beze změny, rozhraní payments.js je zachováno.
+Nápověda a návod modul Pokladna zatím nepopisují.
 - **v16.3 (20. 10. 2026):** **přehled plateb a dluhů, oprava výpočtu, přihlášení trenérů.** (1) `src/domain/payments.js`: cena na osobu se dělí **všemi přihlášenými hráčkami včetně osvobozených** (dříve se osvobozené odebíraly); nová funkce `ledger` (dluhy po hráčkách, souhrn). (2) Nový soubor `src/views/finance.js`: režim **💰 Platby** v záložce Události (souhrn, po hráčkách s rozbalením plateb a „Zaplatila vše“, po událostech, nevyúčtované události). (3) `src/views/payments.js`: opravené texty výpočtu, `togglePaid` je exportovaná. (4) `src/views/modal.js`: opraven popis „Osvobozená“. (5) `src/data/storage.js`: pole `tid` v `members` (propojení trenéra / kustoda s členem realizačního týmu), výběr člena při přidání člena týmu v ⚙️, `HK.tid()`. (6) `src/views/events.js`: předvýběr vlastního záznamu a tlačítko **👤 Přihlašuji se sám za sebe**, režim Platby v přepínači seznamu. Pravidla databáze beze změny. Zápasy, živý zápis, střely, góly, tresty a časomíra beze změny. Cache `sw.js` hokej-v26. **Po nahrání přepočítej již vyúčtované události s osvobozenými hráčkami.**
 - **v16.2 (19. 10. 2026):** platby za události (způsob placení hráček, cena a způsob úhrady události, vyúčtování, označení zaplaceno), realizační tým (kolekce `staff`, Team → Realizační tým) a jeho docházka, nominace zápasu jen z hráček přihlášených na událost, počty přihlášených podle rolí v přehledu události. Nová pravidla pro `staff` a `payments`. Cache `sw.js` hokej-v25.
 - **v16.1 (17. 10. 2026):** **přihlášení hráček a vlastní zápis docházky.** `src/data/storage.js`: role Hráčka vstoupí do aplikace, jen když má v `members/{email}` pole `pid` (propojení s hráčkou); ⚙️ → Členové týmu umí u role Hráčka vybrat hráčku a v seznamu ji ukáže; hráčka nevidí zálohu ani správu členů; `HK.pid()`, `HK.isStaff()`. `src/views/events.js`: hráčka zapisuje jen za sebe a jen do termínu, nevidí správcovské akce (zakládání, úpravy, mazání, karta zápasu), rozdělení do pětek má jen ke čtení, důvody ostatních vidí jen trenér a kustod. `src/views/shell.js`: hráčka vidí jen záložku Události. `src/main.js`: `syncOps` jen pro trenéra a kustoda. Verze v `package.json`, cache `sw.js` (hokej-v24). Zápasy, živý zápis, střely, góly, tresty a časomíra beze změny. Nutné doplnit pravidla databáze.

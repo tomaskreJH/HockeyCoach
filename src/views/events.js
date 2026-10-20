@@ -14,7 +14,7 @@ import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {LS, clone, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {HINTS, MODES, feeOf, kc, modeOf} from "../domain/payments.js";
+import {cashKeep, costTotal, kc} from "../domain/cash.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
 import {bindPay, payHtml} from "./payments.js";
@@ -144,7 +144,7 @@ const quick = (e, mine, dis) => `<div class="evq">${ORD.map(k => `<button class=
 function card(e, AT, P) {
   const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, lk = isLocked(e) && !staff(), mt = e.type === "match", m = e.raw;
   const sc = mt && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
-  const fee = feeOf(e), pay = fee && modeOf(e) !== "none" ? " · 💰 " + kc(fee) : "";
+  const tot = costTotal(e.raw), pay = tot ? " · 💰 náklady " + kc(tot) : "";
   return `<div class="cd evi" data-eo="${e.id}"><div class="evh"><b>${mt ? "🆚" : "🏒"} ${esc(e.title)}</b>${sc}</div>
 <div class="mu">${whenLine(e)}${mt ? (m.home ? " · doma" : " · venku") : ""}${pay}</div>
 <div class="mu">${dlLine(e, isLocked(e))} · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}</div>
@@ -189,7 +189,7 @@ ${shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Ž�
   const sel = a.querySelector("#evpl"), nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm"), meB = a.querySelector("#evme");
   if (sel) sel.onchange = e => { S.evp = e.target.value || null; LS.set("evPlayer", S.evp || ""); render(); };
   if (meB) meB.onclick = () => { S.evp = me.id; LS.set("evPlayer", me.id); render(); };
-  if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true, fee: "", pm: "contrib", settle: null}; render(); };
+  if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true, keep: {}}; render(); };
   if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
   bindModes();
   a.querySelectorAll("[data-cn]").forEach(b => b.onclick = () => { const c = S.evc; c.m += +b.dataset.cn; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } S.evd = null; render(); });
@@ -227,10 +227,10 @@ function detail(a, ev) {
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
       `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(t.kind || "")}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
-  const key = "ev" + ev.id, fee = feeOf(ev);
+  const key = "ev" + ev.id, tot = costTotal(ev.raw);
   const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín, cena" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`}</div>`;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">← Události</button>
-<div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}${fee && modeOf(ev) !== "none" ? " · 💰 " + kc(fee) : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
+<div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}${tot ? " · 💰 náklady " + kc(tot) : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
 <div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}<div class="mu" style="margin-top:6px">Přihlášeno: ${rosterLine(roster(ev, AT))}</div>${btns}</div>
 <div class="cd"><h2>Docházka</h2>${lk ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." : "Přihlašování je uzavřeno."}</div>` : ""}${ownP ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div>
 ${payHtml(ev)}
@@ -243,13 +243,13 @@ ${mt ? "" : linesHtml(ev, A, P, ownP)}</div>` + sheetHtml();
   if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
-  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl, fee: ev.raw.fee != null ? String(ev.raw.fee) : "", pm: modeOf(ev), settle: ev.raw.settle || null}; render(); };
+  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl, keep: cashKeep(ev.raw)}; render(); };
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {
     if (S.cf === key) {
       S.cf = null;
       S.at.filter(x => x.eid === ev.id).forEach(x => S.db.doc("attendance/" + x.id).delete());
-      S.pay.filter(x => x.eid === ev.id).forEach(x => S.db.doc("payments/" + x.id).delete());
+      S.ch.filter(x => x.eid === ev.id).forEach(x => S.db.doc("charges/" + x.id).delete());
       S.db.doc("events/" + ev.id).delete(); S.evid = null; render();
     } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
   };
@@ -295,8 +295,6 @@ function formView(a) {
 ${mt ? `<div class="mu" style="margin-bottom:8px">${esc(f.title)} · ${fDay(f.date)}</div>` : `<label>Název</label><input id="ft" value="${esc(f.title)}"><label>Datum</label><input type="date" id="fd" value="${esc(f.date)}">`}
 <label>Čas začátku</label><input type="time" id="fti" value="${esc(f.time)}"><label>Místo</label><input id="fp" value="${esc(f.place)}">
 <label>Konečný termín přihlašování</label><input type="datetime-local" id="fdl" value="${esc(f.dl)}">
-<label>Cena události (Kč)</label><input type="number" min="0" step="1" inputmode="numeric" id="ffee" value="${esc(f.fee)}" style="max-width:160px">
-<label>Způsob úhrady</label><div class="chips">${Object.entries(MODES).map(([k, t]) => `<button class="chip ${f.pm === k ? "on" : ""}" data-pm="${k}">${t}</button>`).join("")}</div><div class="mu" style="margin-bottom:10px">${HINTS[f.pm]}</div>
 ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
 <button class="p w" id="evfs" style="min-height:52px">Uložit</button></div></div>`;
   const g = id => { const e = document.getElementById(id); return e ? e.value : null; };
@@ -305,28 +303,24 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
     if (g("ft") != null) f.title = g("ft").trim();
     if (g("fd") != null) f.date = g("fd");
     f.time = g("fti") || ""; f.place = (g("fp") || "").trim(); f.dl = g("fdl") || "";
-    f.fee = (g("ffee") || "").trim();
-    if (g("fn") != null) f.note = g("fn").trim();
+        if (g("fn") != null) f.note = g("fn").trim();
   };
   const fd_ = document.getElementById("fd");
   if (fd_) fd_.onchange = () => { readF(); if (f.dlAuto) f.dl = defDl(f.date); render(); };
   document.getElementById("fdl").oninput = () => { f.dlAuto = false; };
-  a.querySelectorAll("[data-pm]").forEach(b => b.onclick = () => { readF(); f.pm = b.dataset.pm; render(); });
   document.getElementById("evfx").onclick = () => { S.evf = null; render(); };
   document.getElementById("evfs").onclick = () => {
     readF();
     if (!f.date) return toast("Zadej datum");
     if (!f.dl) return toast("Zadej konečný termín přihlašování");
     if (new Date(f.dl) > new Date(f.date + "T" + (f.time || "23:59"))) return toast("Termín přihlašování musí být před začátkem události");
-    const fee = Math.max(0, Math.round((+f.fee || 0) * 100) / 100);
-    if (mt) {
+      if (mt) {
       const m = S.ma.find(x => x.id === f.id);
       if (!m) { S.evf = null; return render(); }
-      const n = clone(m); n.time = f.time; n.place = f.place; n.dl = f.dl; n.fee = fee; n.pm = f.pm;
+      const n = clone(m); n.time = f.time; n.place = f.place; n.dl = f.dl;
       S.evf = null; return upd(n);
     }
-    const d = {type: "training", title: f.title || "Trénink", date: f.date, time: f.time, place: f.place, dl: f.dl, note: f.note || "", lines: f.lines || {}, fee, pm: f.pm};
-    if (f.settle) d.settle = f.settle;                                // snímek vyúčtování se úpravou tréninku neztratí
+    const d = {type: "training", title: f.title || "Trénink", date: f.date, time: f.time, place: f.place, dl: f.dl, note: f.note || "", lines: f.lines || {}, ...(f.keep || {})};
     if (f.id) S.db.doc("events/" + f.id).set(d); else S.db.collection("events").add(d);
     S.evf = null; render();
   };

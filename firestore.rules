@@ -10,34 +10,61 @@ service cloud.firestore {
     function role() { return get(memberPath()).data.role; }
     function isCoach() { return isMember() && role() == 'trener'; }
     function isStaff() { return isMember() && role() in ['trener', 'kustod']; }
+    // Správce pokladny: trenér, nebo člen s příznakem cash (pokladník)
+    function isCash() { return isMember() && (role() == 'trener' || get(memberPath()).data.get('cash', false) == true); }
     // Hráčka smí zapisovat jen tehdy, když ji trenér propojil s hráčkou v soupisce (pole pid)
     function isPlayer() { return isMember() && role() == 'hracka' && get(memberPath()).data.pid is string; }
     function myPid() { return get(memberPath()).data.pid; }
+    // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
+    function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
+    // Pole pokladny v dokumentu události / zápasu (smí měnit i pokladník)
+    function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tpl', 'cost', 'who', 'due', 'settle']); }
 
-    // ===== Členové týmu: role a (u hráček) propojení se soupiskou (pole pid) =====
+    // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
+    // Pokladník smí přidávat a měnit členy, jen ne členy s rolí trener
     match /members/{email} {
-      allow read: if signedIn() && (email == mail() || isCoach());
-      allow write: if isCoach();
+      allow read: if signedIn() && (email == mail() || isCoach() || isCash());
+      allow create: if isCoach() || (isCash() && request.resource.data.role != 'trener');
+      allow update: if isCoach() || (isCash() && request.resource.data.role != 'trener' && resource.data.role != 'trener');
+      allow delete: if isCoach() || (isCash() && resource.data.role != 'trener');
     }
 
-    // ===== Soupiska: spravuje trenér; kustod smí jen měnit stav (např. trvalé zranění ze živého zápisu) =====
-    // Pole pay (způsob placení: monthly / single / exempt) mění jen trenér
+    // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st), pokladník jen skupinu plateb (grp, fx, note) =====
     match /players/{id} {
       allow read: if isMember();
       allow create, delete: if isCoach();
-      allow update: if isCoach() || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st']));
+      allow update: if isCoach()
+        || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st']))
+        || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grp', 'fx', 'note']));
     }
 
-    // ===== Realizační tým (trenéři, kustodi…): čtou všichni členové (docházka), spravuje trenér =====
-    match /staff/{id} { allow read: if isMember(); allow write: if isCoach(); }
+    // ===== Realizační tým: čtou všichni členové, spravuje trenér; pokladník smí měnit jen plat (pay) =====
+    match /staff/{id} {
+      allow read: if isMember();
+      allow create, delete: if isCoach();
+      allow update: if isCoach() || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pay']));
+    }
 
-    // ===== Zápasy, soupeři, základní formace: trenér i kustod =====
-    match /matches/{id}   { allow read: if isMember(); allow write: if isStaff(); }
+    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen pole pokladny =====
+    match /matches/{id} {
+      allow read: if isMember();
+      allow create, delete: if isStaff();
+      allow update: if isStaff() || (isCash() && cashFieldsOnly());
+    }
     match /opponents/{id} { allow read: if isMember(); allow write: if isStaff(); }
-    match /settings/{id}  { allow read: if isMember(); allow write: if isStaff(); }
 
-    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod =====
-    match /events/{id} { allow read: if isMember(); allow write: if isStaff(); }
+    // ===== Nastavení: základní formace trenér a kustod, settings/cash (IBAN, šablony, kategorie) jen správce pokladny; čtou všichni členové =====
+    match /settings/{id} {
+      allow read: if isMember();
+      allow write: if id == 'cash' ? isCash() : isStaff();
+    }
+
+    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen pole pokladny =====
+    match /events/{id} {
+      allow read: if isMember();
+      allow create, delete: if isStaff();
+      allow update: if isStaff() || (isCash() && cashFieldsOnly());
+    }
 
     // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, reason, at, by =====
     // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
@@ -49,7 +76,19 @@ service cloud.firestore {
       allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
     }
 
-    // ===== Platby hráček za události: dokument {eid}_{pid} s poli eid, pid, amt, paid, paidAt, by; jen trenér a kustod =====
+    // ===== Pokladna: předpisy čte vlastník (mid = jeho pid / tid) a správci; příjmy a výdaje a audit jen správci =====
+    match /charges/{id} {
+      allow read: if isCash() || ownsMid(resource.data.mid);
+      allow write: if isCash();
+    }
+    match /cash/{id} { allow read, write: if isCash(); }
+    // Audit log se jen přidává (nejde měnit ani mazat)
+    match /audit/{id} {
+      allow read: if isCash();
+      allow create: if isCash();
+    }
+
+    // ===== Staré platby (v16.x): ponecháno jen pro migraci do charges, po migraci lze kolekci smazat =====
     match /payments/{id} { allow read, write: if isStaff(); }
 
     // ===== Jen pro trenéry (hodnocení hráček, poznámky) – hráčky ani kustodi nevidí =====
