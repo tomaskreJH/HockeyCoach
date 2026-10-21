@@ -6,7 +6,9 @@
 // a jen do termínu přihlašování. Zápasy se nadále zakládají a vedou stejně jako dřív (karta zápasu je jen pro trenéra a kustoda).
 // Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se předvybere sám a přihlašuje se jedním klepnutím.
 // Náklady a platby vidí jen správci pokladny (HK.isCash(): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
-// přehled plateb a dluhů: views/finance.js (režim „💰 Platby“); pohyby pokladny: views/cashbook.js (režim „🏦 Pokladna“).
+// přehled plateb a dluhů: views/finance.js (režim „💰 Platby“); pohyby pokladny: views/cashbook.js (režim „🏦 Pokladna“);
+// příspěvky, platy, hospodaření po měsících a CSV: views/money.js (režim „📅 Měsíce“, F4).
+// Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -15,12 +17,14 @@ import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {LS, clone, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {cashKeep, costTotal, cxOf, debtOf, kc} from "../domain/cash.js";
+import {costTotal, cxOf, debtOf, kc} from "../domain/cash.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
 import {bindBanner, mineBanner} from "./mine.js";
+import {bindMoney, moneyHtml} from "./money.js";
 import {bindPay, payHtml} from "./payments.js";
+import {matchStatsHtml} from "./report.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -79,9 +83,9 @@ const myTr = () => { const t = isPl() ? null : HK.tid(); return t && isTr(t) ? S
 // Sjednocený seznam událostí: tréninky (events) + zápasy (matches)
 function allEvents() {
   // cx = data pokladny z kolekce evcash (jen správci pokladny; ostatní vidí jen příznak raw.ss = vyúčtováno)
-  const cx = (id, r) => (cashMgr() ? cxOf(id, r, S.ec) : {});
-  const t = S.ev.map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", place: e.place || "", dl: e.dl || "", note: e.note || "", raw: e, cx: cx(e.id, e)}));
-  const m = S.ma.map(x => ({id: x.id, type: "match", title: "Zápas – " + x.opp, date: x.date || "", time: x.time || "", place: x.place || "", dl: x.dl || "", note: "", raw: x, cx: cx(x.id, x)}));
+  const cx = id => (cashMgr() ? cxOf(id, S.ec) : {});
+  const t = S.ev.map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", place: e.place || "", dl: e.dl || "", note: e.note || "", raw: e, cx: cx(e.id)}));
+  const m = S.ma.map(x => ({id: x.id, type: "match", title: "Zápas – " + x.opp, date: x.date || "", time: x.time || "", place: x.place || "", dl: x.dl || "", note: "", raw: x, cx: cx(x.id)}));
   return [...t, ...m].filter(e => e.date);
 }
 // Odpovědi podle události a člena: AT[eventId][memberId]
@@ -168,10 +172,10 @@ function list(a) {
   // Trenér / kustod propojený s realizačním týmem: při prvním otevření se předvybere sám (bez uloženého výběru)
   const me = myTr();
   if (me && !S.evp && !autoMe) { S.evp = me.id; autoMe = true; }
-  // Režimy Platby a Pokladna jsou jen pro správce pokladny
-  const mode = (S.evm === "pay" || S.evm === "cash") && !cashMgr() ? "up" : (S.evm || "up");
+  // Režimy Platby, Pokladna a Měsíce jsou jen pro správce pokladny
+  const mode = ["pay", "cash", "mon"].includes(S.evm) && !cashMgr() ? "up" : (S.evm || "up");
   const T = trs();
-  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(cashMgr() ? [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"]] : [])];
+  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(cashMgr() ? [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "📅 Měsíce"]] : [])];
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
   const bindModes = () => a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
@@ -185,6 +189,12 @@ function list(a) {
   if (mode === "cash") {
     a.innerHTML = CSS + `<div id="evw">${errH}${chipsH}${cashbookHtml()}</div>`;
     bindModes(); bindCashbook(a);
+    return;
+  }
+  // Režim Měsíce: příspěvky, platy, hospodaření po měsících, CSV (F4)
+  if (mode === "mon") {
+    a.innerHTML = CSS + `<div id="evw">${errH}${chipsH}${moneyHtml()}</div>`;
+    bindModes(); bindMoney(a);
     return;
   }
   let shown;
@@ -249,6 +259,7 @@ function detail(a, ev) {
 <div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}${tot ? " · 💰 náklady " + kc(tot) : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
 <div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}<div class="mu" style="margin-top:6px">Přihlášeno: ${rosterLine(roster(ev, AT))}</div>${btns}</div>
 <div class="cd"><h2>Docházka</h2>${lk ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." : "Přihlašování je uzavřeno."}</div>` : ""}${ownP ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div>
+${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${matchStatsHtml(ev.raw)}</div>` : ""}
 ${payHtml(ev)}
 ${mt ? "" : linesHtml(ev, A, P, ownP)}</div>` + sheetHtml();
   // Eventy detailu
@@ -259,7 +270,7 @@ ${mt ? "" : linesHtml(ev, A, P, ownP)}</div>` + sheetHtml();
   if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
-  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl, keep: {...cashKeep(ev.raw), ...(ev.raw.ss ? {ss: 1} : {})}}; render(); };
+  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl, keep: ev.raw.ss ? {ss: 1} : {}}; render(); };
   // Smazání tréninku: nejdřív kontrola vyúčtování (HK.canDelete), pak docházka; předpisy bez úhrady maže datová vrstva spolu s událostí
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {

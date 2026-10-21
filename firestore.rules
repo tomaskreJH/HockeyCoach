@@ -17,8 +17,8 @@ service cloud.firestore {
     function myPid() { return get(memberPath()).data.pid; }
     // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
-    // Pole, která smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno) a odstranění starých polí pokladny z v17.0 a v17.1
-    function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss', 'tpl', 'cost', 'who', 'due', 'settle']); }
+    // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno). Stará pole pokladny jsou od v17.3 přesunutá do evcash.
+    function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss']); }
 
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
     // Pokladník smí přidávat a měnit členy, jen ne členy s rolí trener
@@ -45,7 +45,7 @@ service cloud.firestore {
       allow update: if isCoach() || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pay']));
     }
 
-    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss (a odstranit stará pole pokladny) =====
+    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss. Číst smí všichni členové (statistiky jsou pro celý tým) =====
     match /matches/{id} {
       allow read: if isMember();
       allow create, delete: if isStaff();
@@ -79,7 +79,7 @@ service cloud.firestore {
       allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
     }
 
-    // ===== Pokladna: předpisy čte vlastník (mid = jeho pid / tid) a správci; příjmy a výdaje a audit jen správci =====
+    // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====
     // Člen musí předpisy číst dotazem s podmínkou mid == jeho pid / tid (aplikace to dělá)
     match /charges/{id} {
       allow read: if isCash() || ownsMid(resource.data.mid);
@@ -92,8 +92,7 @@ service cloud.firestore {
       allow create: if isCash();
     }
 
-    // ===== Staré platby (v16.x): ponecháno jen pro migraci do charges, po migraci lze kolekci smazat =====
-    match /payments/{id} { allow read, write: if isStaff(); }
+    // Kolekce payments (staré platby do v16.3) už pravidla nepovolují; po migraci ji lze v konzoli Firebase smazat.
 
     // ===== Jen pro trenéry (hodnocení hráček, poznámky) – hráčky ani kustodi nevidí =====
     match /coach/{doc=**} { allow read, write: if isCoach(); }

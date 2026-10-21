@@ -1,8 +1,7 @@
 // Spuštění aplikace: připojení k úložišti, odběr změn dat, první vykreslení.
 // Kolekce events, attendance (docházka) a staff (realizační tým) nesmí blokovat zbytek aplikace: při chybě (např. chybějící pravidla) se jen zobrazí hláška v záložce Události.
-// Kolekce payments (staré platby, jen pro migraci) se poslouchá jen u trenéra a kustoda.
 // Správci pokladny (trenér a pokladník) poslouchají charges (všechny předpisy), cash, audit a evcash (vyúčtování událostí).
-// Ostatní členové poslouchají jen své předpisy (charges s mid = jejich pid / tid); pravidla jiné předpisy nepustí.
+// Ostatní členové poslouchají jen své předpisy (charges s mid = jejich pid / tid, včetně měsíčních příspěvků); pravidla jiné předpisy nepustí.
 // Nastavení pokladny (settings/cash) čtou všichni členové.
 // Automatické zakládání soupeřů a oprava uzavřených zápasů jsou zápisy do databáze, proto běží jen u trenéra a kustoda (hráčka nemá právo zápisu).
 import {HK} from "./data/storage.js";
@@ -33,7 +32,6 @@ db.collection("opponents").onSnapshot(s=>{S.op=s.docs.map(d=>({id:d.id,...d.data
 db.collection("events").onSnapshot(s=>{S.ev=s.docs.map(d=>({id:d.id,...d.data()}));ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{S.at=s.docs.map(d=>({id:d.id,...d.data()}));ok("a");render()},erX("a"));
 db.collection("staff").onSnapshot(s=>{S.tr=s.docs.map(d=>({id:d.id,...d.data()}));render()},erX("t"));
-if(HK.isStaff())db.collection("payments").onSnapshot(s=>{S.pay=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
 const ec=e=>{S.payErr=e.code||e.message;render()};
 if(HK.isCash()){
 db.collection("charges").onSnapshot(s=>{S.ch=s.docs.map(d=>({id:d.id,...d.data()}));S.payErr=null;render()},ec);

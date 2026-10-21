@@ -2,23 +2,23 @@
    Rozhraní `db` zůstává stejné jako dřív (collection/doc, set, add, delete, onSnapshot) a přibyl batch() pro atomické zápisy
    (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit), merge pro částečné změny dokumentu
    a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy. Struktura: Importy -> Konstanty a stav
-   -> Pomocné funkce -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy a migrace -> Exporty. */
+   -> Pomocné funkce -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy -> Exporty.
+   Migrace z v16.3 (payments -> charges) a přesun dat pokladny do evcash (v17.2) jsou hotové a z kódu odstraněné (v17.3). */
 
 // ===== Importy =====
 import {downloadFile, esc, toast} from "../core/utils.js";
-import {cashCfg, migratePlan, movePlan} from "../domain/cash.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v17.2 · 21. 10. 2026";
+const VERSION = "v17.3 · 21. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
-// kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým, payments = staré platby (jen pro migraci),
-// charges = předpisy, cash = pokladna (příjmy a výdaje), audit = záznamy o uzavření, znovuotevření, výjimkách a stornech,
-// evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události zůstává jen příznak ss))
-const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "payments", "charges", "cash", "audit", "evcash"];
+// kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
+// charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
+// výjimkách, stornech, příspěvcích a platech, evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události je jen příznak ss))
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
 
@@ -80,7 +80,7 @@ function writeDoc(c, id, d) { setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say(
 function canDelete(c, id) {
   if (c !== "matches" && c !== "events") return true;
   const d = data[c][id] || {};
-  const settled = !!(d.ss || d.settle || (data.evcash[id] || {}).settle);   // ss = příznak vyúčtování (v17.2), settle = starý tvar
+  const settled = !!(d.ss || (data.evcash[id] || {}).settle);   // ss = příznak vyúčtování v dokumentu události
   if (settled && !isCash()) { say("Vyúčtovanou událost smaže jen trenér nebo pokladník"); return false; }
   const open = Object.values(data.charges).filter(x => x.eid === id && (+x.amt || 0) - (+x.paid || 0) > 0.0001).length;
   if (settled && open) { say("Událost má " + open + " nezaplacených předpisů. Nejdřív je uhraď, nebo vyúčtování znovu otevři."); return false; }
@@ -220,9 +220,7 @@ function openCfg() {
  ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button>` : ""}
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Členy s rolí Trenér spravuje jen trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option>' : ""}<option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><select id="cmp" style="display:none"><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
- ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>
- <h3>Migrace do pokladny (v17.0)</h3><div class="mu" style="margin-bottom:8px">Převede hráčky (platba → skupina + fx), události (cena → náklady) a staré platby na předpisy a příjmy v pokladně. Bezpečné spustit opakovaně.</div><button class="d w" id="cmg">Spustit migraci</button>
- <h3>Přesun dat pokladny (v17.2)</h3><div class="mu" style="margin-bottom:8px">Přesune náklady a vyúčtování událostí ze zápasů a tréninků do chráněné kolekce, kterou čtou jen trenér a pokladník (ostatní členy týmu už náklady neuvidí). Spusť po nasazení nových pravidel databáze. Bezpečné spustit opakovaně.</div><button class="d w" id="cmv">Přesunout data pokladny</button>` : ""}
+ ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close; q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
@@ -265,16 +263,6 @@ function openCfg() {
     if (!armed) { armed = true; q("#cr").textContent = "Opravdu nahradit? Klepni znovu"; return; }
     try { await importData(pendingImport, true); say("Data nahrazena"); close(); } catch (e) { say(errTxt(e)); }
   };
-  let armedV = false;
-  q("#cmv").onclick = async () => {
-    if (!armedV) { armedV = true; q("#cmv").textContent = "Opravdu přesunout? Klepni znovu"; return; }
-    try { const n = await moveCash(); say(n ? "Přesun hotový (" + n + " zápisů)" : "Není co přesouvat"); close(); } catch (e) { say(errTxt(e)); }
-  };
-  let armedM = false;
-  q("#cmg").onclick = async () => {
-    if (!armedM) { armedM = true; q("#cmg").textContent = "Opravdu spustit migraci? Klepni znovu"; return; }
-    try { const n = await migrateCash(); say(n ? "Migrace hotová (" + n + " zápisů)" : "Není co migrovat"); close(); } catch (e) { say(errTxt(e)); }
-  };
 }
 async function refresh() {
   try {
@@ -286,7 +274,7 @@ async function refresh() {
   location.reload();
 }
 
-// ===== Zálohy a migrace =====
+// ===== Zálohy =====
 // Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (kustod tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo)
 function exportJSON() {
   const out = {};
@@ -295,7 +283,7 @@ function exportJSON() {
 }
 function exportCSV() {
   const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Skupina plateb", "fx", "Poznámka k platbám"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.grp || (p.pay === "single" ? "single" : "monthly"), p.fx != null ? p.fx : (p.pay === "exempt" ? 0 : 1), p.note || ""])];
+  const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Skupina plateb", "fx", "Poznámka k platbám"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.grp || "monthly", p.fx != null ? p.fx : 1, p.note || ""])];
   downloadFile("soupiska-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(q).join(";")).join("\r\n"), "text/csv");
 }
 // Zápis po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu
@@ -306,8 +294,9 @@ async function commitOps(ops) {
     await b.commit();
   }
 }
-// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu, plateb a pokladny je nesmaže).
+// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a pokladny je nesmaže).
 // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
+// Kolekce payments (staré platby do v16.3) se z dřívějších záloh neobnovuje – už se nepoužívá.
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
   const ops = [];
@@ -319,24 +308,6 @@ async function importData(obj, replace) {
   });
   await commitOps(ops);
 }
-// Migrace v16.3 -> v17.0 (jen trenér): hráčky, události, platby -> předpisy + příjmy, nastavení pokladny; idempotentní
-async function migrateCash() {
-  if (["players", "matches", "events", "payments", "settings", "charges", "cash"].some(c => !first[c])) throw new Error("Data se ještě načítají, zkus to za chvíli.");
-  const ops = migratePlan(data, cashCfg((data.settings || {}).cash), stamp());
-  if (ops.length) ops.push(["set", "audit", "mig_" + Date.now(), {ts: new Date().toISOString(), by: user.email, eid: "", act: "migrace", note: ops.length + " zápisů"}]);
-  await commitOps(ops);
-  return ops.length;
-}
-
-// Přesun polí pokladny z dokumentů událostí a zápasů do evcash (v17.2; jen správce pokladny); idempotentní
-async function moveCash() {
-  if (["matches", "events", "evcash"].some(c => !first[c])) throw new Error("Data se ještě načítají, zkus to za chvíli.");
-  const ops = movePlan(data);
-  if (ops.length) ops.push(["set", "audit", "mv_" + Date.now(), {ts: new Date().toISOString(), by: user.email, eid: "", act: "přesun", note: ops.length + " zápisů do evcash"}]);
-  await commitOps(ops);
-  return ops.length;
-}
-
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
 export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null};

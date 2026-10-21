@@ -1,13 +1,13 @@
 // Moje platby: člen vidí jen své předpisy, zaplacené částky, dluh a QR platbu. Banner s upozorněním na dluh v Událostech.
 // Struktura: Importy -> Stav -> Pomocné funkce -> Banner -> QR okno -> Vykreslení -> Export.
-// Data: S.ch (u člena jen jeho předpisy, mid = pid / tid), nastavení pokladny S.cc (IBAN). QR je formát SPD (české QR platby) generovaný lokálně (src/lib/qrcode.js).
+// Data: S.ch (u člena jen jeho předpisy, mid = pid / tid), nastavení pokladny S.cc (IBAN). Předpis měsíčního příspěvku má eid "c_RRRR-MM" (F4). QR je formát SPD (české QR platby) generovaný lokálně (src/lib/qrcode.js).
 // Blokace: kdo má neuhrazený předpis po splatnosti bez výjimky, nemůže se přihlásit „Jdu“ (kontrola v events.js, výjimku uděluje pokladník / trenér).
 
 // ===== Importy =====
 import {S} from "../core/state.js";
 import {esc, fd} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {cashCfg, debtOf, fmtDue, kc, overdue, restOf, spdPay, vsOf} from "../domain/cash.js";
+import {cashCfg, contribYm, debtOf, fmtDue, kc, overdue, restOf, spdPay, vsOf, ymLabel} from "../domain/cash.js";
 import qrcode from "../lib/qrcode.js";
 import {render} from "./shell.js";
 
@@ -16,8 +16,10 @@ let qr = null;   // id předpisu, pro který je otevřené okno s QR kódem
 
 // ===== Pomocné funkce =====
 const ids = () => [HK.pid(), HK.tid()].filter(Boolean);
-// Název a datum události (tréninku nebo zápasu) k předpisu
+// Název a datum události (tréninku, zápasu nebo měsíčního příspěvku) k předpisu
 function evInfo(eid) {
+  const ym = contribYm(eid);
+  if (ym) return {title: "Příspěvek " + ymLabel(ym), date: ym + "-01"};
   const t = S.ev.find(x => x.id === eid);
   if (t) return {title: t.title || "Trénink", date: t.date || ""};
   const m = S.ma.find(x => x.id === eid);

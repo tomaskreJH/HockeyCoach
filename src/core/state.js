@@ -1,9 +1,9 @@
 // Sdílený stav aplikace (jediný zdroj pravdy za běhu).
 // Události a docházka: ev = tréninky, at = odpovědi, evid = otevřená událost, evp = člen (hráčka nebo trenér), za kterého se zapisuje,
-// evm = režim seznamu (up / past / cal / pay / cash), evc = zobrazený měsíc, evd = vybraný den, evf = formulář, evr = okno s důvodem, evErr = chyba načtení.
+// evm = režim seznamu (up / past / cal / pay / cash / mon), evc = zobrazený měsíc, evd = vybraný den, evf = formulář, evr = okno s důvodem, evErr = chyba načtení.
 // Realizační tým: tr = členové (kolekce staff).
 // Pokladna: ch = předpisy (charges; správce vidí všechny, ostatní jen své), cs = příjmy a výdaje (cash, jen správci), au = audit (jen správci),
 // ec = vyúčtování událostí (evcash: náklady, kdo platí, snapshot; jen správci), cc = nastavení pokladny (settings/cash), payErr = chyba načtení.
-// pay = staré platby (kolekce payments, jen pro migraci a mazání).
+// Měsíční příspěvky jsou předpisy v ch (kind "contrib"), platy jsou výdaje v cs (id sal_RRRR-MM_tid).
 
-export const S={pl:[],ma:[],def:{},tab:"ev",mid:null,ready:false,err:null,db:null,M:null,pick:null,showLu:false,per:1,cf:null,pf:"act",pq:"all",fo:false,pickAll:false,showNom:false,showOp:false,op:[],oid:null,step:1,lv:false,qa:null,lmenu:false,rpShots:true,rpSubs:true,lsub:null,rp:false,ed:null,injp:null,wd:{},wl:null,ev:[],at:[],tr:[],pay:[],ch:[],cs:[],au:[],ec:[],cc:{},payErr:null,evErr:null,evid:null,evp:null,evm:"up",evc:null,evd:null,evf:null,evr:null};
+export const S={pl:[],ma:[],def:{},tab:"ev",mid:null,ready:false,err:null,db:null,M:null,pick:null,showLu:false,per:1,cf:null,pf:"act",pq:"all",fo:false,pickAll:false,showNom:false,showOp:false,op:[],oid:null,step:1,lv:false,qa:null,lmenu:false,rpShots:true,rpSubs:true,lsub:null,rp:false,ed:null,injp:null,wd:{},wl:null,ev:[],at:[],tr:[],ch:[],cs:[],au:[],ec:[],cc:{},payErr:null,evErr:null,evid:null,evp:null,evm:"up",evc:null,evd:null,evf:null,evr:null};

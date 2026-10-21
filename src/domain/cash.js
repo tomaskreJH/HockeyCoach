@@ -1,10 +1,14 @@
-// Doména: pokladna – model osob (skupina, koeficient fx), šablony událostí, výpočet předpisů, úhrady, zůstatek, přehled dluhů a migrace z payments (čisté funkce bez DOM).
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Pokladna (zůstatek, kategorie, úhrady) -> Nastavení a šablony -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Migrace.
+// Doména: pokladna – model osob (skupina, koeficient fx), šablony událostí, výpočet předpisů, úhrady, zůstatek, přehled dluhů,
+// měsíční příspěvky, platy realizačního týmu, hospodaření po měsících a CSV (čisté funkce bez DOM).
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Pokladna (zůstatek, kategorie, úhrady) -> Nastavení a šablony -> Vyúčtování událostí
+//            -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Měsíční příspěvky (F4) -> Platy (F4) -> Hospodaření po měsících (F4) -> CSV (F4).
 // Pravidla:
 //  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single), fx 0..1 (0 osvobozená, 0.5 částečně, výchozí 1),
 //  - cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx, zaokrouhleno nahoru na celé Kč,
 //  - osvobozené (fx 0) se do dělitele počítají, jen samy neplatí,
+//  - měsíční příspěvek = částka z nastavení × fx, platí ho hráčky ve skupině monthly (ne ukončené, ne brankářky, ne fx 0),
 //  - zůstatek pokladny = součet příjmů (cash.k "in") − součet výdajů (cash.k "out").
+// Migrace z v16.3 a přesun dat do evcash (v17.0–v17.2) jsou hotové a z kódu odstraněné (v17.3).
 
 // ===== Importy =====
 import {isG, pl} from "../core/selectors.js";
@@ -20,6 +24,12 @@ export const CATS = {
 };
 export const CAT_EVENT = "Platby za události";
 export const CAT_CONTRIB = "Příspěvky";
+export const CAT_SALARY = "Platy trenérů";
+// Předpona id „události“ měsíčního příspěvku: předpis má eid "c_RRRR-MM" a id "c_RRRR-MM_{pid}"
+export const CPRE = "c_";
+// Předpona id výdaje platu v pokladně: "sal_RRRR-MM_{tid}" (jeden plat za člena a měsíc)
+export const SPRE = "sal_";
+const MONTHS = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"];
 
 // ===== Pomocné funkce =====
 const cl = o => JSON.parse(JSON.stringify(o));
@@ -31,9 +41,9 @@ export const r2 = n => Math.round((+n || 0) * 100) / 100;
 export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " Kč";
 // Platné datum ve tvaru RRRR-MM-DD
 export const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")) && !isNaN(new Date(s + "T12:00:00"));
-// Koeficient a skupina hráčky (před migrací se čte i starý údaj pay)
-export const fxOf = p => { const v = p && p.fx != null ? +p.fx : (p && p.pay === "exempt" ? 0 : 1); return v >= 0 && v <= 1 ? v : 1; };
-export const grpOf = p => (p && (p.grp ? p.grp === "single" : p.pay === "single") ? "single" : "monthly");
+// Koeficient a skupina hráčky
+export const fxOf = p => { const v = p && p.fx != null ? +p.fx : 1; return v >= 0 && v <= 1 ? v : 1; };
+export const grpOf = p => (p && p.grp === "single" ? "single" : "monthly");
 // Skupina pro výpočet události: fx 0 = osvobozená
 export const grpKey = p => (fxOf(p) === 0 ? "exempt" : grpOf(p));
 // Splatnost: datum události + N dní, 23:59 (formát datetime-local)
@@ -49,6 +59,14 @@ export const vsOf = id => { let h = 5381; for (let i = 0; i < id.length; i++) h 
 export const chargeId = (eid, mid) => eid + "_" + mid;
 export const restOf = x => Math.max(0, r2((+x.amt || 0) - (+x.paid || 0)));
 export const overdue = x => restOf(x) > 0 && !!x.due && new Date(x.due).getTime() < Date.now();
+// Měsíc: "RRRR-MM", popisek "listopad 2026" a krátký "11/2026", posun o n měsíců
+export const ymOk = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(s || ""));
+export const ymNow = () => { const d = new Date(); return d.getFullYear() + "-" + p2(d.getMonth() + 1); };
+export const ymLabel = ym => (ymOk(ym) ? MONTHS[+ym.slice(5) - 1] + " " + ym.slice(0, 4) : String(ym || ""));
+export const ymShort = ym => (ymOk(ym) ? +ym.slice(5) + "/" + ym.slice(0, 4) : String(ym || ""));
+export function ymAdd(ym, n) { const d = new Date(+ym.slice(0, 4), +ym.slice(5) - 1 + n, 1); return d.getFullYear() + "-" + p2(d.getMonth() + 1); }
+// Poslední den měsíce ve tvaru RRRR-MM-DD
+export const ymLast = ym => ym + "-" + p2(new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate());
 
 // ===== Pokladna: zůstatek, kategorie, úhrady =====
 // Součty příjmů a výdajů a zůstatek z pohybů (cash)
@@ -100,22 +118,23 @@ export function cashCfg(r) {
   };
 }
 export const tplFor = (type, home) => (type === "match" ? (home === false ? "away" : "home") : "train");
-// Efektivní nastavení události: uložená pole (tpl, cost, who, due), jinak výchozí šablona podle typu
+
+// ===== Vyúčtování událostí =====
+// Efektivní nastavení události: uložená pole v evcash (tpl, cost, who, due), jinak výchozí šablona podle typu
 export function evCash(ev, cfg) {
   const r = ev.cx || {}, home = (ev.raw || {}).home, tk = r.tpl || tplFor(ev.type, home), t = cfg.tpls[tk] || cfg.tpls[tplFor(ev.type, home)] || DEF_TPL.train;
   const who = cl(r.who || t.who);
   Object.keys(WHO).forEach(g => { if (!who[g]) who[g] = {pays: false, mode: "calc", flat: 0}; });
   return {tpl: tk, cost: cl(r.cost || t.cost), who, due: r.due || ""};
 }
-export const costTotal = r => sum(r.cost, x => x.amt);
-// Pole pokladny v dokumentu události (zachovají se při úpravě tréninku)
-export const cashKeep = r => { const o = {}; ["tpl", "cost", "who", "due", "settle"].forEach(k => { if (r[k] != null) o[k] = r[k]; }); return o; };
-// Pole pokladny události: od v17.2 v kolekci evcash/{eid} (čtou jen správci); do přesunu se čtou ještě ze starého dokumentu události
-export const CX_KEYS = ["tpl", "cost", "who", "due", "settle"];
-export function cxOf(id, raw, ec) {
+export const costTotal = r => sum((r || {}).cost, x => x.amt);
+// Vyúčtování události z kolekce evcash/{eid} (čtou jen správci pokladny); bez dokumentu prázdný objekt
+export function cxOf(id, ec) {
   const c = (ec || []).find(x => x.id === id);
-  if (c) { const o = {...c}; delete o.id; return o; }
-  return cashKeep(raw || {});
+  if (!c) return {};
+  const o = {...c};
+  delete o.id;
+  return o;
 }
 // Dluh osoby (ids = její pid / tid): předpisy, dluh, část po splatnosti a blokace přihlášení „Jdu“ (po splatnosti a bez výjimky exc)
 export function debtOf(ch, ids) {
@@ -134,21 +153,8 @@ export function uniqVs(id, taken) {
   return String(n);
 }
 // QR platba v českém formátu SPD (zpráva jen ASCII bez znaku *)
-export const asciiMsg = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "").slice(0, 60).trim();
+export const asciiMsg = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "").slice(0, 60).trim();
 export const spdPay = (iban, amt, vs, msg) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + vs + (asciiMsg(msg) ? "*MSG:" + asciiMsg(msg) : "");
-// Přesun polí pokladny z dokumentů událostí a zápasů do evcash (v17.2). Dokument události dostane příznak ss, pokud byl vyúčtován.
-export function movePlan(data) {
-  const ops = [];
-  ["events", "matches"].forEach(c => Object.entries(data[c] || {}).forEach(([id, d]) => {
-    if (!CX_KEYS.some(k => d[k] != null)) return;
-    const cx = {}, o = {...d};
-    CX_KEYS.forEach(k => { if (d[k] != null) cx[k] = d[k]; delete o[k]; });
-    if (d.settle) o.ss = 1;
-    if (!(data.evcash || {})[id]) ops.push(["set", "evcash", id, cx]);
-    ops.push(["set", c, id, o]);
-  }));
-  return ops;
-}
 
 // ===== Výpočet předpisů =====
 // c = {cost, who}; P = přihlášené hráčky (objekty, bez brankářek). Vrací řádky po hráčkách a součty.
@@ -180,7 +186,7 @@ export function planCharges(eid, k, due, have, all) {
 }
 
 // ===== Přehled dluhů =====
-// ch = předpisy (S.ch), evOf = id události -> událost; předpisy smazaných událostí a hráček se přeskočí.
+// ch = předpisy (S.ch), evOf = id události -> událost (u příspěvků pseudo-událost měsíce); předpisy smazaných událostí a hráček se přeskočí.
 export function ledger(ch, evOf) {
   const by = {};
   let owed = 0, got = 0;
@@ -196,43 +202,96 @@ export function ledger(ch, evOf) {
   return {rows, owed: r2(owed), got: r2(got), debtors: rows.filter(r => r.debt > 0).length};
 }
 
-// ===== Migrace (v16.3 -> v17.0) =====
-// data = zrcadlo kolekcí {players, matches, events, payments, charges, cash, settings}; vrací operace ["set", kolekce, id, data].
-// Idempotentní: už převedené položky se přeskočí.
-export function migratePlan(data, cfg, today) {
-  const ops = [], evs = {};
-  Object.entries(data.events || {}).forEach(([id, e]) => { evs[id] = {c: "events", d: e, type: "training"}; });
-  Object.entries(data.matches || {}).forEach(([id, m]) => { evs[id] = {c: "matches", d: m, type: "match"}; });
-  // 1) hráčky: pay -> grp + fx
-  Object.entries(data.players || {}).forEach(([id, p]) => {
-    if (p.grp != null && p.fx != null && p.pay == null) return;
-    const o = {...p}, py = p.pay;
-    delete o.pay;
-    o.grp = p.grp || (py === "single" ? "single" : "monthly");
-    o.fx = p.fx != null ? p.fx : (py === "exempt" ? 0 : 1);
-    ops.push(["set", "players", id, o]);
-  });
-  // 2) události a zápasy: fee + pm -> cost + who
-  Object.entries(evs).forEach(([id, e]) => {
-    const d = e.d;
-    if (d.cost || d.who || (d.fee == null && d.pm == null)) return;
-    const mode = d.pm || (e.type === "match" && d.home === false ? "none" : "contrib"), o = {...d};
-    delete o.fee; delete o.pm;
-    o.tpl = "custom";
-    o.cost = +d.fee > 0 ? [{cat: "Migrace (celková cena)", payee: "", amt: +d.fee}] : [];
-    o.who = mode === "all" ? W(true, true, false) : mode === "none" ? W(false, false, false) : W(false, true, false);
-    ops.push(["set", e.c, id, o]);
-  });
-  // 3) platby -> předpisy (+ příjem do pokladny u zaplacených)
-  Object.entries(data.payments || {}).forEach(([id, x]) => {
-    if ((data.charges || {})[id]) return;
-    const amt = +x.amt || 0, e = evs[x.eid], due = e && e.d.date ? defDue(e.d.date, cfg.due.ev) : "";
-    ops.push(["set", "charges", id, {eid: x.eid, mid: x.pid, amt, paid: x.paid ? amt : 0, due, kind: "event", vs: vsOf(id)}]);
-    if (x.paid && amt > 0 && !(data.cash || {})["m_" + id]) {
-      ops.push(["set", "cash", "m_" + id, {d: (x.paidAt || "").slice(0, 10) || today, k: "in", amt, cat: CAT_EVENT, mid: x.pid, cid: id, eid: x.eid, note: "Migrace z v16.3", by: x.by || ""}]);
-    }
-  });
-  // 4) nastavení pokladny
-  if (!(data.settings || {}).cash) ops.push(["set", "settings", "cash", cfg]);
-  return ops;
+// ===== Měsíční příspěvky (F4) =====
+export const isContrib = x => !!x && x.kind === "contrib";
+export const contribEid = ym => CPRE + ym;
+// Měsíc z eid příspěvku ("c_RRRR-MM" -> "RRRR-MM"), jinak prázdný řetězec
+export const contribYm = eid => { const s = String(eid || ""); return s.startsWith(CPRE) && ymOk(s.slice(CPRE.length)) ? s.slice(CPRE.length) : ""; };
+// Pseudo-událost pro výpisy (přehled dluhů, Moje platby): název a datum = 1. den měsíce
+export const contribEvent = ym => ({id: contribEid(ym), type: "contrib", title: "Příspěvek " + ymLabel(ym), date: ym + "-01", time: "", raw: {}, cx: {}});
+// Splatnost příspěvku: den v měsíci z nastavení (1–28, předem), 23:59
+export const contribDue = (ym, day) => ym + "-" + p2(Math.min(28, Math.max(1, Math.round(+day) || 1))) + "T23:59";
+// Kdo příspěvek platí: hráčky ve skupině monthly, ne ukončené, ne brankářky, fx > 0. Výchozí částka = příspěvek × fx (nahoru na Kč).
+// players = soupiska, cfg = nastavení pokladny, have = existující předpisy příspěvku za měsíc podle mid.
+// Vrací řádky {pid, fx, amt, has} seřazené podle jména (has = už vystavený předpis).
+export function contribRows(players, cfg, have) {
+  const base = +cfg.contrib || 0;
+  const pays = (players || []).filter(p => (p.st || "act") !== "end" && !isG(p) && grpOf(p) === "monthly" && fxOf(p) > 0);
+  const ids = new Set(pays.map(p => p.id));
+  // Hráčky, které už předpis mají (i když mezitím změnily skupinu), se v seznamu ukážou také
+  Object.keys(have || {}).forEach(id => { const p = (players || []).find(x => x.id === id); if (p && !ids.has(id)) { pays.push(p); ids.add(id); } });
+  return pays.sort((a, b) => (a.name || "").localeCompare(b.name || "", "cs"))
+    .map(p => ({pid: p.id, fx: fxOf(p), amt: ceil(base * fxOf(p)), has: (have || {})[p.id] || null}));
 }
+// Vystavení příspěvků: rows = vybrané řádky {pid, amt}; existující předpisy se nepřepisují (idempotentní). all = všechny předpisy (VS).
+export function contribPlan(ym, rows, cfg, all) {
+  const eid = contribEid(ym), due = contribDue(ym, cfg.due.cm), set = [];
+  const have = new Set((all || []).map(c => c.id));
+  const taken = new Set((all || []).map(c => c.vs).filter(Boolean));
+  rows.forEach(r => {
+    const id = chargeId(eid, r.pid), amt = ceil(+r.amt || 0);
+    if (have.has(id) || !(amt > 0)) return;
+    const vs = uniqVs(id, taken);
+    taken.add(vs);
+    set.push({id, d: {eid, mid: r.pid, amt, paid: 0, due, kind: "contrib", vs}});
+  });
+  return set;
+}
+
+// ===== Platy realizačního týmu (F4) =====
+// Návrh platů za měsíc: staff.pay = {m: "month" | "event", amt}. U platu za událost se počítají události měsíce do dneška,
+// na které je člen přihlášen „Jdu“ (evs = [{id, date}], at = docházka). paid = už zapsaný výdaj platu v pokladně (cash id sal_RRRR-MM_{tid}).
+export function salaryRows(staff, ym, evs, at, cs, today) {
+  const inMonth = (evs || []).filter(e => String(e.date || "").startsWith(ym) && e.date <= today).map(e => e.id);
+  const going = new Set((at || []).filter(a => a.st === "yes").map(a => a.eid + "|" + a.pid));
+  return (staff || []).filter(t => t.pay && (t.pay.m === "month" || t.pay.m === "event"))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || "", "cs"))
+    .map(t => {
+      const rate = +t.pay.amt || 0, n = t.pay.m === "event" ? inMonth.filter(eid => going.has(eid + "|" + t.id)).length : 0;
+      const amt = r2(t.pay.m === "month" ? rate : rate * n), id = salaryId(ym, t.id);
+      return {tid: t.id, name: t.name || "?", m: t.pay.m, rate, n, amt, id, paid: (cs || []).find(x => x.id === id) || null};
+    });
+}
+export const salaryId = (ym, tid) => SPRE + ym + "_" + tid;
+// Datum výdaje platu: u běžícího měsíce dnešek, jinak poslední den měsíce
+export const salaryDay = (ym, today) => (today.startsWith(ym) ? today : ymLast(ym));
+
+// ===== Hospodaření po měsících (F4) =====
+// Pohyby pokladny po měsících (podle data pohybu) a zůstatek na konci měsíce. Vrací seřazené řádky {ym, in, out, net, bal}.
+export function monthRows(cs) {
+  const by = {};
+  (cs || []).forEach(x => {
+    if (x.k !== "in" && x.k !== "out") return;
+    const ym = String(x.d || "").slice(0, 7);
+    if (!ymOk(ym)) return;
+    const r = by[ym] = by[ym] || {ym, in: 0, out: 0};
+    r[x.k] += +x.amt || 0;
+  });
+  let bal = 0;
+  return Object.values(by).sort((a, b) => a.ym.localeCompare(b.ym)).map(r => {
+    bal += r.in - r.out;
+    return {ym: r.ym, in: r2(r.in), out: r2(r.out), net: r2(r.in - r.out), bal: r2(bal)};
+  });
+}
+// Pohyby jednoho měsíce
+export const cashOfMonth = (cs, ym) => (cs || []).filter(x => String(x.d || "").startsWith(ym));
+// Předpisy se splatností v měsíci: předepsáno, zaplaceno, zbývá (zvlášť události a příspěvky)
+export function chargesOfMonth(ch, ym) {
+  const r = {ev: {amt: 0, paid: 0, n: 0}, contrib: {amt: 0, paid: 0, n: 0}};
+  (ch || []).forEach(x => {
+    if (!String(x.due || "").startsWith(ym)) return;
+    const g = isContrib(x) ? r.contrib : r.ev;
+    g.amt += +x.amt || 0; g.paid += Math.min(+x.paid || 0, +x.amt || 0); g.n++;
+  });
+  [r.ev, r.contrib].forEach(g => { g.amt = r2(g.amt); g.paid = r2(g.paid); g.rest = r2(g.amt - g.paid); });
+  return r;
+}
+
+// ===== CSV (F4) =====
+// Text CSV pro Excel: oddělovač středník, uvozovky, BOM a konce řádků CRLF
+export function csvText(rows) {
+  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  return "﻿" + rows.map(r => r.map(q).join(";")).join("\r\n");
+}
+// Částka pro CSV s desetinnou čárkou (Excel v češtině)
+export const csvNum = n => String(r2(n)).replace(".", ",");

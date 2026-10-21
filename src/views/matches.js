@@ -1,10 +1,12 @@
 // Seznam zápasů a detail zápasu (průvodce kroky).
 // Nominace: jen hráčky přihlášené na událost (odpověď „Jdu“ v záložce Události); uzavření zápasu automaticky vytvoří vyúčtování plateb.
+// Smazání zápasu: nejdřív kontrola vyúčtování (HK.canDelete), potom se smaže docházka zápasu a zápas (předpisy bez úhrady a evcash maže datová vrstva).
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {save, upd} from "../core/actions.js";
 import {PG, compactRot, goingOf, nomOf, pl, pn, pri, score, shots, skaters, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, Q, clone, esc, fd, td, toast, uid} from "../core/utils.js";
+import {HK} from "../data/storage.js";
 import {benchM, fillDef, readiness} from "../domain/lineup.js";
 import {initLive} from "../domain/live-engine.js";
 import {benchGrouped, bindLu, luEditor, matchDrag} from "./lineup-editor.js";
@@ -79,7 +81,7 @@ a.querySelectorAll("[data-luop]").forEach(b=>b.onclick=()=>{const n=clone(m);del
 Q("#gu").onclick=()=>{S.M={k:"G",team:"us",per:S.per,time:"",sit:"E",scorer:null,a1:null,a2:null,on:[]};modal()};
 Q("#go").onclick=()=>{S.M={k:"G",team:"opp",per:S.per,time:"",sit:"E",on:[gk].filter(Boolean)};modal()};
 Q("#pe").onclick=()=>{S.M={k:"P",team:"us",per:S.per,time:"",min:2,reason:REA[0],pid:null};modal()};
-Q("#dm").onclick=()=>{if(S.cf===m.id){S.cf=null;S.pay.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("payments/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null}else{S.cf=m.id;render();setTimeout(()=>{if(S.cf===m.id){S.cf=null;render()}},4000)}};
+Q("#dm").onclick=()=>{if(S.cf===m.id){S.cf=null;if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()}else{S.cf=m.id;render();setTimeout(()=>{if(S.cf===m.id){S.cf=null;render()}},4000)}};
 const add=o=>{const n=clone(m);n.events=[...(n.events||[]),{id:uid(),k:"S",per:S.per,...o}];save(n)};
 const del=f=>{const n=clone(m);const i=n.events.map((e,j)=>e.k==="S"&&f(e)?j:-1).filter(j=>j>=0).pop();if(i===undefined)return;n.events.splice(i,1);save(n)};
 a.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{S.per=+b.dataset.per;render()});

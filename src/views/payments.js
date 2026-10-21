@@ -1,16 +1,16 @@
 // Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů, uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem, úhrady předpisů.
 // Struktura: Importy -> Pomocné funkce -> Uzavření vyúčtování (zápis) -> Úhrady -> Vykreslení -> Eventy -> Export.
-// Data (od v17.2): náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
-// V dokumentu události / zápasu zůstává jen příznak ss (vyúčtováno). Starší verze měly tato pole přímo v dokumentu události; čtou se z něj, dokud je nepřesune migrace.
+// Data: náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
+// V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Přesun ze starého tvaru (v17.2) je hotový, starý tvar se už nečte (v17.3).
 // Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
-// Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js.
+// Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js, příspěvky, platy a měsíce ve views/money.js.
 
 // ===== Importy =====
 import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_CONTRIB, CAT_EVENT, CX_KEYS, GRP, WHO, calcCash, cashCfg, cxOf, defDue, evCash, fmtDue, grpKey, kc, overdue, payAmount, planCharges, r2, restOf} from "../domain/cash.js";
+import {CAT_CONTRIB, CAT_EVENT, GRP, WHO, calcCash, cashCfg, cxOf, defDue, evCash, fmtDue, grpKey, kc, overdue, payAmount, planCharges, r2, restOf} from "../domain/cash.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -18,15 +18,13 @@ import {render} from "./shell.js";
 const chData = x => { const {id, ...r} = x; return r; };
 const who = () => { const u = HK.user(); return (u && u.email) || ""; };
 // Zápas pro pokladnu (volá ho matches.js při uzavření zápasu)
-export const evOfMatch = m => ({id: m.id, type: "match", raw: m, cx: cxOf(m.id, m, S.ec)});
+export const evOfMatch = m => ({id: m.id, type: "match", raw: m, cx: cxOf(m.id, S.ec)});
 // Přihlášené hráčky události bez brankářek (dělitel ceny)
 const players = eid => goingOf(eid).map(id => pl(id)).filter(p => p && !isG(p));
 const evPath = ev => (ev.type === "match" ? "matches/" : "events/") + ev.id;
 const auditDoc = (eid, act, note) => ({ts: new Date().toISOString(), by: who(), eid, act, note: note || ""});
 const dueDays = (cfg, tpl) => { const t = cfg.tpls[tpl]; return t && t.dueDays != null ? t.dueDays : cfg.due.ev; };
 const byName = (a, b) => pri(pl(a.mid)) - pri(pl(b.mid)) || pl(a.mid).name.localeCompare(pl(b.mid).name, "cs");
-// Pole dokumentu události, která se mají odstranit (stará pole pokladny z v17.0 a v17.1) + dodatečná pole (merge)
-const cleanFields = (raw, extra) => { const o = {...(extra || {})}; CX_KEYS.forEach(k => { if (raw && raw[k] != null) o[k] = "__del"; }); return o; };
 // Rozpracovaná úprava (jen v paměti, dokud se neuloží)
 let dr = null;
 function draft(ev, cfg) {
@@ -40,10 +38,10 @@ const fromDraft = () => { const c = {tpl: dr.tpl, cost: clone(dr.cost).filter(x 
 // V JEDNÉ dávce uloží evcash, příznak ss v dokumentu události, předpisy a audit. Vrací výpočet, nebo null (nic se nestalo).
 // force=false (automatické uzavření zápasu): bez předpisů se nic nezapíše; stávající snapshot se nikdy nepřepisuje.
 // d = rozpracovaná úprava z formuláře (jinak se použije uložené nastavení / šablona).
-// Do raw (kopie zápasu, kterou si po návratu ukládá matches.js) se zapíše ss a odstraní se stará pole pokladny.
+// Do raw (kopie zápasu, kterou si po návratu ukládá matches.js) se zapíše příznak ss.
 export function settleEvent(ev, raw, force, d) {
   if (!HK.isCash()) return null;
-  const cx0 = ev.cx || cxOf(ev.id, raw, S.ec);
+  const cx0 = ev.cx || cxOf(ev.id, S.ec);
   if (cx0.settle) return null;
   const cfg = cashCfg(S.cc), c = d ? {tpl: d.tpl, cost: clone(d.cost).filter(x => +x.amt > 0), who: clone(d.who), due: d.due || ""} : evCash({...ev, cx: cx0}, cfg);
   const k = calcCash(c, players(ev.id));
@@ -56,12 +54,11 @@ export function settleEvent(ev, raw, force, d) {
   S.ch.filter(x => x.eid === ev.id && x.kind === "event").forEach(x => { have[x.mid] = x; });
   const plan = planCharges(ev.id, k, due, have, S.ch), b = S.db.batch();
   b.set("evcash/" + ev.id, cx);
-  b.merge(evPath(ev), cleanFields(raw, {ss: 1}));
+  b.merge(evPath(ev), {ss: 1});
   plan.set.forEach(x => b.set("charges/" + x.id, x.d));
   plan.del.forEach(id => b.delete("charges/" + id));
   b.set("audit/" + uid(), auditDoc(ev.id, "close", k.payers.length + " předpisů, vybereme " + kc(k.collect) + " z " + kc(k.total)));
   b.commit();
-  CX_KEYS.forEach(key => { delete raw[key]; });
   raw.ss = 1;
   return k;
 }
@@ -175,15 +172,11 @@ export function bindPay(a, ev) {
   act("[data-cr]", b => { dr.cost.splice(+b.dataset.cr, 1); });
   act("[data-wp]", b => { const w = dr.who[b.dataset.wp]; w.pays = !w.pays; });
   act("[data-wm]", b => { const [g, m] = b.dataset.wm.split("|"); dr.who[g].mode = m; });
-  // Uložení nastavení bez uzavření: evcash + odstranění starých polí z dokumentu události (jedna dávka)
+  // Uložení nastavení bez uzavření (jen dokument evcash)
   const es = a.querySelector("#ces");
   if (es) es.onclick = () => {
     sync();
-    const cx = {...fromDraft()}, b = S.db.batch();
-    b.set("evcash/" + ev.id, cx);
-    const old = cleanFields(ev.raw);
-    if (Object.keys(old).length) b.merge(evPath(ev), old);
-    b.commit();
+    S.db.doc("evcash/" + ev.id).set({...fromDraft()});
     toast("Nastavení uloženo");
   };
   // Uzavření vyúčtování (jedna atomická dávka v settleEvent)
@@ -204,7 +197,7 @@ export function bindPay(a, ev) {
       S.cf = null;
       const cx = {...(ev.cx || {})};
       delete cx.settle;
-      S.db.batch().set("evcash/" + ev.id, cx).merge(evPath(ev), cleanFields(ev.raw, {ss: "__del"}))
+      S.db.batch().set("evcash/" + ev.id, cx).merge(evPath(ev), {ss: "__del"})
         .set("audit/" + uid(), auditDoc(ev.id, "reopen", "ruční znovuotevření vyúčtování")).commit();
       dr = null;
       toast("Vyúčtování znovu otevřeno");
