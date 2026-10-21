@@ -1,22 +1,24 @@
 /* Datová vrstva: Firebase (Firestore + přihlášení přes Google).
    Rozhraní `db` zůstává stejné jako dřív (collection/doc, set, add, delete, onSnapshot) a přibyl batch() pro atomické zápisy
-   (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = událost + předpisy + audit). Struktura: Importy -> Konstanty a stav
+   (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit), merge pro částečné změny dokumentu
+   a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy. Struktura: Importy -> Konstanty a stav
    -> Pomocné funkce -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy a migrace -> Exporty. */
 
 // ===== Importy =====
 import {downloadFile, esc, toast} from "../core/utils.js";
-import {cashCfg, migratePlan} from "../domain/cash.js";
+import {cashCfg, migratePlan, movePlan} from "../domain/cash.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v17.1 · 21. 10. 2026";
+const VERSION = "v17.2 · 21. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým, payments = staré platby (jen pro migraci),
-// charges = předpisy, cash = pokladna (příjmy a výdaje), audit = záznamy o uzavření, znovuotevření vyúčtování a stornech)
-const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "payments", "charges", "cash", "audit"];
+// charges = předpisy, cash = pokladna (příjmy a výdaje), audit = záznamy o uzavření, znovuotevření, výjimkách a stornech,
+// evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události zůstává jen příznak ss))
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "payments", "charges", "cash", "audit", "evcash"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
 
@@ -50,6 +52,19 @@ function listen(c) {
     fire(c);
   }, err => subs[c].forEach(s => s.er && s.er(err)));
 }
+// Filtrovaný poslech (člen čte jen své předpisy): výsledky více dotazů téže kolekce se sloučí; odběrateli se vrací sjednocení
+const parts = {};
+function listenWhere(c, f, v, cb, er) {
+  const key = f + "=" + v;
+  onSnapshot(query(fsCol(fs, c), where(f, "==", v)), snap => {
+    const m = {};
+    snap.docs.forEach(d => { m[d.id] = d.data(); });
+    (parts[c] = parts[c] || {})[key] = m;
+    data[c] = Object.assign({}, ...Object.values(parts[c]));
+    first[c] = true;
+    try { cb(view(c)); } catch (e) { console.error(e); }
+  }, err => er && er(err));
+}
 const view = c => ({docs: Object.entries(data[c]).map(([id, d]) => ({id, data: () => clone(d)}))});
 function fire(c) { subs[c].forEach(s => { try { s.cb(view(c)); } catch (e) { console.error(e); } }); }
 function subscribe(c, cb, er) {
@@ -65,21 +80,26 @@ function writeDoc(c, id, d) { setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say(
 function canDelete(c, id) {
   if (c !== "matches" && c !== "events") return true;
   const d = data[c][id] || {};
-  if (d.settle && !isCash()) { say("Vyúčtovanou událost smaže jen trenér nebo pokladník"); return false; }
+  const settled = !!(d.ss || d.settle || (data.evcash[id] || {}).settle);   // ss = příznak vyúčtování (v17.2), settle = starý tvar
+  if (settled && !isCash()) { say("Vyúčtovanou událost smaže jen trenér nebo pokladník"); return false; }
   const open = Object.values(data.charges).filter(x => x.eid === id && (+x.amt || 0) - (+x.paid || 0) > 0.0001).length;
-  if (d.settle && open) { say("Událost má " + open + " nezaplacených předpisů. Nejdřív je uhraď, nebo vyúčtování znovu otevři."); return false; }
+  if (settled && open) { say("Událost má " + open + " nezaplacených předpisů. Nejdřív je uhraď, nebo vyúčtování znovu otevři."); return false; }
   return true;
 }
 function removeDoc(c, id) {
   if (!canDelete(c, id)) return;
   // S událostí se smažou její předpisy bez úhrady (předpisy se zaplacenou částí zůstávají jako historie)
   if (c === "matches" || c === "events") Object.entries(data.charges).filter(([, x]) => x.eid === id && !(+x.paid > 0)).forEach(([cid]) => removeDoc("charges", cid));
+  // Vyúčtování události (evcash) se maže spolu s ní
+  if ((c === "matches" || c === "events") && isCash() && data.evcash[id]) deleteDoc(fsDoc(fs, "evcash", id)).catch(() => {});
   deleteDoc(fsDoc(fs, c, id)).catch(e => say("Smazání se nepovedlo: " + errTxt(e)));
 }
 // Dávka zápisů (atomicky): b.set("kolekce/id", data).delete("kolekce/id").commit()
 function makeBatch() {
   const b = writeBatch(fs), api = {
     set: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), clone(d)); return api; },
+    // Částečná změna dokumentu; hodnota "__del" smaže pole
+    merge: (p, d) => { const [c, id] = splitPath(p), o = {}; Object.entries(d).forEach(([k, v]) => { o[k] = v === "__del" ? deleteField() : clone({v}).v; }); b.set(fsDoc(fs, c, id), o, {merge: true}); return api; },
     delete: p => { const [c, id] = splitPath(p); b.delete(fsDoc(fs, c, id)); return api; },
     commit: () => b.commit().catch(e => say("Uložení se nepovedlo: " + errTxt(e)))
   };
@@ -89,6 +109,7 @@ function makeBatch() {
 const db = {
   collection: c => ({
     onSnapshot: (cb, er) => subscribe(c, cb, er),
+    where: (f, v) => ({onSnapshot: (cb, er) => listenWhere(c, f, v, cb, er)}),
     add: async d => { const id = fsDoc(fsCol(fs, c)).id; writeDoc(c, id, d); return {id}; }
   }),
   doc: p => {
@@ -200,7 +221,8 @@ function openCfg() {
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Členy s rolí Trenér spravuje jen trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option>' : ""}<option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><select id="cmp" style="display:none"><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>
- <h3>Migrace do pokladny (v17.0)</h3><div class="mu" style="margin-bottom:8px">Převede hráčky (platba → skupina + fx), události (cena → náklady) a staré platby na předpisy a příjmy v pokladně. Bezpečné spustit opakovaně.</div><button class="d w" id="cmg">Spustit migraci</button>` : ""}
+ <h3>Migrace do pokladny (v17.0)</h3><div class="mu" style="margin-bottom:8px">Převede hráčky (platba → skupina + fx), události (cena → náklady) a staré platby na předpisy a příjmy v pokladně. Bezpečné spustit opakovaně.</div><button class="d w" id="cmg">Spustit migraci</button>
+ <h3>Přesun dat pokladny (v17.2)</h3><div class="mu" style="margin-bottom:8px">Přesune náklady a vyúčtování událostí ze zápasů a tréninků do chráněné kolekce, kterou čtou jen trenér a pokladník (ostatní členy týmu už náklady neuvidí). Spusť po nasazení nových pravidel databáze. Bezpečné spustit opakovaně.</div><button class="d w" id="cmv">Přesunout data pokladny</button>` : ""}
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close; q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
@@ -242,6 +264,11 @@ function openCfg() {
     if (!pendingImport) return say("Nejdřív vyber soubor.");
     if (!armed) { armed = true; q("#cr").textContent = "Opravdu nahradit? Klepni znovu"; return; }
     try { await importData(pendingImport, true); say("Data nahrazena"); close(); } catch (e) { say(errTxt(e)); }
+  };
+  let armedV = false;
+  q("#cmv").onclick = async () => {
+    if (!armedV) { armedV = true; q("#cmv").textContent = "Opravdu přesunout? Klepni znovu"; return; }
+    try { const n = await moveCash(); say(n ? "Přesun hotový (" + n + " zápisů)" : "Není co přesouvat"); close(); } catch (e) { say(errTxt(e)); }
   };
   let armedM = false;
   q("#cmg").onclick = async () => {
@@ -297,6 +324,15 @@ async function migrateCash() {
   if (["players", "matches", "events", "payments", "settings", "charges", "cash"].some(c => !first[c])) throw new Error("Data se ještě načítají, zkus to za chvíli.");
   const ops = migratePlan(data, cashCfg((data.settings || {}).cash), stamp());
   if (ops.length) ops.push(["set", "audit", "mig_" + Date.now(), {ts: new Date().toISOString(), by: user.email, eid: "", act: "migrace", note: ops.length + " zápisů"}]);
+  await commitOps(ops);
+  return ops.length;
+}
+
+// Přesun polí pokladny z dokumentů událostí a zápasů do evcash (v17.2; jen správce pokladny); idempotentní
+async function moveCash() {
+  if (["matches", "events", "evcash"].some(c => !first[c])) throw new Error("Data se ještě načítají, zkus to za chvíli.");
+  const ops = movePlan(data);
+  if (ops.length) ops.push(["set", "audit", "mv_" + Date.now(), {ts: new Date().toISOString(), by: user.email, eid: "", act: "přesun", note: ops.length + " zápisů do evcash"}]);
   await commitOps(ops);
   return ops.length;
 }

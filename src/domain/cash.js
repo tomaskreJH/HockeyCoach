@@ -102,7 +102,7 @@ export function cashCfg(r) {
 export const tplFor = (type, home) => (type === "match" ? (home === false ? "away" : "home") : "train");
 // Efektivní nastavení události: uložená pole (tpl, cost, who, due), jinak výchozí šablona podle typu
 export function evCash(ev, cfg) {
-  const r = ev.raw, tk = r.tpl || tplFor(ev.type, r.home), t = cfg.tpls[tk] || cfg.tpls[tplFor(ev.type, r.home)] || DEF_TPL.train;
+  const r = ev.cx || {}, home = (ev.raw || {}).home, tk = r.tpl || tplFor(ev.type, home), t = cfg.tpls[tk] || cfg.tpls[tplFor(ev.type, home)] || DEF_TPL.train;
   const who = cl(r.who || t.who);
   Object.keys(WHO).forEach(g => { if (!who[g]) who[g] = {pays: false, mode: "calc", flat: 0}; });
   return {tpl: tk, cost: cl(r.cost || t.cost), who, due: r.due || ""};
@@ -110,6 +110,45 @@ export function evCash(ev, cfg) {
 export const costTotal = r => sum(r.cost, x => x.amt);
 // Pole pokladny v dokumentu události (zachovají se při úpravě tréninku)
 export const cashKeep = r => { const o = {}; ["tpl", "cost", "who", "due", "settle"].forEach(k => { if (r[k] != null) o[k] = r[k]; }); return o; };
+// Pole pokladny události: od v17.2 v kolekci evcash/{eid} (čtou jen správci); do přesunu se čtou ještě ze starého dokumentu události
+export const CX_KEYS = ["tpl", "cost", "who", "due", "settle"];
+export function cxOf(id, raw, ec) {
+  const c = (ec || []).find(x => x.id === id);
+  if (c) { const o = {...c}; delete o.id; return o; }
+  return cashKeep(raw || {});
+}
+// Dluh osoby (ids = její pid / tid): předpisy, dluh, část po splatnosti a blokace přihlášení „Jdu“ (po splatnosti a bez výjimky exc)
+export function debtOf(ch, ids) {
+  const items = (ch || []).filter(x => ids.includes(x.mid));
+  let debt = 0, over = 0, blocked = false;
+  items.forEach(x => {
+    const r = restOf(x);
+    if (r > 0) { debt += r; if (overdue(x)) { over += r; if (!x.exc) blocked = true; } }
+  });
+  return {items, debt: r2(debt), over: r2(over), blocked};
+}
+// Variabilní symbol unikátní mezi předpisy: při shodě hashe se zvyšuje o 1 (nejvýše 10 číslic)
+export function uniqVs(id, taken) {
+  let n = +vsOf(id);
+  while (taken.has(String(n))) n = (n + 1) % 4294967296;
+  return String(n);
+}
+// QR platba v českém formátu SPD (zpráva jen ASCII bez znaku *)
+export const asciiMsg = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "").slice(0, 60).trim();
+export const spdPay = (iban, amt, vs, msg) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + vs + (asciiMsg(msg) ? "*MSG:" + asciiMsg(msg) : "");
+// Přesun polí pokladny z dokumentů událostí a zápasů do evcash (v17.2). Dokument události dostane příznak ss, pokud byl vyúčtován.
+export function movePlan(data) {
+  const ops = [];
+  ["events", "matches"].forEach(c => Object.entries(data[c] || {}).forEach(([id, d]) => {
+    if (!CX_KEYS.some(k => d[k] != null)) return;
+    const cx = {}, o = {...d};
+    CX_KEYS.forEach(k => { if (d[k] != null) cx[k] = d[k]; delete o[k]; });
+    if (d.settle) o.ss = 1;
+    if (!(data.evcash || {})[id]) ops.push(["set", "evcash", id, cx]);
+    ops.push(["set", c, id, o]);
+  }));
+  return ops;
+}
 
 // ===== Výpočet předpisů =====
 // c = {cost, who}; P = přihlášené hráčky (objekty, bez brankářek). Vrací řádky po hráčkách a součty.
@@ -127,11 +166,14 @@ export function calcCash(c, P) {
 
 // ===== Předpisy (charges) =====
 // have = stávající předpisy události podle mid. Zaplacená částka se zachová; nezaplacené předpisy hráček, které už neplatí, se smažou.
-export function planCharges(eid, k, due, have) {
+export function planCharges(eid, k, due, have, all) {
   const set = [], del = [], keep = new Set(k.payers.map(x => x.pid));
+  const taken = new Set((all || []).map(c => c.vs).filter(Boolean));   // už použité variabilní symboly
   k.payers.forEach(x => {
     const id = chargeId(eid, x.pid), o = have[x.pid];
-    set.push({id, d: {eid, mid: x.pid, amt: x.amt, paid: o ? (+o.paid || 0) : 0, due, kind: "event", vs: vsOf(id)}});
+    let vs = o && o.vs;
+    if (!vs) { vs = uniqVs(id, taken); taken.add(vs); }
+    set.push({id, d: {eid, mid: x.pid, amt: x.amt, paid: o ? (+o.paid || 0) : 0, due, kind: "event", vs, ...(o && o.exc ? {exc: true} : {})}});
   });
   Object.values(have).forEach(o => { if (!keep.has(o.mid) && !(+o.paid > 0)) del.push(chargeId(eid, o.mid)); });
   return {set, del};

@@ -1,6 +1,7 @@
 // Přehled plateb a dlužných částek (trenér a pokladník): režim „💰 Platby“ v záložce Události.
 // Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení (souhrn, po hráčkách, po událostech) -> Eventy.
 // Data: kolekce charges (S.ch); událost se bere ze seznamu předaného z events.js (tréninky + zápasy).
+// Výjimka z blokace „Jdu“ se uděluje u předpisu po splatnosti (tlačítko 🔒).
 // Dluh = součet nezaplacených zbytků předpisů hráčky. Úhrada (částečná i plná) se zapisuje přes okno úhrady z payments.js.
 
 // ===== Importy =====
@@ -9,7 +10,7 @@ import {S} from "../core/state.js";
 import {esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {costTotal, fmtDue, kc, ledger, overdue, restOf} from "../domain/cash.js";
-import {openPay, payCharge} from "./payments.js";
+import {openPay, payCharge, toggleExc} from "./payments.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
@@ -36,9 +37,9 @@ export function financeHtml(evs, AT) {
   const tabs = `<div class="chips"><button class="chip ${vw === "pl" ? "on" : ""}" data-fv="pl">Podle hráček</button><button class="chip ${vw === "ev" ? "on" : ""}" data-fv="ev">Podle událostí</button></div>`;
 
   // Uplynulé události s náklady, které ještě nemají uzavřené vyúčtování
-  const unset = past.filter(e => costTotal(e.raw) > 0 && !e.raw.settle).sort(desc);
+  const unset = past.filter(e => costTotal(e.cx || {}) > 0 && !e.raw.ss && !(e.cx || {}).settle).sort(desc);
   const unsetH = unset.length
-    ? `<div class="cd"><h2>⚠️ Neuzavřená vyúčtování (${unset.length})</h2><div class="mu" style="margin-bottom:6px">Mají náklady, ale vyúčtování zatím není uzavřeno. Otevři událost a uzavři ho.</div>${unset.map(e => `<div class="it" data-fe="${e.id}"><div><b>${icon(e)} ${esc(e.title)}</b><div class="mu">${fd(e.date)} · náklady ${kc(costTotal(e.raw))}</div></div><span class="tag sh">neuzavřeno</span></div>`).join("")}</div>`
+    ? `<div class="cd"><h2>⚠️ Neuzavřená vyúčtování (${unset.length})</h2><div class="mu" style="margin-bottom:6px">Mají náklady, ale vyúčtování zatím není uzavřeno. Otevři událost a uzavři ho.</div>${unset.map(e => `<div class="it" data-fe="${e.id}"><div><b>${icon(e)} ${esc(e.title)}</b><div class="mu">${fd(e.date)} · náklady ${kc(costTotal(e.cx || {}))}</div></div><span class="tag sh">neuzavřeno</span></div>`).join("")}</div>`
     : "";
 
   let body;
@@ -52,7 +53,7 @@ export function financeHtml(evs, AT) {
       let h = `<div class="it" data-fo="${r.pid}"><div><b>${pn(r.pid)}</b><div class="mu">Účast ${att} z ${past.length} uplynulých · nezaplaceno ${r.open}× · zaplaceno ${kc(r.paid)}</div></div><b style="color:${r.debt ? "var(--no)" : "var(--ok)"}">${r.debt ? kc(r.debt) : "✅ 0 Kč"}</b></div>`;
       if (open === r.pid) {
         const items = r.items.map(x => ({x, e: byId[x.eid]})).sort((a, b) => desc(a.e, b.e));
-        h += `<div style="padding:0 0 10px 8px;border-bottom:1px solid var(--bd)">${items.map(({x, e}) => `<div class="pr"><div>${icon(e)} ${esc(e.title)}<div class="mu">${fd(e.date)} · ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}</div></div><div class="evq">${restOf(x) > 0 ? `<button data-fp="${x.id}" style="min-width:150px">💳 Zaplatit ${kc(restOf(x))}</button>` : '<button class="on-yes" disabled style="min-width:150px">✅ Zaplaceno</button>'}</div></div>`).join("")}${r.open ? `<button class="${S.cf === key ? "d" : "p"} w" data-fa="${r.pid}" style="margin-top:10px;min-height:48px;${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu? Klepni znovu" : "✅ Zaplatila vše (" + r.open + "×, " + kc(r.debt) + ")"}</button>` : ""}</div>`;
+        h += `<div style="padding:0 0 10px 8px;border-bottom:1px solid var(--bd)">${items.map(({x, e}) => `<div class="pr"><div>${icon(e)} ${esc(e.title)}<div class="mu">${fd(e.date)} · ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}</div></div><div class="evq">${restOf(x) > 0 ? `<button data-fp="${x.id}" style="min-width:150px">💳 Zaplatit ${kc(restOf(x))}</button>` : '<button class="on-yes" disabled style="min-width:150px">✅ Zaplaceno</button>'}${overdue(x) ? `<button data-fx="${x.id}" style="min-width:150px">${x.exc ? "🔓 Zrušit výjimku" : "🔒 Dát výjimku z blokace"}</button>` : ""}</div></div>`).join("")}${r.open ? `<button class="${S.cf === key ? "d" : "p"} w" data-fa="${r.pid}" style="margin-top:10px;min-height:48px;${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu? Klepni znovu" : "✅ Zaplatila vše (" + r.open + "×, " + kc(r.debt) + ")"}</button>` : ""}</div>`;
       }
       return h;
     }).join("") : `<div class="msg">${all ? "Zatím žádné předpisy." : "Nikdo nedluží. 🎉"}</div>`}<div class="mu" style="margin-top:8px">Zobrazují se jen hráčky s předpisem. Klepnutím na hráčku rozbalíš její předpisy, tlačítkem 💳 zapíšeš celou nebo částečnou úhradu.</div></div>`;
@@ -74,6 +75,8 @@ export function bindFinance(a) {
   a.querySelectorAll("[data-fo]").forEach(b => b.onclick = () => { open = open === b.dataset.fo ? null : b.dataset.fo; render(); });
   // Úhrada jednoho předpisu: okno s částkou (celá nebo částečná)
   a.querySelectorAll("[data-fp]").forEach(b => b.onclick = ev => { ev.stopPropagation(); openPay(b.dataset.fp); });
+  // Výjimka z blokace přihlášení „Jdu“ (předpis po splatnosti)
+  a.querySelectorAll("[data-fx]").forEach(b => b.onclick = ev => { ev.stopPropagation(); toggleExc(b.dataset.fx); });
   // Zaplatila vše: potvrzení druhým klepnutím, každý předpis se uhradí celý
   a.querySelectorAll("[data-fa]").forEach(b => b.onclick = () => {
     const pid = b.dataset.fa, key = "fa" + pid;

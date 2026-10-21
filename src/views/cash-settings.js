@@ -68,7 +68,8 @@ function bind(e) {
   act("[data-wm]", b => { const [g, m] = b.dataset.wm.split("|"); D.tpls[sel].who[g].mode = m; });
   act("[data-tn]", () => { const k = "t_" + uid(), c = clone(D.tpls[sel]); c.name = "Nová šablona"; D.tpls[k] = c; sel = k; });
   q("[data-td]").forEach(b => { b.onclick = () => { sync(e); if (arm) { delete D.tpls[sel]; sel = "train"; arm = false; } else arm = true; draw(); }; });
-  q("#csx").onclick = q("#csx2").onclick = close;
+  // Tlačítka Zavřít (každému tlačítku zvlášť; q() vrací seznam uzlů)
+  q("#csx, #csx2").forEach(b => { b.onclick = close; });
   q("#css")[0].onclick = () => {
     sync(e);
     const iban = D.iban.replace(/\s+/g, "").toUpperCase();

@@ -70,4 +70,5 @@ $("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}};
 }
 
 // ===== Obsluha přepínačů (data-v) =====
-export function bindV(sync){$("#mod").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{sync&&sync();const k=b.dataset.v,v=b.dataset.val;S.M[k]=k==="home"||k==="ot"?v==="1":(["per","min","plen"].includes(k)?+v:v);if(k==="team"&&S.M.k==="P")S.M.pid=null;modal()})}
+// Přepínač délky třetiny (plen) se ukládá do pole perLen, které čte vytvoření zápasu
+export function bindV(sync){$("#mod").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{sync&&sync();const k=b.dataset.v,v=b.dataset.val,t=k==="plen"?"perLen":k;S.M[t]=k==="home"||k==="ot"?v==="1":(["per","min","plen"].includes(k)?+v:v);if(k==="team"&&S.M.k==="P")S.M.pid=null;modal()})}

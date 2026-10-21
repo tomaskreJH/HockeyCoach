@@ -3,7 +3,7 @@
 
 // ===== Konstanty =====
 // Název cache se mění s každou verzí, aby se stará kopie aplikace zahodila (v30 = verze 17.1)
-const C = "hokej-v30", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const C = "hokej-v31", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/";
 
 // ===== Instalace a aktivace =====

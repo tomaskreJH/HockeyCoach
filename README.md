@@ -20,6 +20,7 @@ HockeyCoach/
 │ ├─ data/
 │ │ ├─ storage.js datová vrstva: Firebase (Firestore + přihlášení Google), role, propojení účtu s hráčkou / členem týmu, dávkové zápisy, kontrola mazání vyúčtovaných událostí, záloha/obnova, migrace, okno ⚙️
 │ │ └─ firebase-config.js nastavení Firebase projektu (vyplnit vlastními hodnotami)
+│ ├─ lib/qrcode.js knihovna qrcode-generator 1.4.4 (MIT) převedená na ES modul; QR kód se generuje lokálně v zařízení
 │ ├─ domain/ pravidla hry a výpočty bez DOM
 │ │ ├─ lineup.js nominace, náhradnice, způsobilost ke spuštění živého zápisu, synchronizace živého stavu se sestavou
 │ │ ├─ live-engine.js čas, střídání a rotace, tresty podle IIHF, jednotky PP/OS, formace při oslabení, kontrola invariantů front
@@ -33,6 +34,7 @@ HockeyCoach/
 │ ├─ payments.js pokladna u události (náklady, kdo platí, atomické uzavření vyúčtování, okno úhrady)
 │ ├─ finance.js přehled plateb a dluhů za všechny události (po hráčkách, po událostech, nevyúčtované události)
 │ ├─ cashbook.js pokladna: zůstatek, vklady, výdaje, součty podle kategorií, seznam pohybů, storno
+│ ├─ mine.js Moje platby (předpisy člena, dluh, QR platba) a banner s upozorněním na dluh
 │ ├─ cash-settings.js nastavení pokladny (IBAN, příspěvek, splatnosti, kategorie, šablony)
 │ ├─ lineup-editor.js live.js live-quick.js report.js
 │ └─ editor.js shift-editor.js opravy zápisu (události, třetiny, střídání, základ)
@@ -101,17 +103,17 @@ Horní menu je **Události · Team · Statistiky · Soupeři** (hráčka vidí j
 - **Detail události:** souhrn (jdou / nejistí / nejdou / bez odpovědi), seznam všech aktivních hráček podle pozic a realizačního týmu s odpovědí, důvodem a tlačítky pro změnu (trenér tak zapíše odpověď za kohokoli, hráčka jen za sebe), u trenéra a pokladníka karta Pokladna. Trénink lze upravit nebo smazat (smaže i odpovědi; vyúčtovaný trénink viz „Mazání událostí“).
 - **Trénink – rozdělení do pětek:** v detailu tréninku jsou hráčky, které jdou (bez brankářek). Každé se jedním klepnutím přiřadí 1.–4. pětka (barvy jako v živém zápisu: modrá, žlutá, zelená, růžová) nebo „–“. Tlačítko **↻ Podle základní formace** rozdělí přihlášené hráčky podle základní formace v záložce Team (partnerky z rotace patří do téže pětky); **Vymazat** rozdělení zruší. Hráčka vidí rozdělení jen ke čtení.
 
-## Pokladna (v17.0 F1, v17.1 F2)
-Fáze: **F1** osoby, nastavení, výpočet a uzavření vyúčtování, migrace · **F2** úhrady, vklady, výdaje, kategorie, zůstatek · F3 Moje pokladna, upozornění, splatnost, blokace, QR · F4 měsíční příspěvky, platy trenérů, přehled hospodaření, CSV.
+## Pokladna (v17.0 F1, v17.1 F2, v17.2 F3)
+Fáze: **F1** osoby, nastavení, výpočet a uzavření vyúčtování, migrace · **F2** úhrady, vklady, výdaje, kategorie, zůstatek · **F3** Moje platby, upozornění na dluh, splatnost, blokace „Jdu“, výjimky, QR platba, oddělení nákladů do chráněné kolekce · F4 měsíční příspěvky, platy trenérů, přehled hospodaření, CSV.
 
 ### Osoby a nastavení (F1)
 - **Osoby:** `players` má pole `grp` (`monthly`|`single`), `fx` (0, 0.5, 1; výchozí 1) a `note`. Brankářky a realizační tým neplatí. `staff.pay` = `{m:"none"|"month"|"event", amt}` (využije F4). Nahrazuje staré pole `pay`.
 - **Nastavení:** ⚙️ → Nastavení pokladny, dokument `settings/cash`: `iban`, `contrib`, `due{ev, cm}`, `cats{in, out}`, `tpls`. Výchozí šablony: Pravidelný trénink, Mimořádný trénink, Domácí zápas, Venkovní zápas (bez vyúčtování hráčkám). Vlastní šablony mají klíč `t_…`.
-- **Událost:** pole `tpl`, `cost[{cat,payee,amt}]`, `who{monthly,single,exempt}` (každá skupina `{pays, mode:"calc"|"flat", flat}`), `due`, `settle` (snapshot).
+- **Vyúčtování události (od v17.2 v kolekci `evcash/{eventId}`):** `tpl`, `cost[{cat,payee,amt}]`, `who{monthly,single,exempt}` (každá skupina `{pays, mode:"calc"|"flat", flat}`), `due`, `settle` (snapshot). V dokumentu události nebo zápasu zůstává jen příznak `ss: 1` (vyúčtováno). Do přesunu migrací (viz níže) se pole čtou ještě ze starého dokumentu události.
 - **Výpočet:** cena = (součet nákladů ÷ všechny přihlášené hráčky v poli, bez brankářek a realizačního týmu, osvobozené se počítají) nebo pevná částka, × fx, zaokrouhleno nahoru na Kč. Před uzavřením se zobrazí „vybereme X z Y“.
 - **Uzavření:** vznikne snapshot a `charges/{eid}_{mid}` `{eid, mid, amt, paid, due, kind, vs}`. `paid` je zaplacená částka. **Od v17.1 je uzavření jedna atomická dávka** (dokument události + předpisy + audit). Po uzavření nikdy žádný automatický přepočet. „Znovu otevřít → upravit → uzavřít“ je jen ručně, loguje se do `audit` (znovuotevření je rovněž jedna dávka). Uzavření zápasu uzavře vyúčtování automaticky jen u trenéra a pokladníka a jen pokud vzniká aspoň jeden předpis.
 - **Splatnost:** `due` události, jinak datum události + N dní (šablona nebo výchozí 3), 23:59.
-- **VS:** číselný hash id předpisu (kontrola unikátnosti přijde s QR ve F3).
+- **VS:** číselný hash id předpisu; od v17.2 je unikátní mezi všemi předpisy (při shodě se zvyšuje o 1).
 
 ### Úhrady, vklady a výdaje (F2)
 - **Úhrada předpisu:** tlačítko 💳 u předpisu (v detailu uzavřené události i v Událostech → 💰 Platby) otevře okno s částkou (výchozí celý zbytek). Částka musí být kladná a nejvýše zbývající dluh; je možná **částečná úhrada**. Zapíše se v jedné dávce (`writeBatch`): nový pohyb `cash` (`k:"in"`, kategorie Platby za události, `cid` = id předpisu) a nová `charges.paid`. Zámek proti dvojímu klepnutí brání dvojímu příjmu. Tlačítko „✅ Zaplatila vše“ uhradí všechny otevřené předpisy hráčky celé.
@@ -121,11 +123,20 @@ Fáze: **F1** osoby, nastavení, výpočet a uzavření vyúčtování, migrace 
 - **Mazání událostí:** událost nebo zápas s uzavřeným vyúčtováním smaže jen trenér nebo pokladník, a to teprve když nemá nezaplacené předpisy (jinak úhrada, nebo „Znovu otevřít“). Při smazání se smažou předpisy bez úhrady; předpisy s částečnou či plnou úhradou zůstanou jako historie (v přehledu dluhů se přeskočí). Kontrolu provádí `canDelete` v `storage.js` pro všechna místa, odkud se událost maže.
 - **Viditelnost:** náklady událostí (💰) vidí v seznamu a detailu jen trenér a pokladník.
 
+### Moje platby, blokace a QR (F3, v17.2)
+- **Moje platby:** záložka vidí každý, kdo má v účtu propojenou hráčku (`pid`) nebo člena týmu (`tid`). Člen vidí jen své předpisy (databáze mu cizí nepustí, aplikace je čte dotazem `charges` s `mid` = jeho id): dluh, část po splatnosti, zaplaceno a u každého neuhrazeného předpisu tlačítko **📱 Zaplatit (QR)**.
+- **Upozornění:** v Událostech se při dluhu zobrazí červený banner s odkazem na Moje platby.
+- **QR platba:** formát SPD (české QR platby), `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:CZK*X-VS:<VS>*MSG:<zpráva bez diakritiky>`. IBAN se nastavuje v ⚙️ → Nastavení pokladny. QR se generuje lokálně (`src/lib/qrcode.js`), nic se neposílá na internet. Částka je zbývající dluh předpisu. Zaplacení se do aplikace dostane, až pokladník zapíše úhradu.
+- **Blokace „Jdu“:** kdo má neuhrazený předpis **po splatnosti** bez výjimky, nemůže se přihlásit „Jdu“ (odhlášení a „Nejdu“ fungují). Blokace platí pro vlastní přihlašování člena; trenér a pokladník zapisují vždy. Je to kontrola v aplikaci, pravidla databáze ji nevynucují. Po zaplacení se blokace zruší sama.
+- **Výjimka z blokace:** pokladník nebo trenér ji dá tlačítkem 🔒 u předpisu po splatnosti (v detailu uzavřené události i v Platby → hráčka). Předpis dostane `exc: true`, zrušení tlačítkem 🔓. Výjimka se zapisuje do `audit` (`exc`, `exc-off`).
+- **Oddělení citlivých dat:** náklady a vyúčtování událostí jsou v kolekci `evcash` (čtou a zapisují jen trenér a pokladník). Hráčky ani kustod je z databáze nepřečtou. V dokumentu události zůstává jen `ss` kvůli značce „vyúčtováno“ a ochraně před smazáním.
+
 ### Datový model pokladny
-- **`charges/{eid}_{mid}`:** `{eid, mid, amt, paid, due, kind:"event"|"contrib"|"other", vs}`; předpis čte jeho vlastník (`mid` = jeho `pid`/`tid`) a správci.
+- **`evcash/{eventId}`:** `{tpl, cost, who, due?, settle?}` (viz výše); jen správci pokladny.
+- **`charges/{eid}_{mid}`:** `{eid, mid, amt, paid, due, kind:"event"|"contrib"|"other", vs, exc?}`; předpis čte jeho vlastník (`mid` = jeho `pid`/`tid`) a správci.
 - **`cash/{id}`:** `{d:"YYYY-MM-DD", k:"in"|"out", amt, cat, mid?, cid?, eid?, note, by}`; čtou a zapisují jen správci. Zůstatek = součet `in` − součet `out`.
-- **`audit/{id}`:** `{ts, by, eid, act:"close"|"reopen"|"storno"|"migrace", note}`; jen přidávání, čtou správci. Při obnově ze zálohy se `audit` přeskakuje.
-- Kolekce `charges`, `cash` a `audit` jsou součástí zálohy JSON, ale jen ty, které se v zařízení načetly (kustod je nenačítá).
+- **`audit/{id}`:** `{ts, by, eid, act:"close"|"reopen"|"storno"|"exc"|"exc-off"|"migrace"|"přesun", note}`; jen přidávání, čtou správci. Při obnově ze zálohy se `audit` přeskakuje.
+- Kolekce `charges`, `cash`, `audit` a `evcash` jsou součástí zálohy JSON, ale jen ty, které se v zařízení načetly (kustod je nenačítá).
 
 ### Propojení hráčky s účtem (trenér)
 1. Hráčka musí být v soupisce (Team → Soupiska).
@@ -150,11 +161,12 @@ Fáze: **F1** osoby, nastavení, výpočet a uzavření vyúčtování, migrace 
 - Pokud pravidla databáze kolekce nepovolí, aplikace běží dál (zápasy, živý zápis…) a v záložce Události se zobrazí červená hláška s kódem chyby.
 
 ### Pravidla databáze (`firestore.rules`)
-Aktuální pravidla jsou v souboru `firestore.rules` (vlož do *Firestore → Rules → Publish*). **Verze 17.1 pravidla nemění, stačí mít publikovaná pravidla z v17.0.** Shrnutí:
+Aktuální pravidla jsou v souboru `firestore.rules` (vlož do *Firestore → Rules → Publish*). **Verze 17.2 pravidla mění (kolekce `evcash`, pole `ss`): po nahrání je nutné pravidla znovu publikovat.** Shrnutí:
 - **members/{email}:** čte svůj dokument každý přihlášený člen (trenér a pokladník všechny); zapisuje trenér, pokladník jen členy s jinou rolí než trenér. Pole: `role`, u hráčky `pid`, volitelně `tid` a `cash`.
 - **players:** čtení všichni členové; vytvořit a smazat smí trenér; změnit trenér, kustod jen `st`, pokladník jen `grp`, `fx`, `note`.
 - **staff:** čtení všichni členové, zápis trenér; pokladník jen pole `pay`.
-- **events, matches:** čtení všichni členové, zápis trenér a kustod; pokladník jen pole pokladny (`tpl`, `cost`, `who`, `due`, `settle`).
+- **events, matches:** čtení všichni členové, zápis trenér a kustod; pokladník jen pole `ss` (a pro starší data `tpl`, `cost`, `who`, `due`, `settle`).
+- **evcash:** čtení i zápis jen správci pokladny (trenér, pokladník).
 - **opponents:** čtení všichni členové, zápis trenér a kustod.
 - **settings:** čtení všichni členové; `settings/cash` zapisuje správce pokladny, ostatní nastavení trenér a kustod.
 - **attendance/{eid}_{pid}:** čtení všichni členové; trenér a kustod zapisují za kohokoli; hráčka jen dokument se svým `pid`.
@@ -165,7 +177,7 @@ Aktuální pravidla jsou v souboru `firestore.rules` (vlož do *Firestore → Ru
 - Přihlášení vyžaduje ověřený e-mail Google účtu (`email_verified`).
 
 ### Migrace (po přechodu z v16.3 na v17.x)
-Po nahrání a publikování pravidel spusť jako trenér ⚙️ → **Spustit migraci** (druhým klepnutím). Předtím stáhni zálohu.
+Po nahrání a publikování pravidel spusť jako trenér ⚙️ → **Spustit migraci** (druhým klepnutím), pokud přecházíš z v16.3. Předtím stáhni zálohu.
 - Převede `pay` → `grp`/`fx`, události a zápasy `fee`/`pm` → `cost`/`who`, `payments` → `charges` (+ `cash.in` u zaplacených) a založí `settings/cash`.
 - Je idempotentní. Kolekci `payments` lze po kontrole smazat.
 - **Pozor:** mapování `pm` (`contrib`, `all`, `none`) a `settle` ze starého formátu vychází z odhadu. Před spuštěním ověř proti původnímu `src/domain/payments.js` z v16.3.
@@ -316,10 +328,14 @@ Opravy se hned promítnou do statistik, zápisu i vývoje zápasu.
 ## Když po nahrání nové verze vidíš starou
 Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle názvu nahoře a v ⚙️. Pokud neodpovídá, klepni v ⚙️ na **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstávají v databázi). Při nahrání na web musí být nahrány všechny soubory projektu, včetně `sw.js` a celé složky `src/` (zejména `src/core/table-sort.js`, `src/views/help.js`, `src/views/events.js`, `src/views/payments.js`, `src/views/finance.js`, `src/views/cashbook.js`, `src/views/cash-settings.js` a `src/domain/cash.js`). Soubor `src/domain/payments.js` už neexistuje. Pokud se aplikace zasekne na „Načítám…“, otevři konzoli prohlížeče (F12) – první červená chyba (`SyntaxError` nebo `404`) ukazuje soubor, který se nenahrál nebo je poškozený.
 
+### Přesun dat pokladny (z v17.0 / v17.1 na v17.2)
+Po nahrání v17.2 a publikování nových pravidel spusť jako trenér ⚙️ → **Přesunout data pokladny** (druhým klepnutím). Pole `tpl`, `cost`, `who`, `due`, `settle` se přesunou z dokumentů událostí a zápasů do `evcash/{id}`; vyúčtované události dostanou `ss: 1`. Je idempotentní a bezpečné ho opakovat. Do spuštění aplikace čte data ještě ze starého místa, ale hráčky je do té doby v dokumentech událostí vidí.
+
 ## Co aplikace zatím neumí
 - Vynucení termínu přihlašování v pravidlech databáze (hlídá ho zatím jen aplikace).
-- Oddělení citlivých údajů (důvody nepřítomnosti, snapshot vyúčtování) tak, aby je hráčky nemohly přečíst ani mimo aplikaci.
-- F3: Moje pokladna (člen vidí své předpisy, platby, dluh a QR), upozornění na dluh, blokace přihlášení „Jdu“ po splatnosti, QR platba · F4: měsíční příspěvky, platy trenérů, přehled hospodaření po měsících, CSV export pokladny.
+- Oddělení důvodů nepřítomnosti tak, aby je hráčky nemohly přečíst ani mimo aplikaci (náklady a vyúčtování už oddělené jsou).
+- Vynucení blokace „Jdu“ v pravidlech databáze (hlídá ji jen aplikace).
+- F4: měsíční příspěvky, platy trenérů, přehled hospodaření po měsících, CSV export pokladny.
 - Docházkové statistiky za sezónu mimo počtu účastí v přehledu plateb, opakující se tréninky, upozornění na blížící se termín.
 - Úpravu pohybu pokladny (jen storno a nový zápis).
 - Upozornění na nebezpečné hráčky soupeře podle statistik.
@@ -334,6 +350,12 @@ Prohlížeč si aplikaci ukládá do paměti. Číslo verze vidíš vpravo vedle
 - Nastavení limitu střídání a délky třetiny se pamatuje v každém zařízení zvlášť. Totéž platí pro výběr člena v záložce Události (u trenéra a kustoda).
 
 ## Historie verzí
+- **v17.2 (21. 10. 2026):** modul Pokladna, fáze F3 a opravy hlášených chyb.
+  Nové: `src/views/mine.js` (Moje platby, banner dluhu, QR), `src/lib/qrcode.js` (QR lokálně), kolekce `evcash` (náklady a vyúčtování jen pro správce pokladny).
+  Přepsáno: `src/domain/cash.js` (`cxOf`, `debtOf`, unikátní VS, SPD řetězec, `movePlan`), `src/views/payments.js` (zápis do `evcash`, příznak `ss`, výjimky z blokace), `src/views/events.js` (banner dluhu, blokace „Jdu“, `cx`), `src/views/finance.js`, `src/data/storage.js` (`evcash`, filtrovaný poslech `where`, `merge` v dávce, přesun dat pokladny), `src/main.js`, `src/views/shell.js` (záložka Moje platby), `src/core/state.js`, `firestore.rules` (**publikovat znovu**).
+  Opraveno: výběr délky třetiny u nového zápasu se neukládal (`modal.js`); okno Nastavení pokladny nešlo zavřít (`cash-settings.js`); uzavření zápasu nezastavilo běžící hodiny a statistiky rostly dál (`actions.js`: `strip` zastaví hodiny, `fixClosed` opraví už uzavřené zápasy); náklady a vyúčtování četly všechny členky z dokumentů událostí; variabilní symbol nebyl zaručeně unikátní.
+  Beze změny: střely, góly, tresty, časomíra živého zápisu, `matches.js`. Cache `sw.js` hokej-v31.
+  Po nahrání: publikuj `firestore.rules`, spusť ⚙️ → Přesunout data pokladny. Otevřeno: ověření migrace proti starému `payments.js` z v16.3, nápověda ❓ a návod, F4.
 - **v17.1 (21. 10. 2026):** modul Pokladna, fáze F2 a opravy z kontroly kódu.
   Nové: `src/views/cashbook.js` (zůstatek, vklady, výdaje, součty podle kategorií, pohyby, storno).
   Přepsáno: `src/domain/cash.js` (zůstatek, kategorie, kontrola částky úhrady), `src/views/payments.js` (atomické uzavření i znovuotevření vyúčtování, částečné úhrady, okno úhrady, zámek proti dvojímu klepnutí), `src/views/finance.js` (okno úhrady), `src/views/events.js` (režim 🏦 Pokladna, Platby jen pro správce pokladny, náklady jen pro správce pokladny, kontrola mazání), `src/data/storage.js` (`canDelete`: ochrana vyúčtovaných událostí, mazání předpisů bez úhrady; obnova ze zálohy přeskakuje `audit`), `src/core/utils.js` (hláška nad okny pokladny, z-index 80).

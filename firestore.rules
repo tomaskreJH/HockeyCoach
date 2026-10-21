@@ -17,8 +17,8 @@ service cloud.firestore {
     function myPid() { return get(memberPath()).data.pid; }
     // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
-    // Pole pokladny v dokumentu události / zápasu (smí měnit i pokladník)
-    function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tpl', 'cost', 'who', 'due', 'settle']); }
+    // Pole, která smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno) a odstranění starých polí pokladny z v17.0 a v17.1
+    function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss', 'tpl', 'cost', 'who', 'due', 'settle']); }
 
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
     // Pokladník smí přidávat a měnit členy, jen ne členy s rolí trener
@@ -45,7 +45,7 @@ service cloud.firestore {
       allow update: if isCoach() || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pay']));
     }
 
-    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen pole pokladny =====
+    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss (a odstranit stará pole pokladny) =====
     match /matches/{id} {
       allow read: if isMember();
       allow create, delete: if isStaff();
@@ -59,12 +59,15 @@ service cloud.firestore {
       allow write: if id == 'cash' ? isCash() : isStaff();
     }
 
-    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen pole pokladny =====
+    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen příznak ss =====
     match /events/{id} {
       allow read: if isMember();
       allow create, delete: if isStaff();
       allow update: if isStaff() || (isCash() && cashFieldsOnly());
     }
+
+    // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
+    match /evcash/{id} { allow read, write: if isCash(); }
 
     // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, reason, at, by =====
     // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
@@ -77,6 +80,7 @@ service cloud.firestore {
     }
 
     // ===== Pokladna: předpisy čte vlastník (mid = jeho pid / tid) a správci; příjmy a výdaje a audit jen správci =====
+    // Člen musí předpisy číst dotazem s podmínkou mid == jeho pid / tid (aplikace to dělá)
     match /charges/{id} {
       allow read: if isCash() || ownsMid(resource.data.mid);
       allow write: if isCash();
