@@ -3,10 +3,14 @@
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Pokladna (zůstatek, kategorie, úhrady) -> Nastavení a šablony -> Vyúčtování událostí
 //            -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Měsíční příspěvky (F4) -> Platy (F4) -> Hospodaření po měsících (F4) -> CSV (F4).
 // Pravidla:
-//  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single), fx 0..1 (0 osvobozená, 0.5 částečně, výchozí 1),
+//  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single),
+//  - koeficient fx = individuální podíl z ceny 0..1 (v aplikaci se zadává v procentech 0–100 %, výchozí 100 %),
+//  - osvobozená (ex: true) = zvýhodněná hráčka: v událostech tvoří vlastní skupinu „Osvobozené“ s vlastním nastavením (platí / neplatí,
+//    výpočet / pevná částka) stejně jako ostatní skupiny; u příspěvků je ve výchozím stavu vynechaná (lze ji pro měsíc zahrnout),
 //  - cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx, zaokrouhleno nahoru na celé Kč,
-//  - osvobozené (fx 0) se do dělitele počítají, jen samy neplatí,
-//  - měsíční příspěvek = částka z nastavení × fx, platí ho hráčky ve skupině monthly (ne ukončené, ne brankářky, ne fx 0),
+//  - do dělitele ceny se každá přihlášená hráčka počítá jako jeden celý kus (bez ohledu na skupinu, osvobození i fx),
+//  - měsíční příspěvek = částka z nastavení × fx, platí ho hráčky ve skupině monthly (ne ukončené, ne brankářky, ne fx 0; osvobozené jen po zahrnutí),
+//  - starší data (v17.3 a dříve) označovala osvobozenou hráčku fx 0 bez pole ex: čte se jako osvobozená s fx 100 % (do první úpravy hráčky),
 //  - zůstatek pokladny = součet příjmů (cash.k "in") − součet výdajů (cash.k "out").
 // Migrace z v16.3 a přesun dat do evcash (v17.0–v17.2) jsou hotové a z kódu odstraněné (v17.3).
 
@@ -15,8 +19,9 @@ import {isG, pl} from "../core/selectors.js";
 
 // ===== Konstanty =====
 export const GRP = {monthly: "Příspěvek", single: "Za událost"};
-export const FXV = [[1, "1× (plná)"], [0.5, "0,5× (poloviční)"], [0, "0× (osvobozená)"]];
-export const WHO = {monthly: "Hráčky s příspěvkem", single: "Hráčky platící za událost", exempt: "Osvobozené (fx 0)"};
+// Rychlé volby koeficientu v procentech (zadat jde libovolnou hodnotu 0–100 %)
+export const FX_QUICK = [100, 75, 50, 25, 0];
+export const WHO = {monthly: "Hráčky s příspěvkem", single: "Hráčky platící za událost", exempt: "Osvobozené (zvýhodněné)"};
 export const STAFF_PAY = {none: "Bez platu", month: "Měsíčně", event: "Za událost"};
 export const CATS = {
   in: ["Příspěvky", "Platby za události", "Vklady / dary", "Jiné příjmy"],
@@ -41,11 +46,22 @@ export const r2 = n => Math.round((+n || 0) * 100) / 100;
 export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " Kč";
 // Platné datum ve tvaru RRRR-MM-DD
 export const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")) && !isNaN(new Date(s + "T12:00:00"));
-// Koeficient a skupina hráčky
-export const fxOf = p => { const v = p && p.fx != null ? +p.fx : 1; return v >= 0 && v <= 1 ? v : 1; };
+// Starý tvar osvobozené hráčky (do v17.3): fx 0 a žádné pole ex
+const legacyEx = p => !!p && p.ex == null && p.fx != null && +p.fx === 0;
+// Osvobozená (zvýhodněná) hráčka
+export const exOf = p => !!p && (p.ex === true || legacyEx(p));
+// Koeficient 0..1 (starý tvar osvobozené = 1, tedy 100 %)
+export const fxOf = p => { if (legacyEx(p)) return 1; const v = p && p.fx != null ? +p.fx : 1; return v >= 0 && v <= 1 ? v : 1; };
 export const grpOf = p => (p && p.grp === "single" ? "single" : "monthly");
-// Skupina pro výpočet události: fx 0 = osvobozená
-export const grpKey = p => (fxOf(p) === 0 ? "exempt" : grpOf(p));
+// Skupina pro výpočet události: osvobozená má vlastní skupinu, jinak skupina plateb
+export const grpKey = p => (exOf(p) ? "exempt" : grpOf(p));
+// Koeficient v procentech pro zobrazení ("50 %", "33,3 %") a převod zadaných procent na koeficient 0..1
+export const fxPct = fx => String(Math.round((+fx || 0) * 1000) / 10).replace(".", ",") + " %";
+export function pctToFx(v) {
+  const n = +String(v == null ? "" : v).replace(",", ".").replace("%", "").trim();
+  if (String(v).trim() === "" || isNaN(n)) return null;
+  return Math.round(Math.min(100, Math.max(0, n)) * 10) / 1000;   // přesnost 0,1 %
+}
 // Splatnost: datum události + N dní, 23:59 (formát datetime-local)
 export function defDue(date, days) {
   const d = new Date(date + "T12:00:00");
@@ -158,6 +174,7 @@ export const spdPay = (iban, amt, vs, msg) => "SPD*1.0*ACC:" + String(iban).repl
 
 // ===== Výpočet předpisů =====
 // c = {cost, who}; P = přihlášené hráčky (objekty, bez brankářek). Vrací řádky po hráčkách a součty.
+// Dělitel N = počet všech přihlášených hráček (každá jako jeden celý kus); skupina (i osvobozené) určuje jen, zda a jak platí, fx výši podílu.
 export function calcCash(c, P) {
   const N = P.length, total = sum(c.cost, x => x.amt);
   const lines = P.map(p => {
@@ -212,8 +229,9 @@ export const contribEvent = ym => ({id: contribEid(ym), type: "contrib", title: 
 // Splatnost příspěvku: den v měsíci z nastavení (1–28, předem), 23:59
 export const contribDue = (ym, day) => ym + "-" + p2(Math.min(28, Math.max(1, Math.round(+day) || 1))) + "T23:59";
 // Kdo příspěvek platí: hráčky ve skupině monthly, ne ukončené, ne brankářky, fx > 0. Výchozí částka = příspěvek × fx (nahoru na Kč).
+// Osvobozené hráčky jsou v seznamu také (ex: true), ale ve výchozím stavu se příspěvek nevystavuje (obrazovka je musí zahrnout).
 // players = soupiska, cfg = nastavení pokladny, have = existující předpisy příspěvku za měsíc podle mid.
-// Vrací řádky {pid, fx, amt, has} seřazené podle jména (has = už vystavený předpis).
+// Vrací řádky {pid, fx, ex, amt, has} seřazené podle jména (has = už vystavený předpis).
 export function contribRows(players, cfg, have) {
   const base = +cfg.contrib || 0;
   const pays = (players || []).filter(p => (p.st || "act") !== "end" && !isG(p) && grpOf(p) === "monthly" && fxOf(p) > 0);
@@ -221,7 +239,7 @@ export function contribRows(players, cfg, have) {
   // Hráčky, které už předpis mají (i když mezitím změnily skupinu), se v seznamu ukážou také
   Object.keys(have || {}).forEach(id => { const p = (players || []).find(x => x.id === id); if (p && !ids.has(id)) { pays.push(p); ids.add(id); } });
   return pays.sort((a, b) => (a.name || "").localeCompare(b.name || "", "cs"))
-    .map(p => ({pid: p.id, fx: fxOf(p), amt: ceil(base * fxOf(p)), has: (have || {})[p.id] || null}));
+    .map(p => ({pid: p.id, fx: fxOf(p), ex: exOf(p), amt: ceil(base * fxOf(p)), has: (have || {})[p.id] || null}));
 }
 // Vystavení příspěvků: rows = vybrané řádky {pid, amt}; existující předpisy se nepřepisují (idempotentní). all = všechny předpisy (VS).
 export function contribPlan(ym, rows, cfg, all) {

@@ -13,20 +13,23 @@ import {pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {downloadFile, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_SALARY, STAFF_PAY, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, csvText, fmtDue, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
+import {CAT_SALARY, STAFF_PAY, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, csvText, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
 let ym = null;          // vybraný měsíc "RRRR-MM"
 let yr = null;          // rok v přehledu hospodaření "RRRR"
 let skip = new Set();   // hráčky vynechané z vystavení příspěvků (pid)
+let inc = new Set();    // osvobozené hráčky, kterým se příspěvek za měsíc přesto vystaví (pid); ostatní osvobozené jsou vynechané
 let camt = {};          // ručně upravené částky příspěvků (pid -> Kč)
 let samt = {};          // ručně upravené částky platů (tid -> Kč)
 let busy = 0;           // zámek proti dvojímu vystavení příspěvků (čas do kdy platí, ms)
 
 // ===== Pomocné funkce =====
 const email = () => { const u = HK.user(); return (u && u.email) || ""; };
-const resetDraft = () => { skip = new Set(); camt = {}; samt = {}; };
+const resetDraft = () => { skip = new Set(); inc = new Set(); camt = {}; samt = {}; };
+// Je hráčka z vystavení vynechaná? Osvobozená ve výchozím stavu ano (dokud ji nezahrneš), ostatní ne (dokud ji nevynecháš)
+const isOff = r => (r.ex ? !inc.has(r.pid) : skip.has(r.pid));
 const audit = (eid, act, note) => ({ts: new Date().toISOString(), by: email(), eid, act, note: note || ""});
 // Potvrzení druhým klepnutím (stejně jako jinde v aplikaci)
 function two(key, fn) {
@@ -106,7 +109,7 @@ function monthNav() {
 function contribHtml(cfg) {
   const have = contribHave(ym), rows = contribRows(S.pl, cfg, have);
   const issued = Object.values(have), tot = issued.reduce((s, x) => s + (+x.amt || 0), 0), got = issued.reduce((s, x) => s + Math.min(+x.paid || 0, +x.amt || 0), 0);
-  const todo = rows.filter(r => !r.has && !skip.has(r.pid)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)})).filter(r => r.amt > 0);
+  const todo = rows.filter(r => !r.has && !isOff(r)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)})).filter(r => r.amt > 0);
   const todoSum = todo.reduce((s, r) => s + r.amt, 0), keyI = "mci" + ym;
   const warn = cfg.contrib > 0 ? "" : '<div class="mu" style="color:var(--no);margin-bottom:6px">Výše příspěvku není nastavená (⚙️ → Nastavení pokladny). Částky můžeš zadat ručně.</div>';
   const list = rows.length ? rows.map(r => {
@@ -115,10 +118,10 @@ function contribHtml(cfg) {
       const tag = rest ? `<span class="tag ${od ? "red" : "sh"}">${od ? "po splatnosti" : "k úhradě"}</span>` : '<span class="tag pp">zaplaceno</span>';
       return `<div class="pr"><div>${pn(r.pid)} ${tag}<div class="mu">vystaveno ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}</div></div><div class="evq">${+x.paid > 0 ? "" : `<button class="d" data-mcd="${x.id}" style="min-width:44px;${armStyle(key)}">${armed(key) ? "Smazat?" : "🗑"}</button>`}</div></div>`;
     }
-    const off = skip.has(r.pid);
-    return `<div class="pr"><div style="${off ? "opacity:.45" : ""}">${pn(r.pid)}<div class="mu">${r.fx !== 1 ? "fx " + String(r.fx).replace(".", ",") + " · " : ""}návrh ${kc(r.amt)}</div></div><div class="evq" style="align-items:center"><input data-mca="${r.pid}" type="number" min="0" inputmode="numeric" value="${esc(camt[r.pid] != null ? camt[r.pid] : r.amt)}" ${off ? "disabled" : ""} style="margin:0;width:90px"><button class="${off ? "" : "on-yes"}" data-mcs="${r.pid}" style="min-width:44px">${off ? "–" : "✓"}</button></div></div>`;
+    const off = isOff(r);
+    return `<div class="pr"><div style="${off ? "opacity:.45" : ""}">${pn(r.pid)}${r.ex ? ' <span class="tag sh">osvobozená</span>' : ""}<div class="mu">${r.fx !== 1 ? "koeficient " + fxPct(r.fx) + " · " : ""}návrh ${kc(r.amt)}</div></div><div class="evq" style="align-items:center"><input data-mca="${r.pid}" type="number" min="0" inputmode="numeric" value="${esc(camt[r.pid] != null ? camt[r.pid] : r.amt)}" ${off ? "disabled" : ""} style="margin:0;width:90px"><button class="${off ? "" : "on-yes"}" data-mcs="${r.pid}" data-mcx="${r.ex ? 1 : 0}" style="min-width:44px">${off ? "–" : "✓"}</button></div></div>`;
   }).join("") : '<div class="msg">Nikdo neplatí příspěvek (Team → Soupiska → skupina plateb Příspěvek).</div>';
-  return `<div class="cd"><h2>📨 Příspěvky – ${esc(ymLabel(ym))}</h2>${warn}<div class="mu" style="margin-bottom:6px">Příspěvek ${kc(cfg.contrib)} × fx hráčky, splatnost ${cfg.due.cm}. den měsíce. Platí hráčky ve skupině Příspěvek (bez brankářek, ukončených a osvobozených). Odškrtnutím (–) hráčku vynecháš, částku lze upravit.</div>
+  return `<div class="cd"><h2>📨 Příspěvky – ${esc(ymLabel(ym))}</h2>${warn}<div class="mu" style="margin-bottom:6px">Příspěvek ${kc(cfg.contrib)} × koeficient hráčky, splatnost ${cfg.due.cm}. den měsíce. Platí hráčky ve skupině Příspěvek (bez brankářek, ukončených a s koeficientem 0 %). Osvobozené jsou ve výchozím stavu vynechané (–), klepnutím na – je pro tento měsíc zahrneš. Odškrtnutím (–) vynecháš kohokoli jen pro tento měsíc, částku lze upravit.</div>
 <div class="grid3"><div class="stat"><b>${issued.length}</b>vystaveno</div><div class="stat"><b>${kc(got)}</b>zaplaceno</div><div class="stat"><b style="color:${tot - got > 0 ? "var(--no)" : "var(--ok)"}">${kc(r2(tot - got))}</b>zbývá</div></div>
 ${list}
 ${todo.length ? `<button class="p w" data-mci style="margin-top:10px;min-height:52px;${armStyle(keyI)}">${armed(keyI) ? "Opravdu vystavit? Klepni znovu" : "📨 Vystavit příspěvky (" + todo.length + "×, " + kc(todoSum) + ")"}</button>` : rows.length ? '<div class="mu" style="margin-top:8px">Všechny příspěvky za tento měsíc jsou vystavené.</div>' : ""}
@@ -203,11 +206,17 @@ export function bindMoney(a) {
   q("[data-myr]").forEach(b => b.onclick = () => { sync(); yr = b.dataset.myr; render(); });
   q("[data-mpick]").forEach(b => b.onclick = () => { ym = b.dataset.mpick; resetDraft(); render(); window.scrollTo(0, 0); });
   // Příspěvky: vynechání hráčky, vystavení, smazání nezaplaceného
-  q("[data-mcs]").forEach(b => b.onclick = () => { sync(); const id = b.dataset.mcs; if (skip.has(id)) skip.delete(id); else skip.add(id); render(); });
+  // Přepnutí vynechání: osvobozená se zahrnuje (inc), ostatní se vynechávají (skip)
+  q("[data-mcs]").forEach(b => b.onclick = () => {
+    sync();
+    const id = b.dataset.mcs, set = b.dataset.mcx === "1" ? inc : skip;
+    if (set.has(id)) set.delete(id); else set.add(id);
+    render();
+  });
   q("[data-mci]").forEach(b => b.onclick = () => {
     sync();
     two("mci" + ym, () => {
-      const rows = contribRows(S.pl, cfg, contribHave(ym)).filter(r => !r.has && !skip.has(r.pid)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)}));
+      const rows = contribRows(S.pl, cfg, contribHave(ym)).filter(r => !r.has && !isOff(r)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)}));
       issueContrib(rows, cfg);
     });
   });

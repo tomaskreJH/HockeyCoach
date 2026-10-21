@@ -10,7 +10,7 @@ import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_CONTRIB, CAT_EVENT, GRP, WHO, calcCash, cashCfg, cxOf, defDue, evCash, fmtDue, grpKey, kc, overdue, payAmount, planCharges, r2, restOf} from "../domain/cash.js";
+import {CAT_CONTRIB, CAT_EVENT, GRP, WHO, calcCash, cashCfg, cxOf, defDue, evCash, fmtDue, fxPct, grpKey, kc, overdue, payAmount, planCharges, r2, restOf} from "../domain/cash.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -130,14 +130,15 @@ function editHtml(ev, cfg, err) {
   const catOpts = v => [...new Set([...cfg.cats.out, v].filter(Boolean))].map(c => `<option ${c === v ? "selected" : ""}>${esc(c)}</option>`).join("");
   const cost = d.cost.map((x, i) => `<div class="row" style="flex-wrap:nowrap;align-items:center;margin-bottom:6px"><select data-f="cost.${i}.cat" style="margin:0">${catOpts(x.cat)}</select><input data-f="cost.${i}.payee" value="${esc(x.payee || "")}" placeholder="Komu" style="margin:0"><input data-f="cost.${i}.amt" data-n="1" type="number" min="0" value="${x.amt || ""}" placeholder="Kč" style="margin:0;max-width:90px"><button class="d" data-cr="${i}" style="flex:none;padding:8px 12px">🗑</button></div>`).join("");
   const wh = Object.keys(WHO).map(g => {
-    const w = d.who[g], lock = g === "exempt";
-    return `<div class="cd" style="padding:10px;margin-bottom:8px"><b>${WHO[g]}</b> <span class="mu">(${cnt(g)} v poli)</span><div class="chips" style="margin-top:6px">${lock ? '<span class="mu">Neplatí (fx 0 → 0 Kč)</span>' : `<button class="chip ${w.pays ? "on" : ""}" data-wp="${g}">${w.pays ? "Platí: ANO" : "Platí: NE"}</button><button class="chip ${w.mode !== "flat" ? "on" : ""}" data-wm="${g}|calc">Výpočet</button><button class="chip ${w.mode === "flat" ? "on" : ""}" data-wm="${g}|flat">Pevná částka</button>`}</div>${!lock && w.mode === "flat" ? `<input data-f="who.${g}.flat" data-n="1" type="number" min="0" value="${w.flat || ""}" placeholder="Kč na osobu (před fx)" style="max-width:200px;margin:0">` : ""}</div>`;
+    // Všechny skupiny včetně osvobozených mají stejné volby (platí / neplatí, výpočet / pevná částka)
+    const w = d.who[g];
+    return `<div class="cd" style="padding:10px;margin-bottom:8px"><b>${WHO[g]}</b> <span class="mu">(${cnt(g)} v poli)</span><div class="chips" style="margin-top:6px"><button class="chip ${w.pays ? "on" : ""}" data-wp="${g}">${w.pays ? "Platí: ANO" : "Platí: NE"}</button><button class="chip ${w.mode !== "flat" ? "on" : ""}" data-wm="${g}|calc">Výpočet</button><button class="chip ${w.mode === "flat" ? "on" : ""}" data-wm="${g}|flat">Pevná částka</button></div>${w.mode === "flat" ? `<input data-f="who.${g}.flat" data-n="1" type="number" min="0" value="${w.flat || ""}" placeholder="Kč na osobu (před koeficientem)" style="max-width:200px;margin:0">` : ""}</div>`;
   }).join("");
   const def = defDue(ev.raw.date, dueDays(cfg, d.tpl)).replace("T", " ");
   const diff = k.collect - k.total;
   const preview = `<div class="grid3"><div class="stat"><b>${k.N}</b>hráček v poli</div><div class="stat"><b>${kc(k.total)}</b>náklady</div><div class="stat"><b>${kc(k.collect)}</b>vybereme</div></div>
-<div class="mu" style="margin-bottom:6px"><b>Vybereme ${kc(k.collect)} z ${kc(k.total)}</b>${k.total ? " (" + Math.round(100 * k.collect / k.total) + " %)" : ""}${k.total && diff < 0 ? " · schodek " + kc(-diff) : diff > 0 && k.total ? " · přebytek " + kc(diff) : ""}. Dělí se všemi ${k.N} přihlášenými hráčkami (bez brankářek a realizačního týmu, osvobozené se počítají).</div>
-${k.payers.length ? k.payers.map(l => `<div class="pr"><div>${pn(l.pid)}<div class="mu">${GRP[l.g] || "Osvobozená"}${l.fx !== 1 ? " · fx " + l.fx : ""}</div></div><b>${kc(l.amt)}</b></div>`).join("") : '<div class="mu">Nikdo neplatí (např. venkovní zápas – náklady nese soupeř).</div>'}`;
+<div class="mu" style="margin-bottom:6px"><b>Vybereme ${kc(k.collect)} z ${kc(k.total)}</b>${k.total ? " (" + Math.round(100 * k.collect / k.total) + " %)" : ""}${k.total && diff < 0 ? " · schodek " + kc(-diff) : diff > 0 && k.total ? " · přebytek " + kc(diff) : ""}. Dělí se všemi ${k.N} přihlášenými hráčkami, každá se počítá jako jeden celý kus (bez brankářek a realizačního týmu; osvobozené i hráčky se sníženým koeficientem se počítají celé). Výsledný podíl se násobí koeficientem hráčky.</div>
+${k.payers.length ? k.payers.map(l => `<div class="pr"><div>${pn(l.pid)}<div class="mu">${l.g === "exempt" ? "Osvobozená" : GRP[l.g]}${l.fx !== 1 ? " · koeficient " + fxPct(l.fx) : ""}</div></div><b>${kc(l.amt)}</b></div>`).join("") : '<div class="mu">Nikdo neplatí (např. venkovní zápas – náklady nese soupeř).</div>'}`;
   return `<div class="cd" id="cew"><h2>💰 Pokladna – vyúčtování</h2>${err}<div class="mu" style="margin-bottom:6px">Dosud neuzavřeno. Po uzavření vzniknou předpisy a vyúčtování se už samo nemění.</div>
 <label>Šablona</label><div class="chips">${tplChips}</div><h3>Náklady</h3>${cost || '<div class="mu" style="margin-bottom:6px">Žádné náklady.</div>'}<button class="s" data-ca style="margin-bottom:10px">+ Nákladová položka</button>
 <h3>Kdo platí a jak se počítá</h3>${wh}<label>Splatnost (prázdné = výchozí ${def})</label><input type="datetime-local" data-f="due" value="${esc(d.due)}">

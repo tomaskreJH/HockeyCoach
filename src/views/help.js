@@ -29,7 +29,7 @@ const SECTIONS = [
 <ul>
 <li><b>Základní formace:</b> klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Formace se kopíruje do každého nového zápasu a slouží k rozdělení do pětek na tréninku.</li>
 <li><b>Náhradnice:</b> všechny nezařazené aktivní hráčky. Přetažením je dáš do sestavy, prohodíš mezi sebou nebo vrátíš mezi náhradnice. Pořadí se pamatuje.</li>
-<li><b>Soupiska:</b> přidání a smazání hráčky jen trenér; úprava stavu (aktivní / zraněná / ukončila) i kustod; skupina plateb (Příspěvek / Za událost), koeficient fx a poznámka trenér a pokladník.</li>
+<li><b>Soupiska:</b> přidání a smazání hráčky jen trenér; úprava stavu (aktivní / zraněná / ukončila) i kustod; skupina plateb (Příspěvek / Za událost), osvobozená (zvýhodněná), koeficient v procentech (0–100 % z ceny) a poznámka trenér a pokladník.</li>
 <li><b>Realizační tým:</b> členy přidává a maže trenér, plat (měsíčně / za událost) nastavuje trenér nebo pokladník (Upravit → Plat).</li>
 <li><b>Rotace dvou hráček na jednom místě:</b> pod každou pětkou je řádek <b>⇄ rotace</b>. Hlavní hráčka nastupuje první, pořadí změníš přetažením. Štítek <b>⇄ jméno</b> ve frontě ukazuje, kdo za hráčku skočí, klepnutím rotaci ručně přehodíš.</li>
 </ul>`},
@@ -106,10 +106,11 @@ const SECTIONS = [
 </ul>`},
   {t: "11. Pokladna (trenér a pokladník)", h: `
 <ul>
+<li><b>Kdo platí:</b> každá skupina (s příspěvkem, za událost, osvobozené) má vlastní volbu Platí ANO / NE a Výpočet / Pevná částka – v šablonách i u každé události. Cena se dělí všemi přihlášenými hráčkami (každá jako jeden celý kus) a násobí koeficientem hráčky v %.</li>
 <li><b>Vyúčtování události</b> (detail události → 💰 Pokladna): šablona, náklady, kdo platí (výpočet / pevná částka), náhled „vybereme X z Y“ a <b>Uzavřít vyúčtování</b> → vzniknou předpisy. Po uzavření se nic samo nepřepočítává; úprava jen přes ↩ Znovu otevřít.</li>
 <li><b>💰 Platby:</b> dluhy podle hráček a podle událostí a příspěvků, 💳 úhrada (i částečná), ✅ Zaplatila vše, 🔒 výjimka z blokace u předpisu po splatnosti, neuzavřená vyúčtování.</li>
 <li><b>🏦 Pokladna:</b> zůstatek, ➕ vklad / příjem, ➖ výdaj, součty podle kategorií, seznam pohybů s filtry, 🗑 storno (u úhrady vrátí částku na předpis).</li>
-<li><b>📅 Měsíce – příspěvky:</b> vyber měsíc ◀ ▶, zkontroluj návrh (příspěvek × fx; jen skupina Příspěvek, bez brankářek, ukončených a osvobozených), případně hráčku vynech (–) nebo uprav částku a <b>📨 Vystavit příspěvky</b>. Už vystavené se nepřepisují, nezaplacený příspěvek jde smazat 🗑.</li>
+<li><b>📅 Měsíce – příspěvky:</b> vyber měsíc ◀ ▶, zkontroluj návrh (příspěvek × koeficient; jen skupina Příspěvek, bez brankářek a ukončených; osvobozené jsou předem vynechané a klepnutím na – je pro měsíc zahrneš), případně hráčku vynech (–) nebo uprav částku a <b>📨 Vystavit příspěvky</b>. Už vystavené se nepřepisují, nezaplacený příspěvek jde smazat 🗑.</li>
 <li><b>📅 Měsíce – platy:</b> návrh podle platu člena týmu (měsíčně, nebo za událost × počet událostí měsíce, na které byl přihlášen „Jdu“). <b>💸 Vyplatit</b> zapíše výdaj do pokladny (kategorie Platy trenérů), jeden plat za člena a měsíc. Oprava = storno v 🏦 Pokladna a nové vyplacení.</li>
 <li><b>📅 Měsíce – hospodaření:</b> příjmy, výdaje, saldo a zůstatek po měsících vybraného roku; klepnutím na měsíc rozpad podle kategorií a předpisů se splatností v měsíci.</li>
 <li><b>⬇️ CSV:</b> pohyby za rok nebo vše, předpisy a přehled po měsících (pro Excel, oddělovač středník).</li>

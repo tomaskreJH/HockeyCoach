@@ -29,13 +29,13 @@ service cloud.firestore {
       allow delete: if isCoach() || (isCash() && resource.data.role != 'trener');
     }
 
-    // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st), pokladník jen skupinu plateb (grp, fx, note) =====
+    // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st), pokladník jen pole plateb (grp, fx = koeficient 0..1, ex = osvobozená, note) =====
     match /players/{id} {
       allow read: if isMember();
       allow create, delete: if isCoach();
       allow update: if isCoach()
         || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st']))
-        || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grp', 'fx', 'note']));
+        || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grp', 'fx', 'ex', 'note']));
     }
 
     // ===== Realizační tým: čtou všichni členové, spravuje trenér; pokladník smí měnit jen plat (pay) =====
