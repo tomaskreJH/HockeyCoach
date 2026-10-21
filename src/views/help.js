@@ -103,7 +103,7 @@ const SECTIONS = [
   {t: "10. Moje platby", h: `
 <ul>
 <li><b>Moje platby</b> vidí každý, kdo má účet propojený s hráčkou nebo členem týmu: dluh, částka po splatnosti a seznam předpisů (události i měsíční příspěvky).</li>
-<li><b>📱 Zaplatit (QR):</b> QR platba pro bankovní aplikaci (účet, částka, variabilní symbol). Zaplacení se v aplikaci objeví, až ho pokladník zapíše.</li>
+<li><b>📱 Zaplatit (QR):</b> QR platba pro bankovní aplikaci (účet, částka, variabilní symbol a zpráva pro příjemce, např. „Zápas 10.10. Sokol - Jana“ nebo „Trénink 14.10. - Jana“). Při ruční platbě opiš do zprávy text uvedený u předpisu. Zaplacení se v aplikaci objeví, až ho pokladník zapíše.</li>
 <li><b>Blokace:</b> neuhrazený předpis po splatnosti zablokuje vlastní přihlášení „Jdu“. Odhlásit se a „Nejdu“ jde vždy.</li>
 </ul>`},
   {t: "11. Pokladna (trenér a pokladník)", h: `

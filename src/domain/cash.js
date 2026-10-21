@@ -171,6 +171,21 @@ export function uniqVs(id, taken) {
 // QR platba v českém formátu SPD (zpráva jen ASCII bez znaku *)
 export const asciiMsg = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "").slice(0, 60).trim();
 export const spdPay = (iban, amt, vs, msg) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + vs + (asciiMsg(msg) ? "*MSG:" + asciiMsg(msg) : "");
+// Zpráva pro příjemce (v17.6): za co se platí, aby pokladník platbu poznal i bez variabilního symbolu.
+// it = {type: "match" | "training" | "contrib", title, date "RRRR-MM-DD", opp, ym "RRRR-MM"}, name = jméno plátce (nepovinné).
+// Tvary: "Zápas 10.10. Sokol - Jana", "Trénink 14.10. - Jana", "Mimořádný trénink 18.10. - Jana", "Příspěvek 10/2026 - Jana".
+// Do QR jde přes asciiMsg (bez diakritiky, nejvýše 60 znaků), proto je jméno na konci a případné zkrácení postihne jen jeho konec.
+const dayMonth = d => { const [, m, x] = String(d || "").split("-"); return m && x ? +x + "." + +m + "." : ""; };
+export function payMsg(it, name) {
+  const t = it || {};
+  let s;
+  if (t.type === "contrib") s = "Příspěvek " + ymShort(t.ym);
+  else if (t.type === "match") s = ["Zápas", dayMonth(t.date), t.opp || ""].filter(Boolean).join(" ");
+  else if (t.type === "training") s = [t.title || "Trénink", dayMonth(t.date)].filter(Boolean).join(" ");
+  else s = [t.title || "Platba", dayMonth(t.date)].filter(Boolean).join(" ");
+  const n = String(name || "").trim();
+  return n ? s + " - " + n : s;
+}
 
 // ===== Výpočet předpisů =====
 // c = {cost, who}; P = přihlášené hráčky (objekty, bez brankářek). Vrací řádky po hráčkách a součty.
