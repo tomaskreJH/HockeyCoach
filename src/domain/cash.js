@@ -1,9 +1,10 @@
-// Doména: pokladna – model osob (skupina, koeficient fx), šablony událostí, výpočet předpisů, přehled dluhů a migrace z payments (čisté funkce bez DOM).
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Nastavení a šablony -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Migrace.
+// Doména: pokladna – model osob (skupina, koeficient fx), šablony událostí, výpočet předpisů, úhrady, zůstatek, přehled dluhů a migrace z payments (čisté funkce bez DOM).
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Pokladna (zůstatek, kategorie, úhrady) -> Nastavení a šablony -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Migrace.
 // Pravidla:
 //  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single), fx 0..1 (0 osvobozená, 0.5 částečně, výchozí 1),
 //  - cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx, zaokrouhleno nahoru na celé Kč,
-//  - osvobozené (fx 0) se do dělitele počítají, jen samy neplatí.
+//  - osvobozené (fx 0) se do dělitele počítají, jen samy neplatí,
+//  - zůstatek pokladny = součet příjmů (cash.k "in") − součet výdajů (cash.k "out").
 
 // ===== Importy =====
 import {isG, pl} from "../core/selectors.js";
@@ -25,7 +26,11 @@ const cl = o => JSON.parse(JSON.stringify(o));
 const sum = (a, f) => (a || []).reduce((s, x) => s + (+f(x) || 0), 0);
 const p2 = n => String(n).padStart(2, "0");
 const ceil = x => Math.ceil(x - 1e-9);
+// Zaokrouhlení na haléře (částky úhrad)
+export const r2 = n => Math.round((+n || 0) * 100) / 100;
 export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " Kč";
+// Platné datum ve tvaru RRRR-MM-DD
+export const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")) && !isNaN(new Date(s + "T12:00:00"));
 // Koeficient a skupina hráčky (před migrací se čte i starý údaj pay)
 export const fxOf = p => { const v = p && p.fx != null ? +p.fx : (p && p.pay === "exempt" ? 0 : 1); return v >= 0 && v <= 1 ? v : 1; };
 export const grpOf = p => (p && (p.grp ? p.grp === "single" : p.pay === "single") ? "single" : "monthly");
@@ -42,8 +47,35 @@ export const fmtDue = s => { const d = new Date(s); return isNaN(d) ? "" : d.get
 // Variabilní symbol = číselný hash id předpisu (nejvýše 10 číslic)
 export const vsOf = id => { let h = 5381; for (let i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0; return String(h >>> 0); };
 export const chargeId = (eid, mid) => eid + "_" + mid;
-export const restOf = x => Math.max(0, (+x.amt || 0) - (+x.paid || 0));
+export const restOf = x => Math.max(0, r2((+x.amt || 0) - (+x.paid || 0)));
 export const overdue = x => restOf(x) > 0 && !!x.due && new Date(x.due).getTime() < Date.now();
+
+// ===== Pokladna: zůstatek, kategorie, úhrady =====
+// Součty příjmů a výdajů a zůstatek z pohybů (cash)
+export function sumCash(cs) {
+  let i = 0, o = 0;
+  (cs || []).forEach(x => { const a = +x.amt || 0; if (x.k === "in") i += a; else if (x.k === "out") o += a; });
+  return {in: r2(i), out: r2(o), bal: r2(i - o)};
+}
+// Součty podle kategorií zvlášť pro příjmy a výdaje
+export function catSums(cs) {
+  const r = {in: {}, out: {}};
+  (cs || []).forEach(x => {
+    if (x.k !== "in" && x.k !== "out") return;
+    const c = x.cat || "Bez kategorie";
+    r[x.k][c] = r2((r[x.k][c] || 0) + (+x.amt || 0));
+  });
+  return r;
+}
+// Kontrola částky úhrady předpisu: kladná a nejvýše zbývající dluh (vrací {amt} nebo {err})
+export function payAmount(x, v) {
+  const a = r2(+String(v).replace(",", "."));
+  if (!(a > 0)) return {err: "Zadej kladnou částku"};
+  const rest = restOf(x);
+  if (rest <= 0) return {err: "Předpis je už zaplacený"};
+  if (a > rest + 1e-9) return {err: "Částka je vyšší než zbývá (" + kc(rest) + ")"};
+  return {amt: Math.min(a, rest)};
+}
 
 // ===== Nastavení a šablony =====
 const W = (m, s, x) => ({monthly: {pays: m, mode: "calc", flat: 0}, single: {pays: s, mode: "calc", flat: 0}, exempt: {pays: x, mode: "calc", flat: 0}});
@@ -119,7 +151,7 @@ export function ledger(ch, evOf) {
     if (rest > 0) { r.debt += rest; r.open++; owed += rest; }
   });
   const rows = Object.values(by);
-  return {rows, owed, got, debtors: rows.filter(r => r.debt > 0).length};
+  return {rows, owed: r2(owed), got: r2(got), debtors: rows.filter(r => r.debt > 0).length};
 }
 
 // ===== Migrace (v16.3 -> v17.0) =====

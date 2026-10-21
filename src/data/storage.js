@@ -1,7 +1,7 @@
 /* Datová vrstva: Firebase (Firestore + přihlášení přes Google).
    Rozhraní `db` zůstává stejné jako dřív (collection/doc, set, add, delete, onSnapshot) a přibyl batch() pro atomické zápisy
-   (úhrada = příjem do pokladny + předpis). Struktura: Importy -> Konstanty a stav -> Pomocné funkce
-   -> Data (poslech, zápis) -> Přihlášení a role -> Okno nastavení -> Zálohy a migrace -> Exporty. */
+   (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = událost + předpisy + audit). Struktura: Importy -> Konstanty a stav
+   -> Pomocné funkce -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy a migrace -> Exporty. */
 
 // ===== Importy =====
 import {downloadFile, esc, toast} from "../core/utils.js";
@@ -12,10 +12,10 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, setDoc, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v17.0.2 · 20. 10. 2026";
+const VERSION = "v17.1 · 21. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým, payments = staré platby (jen pro migraci),
-// charges = předpisy, cash = pokladna (příjmy a výdaje), audit = záznamy o uzavření a znovuotevření vyúčtování)
+// charges = předpisy, cash = pokladna (příjmy a výdaje), audit = záznamy o uzavření, znovuotevření vyúčtování a stornech)
 const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "payments", "charges", "cash", "audit"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
@@ -59,7 +59,23 @@ function subscribe(c, cb, er) {
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
 function writeDoc(c, id, d) { setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); }
-function removeDoc(c, id) { deleteDoc(fsDoc(fs, c, id)).catch(e => say("Smazání se nepovedlo: " + errTxt(e))); }
+// Kontrola mazání události / zápasu s vyúčtováním:
+//  - vyúčtovanou událost smaže jen správce pokladny,
+//  - uzavřené vyúčtování s nezaplacenými předpisy smazat nejde (nejdřív úhrada, nebo „Znovu otevřít“).
+function canDelete(c, id) {
+  if (c !== "matches" && c !== "events") return true;
+  const d = data[c][id] || {};
+  if (d.settle && !isCash()) { say("Vyúčtovanou událost smaže jen trenér nebo pokladník"); return false; }
+  const open = Object.values(data.charges).filter(x => x.eid === id && (+x.amt || 0) - (+x.paid || 0) > 0.0001).length;
+  if (d.settle && open) { say("Událost má " + open + " nezaplacených předpisů. Nejdřív je uhraď, nebo vyúčtování znovu otevři."); return false; }
+  return true;
+}
+function removeDoc(c, id) {
+  if (!canDelete(c, id)) return;
+  // S událostí se smažou její předpisy bez úhrady (předpisy se zaplacenou částí zůstávají jako historie)
+  if (c === "matches" || c === "events") Object.entries(data.charges).filter(([, x]) => x.eid === id && !(+x.paid > 0)).forEach(([cid]) => removeDoc("charges", cid));
+  deleteDoc(fsDoc(fs, c, id)).catch(e => say("Smazání se nepovedlo: " + errTxt(e)));
+}
 // Dávka zápisů (atomicky): b.set("kolekce/id", data).delete("kolekce/id").commit()
 function makeBatch() {
   const b = writeBatch(fs), api = {
@@ -212,7 +228,7 @@ function openCfg() {
     const f = q("#cf").files[0]; if (!f) return;
     const r = new FileReader();
     r.onload = () => {
-      try { pendingImport = JSON.parse(r.result); const d = pendingImport.data || {}; q("#ci").textContent = "Načteno: " + COLL.map(c => c + " " + Object.keys(d[c] || {}).length).join(", "); }
+      try { pendingImport = JSON.parse(r.result); const d = pendingImport.data || {}; q("#ci").textContent = "Načteno: " + COLL.map(c => c + " " + Object.keys(d[c] || {}).length).join(", ") + " (audit se neobnovuje)"; }
       catch (e) { pendingImport = null; q("#ci").textContent = "Soubor nelze přečíst."; }
     };
     r.readAsText(f);
@@ -263,11 +279,13 @@ async function commitOps(ops) {
     await b.commit();
   }
 }
-// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu, plateb a pokladny je nesmaže)
+// Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu, plateb a pokladny je nesmaže).
+// Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
   const ops = [];
   COLL.forEach(c => {
+    if (c === "audit") return;
     const src = obj.data[c] || {};
     if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src)) ops.push(["del", c, id]); });
     Object.entries(src).forEach(([id, d]) => ops.push(["set", c, id, d]));
@@ -285,6 +303,6 @@ async function migrateCash() {
 
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
-export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null};
+export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

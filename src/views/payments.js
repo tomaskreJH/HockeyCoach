@@ -1,8 +1,8 @@
-// Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů, uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem.
-// Struktura: Importy -> Pomocné funkce -> Uzavření vyúčtování (zápis) -> Vykreslení -> Eventy -> Export.
+// Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů, uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem, úhrady předpisů.
+// Struktura: Importy -> Pomocné funkce -> Uzavření vyúčtování (zápis) -> Úhrady -> Vykreslení -> Eventy -> Export.
 // Data: pole události tpl, cost, who, due a settle (snapshot) v dokumentu události / zápasu; předpisy v kolekci charges ({eid}_{mid}); příjmy v cash; audit v audit.
-// Po uzavření se NIKDY nic automaticky nepřepočítává; změna je možná jen přes „Znovu otevřít“ (se záznamem v audit logu).
-// Celkový přehled dluhů je ve views/finance.js.
+// Uzavření i znovuotevření je JEDNA atomická dávka (dokument události + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
+// Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js.
 
 // ===== Importy =====
 import {strip} from "../core/actions.js";
@@ -10,7 +10,7 @@ import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_EVENT, GRP, WHO, calcCash, cashCfg, defDue, evCash, fmtDue, grpKey, kc, overdue, planCharges, restOf} from "../domain/cash.js";
+import {CAT_CONTRIB, CAT_EVENT, GRP, WHO, calcCash, cashCfg, defDue, evCash, fmtDue, grpKey, kc, overdue, payAmount, planCharges, r2, restOf} from "../domain/cash.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -18,8 +18,9 @@ const who = () => { const u = HK.user(); return (u && u.email) || ""; };
 export const evOfMatch = m => ({id: m.id, type: "match", raw: m});
 // Přihlášené hráčky události bez brankářek (dělitel ceny)
 const players = eid => goingOf(eid).map(id => pl(id)).filter(p => p && !isG(p));
-const saveEv = (ev, raw) => S.db.doc((ev.type === "match" ? "matches/" : "events/") + ev.id).set(strip(raw)).catch(() => toast("Uložení se nepovedlo"));
-const audit = (eid, act, note) => S.db.collection("audit").add({ts: new Date().toISOString(), by: who(), eid, act, note: note || ""}).catch(() => {});
+const evPath = ev => (ev.type === "match" ? "matches/" : "events/") + ev.id;
+const saveEv = (ev, raw) => S.db.doc(evPath(ev)).set(strip(raw)).catch(() => toast("Uložení se nepovedlo"));
+const auditDoc = (eid, act, note) => ({ts: new Date().toISOString(), by: who(), eid, act, note: note || ""});
 const dueDays = (cfg, tpl) => { const t = cfg.tpls[tpl]; return t && t.dueDays != null ? t.dueDays : cfg.due.ev; };
 const byName = (a, b) => pri(pl(a.mid)) - pri(pl(b.mid)) || pl(a.mid).name.localeCompare(pl(b.mid).name, "cs");
 // Rozpracovaná úprava (jen v paměti, dokud se neuloží)
@@ -34,8 +35,9 @@ const applyDraft = raw => {
 };
 
 // ===== Uzavření vyúčtování (zápis) =====
-// Zapíše snapshot do raw (dokument události uloží volající) a předpisy do charges. Vrací výpočet, nebo null (nic se nestalo).
+// Zapíše snapshot do raw a v JEDNÉ dávce uloží dokument události, předpisy a audit. Vrací výpočet, nebo null (nic se nestalo).
 // force=false (automatické uzavření zápasu): bez předpisů se nic nezapíše; stávající snapshot se nikdy nepřepisuje.
+// Volající (matches.js) po návratu ještě ukládá zápas sám – stejná data, zápis je idempotentní.
 export function settleEvent(ev, raw, force) {
   if (!HK.isCash() || raw.settle) return null;
   const cfg = cashCfg(S.cc), c = evCash({...ev, raw}, cfg), k = calcCash(c, players(ev.id));
@@ -47,31 +49,59 @@ export function settleEvent(ev, raw, force) {
   const have = {};
   S.ch.filter(x => x.eid === ev.id && x.kind === "event").forEach(x => { have[x.mid] = x; });
   const plan = planCharges(ev.id, k, due, have), b = S.db.batch();
+  b.set(evPath(ev), strip(raw));
   plan.set.forEach(x => b.set("charges/" + x.id, x.d));
   plan.del.forEach(id => b.delete("charges/" + id));
+  b.set("audit/" + uid(), auditDoc(ev.id, "close", k.payers.length + " předpisů, vybereme " + kc(k.collect) + " z " + kc(k.total)));
   b.commit();
-  audit(ev.id, "close", k.payers.length + " předpisů, vybereme " + kc(k.collect) + " z " + kc(k.total));
   return k;
 }
-// Plná úhrada předpisu: příjem do pokladny + zaplaceno na předpisu v jedné dávce (částečné úhrady přijdou ve F2)
-export function payCharge(cid) {
+
+// ===== Úhrady =====
+// Zámek proti dvojímu klepnutí (než se změna vrátí přes odběr dat)
+const busy = new Set();
+// Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné dávce
+export function payCharge(cid, amt) {
   const x = S.ch.find(c => c.id === cid);
-  if (!x) return;
-  const rest = restOf(x);
-  if (rest <= 0) return;
-  const d = {...strip(x), paid: +x.amt};
-  S.db.batch().set("cash/" + uid(), {d: td(), k: "in", amt: rest, cat: CAT_EVENT, mid: x.mid, cid, eid: x.eid, note: "", by: who()}).set("charges/" + cid, d).commit();
-  toast("Úhrada zapsána");
+  if (!x || busy.has(cid)) return false;
+  const rest = restOf(x), a = amt == null ? rest : r2(amt);
+  if (rest <= 0 || !(a > 0) || a > rest + 1e-9) return false;
+  busy.add(cid);
+  setTimeout(() => busy.delete(cid), 2000);
+  const d = {...strip(x), paid: r2((+x.paid || 0) + a)};
+  S.db.batch()
+    .set("cash/" + uid(), {d: td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note: a < rest ? "Částečná úhrada" : "", by: who()})
+    .set("charges/" + cid, d).commit();
+  toast(a < rest ? "Částečná úhrada zapsána" : "Úhrada zapsána");
+  return true;
+}
+// Okno s volbou částky úhrady (výchozí = celý zbytek)
+export function openPay(cid) {
+  const x = S.ch.find(c => c.id === cid);
+  if (!x || restOf(x) <= 0) return;
+  let e = document.getElementById("cpay");
+  if (!e) { e = document.createElement("div"); e.id = "cpay"; document.body.appendChild(e); }
+  e.style.cssText = "position:fixed;inset:0;z-index:57;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center";
+  const rest = restOf(x), close = () => { e.style.display = "none"; e.innerHTML = ""; };
+  e.innerHTML = `<div class="mb"><h2>💳 Úhrada</h2><div class="mu" style="margin-bottom:8px">${pn(x.mid)} · předpis ${kc(+x.amt || 0)}, zaplaceno ${kc(+x.paid || 0)}, zbývá <b>${kc(rest)}</b></div><label>Zaplacená částka (Kč)</label><input id="cpa" type="number" min="0" step="0.01" inputmode="decimal" value="${rest}"><div id="cpe" class="mu" style="color:var(--no);margin-bottom:8px"></div><div class="row"><button class="p" id="cpo" style="min-height:52px">Zapsat úhradu</button><button class="s" id="cpx" style="min-height:52px">Zavřít</button></div></div>`;
+  e.onclick = ev => { if (ev.target === e) close(); };
+  document.getElementById("cpx").onclick = close;
+  document.getElementById("cpo").onclick = () => {
+    const r = payAmount(x, document.getElementById("cpa").value);
+    if (r.err) { document.getElementById("cpe").textContent = r.err; return; }
+    close();
+    payCharge(cid, r.amt);
+  };
 }
 
 // ===== Vykreslení =====
 function closedHtml(ev, st, err) {
   const cs = S.ch.filter(x => x.eid === ev.id && pl(x.mid)).sort(byName);
   const tot = cs.reduce((s, x) => s + (+x.amt || 0), 0), got = cs.reduce((s, x) => s + Math.min(+x.paid || 0, +x.amt || 0), 0);
-  const rows = cs.map(x => `<div class="pr"><div>${pn(x.mid)}<div class="mu">${kc(x.amt)}${x.paid ? " · zaplaceno " + kc(x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}</div></div><div class="evq">${restOf(x) > 0 ? `<button data-cp="${x.id}" style="min-width:150px">💳 Zaplatit ${kc(restOf(x))}</button>` : '<button class="on-yes" disabled style="min-width:150px">✅ Zaplaceno</button>'}</div></div>`).join("");
-  const logs = S.au.filter(x => x.eid === ev.id).sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 5)
+  const rows = cs.map(x => `<div class="pr"><div>${pn(x.mid)}<div class="mu">${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}</div></div><div class="evq">${restOf(x) > 0 ? `<button data-cp="${x.id}" style="min-width:150px">💳 Zaplatit ${kc(restOf(x))}</button>` : '<button class="on-yes" disabled style="min-width:150px">✅ Zaplaceno</button>'}</div></div>`).join("");
+  const logs = S.au.filter(x => x.eid === ev.id).sort((a, b) => (b.ts || "").localeCompare(a.ts || "")).slice(0, 5)
     .map(x => `<div class="mu">${new Date(x.ts).toLocaleString("cs-CZ")} · ${esc(x.act === "close" ? "uzavřeno" : x.act === "reopen" ? "znovu otevřeno" : x.act)} · ${esc(x.by || "")}${x.note ? " · " + esc(x.note) : ""}</div>`).join("");
-  return `<div class="cd"><h2>💰 Pokladna – uzavřeno</h2>${err}<div class="mu" style="margin-bottom:6px">Uzavřeno ${new Date(st.at).toLocaleString("cs-CZ")} (${esc(st.by || "")}). Náklady ${kc(st.total)}, předepsáno ${kc(st.collect)}, hráček v poli ${st.n}. Nic se samo nepřepočítává.</div>
+  return `<div class="cd"><h2>💰 Pokladna – uzavřeno</h2>${err}<div class="mu" style="margin-bottom:6px">Uzavřeno ${st.at ? new Date(st.at).toLocaleString("cs-CZ") : "–"} (${esc(st.by || "")}). Náklady ${kc(+st.total || 0)}, předepsáno ${kc(+st.collect || 0)}, hráček v poli ${+st.n || 0}. Nic se samo nepřepočítává.</div>
 <div class="mu" style="margin:6px 0"><b>Zaplaceno ${kc(got)} z ${kc(tot)}</b></div>${rows || '<div class="mu">Nikdo neplatí.</div>'}
 <button class="${S.cf === "ro" + ev.id ? "d" : "s"} w" id="cero" style="margin-top:10px;min-height:48px;${S.cf === "ro" + ev.id ? "background:var(--no);color:#fff" : ""}">${S.cf === "ro" + ev.id ? "Opravdu znovu otevřít? Klepni znovu" : "↩ Znovu otevřít (úprava vyúčtování)"}</button>${logs ? `<h3>Záznamy</h3>${logs}` : ""}</div>`;
 }
@@ -127,19 +157,18 @@ export function bindPay(a, ev) {
   // Uložení nastavení bez uzavření
   const es = a.querySelector("#ces");
   if (es) es.onclick = () => { sync(); const raw = clone(ev.raw); applyDraft(raw); saveEv(ev, raw); toast("Nastavení uloženo"); };
-  // Uzavření vyúčtování
+  // Uzavření vyúčtování (jedna atomická dávka v settleEvent)
   const ec = a.querySelector("#cec");
   if (ec) ec.onclick = () => {
     sync();
     const raw = clone(ev.raw);
     applyDraft(raw);
     if (!settleEvent(ev, raw, true)) return toast("Vyúčtování se nepodařilo uzavřít");
-    saveEv(ev, raw);
     dr = null;
     toast("Vyúčtování uzavřeno");
   };
-  q("[data-cp]").forEach(b => { b.onclick = () => payCharge(b.dataset.cp); });
-  // Znovu otevřít: potvrzení druhým klepnutím, záznam do audit logu; předpisy zůstávají do dalšího uzavření
+  q("[data-cp]").forEach(b => { b.onclick = () => openPay(b.dataset.cp); });
+  // Znovu otevřít: potvrzení druhým klepnutím; dokument události + audit v jedné dávce; předpisy zůstávají do dalšího uzavření
   const ro = a.querySelector("#cero");
   if (ro) ro.onclick = () => {
     const key = "ro" + ev.id;
@@ -147,8 +176,7 @@ export function bindPay(a, ev) {
       S.cf = null;
       const raw = clone(ev.raw);
       delete raw.settle;
-      saveEv(ev, raw);
-      audit(ev.id, "reopen", "ruční znovuotevření vyúčtování");
+      S.db.batch().set(evPath(ev), strip(raw)).set("audit/" + uid(), auditDoc(ev.id, "reopen", "ruční znovuotevření vyúčtování")).commit();
       dr = null;
       toast("Vyúčtování znovu otevřeno");
     } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }

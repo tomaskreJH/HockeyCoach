@@ -1,11 +1,12 @@
-// Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku a přehled plateb.
+// Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku, přehled plateb a pokladna.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
-// Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo, termín přihlašování a cena jsou v polích time, place, dl, fee, pm zápasu);
+// Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo a termín přihlašování jsou v polích time, place, dl zápasu);
 // odpovědi jsou v kolekci "attendance" (id dokumentu = {eventId}_{memberId}), členem je hráčka nebo člen realizačního týmu (kolekce "staff").
 // Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.role() === "hracka") vidí události, mění jen svoji odpověď
 // a jen do termínu přihlašování. Zápasy se nadále zakládají a vedou stejně jako dřív (karta zápasu je jen pro trenéra a kustoda).
 // Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se předvybere sám a přihlašuje se jedním klepnutím.
-// Platby za události (cena, způsob úhrady, vyúčtování) řeší views/payments.js a domain/payments.js, přehled plateb a dluhů views/finance.js (režim „💰 Platby“).
+// Náklady a platby vidí jen správci pokladny (HK.isCash(): trenér a pokladník). Pokladna u události: views/payments.js, domain/cash.js;
+// přehled plateb a dluhů: views/finance.js (režim „💰 Platby“); pohyby pokladny: views/cashbook.js (režim „🏦 Pokladna“).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -15,6 +16,7 @@ import {S} from "../core/state.js";
 import {LS, clone, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {cashKeep, costTotal, kc} from "../domain/cash.js";
+import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
 import {bindPay, payHtml} from "./payments.js";
@@ -54,6 +56,7 @@ let autoMe = false;                                                   // vlastn�
 // ===== Pomocné funkce =====
 const pad = n => String(n).padStart(2, "0");
 const staff = () => HK.isStaff();                                    // trenér / kustod (přihlášený uživatel)
+const cashMgr = () => HK.isCash();                                   // správce pokladny (trenér / pokladník)
 const isPl = () => HK.role() === "hracka";                           // přihlášená hráčka (omezený přístup)
 const dayOf = s => new Date(s + "T00:00:00");
 const fDay = s => DAYS[dayOf(s).getDay()] + " " + fd(s);
@@ -144,7 +147,7 @@ const quick = (e, mine, dis) => `<div class="evq">${ORD.map(k => `<button class=
 function card(e, AT, P) {
   const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, lk = isLocked(e) && !staff(), mt = e.type === "match", m = e.raw;
   const sc = mt && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
-  const tot = costTotal(e.raw), pay = tot ? " · 💰 náklady " + kc(tot) : "";
+  const tot = cashMgr() ? costTotal(e.raw) : 0, pay = tot ? " · 💰 náklady " + kc(tot) : "";   // náklady jen pro správce pokladny
   return `<div class="cd evi" data-eo="${e.id}"><div class="evh"><b>${mt ? "🆚" : "🏒"} ${esc(e.title)}</b>${sc}</div>
 <div class="mu">${whenLine(e)}${mt ? (m.home ? " · doma" : " · venku") : ""}${pay}</div>
 <div class="mu">${dlLine(e, isLocked(e))} · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}</div>
@@ -160,16 +163,23 @@ function list(a) {
   // Trenér / kustod propojený s realizačním týmem: při prvním otevření se předvybere sám (bez uloženého výběru)
   const me = myTr();
   if (me && !S.evp && !autoMe) { S.evp = me.id; autoMe = true; }
-  const mode = S.evm === "pay" && !staff() ? "up" : (S.evm || "up");
+  // Režimy Platby a Pokladna jsou jen pro správce pokladny
+  const mode = (S.evm === "pay" || S.evm === "cash") && !cashMgr() ? "up" : (S.evm || "up");
   const T = trs();
-  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(staff() ? [["pay", "💰 Platby"]] : [])];
+  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(cashMgr() ? [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"]] : [])];
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
   const bindModes = () => a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
-  // Režim Platby: přehled plateb a dluhů (jen trenér a kustod)
+  // Režim Platby: přehled plateb a dluhů
   if (mode === "pay") {
     a.innerHTML = CSS + `<div id="evw">${errH}${chipsH}${financeHtml(evs, AT)}</div>`;
     bindModes(); bindFinance(a);
+    return;
+  }
+  // Režim Pokladna: zůstatek, vklady, výdaje, pohyby
+  if (mode === "cash") {
+    a.innerHTML = CSS + `<div id="evw">${errH}${chipsH}${cashbookHtml()}</div>`;
+    bindModes(); bindCashbook(a);
     return;
   }
   let shown;
@@ -227,8 +237,8 @@ function detail(a, ev) {
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
       `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(t.kind || "")}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
-  const key = "ev" + ev.id, tot = costTotal(ev.raw);
-  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín, cena" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`}</div>`;
+  const key = "ev" + ev.id, tot = cashMgr() ? costTotal(ev.raw) : 0;   // náklady jen pro správce pokladny
+  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`}</div>`;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">← Události</button>
 <div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}${tot ? " · 💰 náklady " + kc(tot) : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
 <div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}<div class="mu" style="margin-top:6px">Přihlášeno: ${rosterLine(roster(ev, AT))}</div>${btns}</div>
@@ -244,12 +254,13 @@ ${mt ? "" : linesHtml(ev, A, P, ownP)}</div>` + sheetHtml();
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
   a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl, keep: cashKeep(ev.raw)}; render(); };
+  // Smazání tréninku: nejdřív kontrola vyúčtování (HK.canDelete), pak docházka; předpisy bez úhrady maže datová vrstva spolu s událostí
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {
     if (S.cf === key) {
       S.cf = null;
+      if (!HK.canDelete("events", ev.id)) { render(); return; }
       S.at.filter(x => x.eid === ev.id).forEach(x => S.db.doc("attendance/" + x.id).delete());
-      S.ch.filter(x => x.eid === ev.id).forEach(x => S.db.doc("charges/" + x.id).delete());
       S.db.doc("events/" + ev.id).delete(); S.evid = null; render();
     } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
   };
@@ -288,10 +299,10 @@ function bindSheet(a) {
 }
 
 // ===== Vykreslení: formulář události =====
-// Trénink: všechna pole; zápas: jen čas, místo, termín přihlašování, cena a způsob úhrady (ostatní údaje zápasu se mění v kartě zápasu)
+// Trénink: všechna pole; zápas: jen čas, místo a termín přihlašování (ostatní údaje zápasu se mění v kartě zápasu, náklady v Pokladně u události)
 function formView(a) {
   const f = S.evf, mt = f.type === "match";
-  a.innerHTML = CSS + `<div id="evw"><button class="s" id="evfx" style="margin-bottom:12px">← Zpět</button><div class="cd"><h2>${mt ? "Zápas – čas, místo, termín, cena" : f.id ? "Upravit trénink" : "Nový trénink"}</h2>
+  a.innerHTML = CSS + `<div id="evw"><button class="s" id="evfx" style="margin-bottom:12px">← Zpět</button><div class="cd"><h2>${mt ? "Zápas – čas, místo, termín" : f.id ? "Upravit trénink" : "Nový trénink"}</h2>
 ${mt ? `<div class="mu" style="margin-bottom:8px">${esc(f.title)} · ${fDay(f.date)}</div>` : `<label>Název</label><input id="ft" value="${esc(f.title)}"><label>Datum</label><input type="date" id="fd" value="${esc(f.date)}">`}
 <label>Čas začátku</label><input type="time" id="fti" value="${esc(f.time)}"><label>Místo</label><input id="fp" value="${esc(f.place)}">
 <label>Konečný termín přihlašování</label><input type="datetime-local" id="fdl" value="${esc(f.dl)}">
@@ -303,7 +314,7 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
     if (g("ft") != null) f.title = g("ft").trim();
     if (g("fd") != null) f.date = g("fd");
     f.time = g("fti") || ""; f.place = (g("fp") || "").trim(); f.dl = g("fdl") || "";
-        if (g("fn") != null) f.note = g("fn").trim();
+    if (g("fn") != null) f.note = g("fn").trim();
   };
   const fd_ = document.getElementById("fd");
   if (fd_) fd_.onchange = () => { readF(); if (f.dlAuto) f.dl = defDl(f.date); render(); };
@@ -314,7 +325,7 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
     if (!f.date) return toast("Zadej datum");
     if (!f.dl) return toast("Zadej konečný termín přihlašování");
     if (new Date(f.dl) > new Date(f.date + "T" + (f.time || "23:59"))) return toast("Termín přihlašování musí být před začátkem události");
-      if (mt) {
+    if (mt) {
       const m = S.ma.find(x => x.id === f.id);
       if (!m) { S.evf = null; return render(); }
       const n = clone(m); n.time = f.time; n.place = f.place; n.dl = f.dl;
