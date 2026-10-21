@@ -1,4 +1,4 @@
-// Pokladna (trenér a pokladník): zůstatek, ruční vklady a výdaje, součty podle kategorií, seznam pohybů se stornem. Režim „🏦 Pokladna“ v záložce Události.
+// Pokladna (trenér a pokladník): zůstatek, ruční vklady a výdaje, součty podle kategorií, seznam pohybů se stornem. Režim „🏦 Pokladna“ v záložce Team (od v17.5).
 // Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení -> Eventy -> Export.
 // Data: kolekce cash (S.cs) {d, k:"in"|"out", amt, cat, mid?, cid?, eid?, note, by}; předpisy v charges (S.ch).
 // Storno pohybu s vazbou na předpis (cid) vrací zaplacenou částku na předpisu v téže dávce a zapíše záznam do audit.

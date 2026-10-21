@@ -1,5 +1,5 @@
 // Pokladna – měsíce (F4, trenér a pokladník): měsíční příspěvky, platy realizačního týmu, hospodaření po měsících a CSV export.
-// Režim „📅 Měsíce“ v záložce Události.
+// Režim „📅 Měsíce“ v záložce Team (od v17.5, dříve v Událostech).
 // Struktura: Importy -> Stav -> Pomocné funkce -> Zápis (příspěvky, platy) -> Vykreslení (měsíc, příspěvky, platy, hospodaření, CSV) -> Eventy -> Export.
 // Data:
 //  - příspěvek = předpis charges/{c_RRRR-MM_pid} {eid:"c_RRRR-MM", mid, amt, paid, due, kind:"contrib", vs}; vystavuje se ručně za vybraný měsíc,

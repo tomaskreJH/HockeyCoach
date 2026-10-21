@@ -1,7 +1,7 @@
-// Přehled plateb a dlužných částek (trenér a pokladník): režim „💰 Platby“ v záložce Události.
+// Přehled plateb a dlužných částek (trenér a pokladník): režim „💰 Platby“ v záložce Team (od v17.5, dříve v Událostech).
 // Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení (souhrn, po hráčkách, po událostech) -> Eventy.
 // Data: kolekce charges (S.ch); událost se bere ze seznamu předaného z events.js (tréninky + zápasy).
-// Měsíční příspěvky (F4) mají eid "c_RRRR-MM": ve výpisech vystupují jako pseudo-událost „Příspěvek měsíc rok“ (📅), klepnutím se otevře režim 📅 Měsíce.
+// Měsíční příspěvky (F4) mají eid "c_RRRR-MM": ve výpisech vystupují jako pseudo-událost „Příspěvek měsíc rok“ (📅), klepnutím se otevře režim Team → 📅 Měsíce.
 // Výjimka z blokace „Jdu“ se uděluje u předpisu po splatnosti (tlačítko 🔒).
 // Dluh = součet nezaplacených zbytků předpisů hráčky. Úhrada (částečná i plná) se zapisuje přes okno úhrady z payments.js.
 
@@ -93,8 +93,8 @@ export function bindFinance(a) {
       toast("Označeno jako zaplacené");
     } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
   });
-  // Otevření detailu události (po návratu zůstane režim Platby)
-  a.querySelectorAll("[data-fe]").forEach(b => b.onclick = () => { S.evid = b.dataset.fe; render(); window.scrollTo(0, 0); });
-  // Příspěvek: přepnutí do režimu 📅 Měsíce na daném měsíci
-  a.querySelectorAll("[data-fm]").forEach(b => b.onclick = () => { openMonth(b.dataset.fm); S.evm = "mon"; render(); window.scrollTo(0, 0); });
+  // Otevření detailu události v záložce Události; tlačítko Zpět vrátí do Team → Platby (S.evBack)
+  a.querySelectorAll("[data-fe]").forEach(b => b.onclick = () => { S.tab = "ev"; S.mid = null; S.evid = b.dataset.fe; S.evBack = "fo"; render(); window.scrollTo(0, 0); });
+  // Příspěvek: přepnutí do režimu Team → 📅 Měsíce na daném měsíci
+  a.querySelectorAll("[data-fm]").forEach(b => b.onclick = () => { openMonth(b.dataset.fm); S.tm = "mon"; render(); window.scrollTo(0, 0); });
 }

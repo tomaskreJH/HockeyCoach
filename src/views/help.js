@@ -19,7 +19,8 @@ const SECTIONS = [
 <li><b>Záložka Události</b> obsahuje tréninky i zápasy: Nadcházející, Minulé a Kalendář (klepnutím na den se seznam zúží).</li>
 <li><b>✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý:</b> Jdu se zapíše hned (opakované klepnutí ho zruší), Nejdu vyžaduje důvod, u Nejsem jistý je nepovinný.</li>
 <li><b>Termín přihlašování:</b> po termínu (a po dni události) se tlačítka zamknou 🔒. Trenér a kustod mohou odpovědi měnit i potom.</li>
-<li><b>Trenér a kustod</b> vybírají nahoře „Zapisuji účast za“ (hráčku nebo člena realizačního týmu); propojený člen týmu má tlačítko 👤 Přihlašuji se sám za sebe.</li>
+<li><b>Trenér a kustod</b> odklikávají docházku hráček i realizačního týmu v detailu události (klepni na událost). Trenér / kustod propojený s realizačním týmem má na kartě události rychlá tlačítka za sebe.</li>
+<li><b>Detail události:</b> nahoře docházka, výsledek zápasu a rozdělení do pětek; pokladna (vyúčtování) je až na konci stránky.</li>
 <li><b>+ Trénink / + Zápas:</b> založení události. Zápas se otevře klepnutím na něj → 🏒 Otevřít zápas.</li>
 <li><b>Rozdělení do pětek</b> (detail tréninku): 1.–4. pětka nebo „–“, ↻ Podle základní formace. Hráčka vidí rozdělení jen ke čtení.</li>
 <li><b>Uzavřený zápas:</b> v detailu události je výsledek a statistiky zápasu pro všechny členy týmu.</li>
@@ -31,6 +32,7 @@ const SECTIONS = [
 <li><b>Náhradnice:</b> všechny nezařazené aktivní hráčky. Přetažením je dáš do sestavy, prohodíš mezi sebou nebo vrátíš mezi náhradnice. Pořadí se pamatuje.</li>
 <li><b>Soupiska:</b> přidání a smazání hráčky jen trenér; úprava stavu (aktivní / zraněná / ukončila) i kustod; skupina plateb (Příspěvek / Za událost), osvobozená (zvýhodněná), koeficient v procentech (0–100 % z ceny) a poznámka trenér a pokladník.</li>
 <li><b>Realizační tým:</b> členy přidává a maže trenér, plat (měsíčně / za událost) nastavuje trenér nebo pokladník (Upravit → Plat).</li>
+<li><b>Správa pokladny:</b> trenér a pokladník mají nahoře v Teamu přepínač <b>Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce</b>. Hráčka-pokladník vidí formaci a soupisku jen ke čtení.</li>
 <li><b>Rotace dvou hráček na jednom místě:</b> pod každou pětkou je řádek <b>⇄ rotace</b>. Hlavní hráčka nastupuje první, pořadí změníš přetažením. Štítek <b>⇄ jméno</b> ve frontě ukazuje, kdo za hráčku skočí, klepnutím rotaci ručně přehodíš.</li>
 </ul>`},
   {t: "4. Nový zápas (3 kroky)", h: `
@@ -107,10 +109,10 @@ const SECTIONS = [
   {t: "11. Pokladna (trenér a pokladník)", h: `
 <ul>
 <li><b>Kdo platí:</b> každá skupina (s příspěvkem, za událost, osvobozené) má vlastní volbu Platí ANO / NE a Výpočet / Pevná částka – v šablonách i u každé události. Cena se dělí všemi přihlášenými hráčkami (každá jako jeden celý kus) a násobí koeficientem hráčky v %.</li>
-<li><b>Vyúčtování události</b> (detail události → 💰 Pokladna): šablona, náklady, kdo platí (výpočet / pevná částka), náhled „vybereme X z Y“ a <b>Uzavřít vyúčtování</b> → vzniknou předpisy. Po uzavření se nic samo nepřepočítává; úprava jen přes ↩ Znovu otevřít.</li>
-<li><b>💰 Platby:</b> dluhy podle hráček a podle událostí a příspěvků, 💳 úhrada (i částečná), ✅ Zaplatila vše, 🔒 výjimka z blokace u předpisu po splatnosti, neuzavřená vyúčtování.</li>
-<li><b>🏦 Pokladna:</b> zůstatek, ➕ vklad / příjem, ➖ výdaj, součty podle kategorií, seznam pohybů s filtry, 🗑 storno (u úhrady vrátí částku na předpis).</li>
-<li><b>📅 Měsíce – příspěvky:</b> vyber měsíc ◀ ▶, zkontroluj návrh (příspěvek × koeficient; jen skupina Příspěvek, bez brankářek a ukončených; osvobozené jsou předem vynechané a klepnutím na – je pro měsíc zahrneš), případně hráčku vynech (–) nebo uprav částku a <b>📨 Vystavit příspěvky</b>. Už vystavené se nepřepisují, nezaplacený příspěvek jde smazat 🗑.</li>
+<li><b>Vyúčtování události</b> (detail události → 💰 Pokladna na konci stránky): šablona, náklady, kdo platí (výpočet / pevná částka), náhled „vybereme X z Y“ a <b>Uzavřít vyúčtování</b> → vzniknou předpisy. Po uzavření se nic samo nepřepočítává; úprava jen přes ↩ Znovu otevřít.</li>
+<li><b>Team → 💰 Platby:</b> dluhy podle hráček a podle událostí a příspěvků, 💳 úhrada (i částečná), ✅ Zaplatila vše, 🔒 výjimka z blokace u předpisu po splatnosti, neuzavřená vyúčtování.</li>
+<li><b>Team → 🏦 Pokladna:</b> zůstatek, ➕ vklad / příjem, ➖ výdaj, součty podle kategorií, seznam pohybů s filtry, 🗑 storno (u úhrady vrátí částku na předpis).</li>
+<li><b>Team → 📅 Měsíce – příspěvky:</b> vyber měsíc ◀ ▶, zkontroluj návrh (příspěvek × koeficient; jen skupina Příspěvek, bez brankářek a ukončených; osvobozené jsou předem vynechané a klepnutím na – je pro měsíc zahrneš), případně hráčku vynech (–) nebo uprav částku a <b>📨 Vystavit příspěvky</b>. Už vystavené se nepřepisují, nezaplacený příspěvek jde smazat 🗑.</li>
 <li><b>📅 Měsíce – platy:</b> návrh podle platu člena týmu (měsíčně, nebo za událost × počet událostí měsíce, na které byl přihlášen „Jdu“). <b>💸 Vyplatit</b> zapíše výdaj do pokladny (kategorie Platy trenérů), jeden plat za člena a měsíc. Oprava = storno v 🏦 Pokladna a nové vyplacení.</li>
 <li><b>📅 Měsíce – hospodaření:</b> příjmy, výdaje, saldo a zůstatek po měsících vybraného roku; klepnutím na měsíc rozpad podle kategorií a předpisů se splatností v měsíci.</li>
 <li><b>⬇️ CSV:</b> pohyby za rok nebo vše, předpisy a přehled po měsících (pro Excel, oddělovač středník).</li>
@@ -138,9 +140,10 @@ const SECTIONS = [
 <tr><td>Opravit událost / střídání</td><td>Krok 3 → ✏️ Opravit zápis</td></tr>
 <tr><td>Statistiky sezóny</td><td>Statistiky</td></tr>
 <tr><td>Zaplatit dluh</td><td>Moje platby → 📱 Zaplatit (QR)</td></tr>
-<tr><td>Zapsat úhradu</td><td>Události → 💰 Platby → 💳</td></tr>
-<tr><td>Vystavit příspěvky / platy</td><td>Události → 📅 Měsíce</td></tr>
-<tr><td>Vklad / výdaj</td><td>Události → 🏦 Pokladna</td></tr>
+<tr><td>Zapsat úhradu</td><td>Team → 💰 Platby → 💳</td></tr>
+<tr><td>Vystavit příspěvky / platy</td><td>Team → 📅 Měsíce</td></tr>
+<tr><td>Vklad / výdaj</td><td>Team → 🏦 Pokladna</td></tr>
+<tr><td>Odklikat docházku</td><td>Události → klepnout na událost</td></tr>
 <tr><td>Vytvořit zálohu</td><td>⚙️ → Stáhnout zálohu (JSON)</td></tr>
 </table>`}
 ];
