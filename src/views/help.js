@@ -49,6 +49,8 @@ const SECTIONS = [
   {t: "5. Živý zápis", h: `
 <ul>
 <li><b>Horní lišta:</b> čas s posunem ◀ ▶ o 5 s, skóre se střelami a aktuální situace (5 na 5, přesilovka, oslabení).</li>
+<li><b>Pevné rozložení</b> (od v18.2): tresty, jednotky PP/OS a řádek „V ošetřování“ mají vyhrazené místo stejné výšky, i když jsou prázdné. Fronty jsou v rámečku pevné výšky – řádek „na řadě“ je vždy hned nad ledem, delší fronta (při oslabení nebo po nasazení jednotky) se posouvá prstem uvnitř rámečku. Tlačítka pětek, led a střela se tak nikdy neposunou. Více než dva tresty najednou se posouvají uvnitř místa pro tresty.</li>
+<li><b>Odezva</b> (od v18.2): po střídání, střele, gólu, trestu, nasazení pětky nebo jednotky a ↩ Zpět telefon krátce zavibruje a tlačítko zabliká. Vibraci vypneš v ⋯ → ⚙️ Nastavení; zablikání zůstává (iPhone vibrace nepodporuje).</li>
 <li><b>Celá pětka na led:</b> tlačítka 1.–4. pětka nasadí celou pětku najednou. Barvy: 1. modrá, 2. žlutá, 3. zelená, 4. růžová, mimo pětky šedá.</li>
 <li><b>Střídání:</b> klepnutí na hráčku ve frontě ji pošle na led místo hráčky pod ní. Podržením a přetažením ji pošleš na jinou pozici. Nejbližší hráčka ve frontě je zvýrazněná.</li>
 <li><b>Střela:</b> klepnutí na hráčku na ledě zapíše její střelu, <b>STŘELA NA NAŠI BRÁNU</b> střelu soupeře. Při přerušené hře se střely zapsat nedají.</li>
@@ -78,7 +80,7 @@ const SECTIONS = [
 <li><b>🧤 Brankářka:</b> výměna brankářky v bráně.</li>
 <li><b>⬇️ Sundat z ledu:</b> ruční odstranění hráčky z ledu. <b>🔄 Sestava znovu:</b> znovu načte řady ze sestavy.</li>
 <li><b>📊 Čas na ledě:</b> přehled časů a střídání, tabulku lze řadit klepnutím na hlavičku. <b>Počet střídání</b> se všude (statistiky zápasu, rozbor, celkové statistiky) počítá stejně: nulové záznamy se vynechají a když hráčka plynule pokračuje (návrat do řad po přesilovce, Sestava znovu, změna jednotky), je to jedno střídání.</li>
-<li><b>⚙️ Nastavení:</b> limit dlouhého střídání (pamatuje se v každém zařízení zvlášť).</li>
+<li><b>⚙️ Nastavení:</b> limit dlouhého střídání a vibrace při zápisu (odezva; od v18.2). Obojí se pamatuje v každém zařízení zvlášť.</li>
 <li><b>Konec třetiny / Konec zápasu:</b> po 3. třetině se prodlužuje jen při nerozhodném stavu a povoleném prodloužení, jinak tlačítko znamená Konec zápasu. Konec jde vrátit (↩ Zpět nebo „Zrušit konec zápasu“).</li>
 </ul>`},
   {t: "8. Zápis utkání a opravy", h: `
