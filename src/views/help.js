@@ -29,7 +29,7 @@ const SECTIONS = [
 <li><b>Termín přihlašování:</b> po termínu (a po dni události) se tlačítka zamknou 🔒. Trenér a kustod mohou odpovědi měnit i potom.</li>
 <li><b>Trenér a kustod</b> odklikávají docházku hráček i realizačního týmu v detailu události (klepni na událost). Trenér / kustod propojený s realizačním týmem má na kartě události rychlá tlačítka za sebe.</li>
 <li><b>Detail události:</b> nahoře docházka, výsledek zápasu a rozdělení do pětek; pokladna (vyúčtování) je až na konci stránky.</li>
-<li><b>+ Trénink / + Zápas:</b> založení události. Zápas se otevře klepnutím na něj → 🏒 Otevřít zápas.</li>
+<li><b>+ Trénink / + Zápas:</b> založení události. U zápasu se zadává i čas začátku, místo a konečný termín přihlašování (výchozí den předem v 18:00); po vytvoření se otevře detail události a hráčky se mohou přihlašovat. Zápas se otevře klepnutím na něj → 🏒 Otevřít zápas.</li>
 <li><b>Rozdělení do pětek</b> (detail tréninku): 1.–4. pětka nebo „–“, ↻ Podle základní formace. Hráčka vidí rozdělení jen ke čtení.</li>
 <li><b>Uzavřený zápas:</b> v detailu události je výsledek a statistiky zápasu pro všechny členy týmu.</li>
 <li><b>Dluh po splatnosti</b> blokuje vlastní přihlášení „Jdu“, dokud ho nezaplatíš (nebo pokladník neudělí výjimku). Červený banner vede do Moje platby.</li>
@@ -46,7 +46,8 @@ const SECTIONS = [
   {t: "4. Nový zápas (3 kroky)", h: `
 <p><b>Zápas → Sestava → Zápas živě.</b> Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav ✅/⛔ Nominace a Sestava.</p>
 <ul>
-<li><b>Krok 1 – Zápas:</b> soupeř, datum, doma/venku, délka třetiny (standardně 20 min), prodloužení Ano (5 min) / Ne, vzájemné uzavřené zápasy se soupeřem.</li>
+<li><b>Postup:</b> 1) vytvořit zápas (= zveřejněná událost), 2) hráčky se přihlásí (✅ Jdu), 3) nominace z přihlášených, 4) sestava, 5) ✔ Uzavřít sestavu, 6) Zahájit zápas. Dokud přihlášky nestačí na nominaci (1 brankářka + 5 bruslařek), karta zápasu ukazuje ⏳ Přihlášky, uzávěrku a tlačítko 📅 Přihlášky – detail události.</li>
+<li><b>Krok 1 – Zápas:</b> soupeř, datum, čas a místo (mění se v Událostech → ✏️ Upravit), doma/venku, délka třetiny (standardně 20 min), prodloužení Ano (5 min) / Ne, vzájemné uzavřené zápasy se soupeřem.</li>
 <li><b>Krok 2A – Nominace:</b> nominovat jde jen hráčky přihlášené na událost (✅ Jdu). Minimum 1 brankářka a 5 bruslařek. Tlačítka Všechny přihlášené / Zrušit vše.</li>
 <li><b>Krok 2B – Sestava:</b> naplní se podle základní formace (jen z nominovaných). Uprav řady, náhradnice a jednotky přesilovek a oslabení (<b>Zkopírovat z posledního zápasu</b>). <b>✔ Uzavřít sestavu</b> umožní spustit živý zápis. Jakákoli změna sestavy uzavření zruší.</li>
 <li><b>Pravidlo jednotek:</b> hráčka smí být jen v jedné přesilovce (PP1/PP2) a jen v jednom oslabení téhož druhu (4 hráčky: SH1/SH2, 3 hráčky: SH3/SH4); v běžné řadě být může.</li>

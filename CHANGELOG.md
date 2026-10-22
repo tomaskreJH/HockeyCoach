@@ -4,6 +4,19 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v18.8.1 (22. 10. 2026) – Oprava: postup zakládání zápasu
+> **Nasazení:** jen nahrát kód. Pravidla databáze beze změny (publikovat netřeba), na platby se nesahá. Po otestování může trenér ⚙️ → 🔒 Vyžadovat verzi v18.8.1 (není nutné – tvar dat se nemění, přibyla jen pole `time`, `place`, `dl` u nového zápasu, která už dříve zapisovala úprava v Událostech).
+
+**Opraveno**
+- **Nový zápas neměl čas začátku:** okno Nový zápas (Události → + Zápas, i Zápasy → + Nový zápas) má pole **Čas začátku**, **Místo** a **Konečný termín přihlašování** (výchozí den předem v 18:00, při změně data se posune, dokud ho neupravíš ručně). Kontrola: termín musí být nejpozději v čas začátku.
+- **Posloupnost přípravy zápasu:** po vytvoření se neotevře karta zápasu se sestavou, ale **detail události** (zápas je zveřejněný, hráčky se přihlašují). Karta zápasu v kroku 1 ukazuje **⏳ Přihlášky** (brankářky / bruslařky, uzávěrka) a dokud přihlášky nestačí na nominaci (1 + 5), místo „Dokončit sestavu“ nabízí **📅 Přihlášky – detail události**; pak **Nominovat z přihlášených →**, potom **Dokončit sestavu →**, ✔ Uzavřít sestavu a Zahájit zápas. Hlavička karty: ✅/⏳ Přihlášky (počet) · Nominace · Sestava; u data i čas a místo.
+
+**Změněno**
+- `src/views/modal.js` (okno Nový zápas), `src/views/matches.js` (karta zápasu – postup, hlavička), `src/domain/lineup.js` (nová `signupState`), `src/core/utils.js` (společné `dlDefault`, `dlText`, `dlBeforeStart`), `src/views/events.js` (používá společné pomůcky termínu – chování beze změny), `src/views/help.js` (kapitoly 2 a 4), nový test `tests/match-prep.test.js`, verze (`app-version.js`, `package.json`, `sw.js` cache hokej-v50), `README.md`, `docs/plan-v18.md`.
+
+**Beze změny**
+- Nominace (jen přihlášené), sestava, uzavření sestavy, živý zápis, střely, góly, časomíra, tresty, statistiky, pokladna, pravidla databáze.
+
 ## v18.8 (22. 10. 2026) – Řád projektu a pojistky (fáze K) – ⚠️ MĚNÍ PRAVIDLA DATABÁZE
 > **Postup nasazení (pořadí je důležité):** 1) **publikovat `firestore.rules`** (pokladník a členové, nový `settings/app`), 2) nahrát kód a **smazat `plan-zivy-zapis-v18.md` z kořene** (přesunut do `docs/`), 3) ověřit přihlášení trenéra, hráčky a pokladníka (👁 Náhled role), 4) až budou všechna zařízení na v18.8: trenér ⚙️ → **🔒 Vyžadovat verzi v18.8**.
 > Na platby se nesahá: `cash.js`, `bank-account.js`, `mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js` beze změny. Pravidla `charges`, `cash`, `audit`, `evcash`, `debtors` a `settings/cash` beze změny.

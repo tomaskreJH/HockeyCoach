@@ -21,7 +21,7 @@ import {POS} from "../config/constants.js";
 import {strip, upd} from "../core/actions.js";
 import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {clone, esc, fd, td, toast} from "../core/utils.js";
+import {clone, dlBeforeStart, dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {costTotal, cxOf, debtOf, kc} from "../domain/cash.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
@@ -75,12 +75,12 @@ const cashMgr = () => HK.isCash();                                   // správce
 const isPl = () => HK.role() === "hracka";                           // přihlášená hráčka (omezený přístup)
 const dayOf = s => new Date(s + "T00:00:00");
 const fDay = s => DAYS[dayOf(s).getDay()] + " " + fd(s);
-const fDl = dl => { const d = new Date(dl); return isNaN(d) ? "" : d.getDate() + ". " + (d.getMonth() + 1) + ". " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const fDl = dlText;                    // text termínu přihlašování (core/utils.js)
 const dlMs = dl => { const t = dl ? new Date(dl).getTime() : NaN; return isNaN(t) ? null : t; };
 // Přihlašování je uzavřeno po termínu nebo po dni události
 const isLocked = ev => { const t = dlMs(ev.dl); return (t != null && Date.now() > t) || ev.date < td(); };
-// Výchozí termín: den před událostí v 18:00 (formát pro input datetime-local)
-const defDl = date => { if (!date) return ""; const d = new Date(date + "T18:00:00"); d.setDate(d.getDate() - 1); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T18:00"; };
+// Výchozí termín: den před událostí v 18:00 (core/utils.js – stejný i pro nový zápas v modal.js)
+const defDl = dlDefault;
 const asc = (x, y) => x.date.localeCompare(y.date) || (x.time || "99").localeCompare(y.time || "99");
 const activePl = () => S.pl.filter(p => stOf(p) !== "end").sort((x, y) => pri(x) - pri(y) || x.name.localeCompare(y.name, "cs"));
 // Členové realizačního týmu (trenéři, kustodi…) seřazení podle jména; zapisují se do docházky, neplatí a nenominují se
@@ -345,7 +345,7 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
     readF();
     if (!f.date) return toast("Zadej datum");
     if (!f.dl) return toast("Zadej konečný termín přihlašování");
-    if (new Date(f.dl) > new Date(f.date + "T" + (f.time || "23:59"))) return toast("Termín přihlašování musí být před začátkem události");
+    if (!dlBeforeStart(f.dl, f.date, f.time)) return toast("Termín přihlašování musí být před začátkem události");
     if (mt) {
       const m = S.ma.find(x => x.id === f.id);
       if (!m) { S.evf = null; return render(); }

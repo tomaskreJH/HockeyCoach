@@ -13,6 +13,12 @@ export const clone=o=>JSON.parse(JSON.stringify(o));
 export const uid=()=>Math.random().toString(36).slice(2,10);
 export const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 export const cd=ms=>ms<0?"+"+mmss(-ms):mmss(Math.ceil(ms/1000)*1000);
+// Termín přihlašování (formát input datetime-local "RRRR-MM-DDTHH:MM"): výchozí den před událostí v 18:00 a text pro zobrazení „21. 10. 18:00“
+const p2=n=>String(n).padStart(2,"0");
+export const dlDefault=date=>{if(!date)return"";const d=new Date(date+"T18:00:00");d.setDate(d.getDate()-1);return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+"T18:00"};
+export const dlText=dl=>{const d=new Date(dl);return !dl||isNaN(d)?"":d.getDate()+". "+(d.getMonth()+1)+". "+p2(d.getHours())+":"+p2(d.getMinutes())};
+// Termín přihlašování musí být před začátkem události (bez času začátku = konec dne)
+export const dlBeforeStart=(dl,date,time)=>!dl||new Date(dl)<=new Date(date+"T"+(time||"23:59"));
 export const mmss=ms=>{const t=Math.floor(Math.max(0,ms)/1000);return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0")};
 // Stažení textového souboru (záloha, zápis, CSV)
 export function downloadFile(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}

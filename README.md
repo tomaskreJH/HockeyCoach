@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v18.8 (22. 10. 2026)** – řád projektu a pojistky: automatické testy (`npm test`), brána verze (starší verze aplikace nezapisuje), oprava pravidel – pokladník spravuje jen hráčky a ne vlastní účet, programovací řád v `docs/KONVENCE.md`, plán a archiv v `docs/`. **Nejdřív publikovat `firestore.rules`, pak nahrát kód.**
+**Aktuální verze: v18.8.1 (22. 10. 2026)** – oprava zakládání zápasu: čas začátku, místo a termín přihlašování už při vytvoření; po vytvoření se otevře událost (přihlášky) a karta zápasu vede postupem přihlášky → nominace → sestava → uzavření. Pravidla databáze beze změny. Dříve v18.8: testy (`npm test`), brána verze, pokladník spravuje jen hráčky, `docs/KONVENCE.md`.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
