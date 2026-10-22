@@ -4,6 +4,24 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.4 (22. 10. 2026) – hřiště, režim PP/OS a nabídky po trestu a zranění (fáze B4 + úpravy po testu v18.3)
+**Opraveno**
+- Zranění v oslabení: upozornění na chybějící hráčku na ledě chybělo. Příčina: v `liveTick` podmínka `!(L.pen).some(… x.end==null)` hlášku potlačila, kdykoli náš trest čekal (druhá část 2+2, třetí trest), a hláška byla jen tlumená „ℹ️“ s podmínkou neprázdných front. Nyní se chybějící i přebývající hráčka hlásí vždy jako ⚠️ (kromě ukončeného zápasu).
+
+**Přidáno**
+- Nabídka jednotky k odsouhlasení (B4): po zapsání trestu, který změní počty a vytvoří přesilovku / oslabení, se otevře panel s navrženou jednotkou (nejvíc dostupných hráček, přepínač druhé jednotky), vyloučená / ošetřovaná hráčka červeně; ✓ Potvrdit a nasadit (`applyUnit` beze změny), ✏️ Upravit jednotky, Ponechat pětky. Znovu ji otevře tlačítko v řádku stavu.
+- Režim PP/OS: je-li nasazená jednotka platné situace, jsou pod mantinelem místo pětek tlačítka jednotek situace a ↩ Řady, fronty jen z jednotek. Po konci nerovnosti se obrazovka sama vrátí k pětkám, upozornění a ↩ Řady v řádku stavu připomenou návrat.
+- Po zranění (dočasném i trvalém) se hned otevře Sestava s vyznačeným místem a poznámkou nahoře.
+
+**Změněno**
+- `src/views/live.js`: situace v hlavičce vedle třetiny; „hřiště“ `.lrink` (střela soupeře → červená středová čára → hráčky na ledě), mantinel `.lboard`, pod ním pětky / jednotky a fronty (pořadí front z v18.3); řádek stavu `#lchips` = tresty s odpočtem a ✕ + nabídka jednotky / ↩ Řady (situace, 🩹 a tlačítka jednotek z něj odešly); upozornění `#lwarn` v horním řádku průběhu jen když nějaké je (chybí / přebývá hráčka, dlouhé střídání, jednotka po konci nerovnosti, nevybraná brankářka, na trestu, v ošetřování) – „✓ Bez upozornění“ zrušeno. Nové pomocné `grpFor`, `unitView`, `unitLabel`, `proposeUnit`, export `askUnit`.
+- `src/views/live-quick.js`: po zapsání trestu volá `askUnit` (zápis `commitEv` beze změny).
+- `styles/main.css`: hřiště, středová čára, mantinel, tlačítka režimu PP/OS, vyznačené místo v sestavě, řádky upozornění.
+- `src/views/help.js` (kapitoly 5–7), `README.md`, `src/data/storage.js` (verze), `package.json`, `sw.js` (cache hokej-v42), `plan-zivy-zapis-v18.md`.
+
+**Beze změny:** `live-engine.js` (střely, góly, tresty, časomíra, střídání a rotace), odezva z v18.2, ovládání rotace z v18.3, uložená data, pravidla databáze (`firestore.rules` není nutné publikovat).
+Ověřeno kouřovým testem v jsdom (32 kontrol: pořadí hřiště a mantinelu, situace v hlavičce, prázdný řádek stavu, nabídka po našem i soupeřově trestu, návrh jednotky bez vyloučené, potvrzení a režim OS / PP, fronty jen z jednotek, zranění v oslabení při 2+2 → upozornění a Sestava s místem, trvalé zranění → prázdné místo, návrat k pětkám po konci nerovnosti, ↩ Řady, záblesk, střely).
+
 ## v18.3 (22. 10. 2026) – rozložení B a ovládání rotace (fáze B5 + B3 plánu v18)
 **Změněno**
 - `src/views/live.js`: jediné rozložení B – horní lišta (čas, skóre) s řádkem stavu `#lchips` pevné výšky (situace, ⚡ PP / 🛡 OS, ↩ Řady, tresty s odpočtem a ✕, 🩹 ošetřování; posouvá se do strany) → STŘELA NA NAŠI BRÁNU → čára → tlačítka pětek → hráčky na ledě → sloupce čekajících pod každým místem (na řadě nahoře, větší). Rozložení A zrušeno (bez volby v nastavení). Pevná místa z v18.2 (`#lpen`, `#lunit`, `#ltmp`, `#lqbox`) nahradil řádek stavu.
@@ -14,7 +32,8 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 
 **Beze změny:** odezva z v18.2 (vibrace a záblesk), střely, góly, tresty, časomíra, logika střídání a rotace (`putOn`, `swapRot`, `rotate`, `requeue`), uložená data, pravidla databáze (`firestore.rules` není nutné publikovat).
 Ověřeno kouřovým testem v jsdom (20 kontrol: pořadí rozložení B, rozložení beze změny po střídání, střele, trestu, jednotce a ošetřování, odezva u všech akcí, klepnutí a podržení partnerky, zapsaná data).
- – pevné rozložení a odezva živého zápisu (fáze B2 plánu v18)
+
+## v18.2 (22. 10. 2026) – pevné rozložení a odezva živého zápisu (fáze B2 plánu v18)
 **Přidáno**
 - `src/views/live-feedback.js`: `haptic(kind)` (vibrace `tap` / `ok` / `undo` / `err`), `flash(selektor)` a `applyFlash` (zablikání tlačítka, které přežije nové vykreslení), vypínač vibrace (LS `hapticOff`).
 - Odezva po střídání (klepnutí i přetažení), střele naší i soupeře, gólu, trestu, nasazení pětky, jednotky, ↩ Zpět na řady a ↩ Zpět; chybová vibrace, když se střídání, pětka nebo jednotka neprovede.

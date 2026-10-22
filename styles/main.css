@@ -122,8 +122,10 @@ th { color: var(--mu); font-size: 12px; }
 .lt small { color: var(--mu); }
 .lsc { text-align: center; font-size: 30px; font-weight: 800; }
 .lsc small { display: block; font-size: 12px; font-weight: 400; color: var(--mu); }
-#lwarn { background: #fff3dc; color: var(--wa); border-radius: 10px; font-weight: 700; }
-#lwarn:not(:empty) { padding: 10px; margin-bottom: 8px; }
+/* Upozornění v horním řádku průběhu (v18.4) – zobrazí se jen, když nějaké je (display řídí liveTick) */
+#lwarn { background: #fff3dc; color: #5a3a00; border: 1px solid var(--wa); border-radius: 10px; padding: 6px 10px; margin-bottom: 6px; font-size: 13px; line-height: 18px; }
+#lwarn .lw-w { font-weight: 700; }
+#lwarn .lw-i { font-weight: 500; }
 .bx { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fde8e5; color: var(--no); border-radius: 10px; padding: 6px 10px; margin-bottom: 6px; font-size: 14px; }
 .bx button { padding: 6px 12px; }
 
@@ -261,8 +263,9 @@ th { color: var(--mu); font-size: 12px; }
 .lq .rt { display: block; font-size: 11px; font-weight: 600; opacity: .85; line-height: 1.1; padding-top: 2px; }
 
 /* ==========================================================
-   8b. ŽIVÝ ZÁPIS – ROZLOŽENÍ B (v18.3) A ODEZVA (v18.2)
-   Shora: horní lišta + řádek stavu → střela soupeře → čára → pětky → led → čekající s rotujícími partnerkami.
+   8b. ŽIVÝ ZÁPIS – ROZLOŽENÍ (v18.3, hřiště v18.4) A ODEZVA (v18.2)
+   Shora: horní lišta (třetina se situací, čas, skóre) + řádek stavu → hřiště (střela soupeře → středová čára → led)
+   → mantinel → pětky / jednotky PP/OS → čekající s rotujícími partnerkami → průběh s upozorněními.
    ========================================================== */
 /* Horní lišta (sticky): řádek 1 čas a skóre, řádek 2 stav pevné výšky (posouvá se do strany) */
 .lt-b { display: block; position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 0 4px; margin-bottom: 6px; }
@@ -272,7 +275,9 @@ th { color: var(--mu); font-size: 12px; }
 .lchips::-webkit-scrollbar { display: none; }
 .lt .lchips b { display: inline; font-size: 13px; line-height: inherit; }   /* odpočet trestu – ne velké písmo času (.lt b) */
 .lchip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px; border-radius: 19px; font-size: 13px; box-sizing: border-box; }
-.lchip-sit { flex: 0 0 auto; font-size: 13px; }
+.lper { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }   /* třetina + situace (v18.4) */
+.lper .lsit { font-size: 12px; padding: 2px 8px; }
+.lchip-none { flex: 0 0 auto; font-size: 13px; color: var(--mu); padding: 0 4px; }   /* prázdný řádek stavu */
 .lchip.pen { background: #fde8e5; color: var(--no); padding-right: 4px; }
 .lchip.pen button { min-width: 32px; height: 32px; padding: 0; border-radius: 16px; border: 1px solid var(--no); background: transparent; color: var(--no); font-weight: 700; }
 .lchip.tmp { background: #fff3dc; color: #5a3a00; }
@@ -281,13 +286,33 @@ th { color: var(--mu); font-size: 12px; }
 .lchip.ub.sh { background: var(--wa); border-color: var(--wa); color: #fff; }
 .lchip.ub.on { outline: 3px solid var(--ok); }
 
-/* Střela soupeře nahoře a dělicí čára pod ní */
-#lv .lgk { margin-top: 0; min-height: 66px; font-size: 15px; }
-.ldiv { border-top: 4px dashed var(--no); margin: 12px 0 10px; }
+/* Hřiště (v18.4): obdélník v barvě ledu se zaoblenými rohy – nahoře střela soupeře, středová čára, hráčky na ledě.
+   Led je světlý i v tmavém režimu, proto má hřiště vlastní barvy textu. */
+.lrink { position: relative; background: #e8f2f9; border: 3px solid #9fb6c8; border-radius: 28px; padding: 12px 8px 14px; color: #14202e; box-shadow: inset 0 0 0 6px rgba(255, 255, 255, .55); }
+#lv .lrink .lgk { margin-top: 0; min-height: 72px; font-size: 15px; background: rgba(255, 255, 255, .7); color: #14202e; border-color: #9fb6c8; }
+#lv .lrink .lgk small { color: #3d4b5c; }
+/* Tlustá červená středová čára s kruhem uprostřed */
+.ldiv { position: relative; height: 0; border-top: 6px solid #c62828; margin: 18px -8px 16px; }
+.ldiv::after { content: ""; position: absolute; left: 50%; top: -14px; width: 22px; height: 22px; margin-left: -14px; border: 3px solid #1e5bb8; border-radius: 50%; background: #e8f2f9; }
+.lrink .lpos { margin-bottom: 4px; }
+.lrink .lpos small { color: #3d4b5c !important; font-weight: 700; }
+.lrink .lg.ice-strip { background: transparent; padding: 0; }
+/* Mantinel pod hřištěm (bílá deska se žlutým okopovým pruhem) */
+.lboard { height: 14px; margin: 6px 4px 10px; border-radius: 7px; border: 2px solid #8a96a3; background: linear-gradient(#f4f4f4 0 55%, #f1c40f 55% 100%); }
 
 /* Tlačítka celých pětek */
 .lpl-row { flex-wrap: nowrap; gap: 8px; margin-bottom: 8px; }
 .lpl-row button { flex: 1; min-height: 42px; border-radius: 10px; border: 2px solid; font-weight: 700; font-size: 14px; }
+
+/* Režim PP/OS (v18.4): tlačítka jednotek situace a ↩ Řady místo pětek */
+.lunit-row button.ub { border-color: var(--ac); background: var(--cd); color: var(--ac); }
+.lunit-row button.ub.pp { background: var(--ac); color: #fff; }
+.lunit-row button.ub.sh { background: var(--wa); border-color: var(--wa); color: #fff; }
+.lunit-row button.ub.on { outline: 3px solid var(--ok); outline-offset: 1px; }
+
+/* Sestava po zranění a nabídka jednotky (v18.4): vyznačené místo a poznámka nahoře */
+.lgap-note { background: #fde8e5; color: #7a1d14; border: 1px solid var(--no); border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 14px; }
+.sl.lu-gap { outline: 3px dashed var(--no); outline-offset: 1px; background: #fde8e5; color: #7a1d14; }
 
 /* Čekající: pod každým místem sloupec (na řadě nahoře u ledu, větší) */
 .lqs { margin-top: 10px; align-items: start; }

@@ -1,6 +1,6 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v18.3 (22. 10. 2026)** – nové rozložení živého zápisu (střela soupeře nahoře, čára, pětky, hráčky na ledě, pod nimi čekající; tresty, ošetřování a PP/OS v řádku stavu pod časem) a jednoznačná rotace (partnerka jako samostatné malé tlačítko: klepnutí = na led, podržení = pořadí rotace). Změny všech verzí jsou v [CHANGELOG.md](CHANGELOG.md), plán dalších verzí v [plan-zivy-zapis-v18.md](plan-zivy-zapis-v18.md).
+**Aktuální verze: v18.4 (22. 10. 2026)** – živý zápis jako hřiště (střela soupeře, červená středová čára, hráčky na ledě; pod mantinelem pětky a fronty), situace v hlavičce vedle třetiny, nabídka jednotky PP/OS k odsouhlasení po trestu a režim PP/OS, Sestava s vyznačeným místem po zranění, upozornění v průběhu jen když nějaké je a oprava chybějícího upozornění na hráčku při zranění v oslabení. Změny všech verzí jsou v [CHANGELOG.md](CHANGELOG.md), plán dalších verzí v [plan-zivy-zapis-v18.md](plan-zivy-zapis-v18.md).
 
 Aplikace pro trenéry, kustody a hráčky: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, měsíční příspěvky, platy, hospodaření po měsících), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.

@@ -8,8 +8,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.0 | A | Tlačítko Zpět v aplikaci, dotaz na ukončení z domovské stránky – **hotovo** (opravy ve v18.1 a v18.1.1) |
 | v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky – **hotovo**, k testu |
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo** (odezva zůstává, rozložení nahradila v18.3) |
-| v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, k testu |
-| v18.4 | B4 | Sestava hned po trestu a zranění |
+| v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, otestováno (požadavky do v18.4) |
+| v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo**, k testu |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
@@ -37,6 +37,14 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
   4. **B4 – PP/OS se odsouhlasí:** při přesilovce / oslabení se nabídne sestava jednotky k odsouhlasení a po potvrzení se rovnou přepne do režimu PP/OS – tlačítka a fronty jen pro jednotky PP/OS (běžné pětky 1.–4. se v tu chvíli nezobrazují). Po skončení nerovnosti návrat k běžným pětkám (↩ Řady). Zranění: hned otevřít Sestavu s vyznačeným prázdným místem (B4).
   5. **Upozornění:** varování (kdo je zraněný, kdo sedí na trestu, chybějící / přebývající hráčka, dlouhé střídání, nestandardní situace) v horním řádku průběhu – **jen když nějaké je**; jinak se řádek nezobrazuje (zrušit „✓ Bez upozornění“). Řádek stavu v hlavičce pak nese jen tresty s odpočtem a ✕ a tlačítka PP/OS – upřesnit v novém vlákně, co v něm zůstane.
   Zachovat: odezva (vibrace + záblesk) z v18.2, ovládání rotace z v18.3, engine beze změny (zásah do `live-engine.js` jen po dotazu).
+- **v18.4 (B4 + úpravy po testu v18.3) dodáno, k testu.** Engine beze změny.
+  1. Příčina chyby: `liveTick` hlášku o chybějící hráčce potlačil, kdykoli náš trest čekal (`end==null` – druhá část 2+2, třetí trest), a byla jen tlumená „ℹ️“ podmíněná neprázdnými frontami. Nyní ⚠️ vždy (chybí i přebývá).
+  2. Situace v hlavičce vedle třetiny (`.lper .lsit`).
+  3. Hřiště `.lrink` (střela soupeře → tlustá červená středová čára s kruhem → hráčky na ledě), mantinel `.lboard`, pod ním pětky a fronty (pořadí z v18.3).
+  4. Po trestu, který změní počty a vytvoří nerovnost, panel „uask“: navržená jednotka (nejvíc dostupných hráček, přepínač druhé), vyloučená červeně, nesestavená místa z front; ✓ Potvrdit a nasadit → režim PP/OS (tlačítka jednotek situace + ↩ Řady pod mantinelem, fronty jen z jednotek); Ponechat pětky; ✏️ Upravit jednotky. Režim se zobrazuje jen, když `L.unit` patří k platné situaci – po konci nerovnosti se obrazovka sama vrátí k pětkám (uložené `L.unit` zruší až pětka / ↩ Řady, upozornění to připomene). Po zranění (dočasném i trvalém) hned Sestava s vyznačeným místem (`S.lgap`).
+  5. Upozornění `#lwarn` v horním řádku průběhu jen když nějaké je: chybí / přebývá hráčka, dlouhé střídání, jednotka po konci nerovnosti, nevybraná brankářka (⚠️), na trestu, v ošetřování (info).
+  **K potvrzení – návrh řádku stavu v hlavičce:** tresty (naše i soupeř) s odpočtem a ✕; při nerovnosti bez režimu PP/OS tlačítko ⚡ Jednotka PP / 🛡 Jednotka OS (znovu otevře nabídku); po konci nerovnosti s jednotkou na ledě ↩ Řady; jinak tlumené „Bez trestů“. Pevná výška zůstává (sticky hlavička, nic neposune). Situace, 🩹 a tlačítka jednotek z řádku odešly (hlavička / upozornění / pod mantinel).
+  Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
 ## A – v18.0: Tlačítko Zpět (Všeobecně 1a)
@@ -75,7 +83,7 @@ Stav: aplikace nepoužívá History API (`popstate` / `pushState` nikde), proto 
 - Ruční změna pořadí rotace (dnes `swapRot`) přes menší tlačítko / podržení – upřesnit (otázka 2).
 - Pravidla rotace (`rotate`, `requeue`, `claimSlot`) zachovat; měnit jen zobrazení a vstupy.
 
-### B4 – v18.4: Okamžitá nabídka sestavy po trestu a zranění (body 1e, 1f)
+### B4 – v18.4: Okamžitá nabídka sestavy po trestu a zranění (body 1e, 1f) – hotovo, k testu
 - Po zapsání trestu (naše i soupeřovo vyloučení, které mění počty) hned otevřít panel PP/OS: aktivní jednotky pro danou situaci, vyloučená hráčka červeně, tlačítka nasadit jednotku / upravit místo; kustod z něj přečte sestavu. Zavření jedním klepnutím (i tlačítkem Zpět z fáze A).
 - Po zranění (dočasné i trvalé) hned otevřít Sestavu s vyznačeným prázdným místem a náhradnicemi.
 

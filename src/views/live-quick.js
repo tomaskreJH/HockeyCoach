@@ -2,13 +2,14 @@
 // Struktura: Importy -> Zápis události (commitEv) -> Start rychlého zápisu (qaStart) -> Okno kroků (qaHtml) -> Klepnutí v okně (qaClick).
 // v18.2: po zapsání gólu a trestu odezva (live-feedback.js) – vibrace a záblesk skóre / místa trestů. Zápis se nemění.
 // v18.3: tresty jsou v řádku stavu horní lišty (#lchips) – záblesk po trestu míří tam.
+// v18.4: po zapsání vyloučení, které změní počty a vytvoří přesilovku / oslabení, se otevře nabídka jednotky k odsouhlasení (askUnit, B4).
 import {COLS, REA, SIT} from "../config/constants.js";
 import {upd} from "../core/actions.js";
 import {curM, isG, liveIds, nomOf, pl, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, mmss, toast, uid} from "../core/utils.js";
-import {addPen, autoSit, el_, ela, fitLayout, goalPen, logEv, procExp} from "../domain/live-engine.js";
-import {liveRender} from "./live.js";
+import {addPen, autoSit, el_, ela, fitLayout, goalPen, logEv, procExp, sk} from "../domain/live-engine.js";
+import {askUnit, liveRender} from "./live.js";
 import {feedback} from "./live-feedback.js";
 
 // ===== Zápis události =====
@@ -35,12 +36,13 @@ else if(Q_.step==="len"){t="Délka trestu"+(Q_.team==="opp"?" (soupeř)":"");b=[
 else{t="Důvod";b=REA.map(r=>bt("why:"+r,r)).join("")}
 return`<div class="lmw" id="qw"><div class="lmb"><h2>${t}</h2><div class="mu" style="margin-bottom:8px">${Q_.per}. tř. ${esc(Q_.time)}</div>${x}<div class="qg">${b}</div><button class="s w" data-qb="x" style="margin-top:14px;min-height:54px">Zrušit</button></div></div>`}
 // ===== Klepnutí v okně =====
-// Poslední krok zapíše událost (commitEv) a dá odezvu: gól = záblesk skóre, trest = záblesk řádku stavu (#lchips)
+// Poslední krok zapíše událost (commitEv) a dá odezvu: gól = záblesk skóre, trest = záblesk řádku stavu (#lchips);
+// po trestu se porovná počet hráček před a po zápisu a případně se nabídne jednotka PP/OS (askUnit)
 export function qaClick(id,m,L){const Q_=S.qa,i=id.indexOf(":"),k=i<0?id:id.slice(0,i),v=i<0?"":id.slice(i+1);
 function fin(){const e={id:uid(),k:"G",team:"us",per:Q_.per,time:Q_.time,sit:Q_.sit,scorer:Q_.scorer,a1:Q_.a1,a2:Q_.a2,on:liveIds(L)};S.qa=null;commitEv(e);feedback("ok",".lsc")}
 if(id==="x"){S.qa=null;return liveRender()}
 if(Q_.k==="G"){if(k==="sc"){Q_.scorer=v;Q_.step="a1"}else if(k==="a1"){if(v==="-")return fin();Q_.a1=v;Q_.step="a2"}else if(k==="a2"){Q_.a2=v==="-"?null:v;return fin()}return liveRender()}
 if(k==="who"){if(v==="opp"){Q_.team="opp";Q_.step="len"}else if(v==="other")Q_.step="other";else{Q_.team="us";Q_.pid=v;Q_.step="len"}}
 else if(k==="len"){Q_.min=+v;Q_.step="why"}
-else if(k==="why"){const e={id:uid(),k:"P",team:Q_.team,per:Q_.per,time:Q_.time,min:Q_.min,reason:v};if(Q_.team==="us")e.pid=Q_.pid;S.qa=null;commitEv(e);feedback("ok","#lchips");return}
+else if(k==="why"){const e={id:uid(),k:"P",team:Q_.team,per:Q_.per,time:Q_.time,min:Q_.min,reason:v};if(Q_.team==="us")e.pid=Q_.pid;S.qa=null;const t0=el_(L),before=[sk(L,"us",t0),sk(L,"opp",t0)];commitEv(e);feedback("ok","#lchips");askUnit(before);return}
 liveRender()}
