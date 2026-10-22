@@ -61,7 +61,7 @@ function payData(cfg) {
 // Správci pokladny navíc uvidí čekající návrh změny účtu (potvrzuje jiný správce než navrhovatel)
 function pendBanner() {
   const p = (S.cc || {}).ibanPend, u = HK.user(), me = ((u && u.email) || "").toLowerCase();
-  if (!p || !HK.isCash()) return "";
+  if (!p || !HK.can("money")) return "";
   return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">⏳ Čeká na potvrzení změna účtů týmu</b><div class="mu">Navrhl ${esc(p.by)} · ${esc(fDay(p.at))}.${p.by === me ? " Potvrdit musí jiný trenér nebo pokladník." : " Před potvrzením ověř číslo účtu s navrhovatelem."}</div><button class="s w" data-mko style="margin-top:8px">🏦 Otevřít nastavení pokladny</button></div>`;
 }
 export function mineBanner() {

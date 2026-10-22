@@ -51,7 +51,7 @@ const ACT_TXT = {"acc-prop": "návrh změny účtu", "acc-ok": "změna účtu po
 const pairTxt = (a, b) => "hlavní " + (ibanToCz(a) || a || "–") + ", provozní " + (ibanToCz(b) || b || "–");
 // Sekce účtů: aktuální stav, poslední změna, čekající návrh (potvrdit / zamítnout / zrušit), formulář návrhu (trenér), historie
 function accHtml() {
-  const c = S.cc || {}, pend = c.ibanPend, coach = HK.role() === "trener", mine = pend && pend.by === me();
+  const c = S.cc || {}, pend = c.ibanPend, coach = HK.can("accounts"), mine = pend && pend.by === me();
   const last = c.ibanAt ? `Platí od ${esc(fDt(c.ibanAt))} · navrhl ${esc(c.ibanBy || "?")} · potvrdil ${esc(c.ibanOk || "?")}` : "Změna účtu zatím nebyla zaznamenána (účet zadaný před v18.6.1).";
   const pendH = pend ? `<div class="cd" style="border-color:var(--wa);padding:10px"><b style="color:var(--wa)">⏳ Čeká na potvrzení změny účtů</b><div style="margin:6px 0">Hlavní: ${accTxt(pend.iban)}<br>Provozní: ${accTxt(pend.iban2)}</div><div class="mu">Navrhl ${esc(pend.by)} · ${esc(fDt(pend.at))}</div>
 ${mine ? '<div class="mu" style="margin:6px 0">Potvrdit musí jiný trenér nebo pokladník.</div><button class="s w" data-apx>Zrušit návrh</button>' : '<div class="mu" style="margin:6px 0">Před potvrzením ověř číslo účtu s navrhovatelem jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
@@ -158,7 +158,7 @@ function bind(e) {
 
 // ===== Export =====
 export function openCashSettings() {
-  if (!HK.isCash()) return;
+  if (!HK.can("money")) return;
   let e = el();
   if (!e) { e = document.createElement("div"); e.id = "cset"; document.body.appendChild(e); }
   // Nad živým zápisem, zápisem utkání, opravami a nápovědou

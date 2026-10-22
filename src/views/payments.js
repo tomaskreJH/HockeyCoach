@@ -48,7 +48,7 @@ const fromDraft = () => { const c = {tpl: dr.tpl, cost: clone(dr.cost).filter(x 
 // d = rozpracovaná úprava z formuláře (jinak se použije uložené nastavení / šablona).
 // Do raw (kopie zápasu, kterou si po návratu ukládá matches.js) se zapíše příznak ss.
 export function settleEvent(ev, raw, force, d) {
-  if (!HK.isCash()) return null;
+  if (!HK.can("money")) return null;
   const cx0 = ev.cx || cxOf(ev.id, S.ec);
   if (cx0.settle) return null;
   const cfg = cashCfg(S.cc), c = d ? {tpl: d.tpl, cost: clone(d.cost).filter(x => +x.amt > 0), who: clone(d.who), due: d.due || "", acc: d.acc || "op"} : evCash({...ev, cx: cx0}, cfg);
@@ -164,7 +164,7 @@ ${twoAcc(cfg) ? `<h3>Platby na účet</h3><div class="chips">${Object.entries(AC
 <div class="row" style="margin-top:12px"><button class="s" id="ces" style="min-height:52px">💾 Uložit nastavení</button><button class="p" id="cec" style="min-height:52px">💰 Uzavřít vyúčtování</button></div></div>`;
 }
 export function payHtml(ev) {
-  if (!HK.isCash()) return "";
+  if (!HK.can("money")) return "";
   const err = S.payErr ? `<div class="mu" style="color:var(--no);margin-bottom:6px">Pokladnu se nepodařilo načíst (${esc(S.payErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
   const st = (ev.cx || {}).settle;
   return st ? closedHtml(ev, st, err) : editHtml(ev, cashCfg(S.cc), err);
@@ -172,7 +172,7 @@ export function payHtml(ev) {
 
 // ===== Eventy =====
 export function bindPay(a, ev) {
-  if (!HK.isCash()) return;
+  if (!HK.can("money")) return;
   const cfg = cashCfg(S.cc), q = s => a.querySelectorAll(s);
   // Přepsání polí formuláře do rozpracované úpravy
   const sync = () => {

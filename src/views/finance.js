@@ -41,7 +41,7 @@ const openAttr = e => (e.type === "contrib" ? `data-fm="${contribYm(e.id)}"` : `
 // ===== Vykreslení =====
 // evs = sjednocený seznam událostí z events.js, AT = odpovědi podle události a člena (pro počet účastí)
 export function financeHtml(evs, AT) {
-  if (!HK.isCash()) return "";
+  if (!HK.can("money")) return "";
   const today = td(), byId = {}, cfg = cashCfg(S.cc), two = twoAcc(cfg);
   evs.forEach(e => { byId[e.id] = e; });
   // Měsíční příspěvky: pseudo-události podle měsíce (aby se předpisy příspěvků započítaly do dluhů)

@@ -4,6 +4,29 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v18.9.1 (22. 10. 2026) – Úklid kódu D1, část 2: statistiky, oprávnění, nastavení týmu, rozdělení živého zápisu (fáze D1 f–i) – ⚠️ SAHÁ NA PLATBY
+> **Nasazení:** nahrát kód a **smazat z webu i z repozitáře `src/views/live.js`** (nahradily ho tři nové soubory – starý soubor by v offline cache nevadil, ale nemá zůstat). Pravidla databáze beze změny (publikovat netřeba), tvar dat beze změny – 🔒 Vyžadovat verzi není nutné.
+> **⚠️ SAHÁ NA PLATBY – jen dotaz na oprávnění, výsledky beze změny:** `src/views/mine.js`, `src/views/payments.js`, `src/views/money.js`, `src/views/cashbook.js`, `src/views/cash-settings.js` (`HK.isCash()` → `HK.can("money")`, návrh účtu `HK.role() === "trener"` → `HK.can("accounts")`). `src/domain/cash.js`, `src/domain/bank-account.js`, `src/views/qr-image.js` a `firestore.rules` se nemění.
+
+**Přidáno**
+- `src/domain/player-stats.js`: `playerStats(matches, {match})` – jediný výpočet statistik hráček a brankářek (góly, asistence, body, střely, TM, +/-, čas na ledě, střídání, góly v PP, body doma / venku, týmové střely a góly). `match: true` = rozpis jednoho zápasu (bruslařky sestavy, +/- bez brankářek – stejně jako dřív), bez něj souhrn.
+- `src/data/storage.js`: oprávnění na jednom místě – `HK.can(akce)` s tabulkou `CAN`: `sport` (trenér, kustod), `money`, `members` (trenér, pokladník), `roster`, `accounts`, `admin` (trenér), `onlyOwn` (hráčka); neznámá akce = výjimka.
+- `src/config/team-config.js`: `TEAM_NAME` („HC Střely“), `APP_NAME` („Hokej – zápasy“), `DEV_EMAILS`. Název `team.js` z plánu nešel – má ho už `src/views/team.js` (pravidlo jedinečných názvů).
+- Živý zápis rozdělený (bod D13): `src/views/live-view.js` (vykreslení, situace a jednotky, hlídač situace, odpočty a upozornění), `src/views/live-panels.js` (menu ⋯ a panely), `src/views/live-events.js` (obsluha klepnutí, odchod, nabídka po trestu, posun času). Kód přesunut beze změny, obsluha se napojuje ve stejném pořadí.
+- Testy: `tests/permissions.test.js` + `tests/support/can-probe.mjs` (can() pro trenéra, kustoda, kustoda-pokladníka, hráčku, hráčku-pokladníka – každá role ve vlastním procesu), `tests/d1-structure.test.js` (playerStats, kontroly struktury: název týmu, role, confirm2, csv, drag, statistiky, komentáře, jedinečné názvy souborů). Celkem 67 testů.
+
+**Změněno**
+- `src/views/report.js` (`matchStatsHtml`) a `src/views/stats.js` počítají přes `playerStats` – výstup znak po znaku stejný (srovnávací test z v18.9 beze změny).
+- Všechny pohledy a `main.js`: `HK.isStaff()` → `HK.can("sport")`, `HK.isCash()` → `HK.can("money")`, `HK.role() === "hracka"` → `HK.can("onlyOwn")`, `HK.role() === "trener"` → `HK.can("roster")` (soupiska, realizační tým) / `HK.can("accounts")` (účty); okno ⚙️ používá `can("admin")`, `can("members")`, `can("sport")`. `HK` už nenabízí `isStaff`, `isCash`, `role`.
+- „HC Střely“ v `matches.js`, `report.js`, `live-view.js`, `live-quick.js`, `editor.js`, `modal.js`, `stats.js` a „Hokej – zápasy“ v `storage.js` (přihlášení, hláška obnovy) → `TEAM_NAME` / `APP_NAME`. Výjimky beze změny: `index.html`, `manifest.webmanifest`, značka zálohy `app: "hokej-zapasy"`.
+- Importy `live.js` přepojené: `shell.js`, `matches.js`, `live-quick.js`, `main.js`, `debug.js` (+ `player-stats.js`).
+
+**Odstraněno**
+- `src/views/live.js` (**smazat ručně**), `HK.isStaff`, `HK.isCash`, `HK.role`.
+
+**Beze změny**
+- Vzhled a ovládání (ověřeno mimo repozitář kouřovým testem v jsdom: obrazovka živého zápisu ve 28 stavech včetně menu, panelů, střel, střídání, zranění, rychlého trestu a 16 obrazovek + ⚙️ pro 4 role – HTML i stav zápasu shodné s v18.9), živý zápis (logika `live-engine.js` netknutá), statistiky, docházka, dlužníci, pokladna, QR a účty, pravidla databáze.
+
 ## v18.9 (22. 10. 2026) – Úklid kódu D1, část 1: společné pomůcky (fáze D1 a–e, j, k) – ⚠️ SAHÁ NA PLATBY
 > **Nasazení:** jen nahrát kód (žádný soubor se nemaže). Pravidla databáze beze změny (publikovat netřeba), tvar dat beze změny – 🔒 Vyžadovat verzi není nutné.
 > **⚠️ SAHÁ NA PLATBY – jen přesun a přejmenování, výsledky beze změny (ověřeno srovnávacími testy):** `src/domain/cash.js` (`vsOf` → `vsHash`, `csvText` přesunuto do `core/utils.js` jako `csv`, smazaná nepoužitá `asciiMsg`, `chargeId` / `SPRE` bez `export`, komentáře), `src/domain/bank-account.js` (`RECENT_DAYS` bez `export`, komentář), `src/views/mine.js` (import `vsHash`, komentáře), `src/views/qr-image.js` (komentář), `src/views/cash-settings.js` (komentáře), `src/views/payments.js` (`confirm2`, komentáře), `src/views/money.js` (`confirm2`, `nm`, `csv`), `src/views/cashbook.js` (`confirm2`, `pn`, komentáře). Výpočty předpisů, úhrad, VS, QR (`spdPay`, `qrMsg`) a účty beze změny; `firestore.rules` beze změny.

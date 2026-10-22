@@ -11,12 +11,13 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `styles/main.css` | všechny styly (barvy jako proměnné `--ac`, `--ok`, `--no`, `--wa` … pro světlý i tmavý režim) |
 | `firestore.rules` | pravidla databáze – jediná skutečná ochrana dat (publikuje se ručně v konzoli Firebase) |
 | `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení |
-| `src/config/` | konstanty bez logiky (`constants.js` – pozice, rozložení, tresty; `firebase-config.js` je v `src/data/`) |
+| `src/config/` | konstanty bez logiky: `constants.js` (pozice, rozložení, tresty), `team-config.js` (název týmu `TEAM_NAME`, název aplikace `APP_NAME`, `DEV_EMAILS`); `firebase-config.js` je v `src/data/` |
 | `src/core/app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), porovnání verzí, brána verze |
 | `src/core/` | stav `state.js` (`S`), `utils.js` (DOM, formát, čas, `csv`), `selectors.js` (čtení stavu, jména `pn` / `nm`, `matchesVs`), `actions.js` (ukládání zápasu, `confirm2`), `drag.js` (přetahování `makeDrag`), `nav.js` (Zpět), `table-sort.js` |
-| `src/data/storage.js` | datová vrstva: Firebase, přihlášení a role, strážce zápisu `blocked()`, dávky, kontrola mazání, záloha / obnova, okno ⚙️ |
-| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, pokladna, docházka, dlužníci, účty) – testované v `tests/` |
+| `src/data/storage.js` | datová vrstva: Firebase, přihlášení a role, **oprávnění `can(akce)`** (jediné místo), strážce zápisu `blocked()`, dávky, kontrola mazání, záloha / obnova, okno ⚙️ |
+| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, statistiky `player-stats.js`, pokladna, docházka, dlužníci, účty) – testované v `tests/` |
 | `src/views/` | obrazovky: jen vykreslení a obsluha událostí, výpočty volají z `domain/` |
+| `src/views/live-*.js` | živý zápis: `live-view.js` (vykreslení, odpočty, upozornění), `live-panels.js` (menu ⋯ a panely: sestava, jednotky, zranění, brankářka, nastavení), `live-events.js` (obsluha klepnutí, odchod), `live-quick.js` (rychlý zápis gólu a trestu), `live-feedback.js` (vibrace, záblesk) |
 | `src/lib/qrcode.js` | knihovna QR (cizí kód, neupravovat) |
 | `src/debug.js` | ruční ladění (`?debug` → `window.__hk`); testy importují moduly přímo |
 | `tests/` | automatické testy (`npm test`), `tests/support/` = zástupci prohlížeče a Firebase |
@@ -42,7 +43,9 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `csv(rows)` | `core/utils.js` | Jediný text CSV pro Excel (středník, uvozovky, BOM, CRLF); částky přes `csvNum` (`domain/cash.js`), stažení `downloadFile`. |
 | `makeDrag(root, items, {target, start, drop, click})` | `core/drag.js` | Přetahování (prst: podržení 320 ms, myš: > 6 px). `start(b)` → `{data, text}` nebo `null`, `drop(data, cíl)`, `click(b)` → obsluha klepnutí nebo `null`. |
 | `matchesVs(name, ex)` / `vsHash(id)` | `core/selectors.js` / `domain/cash.js` | Uzavřené zápasy proti soupeři / variabilní symbol z id předpisu (dva různé významy – nezaměňovat). |
-| `can(akce)`, `src/config/team.js` | (v18.9.1) | Oprávnění na jednom místě a nastavení týmu (název týmu a aplikace, `DEV_EMAILS`) – připravuje D1 část 2. |
+| `HK.can(akce)` | `data/storage.js` | Oprávnění: `sport` (trenér, kustod), `money` a `members` (trenér, pokladník), `roster`, `accounts`, `admin` (trenér), `onlyOwn` (hráčka). Neznámá akce = výjimka. Nové role (fáze O) mění jen tabulku `CAN`. |
+| `TEAM_NAME`, `APP_NAME`, `DEV_EMAILS` | `config/team-config.js` | Název týmu a aplikace, účty vývojáře. Výjimky: `index.html`, `manifest.webmanifest` a značka zálohy `app: "hokej-zapasy"` (nemění se). |
+| `playerStats(matches, {match})` | `domain/player-stats.js` | Statistiky hráček a brankářek pro jeden zápas (`match: true` – bruslařky sestavy, +/- bez brankářek) i souhrn (gp, +/- všem, góly v PP, body doma / venku, tým). |
 
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` – tam je strážce `blocked()` (náhled role jen ke čtení, starší verze aplikace). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá.
@@ -51,7 +54,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 - Pravidla databáze ve dvou krocích: 1) rozšířit (staré i nové), 2) převést data, 3) zúžit v další verzi. U každé verze napsat, zda a kdy **publikovat firestore.rules** (před, nebo po nahrání kódu).
 - **Brána verze:** `settings/app = {minVer, minBy, minAt}`. Verze, která mění tvar dat, po nasazení zvýší minimum (⚙️ → 🔒 Vyžadovat verzi, jen trenér). Klient pod minimem nezapisuje a ukáže pruh „Načíst novou verzi“.
 - Převody dat: tlačítko v ⚙️ s náhledem „co se změní“, idempotentní (lze spustit znovu), před převodem záloha.
-- Oprávnění dnes: `HK.isStaff()` (trenér, kustod), `HK.isCash()` (trenér, pokladník), `HK.role()`; pravidla `isCoach`, `isStaff`, `isCash`, `isPlayer`. Ve fázi D1 se sjednotí do `can(akce)` – nové kontroly pak jen přes `can()`.
+- Oprávnění v aplikaci **jen přes `HK.can(akce)`** (tabulka `CAN` v `storage.js`, od v18.9.1); `HK.isStaff`, `HK.isCash` a `HK.role` už neexistují. Pravidla databáze: `isCoach`, `isStaff`, `isCash`, `isPlayer` (musí odpovídat tabulce `CAN`).
 - Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nikdy vlastní dokument `members` (vynucují pravidla).
 
 ## 4. Verze a vydání
@@ -70,7 +73,8 @@ Při každé verzi se mění vždy všechno:
 - `tests/support/setup.mjs` vytvoří zástupce `document`, `window`, `localStorage`, `sessionStorage`; `hooks.mjs` nahradí Firebase SDK (`gstatic.com`) modulem `firebase-stub.mjs`; `fake-db.mjs` zachytává zápisy zápasu.
 - Nová funkce = nový test (hlavně `domain/`). Úklid bez změny chování = stávající testy beze změny zelené.
 - **Srovnávací test úklidu** `tests/d1-baseline.test.js` porovná výstupy se zachycenými hodnotami z v18.8.1 (`tests/fixtures/d1-baseline.json`): statistiky zápasu a souhrnu, CSV (byte po bytu), potvrzení druhým klepnutím, zápasy proti soupeři, VS. Při úklidu se **nemění**; pokud musí, jde o změnu chování (zeptat se). Nové zachycení jen na původním kódu: `D1_CAPTURE=1 npm test`.
-- Zástupce Firebase umí přihlášení a data: test nastaví `globalThis.__fb = {user, members, data}` a pak `await HK.ready()`.
+- Zástupce Firebase umí přihlášení a data: test nastaví `globalThis.__fb = {user, members, data}` a pak `await HK.ready()`. Role běží v samostatném procesu (`tests/support/can-probe.mjs`, `tests/permissions.test.js`).
+- Struktura kódu (`tests/d1-structure.test.js`): název týmu jen v `config/team-config.js`, role jen v `storage.js`, potvrzení / CSV / přetahování / statistiky jen na svém místě, komentáře bez historie verzí, žádný nový soubor se stejným názvem.
 - Pravidla databáze se testují jen kontrolou textu (`tests/project.test.js`) – bez emulátoru (rozhodnuto: bez Javy a bez placeného tarifu). Skutečné ověření rolí = kontrolní seznam na telefonu + 👁 Náhled role + testovací účet hráčky.
 
 ## 6. Nasazení (postup pro správce)

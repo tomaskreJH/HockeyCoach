@@ -12,6 +12,7 @@
    Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze). */
 
 // ===== Importy =====
+import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
 import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.js";
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exOf, fxOf} from "../domain/cash.js";
@@ -30,7 +31,6 @@ const VERSION = APP_LABEL;                                              // čís
 const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
-const DEV_EMAILS = ["tomaskre@gmail.com"];                              // účty vývojáře se smí přepnout do náhledu role
 const PV_KEY = "hk-preview";                                            // klíč náhledu v sessionStorage (jen toto zařízení / okno)
 const RO_MSG = "V náhledu se nezapisuje";
 const OLD_MSG = "Starší verze aplikace – zápis je zablokovaný. Načti novou verzi (⚙️ → Načíst novou verzi).";
@@ -55,6 +55,20 @@ const say = m => toast(m);
 const errTxt = e => (e && (e.code || e.message)) || String(e);
 const isStaff = () => STAFF.includes(role);
 const isCash = () => role === "trener" || cash === true;       // správce pokladny: trenér nebo pokladník
+// ===== Oprávnění (jediné místo) =====
+// Akce → kdo ji smí (podle role přihlášeného účtu, v náhledu role podle náhledu). Pohledy se ptají jen přes HK.can(akce);
+// nové role (fáze O) změní jen tuto tabulku. Pravidla databáze (firestore.rules) vynucují totéž na serveru.
+const CAN = {
+  sport: () => isStaff(),            // zápasy, sestavy, události, soupeři, docházka za ostatní: trenér, kustod
+  money: () => isCash(),             // pokladna, platby, předpisy, Měsíce, nastavení pokladny: trenér, pokladník
+  members: () => isCash(),           // ⚙️ Členové týmu: trenér (všichni), pokladník (jen hráčky)
+  roster: () => role === "trener",   // přidat a smazat hráčku, spravovat realizační tým: trenér
+  accounts: () => role === "trener", // navrhnout změnu účtu pro QR platby: trenér
+  admin: () => role === "trener",    // obnova ze zálohy, brána verze, role trenér / kustod u členů: trenér
+  onlyOwn: () => role === "hracka"   // hráčka: vidí a mění jen své (odpověď, Moje platby), Team jen ke čtení
+};
+// Smí přihlášený účet akci? Neznámá akce je chyba programu (výjimka), ne tiché „ne“.
+const can = a => { const f = CAN[a]; if (!f) throw new Error("Neznámá akce oprávnění: " + a); return f(); };
 const configOk = () => !!FIREBASE_CONFIG.apiKey && !/^VLOZ/.test(FIREBASE_CONFIG.apiKey) && !!FIREBASE_CONFIG.projectId && !/^VLOZ/.test(FIREBASE_CONFIG.projectId);
 const splitPath = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slice(i + 1)]; };
 
@@ -232,7 +246,7 @@ async function boot() {
   user = await authUser();
   for (;;) {
     if (!user) {
-      await screen("🏒 Hokej – zápasy", "Přihlas se účtem Google, který má trenér zapsaný mezi členy týmu.", [["login", "Přihlásit přes Google", "p"]]);
+      await screen("🏒 " + APP_NAME, "Přihlas se účtem Google, který má trenér zapsaný mezi členy týmu.", [["login", "Přihlásit přes Google", "p"]]);
       user = await doLogin();
       continue;
     }
@@ -287,7 +301,7 @@ function bindPv(q) {
   };
 }
 async function renderMembers(el) {
-  const box = el.querySelector("#cmb"), coach = role === "trener";
+  const box = el.querySelector("#cmb"), coach = can("admin");
   box.textContent = "Načítám…";
   try {
     const s = await getDocs(fsCol(fs, "members"));
@@ -306,7 +320,7 @@ async function renderMembers(el) {
   } catch (e) { box.textContent = "Nelze načíst: " + errTxt(e); }
 }
 function openCfg() {
-  const el = document.getElementById("cfg"), coach = role === "trener", cashier = isCash(), staff = isStaff(), q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
+  const el = document.getElementById("cfg"), coach = can("admin"), cashier = can("members"), staff = can("sport"), q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
   pendingImport = null;
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
  <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
@@ -419,7 +433,7 @@ async function commitOps(ops) {
 const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
 function keepAcc(d) { const o = clone(d), cur = data.settings.cash || {}; ACC_KEYS.forEach(k => { if (cur[k] != null) o[k] = clone(cur[k]); else delete o[k]; }); return o; }
 async function importData(obj, replace) {
-  if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
+  if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace " + APP_NAME + ".");
   if (outdated()) throw new Error(OLD_MSG);
   if (ro()) throw new Error(RO_MSG);
   const ops = [];
@@ -437,7 +451,7 @@ async function importData(obj, replace) {
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
-export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null,
+export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, can, pid: () => pid, tid: () => tid, user: () => user, openCash: null,
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview};
 window.HK = HK;

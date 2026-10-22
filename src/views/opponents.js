@@ -15,7 +15,7 @@ import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
 // Správu soupeřů (přidat, přejmenovat, smazat) má jen trenér a kustod
-const canEdit = () => HK.isStaff();
+const canEdit = () => HK.can("sport");
 // Bilance uzavřených zápasů se soupeřem: výhry, remízy, prohry, góly
 function balance(L) {
   let w = 0, d = 0, l = 0, gf = 0, ga = 0;

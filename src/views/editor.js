@@ -1,5 +1,6 @@
 // Opravy zápisu: úprava událostí, třetin, konce zápasu, základních údajů zápasu a střídání.
 import {REA, SIT} from "../config/constants.js";
+import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, ensureOp, upd} from "../core/actions.js";
 import {curM, isG, nm, nomOf, pl, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
@@ -12,7 +13,7 @@ const chip = (k, v, label, on, attr = "data-ef") => `<button class="chip ${on ? 
 const pool = (m, f, goalie) => [...new Set([...nomOf(m), f.scorer, f.a1, f.a2, f.pid, f.shooter, f.gk, ...(f.on || [])].filter(Boolean))]
   .filter(id => pl(id) && isG(pl(id)) === goalie).sort((x, y) => pri(pl(x)) - pri(pl(y)) || pl(x).name.localeCompare(pl(y).name, "cs"));
 const pc = (m, f, k, sel, goalie = false, ex = []) => `<div class="chips">${pool(m, f, goalie).filter(id => !ex.includes(id)).map(id => chip(k, id, esc(nm(id)), sel === id)).join("") || '<span class="mu">Nikdo.</span>'}</div>`;
-const KT = f => ({G: f.team === "us" ? "gól HC Střely" : "gól soupeře", P: "vyloučení", S: f.team === "us" ? "střela" : "střela soupeře"})[f.k];
+const KT = f => ({G: f.team === "us" ? "gól " + TEAM_NAME : "gól soupeře", P: "vyloučení", S: f.team === "us" ? "střela" : "střela soupeře"})[f.k];
 
 function formHtml(m, f) {
   let h = `<h3>${f.isNew ? "Nová událost" : "Úprava události"}: ${KT(f)}</h3><label>Třetina</label><div class="chips">${[1, 2, 3, 4].filter(n => n < 4 || m.ot !== false || f.per === 4).map(n => chip("per", n, n < 4 ? n + "." : "Prodl.", f.per === n)).join("")}</div><label>Čas v třetině (mm:ss)</label><input id="edt" value="${esc(f.time || "")}" placeholder="12:35" style="max-width:160px">`;
@@ -21,7 +22,7 @@ function formHtml(m, f) {
     if (f.team === "us") h += `<label>Střelkyně</label>${pc(m, f, "scorer", f.scorer)}<label>Asistence 1</label>${pc(m, f, "a1", f.a1, false, [f.scorer, f.a2])}<label>Asistence 2</label>${pc(m, f, "a2", f.a2, false, [f.scorer, f.a1])}`;
     h += `<label>Na ledě (určuje +/−)</label><div class="chips">${[...pool(m, f, false), ...pool(m, f, true)].map(id => chip("on", id, esc(nm(id)), (f.on || []).includes(id))).join("")}</div>`;
   } else if (f.k === "P") {
-    h += `<label>Tým</label><div class="chips">${chip("team", "us", "HC Střely", f.team === "us")}${chip("team", "opp", "Soupeř", f.team === "opp")}</div>`;
+    h += `<label>Tým</label><div class="chips">${chip("team", "us", TEAM_NAME, f.team === "us")}${chip("team", "opp", "Soupeř", f.team === "opp")}</div>`;
     if (f.team === "us") h += `<label>Hráčka</label>${pc(m, f, "pid", f.pid)}`;
     h += `<label>Délka</label><div class="chips">${[[2, "2"], [4, "2+2"], [5, "5"], [10, "10"], [20, "Do konce"]].map(([v, t]) => chip("min", v, t, f.min === v)).join("")}</div><label>Důvod</label><div class="chips">${REA.map(r => chip("reason", r, r, f.reason === r)).join("")}</div>`;
   } else h += f.team === "us" ? `<label>Střelkyně</label>${pc(m, f, "shooter", f.shooter)}` : `<label>Brankářka</label>${pc(m, f, "gk", f.gk, true)}`;
@@ -30,7 +31,7 @@ function formHtml(m, f) {
 function eventsHtml(m) {
   const evs = (m.events || []).map((e, i) => ({e, i})).filter(x => S.ed.shots || x.e.k !== "S")
     .sort((a, b) => a.e.per - b.e.per || (a.e.time || "").localeCompare(b.e.time || "") || a.i - b.i);
-  return `<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><button class="s" data-add="Gus">+ Gól HC Střely</button><button class="s" data-add="Gopp">+ Gól soupeře</button><button class="s" data-add="Pus">+ Vyloučení</button><button class="s" data-add="Sus">+ Střela</button><button class="s" data-add="Sopp">+ Střela soupeře</button></div>
+  return `<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><button class="s" data-add="Gus">+ Gól ${TEAM_NAME}</button><button class="s" data-add="Gopp">+ Gól soupeře</button><button class="s" data-add="Pus">+ Vyloučení</button><button class="s" data-add="Sus">+ Střela</button><button class="s" data-add="Sopp">+ Střela soupeře</button></div>
 <div class="chips"><button class="chip ${S.ed.shots ? "on" : ""}" data-eshots>Zobrazit střely</button></div>
 ${evs.length ? evs.map(({e}) => `<div class="ev" style="align-items:center"><div class="t">${perLabel(e.per)} ${esc(e.time || "")}</div><div class="b">${esc(eventText(e))}</div><button class="s" data-ee="${e.id}" style="padding:10px 12px">✏️</button><button class="d" data-ed="${e.id}" style="padding:10px 12px;${S.cf === "e" + e.id ? "background:var(--no);color:#fff" : ""}">${S.cf === "e" + e.id ? "Smazat?" : "🗑"}</button></div>`).join("") : '<div class="msg">Žádné události.</div>'}`;
 }

@@ -56,7 +56,7 @@ function storno(x) {
 
 // ===== Vykreslení =====
 export function cashbookHtml() {
-  if (!HK.isCash()) return "";
+  if (!HK.can("money")) return "";
   const cfg = cashCfg(S.cc), two = twoAcc(cfg), T = sumCash(S.cs), C = catSums(S.cs);
   if (!two) fa = "";
   const err = S.payErr ? `<div class="cd" style="color:var(--no)">Pokladnu se nepodařilo načíst (${esc(S.payErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
@@ -109,7 +109,7 @@ ${two ? `<label>Účet</label><div class="chips">${Object.entries(ACC).map(([a, 
 
 // ===== Eventy =====
 export function bindCashbook(a) {
-  if (!HK.isCash()) return;
+  if (!HK.can("money")) return;
   const q = s => a.querySelectorAll(s);
   // Přepsání polí formuláře do stavu (před každým překreslením)
   const sync = () => q("[data-cf]").forEach(i => { if (f) f[i.dataset.cf] = i.value; });

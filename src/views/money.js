@@ -183,7 +183,7 @@ function exportCsv(kind) {
 
 // ===== Vykreslení: celá obrazovka =====
 export function moneyHtml() {
-  if (!HK.isCash()) return "";
+  if (!HK.can("money")) return "";
   if (!ym || !ymOk(ym)) { ym = ymNow(); resetDraft(); }
   const cfg = cashCfg(S.cc);
   const err = S.payErr ? `<div class="cd" style="color:var(--no)">Pokladnu se nepodařilo načíst (${esc(S.payErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
@@ -192,7 +192,7 @@ export function moneyHtml() {
 
 // ===== Eventy =====
 export function bindMoney(a) {
-  if (!HK.isCash()) return;
+  if (!HK.can("money")) return;
   const q = s => a.querySelectorAll(s), cfg = cashCfg(S.cc);
   // Přepsání polí s částkami do stavu (před každým překreslením)
   const sync = () => {

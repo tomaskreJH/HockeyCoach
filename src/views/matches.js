@@ -3,6 +3,7 @@
 // Smazání zápasu: nejdřív kontrola vyúčtování (HK.canDelete), potom se smaže docházka zápasu a zápas (předpisy bez úhrady a evcash maže datová vrstva).
 // Příprava zápasu: událost (zveřejněná při vytvoření) → přihlášky hráček → nominace z přihlášených → sestava → uzavření sestavy → živý zápis; dokud přihlášky nestačí (1 + 5), karta vede do detailu události.
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
+import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, save, upd} from "../core/actions.js";
 import {PG, compactRot, goingOf, nomOf, pl, pn, pri, score, shots, skaters, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
@@ -12,7 +13,7 @@ import {benchM, fillDef, readiness, signupState} from "../domain/lineup.js";
 import {initLive} from "../domain/live-engine.js";
 import {benchGrouped, bindLu, luEditor, matchDrag} from "./lineup-editor.js";
 import {renderEditor} from "./editor.js";
-import {liveRender} from "./live.js";
+import {liveRender} from "./live-view.js";
 import {modal} from "./modal.js";
 import {bindH2h, h2h} from "./opponents.js";
 import {evOfMatch, settleEvent} from "./payments.js";
@@ -31,7 +32,7 @@ const suCard=()=>`<div class="ev"><div class="b">${SU.ok?"✅":"⏳"} ${SU.txt}<
 const nextBtn=()=>!R0.nom.ok&&!SU.ok?'<button class="s w" data-evo style="padding:16px;margin-top:10px">📅 Přihlášky – detail události</button>':`<button class="p w" data-fx style="padding:16px;margin-top:10px">${!R0.nom.ok?"Nominovat z přihlášených →":"Dokončit sestavu →"}</button>`;
 const startCard=sn=>`<div class="cd" data-s="${sn}"><h2>Živý zápis</h2>${lk?'<div class="mu">Zápas je uzavřený.</div>':m.live?'<button class="p w" data-lvo style="padding:20px">▶ Pokračovat v živém zápisu</button>':`${R0.nom.ok?"":suCard()}<div class="ev"><div class="b">${R0.nom.ok?"✅":"⛔"} ${R0.nom.txt}</div></div><div class="ev"><div class="b">${R0.lu.ok?"✅":"⛔"} ${R0.lu.txt}</div></div>${R0.nom.ok&&R0.lu.ok?'<button class="p w" data-lvs style="padding:20px;margin-top:10px">Zahájit zápas</button>':nextBtn()}`}</div>`;
 a.innerHTML=`<div class="${lk?"lk":""} stp" data-cur="${st}"><div class="cd" style="padding:10px 14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(m.opp)}</b><span class="mu">${fd(m.date)}${m.time?" "+esc(m.time):""}${m.place?" · "+esc(m.place):""} · ${m.home?"doma":"venku"} · ${m.perLen||20} min${m.ot===false?" · bez prodloužení":""}</span></div><div class="mu" style="margin-top:4px">${R0.nom.ok||SU.ok?"✅":"⏳"} Přihlášky (${GO.length}) · ${R0.nom.ok?"✅":"⛔"} Nominace · ${R0.lu.ok?"✅":"⛔"} Sestava${m.live&&!lk?" · ▶ zápas běží":""}${lk?" · 🔒 uzavřeno":""}</div></div><div class="chips" style="margin-bottom:10px">${NM.map((t,i)=>`<button class="chip ${st===i+1?"on":""}" data-st="${i+1}">${i+1} ${t}</button>`).join("")}</div>
-<div class="cd" data-s="1"><div class="sc">${g} : ${o}</div><div style="text-align:center"><b>${m.home?"HC Střely – "+esc(m.opp):esc(m.opp)+" – HC Střely"}</b></div>${lk?'<div style="text-align:center;margin-top:6px"><span class="tag red">🔒 Uzavřeno</span></div>':m.live?'<div class="mu" style="text-align:center;margin-top:8px">🔒 Zápas je zahájen – soupeř, datum a doma/venku už nelze měnit.</div>':'<button class="s w ed" id="em" style="margin-top:10px">✏️ Upravit soupeře, datum, doma/venku</button>'}</div>
+<div class="cd" data-s="1"><div class="sc">${g} : ${o}</div><div style="text-align:center"><b>${m.home?TEAM_NAME+" – "+esc(m.opp):esc(m.opp)+" – "+TEAM_NAME}</b></div>${lk?'<div style="text-align:center;margin-top:6px"><span class="tag red">🔒 Uzavřeno</span></div>':m.live?'<div class="mu" style="text-align:center;margin-top:8px">🔒 Zápas je zahájen – soupeř, datum a doma/venku už nelze měnit.</div>':'<button class="s w ed" id="em" style="margin-top:10px">✏️ Upravit soupeře, datum, doma/venku</button>'}</div>
 ${(()=>{const pm=m.perLen||20;return`<div class="cd" data-s="1"><h2>Délka třetiny</h2>${lk?`<div class="mu">${pm} min</div>`:`<div class="row" style="align-items:center;text-align:center;flex-wrap:nowrap"><button class="s" data-pl="-1" style="min-height:52px;flex:none;min-width:64px">−</button><b style="font-size:22px">${pm} min</b><button class="s" data-pl="1" style="min-height:52px;flex:none;min-width:64px">+</button></div><div class="mu" style="margin-top:6px">Standard je 20 min, prodloužení 5 min.</div>`}</div>`})()}
 <div class="cd" data-s="1"><h2>Prodloužení</h2>${lk?`<div class="mu">${m.ot===false?"Ne":"Ano (5 min)"}</div>`:`<div class="row"><button class="chip ${m.ot===false?"":"on"}" data-ot="1">Ano (5 min)</button><button class="chip ${m.ot===false?"on":""}" data-ot="0">Ne</button></div><div class="mu" style="margin-top:6px">Po 3. třetině se prodlužuje jen při nerozhodném stavu. Některé soutěže prodloužení nehrají.</div>`}</div>
 ${startCard(1)}

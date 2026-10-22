@@ -6,10 +6,10 @@
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
 // Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo a termín přihlašování jsou v polích time, place, dl zápasu);
 // odpovědi jsou v kolekci "attendance" (id dokumentu = {eventId}_{memberId}), členem je hráčka nebo člen realizačního týmu (kolekce "staff").
-// Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.role() === "hracka") vidí události, mění jen svoji odpověď
+// Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.can("onlyOwn")) vidí události, mění jen svoji odpověď
 // a jen do termínu přihlašování. Kartu zápasu má jen trenér a kustod.
 // Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se přihlašuje jedním klepnutím přímo na kartě události.
-// Náklady a platby vidí jen správci pokladny (HK.isCash(): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
+// Náklady a platby vidí jen správci pokladny (HK.can("money"): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
 // přehled plateb a dluhů: views/finance.js (Team → „💰 Platby“); pohyby pokladny: views/cashbook.js (Team → „🏦 Pokladna“);
 // příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4).
 // Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu).
@@ -70,9 +70,9 @@ const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "
 
 // ===== Pomocné funkce =====
 const pad = n => String(n).padStart(2, "0");
-const staff = () => HK.isStaff();                                    // trenér / kustod (přihlášený uživatel)
-const cashMgr = () => HK.isCash();                                   // správce pokladny (trenér / pokladník)
-const isPl = () => HK.role() === "hracka";                           // přihlášená hráčka (omezený přístup)
+const staff = () => HK.can("sport");                                    // trenér / kustod (přihlášený uživatel)
+const cashMgr = () => HK.can("money");                                   // správce pokladny (trenér / pokladník)
+const isPl = () => HK.can("onlyOwn");                           // přihlášená hráčka (omezený přístup)
 const dayOf = s => new Date(s + "T00:00:00");
 const fDay = s => DAYS[dayOf(s).getDay()] + " " + fd(s);
 const fDl = dlText;                    // text termínu přihlašování (core/utils.js)

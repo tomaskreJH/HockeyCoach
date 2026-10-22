@@ -20,9 +20,9 @@ import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
 // Pohled jen ke čtení (přihlášená hráčka; do Teamu se dostane jen jako pokladník)
-const ro=()=>HK.role()==="hracka";
+const ro=()=>HK.can("onlyOwn");
 // Přepínač režimů záložky Team; pro uživatele bez práv pokladny se nevykresluje
-const modeChips=()=>HK.isCash()?`<div class="chips">${[["team","Team"],...CASH_MODES].map(([k,t])=>`<button class="chip ${S.tm===k?"on":""}" data-tm="${k}">${t}</button>`).join("")}</div>`:"";
+const modeChips=()=>HK.can("money")?`<div class="chips">${[["team","Team"],...CASH_MODES].map(([k,t])=>`<button class="chip ${S.tm===k?"on":""}" data-tm="${k}">${t}</button>`).join("")}</div>`:"";
 const bindChips=a=>a.querySelectorAll("[data-tm]").forEach(b=>b.onclick=()=>{S.tm=b.dataset.tm;S.cf=null;render();window.scrollTo(0,0)});
 
 // ===== Soupiska a realizační tým =====
@@ -31,7 +31,7 @@ const Q2=s=>document.querySelector(s)||{};
 export function players(a){const cnt=k=>S.pl.filter(p=>stOf(p)===k).length;const l=S.pl.filter(p=>(S.pf==="all"||stOf(p)===S.pf)&&(S.pq==="all"||(p.pos||"")===S.pq)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));
 const T=[...S.tr].sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs"));
 // Oprávnění přihlášeného uživatele
-const coach=HK.role()==="trener",cashier=HK.isCash()&&!ro(),edit=!ro();
+const coach=HK.can("roster"),cashier=HK.can("money")&&!ro(),edit=!ro();
 a.innerHTML=`${coach?`<div class="cd"><h2>Přidat hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="n"></div><div><label>Číslo</label><input id="c" inputmode="numeric"></div></div>
 <div class="row"><div><label>Pozice</label><select id="p">${POS.map(x=>`<option>${x}</option>`).join("")}<option value="">Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="q"><option value="">–</option>${POS.map(x=>`<option>${x}</option>`).join("")}</select></div></div>
 <div class="row"><div><label>Skupina plateb</label><select id="py">${Object.entries(GRP).map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select></div><div><label>Koeficient (% z ceny)</label><input id="pfx" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="100"></div></div><label class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><input id="pex" type="checkbox" style="width:auto;margin:0"> Osvobozená (zvýhodněná) hráčka</label><label>Poznámka k platbám (např. kompenzace)</label><input id="pnt">

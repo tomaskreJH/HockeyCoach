@@ -12,7 +12,8 @@ import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
 import {initHelp} from "./views/help.js";
-import {leaveLive, liveTick} from "./views/live.js";
+import {leaveLive} from "./views/live-events.js";
+import {liveTick} from "./views/live-view.js";
 import {render} from "./views/shell.js";
 
 if(new URLSearchParams(location.search).has("debug"))installDebug();
@@ -31,15 +32,15 @@ S.db=db;const f={};const ok=k=>{f[k]=1;if(f.p&&f.m&&f.s&&f.o&&f.e&&f.a){S.ready=
 const er=e=>{S.err="Chyba databáze: "+e.message;render()};
 const erX=k=>e=>{S.evErr=e.code||e.message;ok(k);render()};
 db.collection("players").onSnapshot(s=>{S.pl=s.docs.map(d=>({id:d.id,...d.data()}));ok("p");render()},er);
-db.collection("matches").onSnapshot(s=>{S.ma=s.docs.map(d=>({id:d.id,...d.data()}));ok("m");render();if(S.ready&&HK.isStaff()){syncOps();fixClosed()}},er);
-db.collection("opponents").onSnapshot(s=>{S.op=s.docs.map(d=>({id:d.id,...d.data()}));ok("o");render();if(S.ready&&HK.isStaff())syncOps()},er);
+db.collection("matches").onSnapshot(s=>{S.ma=s.docs.map(d=>({id:d.id,...d.data()}));ok("m");render();if(S.ready&&HK.can("sport")){syncOps();fixClosed()}},er);
+db.collection("opponents").onSnapshot(s=>{S.op=s.docs.map(d=>({id:d.id,...d.data()}));ok("o");render();if(S.ready&&HK.can("sport"))syncOps()},er);
 db.collection("events").onSnapshot(s=>{S.ev=s.docs.map(d=>({id:d.id,...d.data()}));ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{S.at=s.docs.map(d=>({id:d.id,...d.data()}));ok("a");render()},erX("a"));
 db.collection("staff").onSnapshot(s=>{S.tr=s.docs.map(d=>({id:d.id,...d.data()}));render()},erX("t"));
 // Souhrn dlužníků bez částek: čtou všichni členové; chyba = nepublikovaná pravidla (Docházka pak ukáže upozornění, zbytek aplikace běží)
 db.collection("debtors").onSnapshot(s=>{S.dt=s.docs.map(d=>({id:d.id,...d.data()}));S.dtErr=null;render()},e=>{S.dtErr=e.code||e.message;render()});
 const ec=e=>{S.payErr=e.code||e.message;render()};
-if(HK.isCash()){
+if(HK.can("money")){
 db.collection("charges").onSnapshot(s=>{S.ch=s.docs.map(d=>({id:d.id,...d.data()}));S.payErr=null;render()},ec);
 db.collection("cash").onSnapshot(s=>{S.cs=s.docs.map(d=>({id:d.id,...d.data()}));render()},ec);
 db.collection("audit").onSnapshot(s=>{S.au=s.docs.map(d=>({id:d.id,...d.data()}));render()},ec);

@@ -4,12 +4,14 @@
 // Vyloučení, které vytvoří přesilovku / oslabení, otevře nabídku jednotky k odsouhlasení (askUnit); změny počtů bez trestu
 // (konec trestu, gól, ✕) hlídá live.js (watchSit). Ikona gólu 🥅.
 import {COLS, REA, SIT} from "../config/constants.js";
+import {TEAM_NAME} from "../config/team-config.js";
 import {upd} from "../core/actions.js";
 import {curM, isG, liveIds, nomOf, pl, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, mmss, toast, uid} from "../core/utils.js";
 import {addPen, autoSit, el_, ela, fitLayout, goalPen, logEv, procExp, sk} from "../domain/live-engine.js";
-import {askUnit, liveRender} from "./live.js";
+import {askUnit} from "./live-events.js";
+import {liveRender} from "./live-view.js";
 import {feedback} from "./live-feedback.js";
 
 // ===== Zápis události =====
@@ -17,9 +19,9 @@ import {feedback} from "./live-feedback.js";
 export function commitEv(e){const m=curM();if(!m||!m.live||m.closed)return;const n=clone(m),L=n.live;if(!L.pen)L.pen=[];if(!L.seq)L.seq=0;
 const now=el_(L),snap=clone(L);delete snap.u;procExp(L,now);e.at=now;n.events=[...(n.events||[]),e];
 if(e.k==="P")addPen(L,{t:e.team,p:e.team==="us"?e.pid:null,min:e.min},now,m);else{const r=goalPen(L,e.team,now);if(r)logEv(n,{ty:"ret",p:r,cause:"gól ukončil trest",at:now,per:L.per})}fitLayout(L,now);
-L.u=[...(L.u||[]),{l:snap,ids:[e.id],t:e.k==="P"?"Vyloučení":(e.team==="us"?"Gól HC Střely":"Gól soupeře")}].slice(-15);upd(n)}
+L.u=[...(L.u||[]),{l:snap,ids:[e.id],t:e.k==="P"?"Vyloučení":(e.team==="us"?"Gól "+TEAM_NAME:"Gól soupeře")}].slice(-15);upd(n)}
 // ===== Start rychlého zápisu =====
-// Gól soupeře se zapíše hned; gól HC Střely a trest otevřou okno kroků
+// Gól soupeře se zapíše hned; náš gól a trest otevřou okno kroků
 export function qaStart(kind){const m=curM();if(!m||!m.live)return;const L=m.live;if(L.running)return toast("Nejdřív přeruš hru");
 const now=el_(L),b={per:L.per,time:mmss(ela(L,now))};
 if(kind==="GO"){commitEv({id:uid(),k:"G",team:"opp",...b,sit:autoSit(L,"opp",now),on:liveIds(L),gk:L.G||null});toast("Gól soupeře zapsán (↩ vrátí)");feedback("ok",".lsc");return}
