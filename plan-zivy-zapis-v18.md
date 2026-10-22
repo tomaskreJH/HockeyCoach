@@ -9,7 +9,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky – **hotovo**, k testu |
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo** (odezva zůstává, rozložení nahradila v18.3) |
 | v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, otestováno (požadavky do v18.4) |
-| v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo** (úprava hlavičky v18.4.1, k testu) |
+| v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo** (v18.4.1 otestováno, opravy ve v18.4.2) |
+| v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
@@ -46,6 +47,13 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
   **K potvrzení – návrh řádku stavu v hlavičce:** tresty (naše i soupeř) s odpočtem a ✕; při nerovnosti bez režimu PP/OS tlačítko ⚡ Jednotka PP / 🛡 Jednotka OS (znovu otevře nabídku); po konci nerovnosti s jednotkou na ledě ↩ Řady; jinak tlumené „Bez trestů“. Pevná výška zůstává (sticky hlavička, nic neposune). Situace, 🩹 a tlačítka jednotek z řádku odešly (hlavička / upozornění / pod mantinel).
 - **Test v18.4 (22. 10. 2026):** tresty zabírají zbytečně místo (při více trestech nepřehledné) → do horního stavového okna jako štítky velikosti situace; snížit rámeček hráček na ledě (písmo zachovat); mantinel červený nebo modrý.
 - **v18.4.1 dodáno, k testu.** Řádek stavu zrušen: tresty (🚫 #číslo odpočet ✕), ⚡ PP / 🛡 OS a ↩ Řady jsou malé štítky v řádku třetiny vedle situace (jeden řádek, posun do strany). Dlaždice na ledě 64 px (dřív 92 px). Mantinel modrý (červená zůstává středové čáře).
+- **Test v18.4.1 (22. 10. 2026) – požadavky do v18.4.2:**
+  1. **Více trestů (zásadní):** máme-li vyloučené víc hráček a jeden trest skončí (např. 3 na 5 → 4 na 5), obrazovka se vrátí k běžným pětkám místo k OS1/OS2 – pořád hrajeme v oslabení. Pravidlo: formace se řídí počtem našich hráček na ledě – 5 = pětky (nebo PP při přesilovce), 4 = SH1/SH2, 3 = SH3/SH4. Příčina ve v18.4: `unitView` v `live.js` uzná jen jednotku z platné skupiny (`L.unit` SH3 ∉ SH1/SH2 → pětky) a nabídka `askUnit` se otevře jen po zapsání trestu, ne po skončení trestu (`procExp` v `liveTick`) ani po gólu, který trest ukončí. Návrh: při změně počtu (trest skončí, gól, zrušení ✕) a stále nevyrovnané hře hned nabídnout jednotku nové skupiny (stejný panel „uask“), režim PP/OS zůstává (tlačítka a fronty jednotek nové skupiny); k pětkám až při vyrovnané hře. Pokud by to vyžadovalo zásah do `live-engine.js` (např. automatické nasazení), nejdřív se zeptat.
+  2. **Ikona gólu:** ⚽ (fotbal) nahradit hokejovou – návrh 🥅 (branka) a v textu „🏒 Gól“; výskyty: `live.js`, `live-quick.js`, `timeline.js`, `report.js`, `matches.js`, `modal.js`, `help.js`.
+  3. **Góly v průběhu podsvítit** – zvlášť náš gól (zelené / modré pozadí) a gól soupeře (červené pozadí); podle typu položky z `timeline()`.
+  4. **Mantinel bílo-modrý** (jako dřív bílo-žlutý, jen žlutou nahradit modrou).
+  5. **Rotující partnerka (`.lrp`) v tmavém režimu nečitelná** – zajistit kontrastní text i pozadí (světlé i tmavé schéma).
+- **Pokračování:** po v18.4.2 a jejím testu další bod plánu – **v18.6 G (Náhled role)**; před ním rozhodnout otázku 11 (kdo náhled smí, zda zakázat zápis – návrh: jen vybrané e-maily vývojáře, zápis zakázán).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
