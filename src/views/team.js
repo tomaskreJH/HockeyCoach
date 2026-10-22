@@ -1,7 +1,8 @@
 // Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování a správa pokladny.
 // Struktura: Importy -> Pomocné funkce -> players (soupiska a realizační tým) -> formV (přepínač režimů, základní formace) -> teamDrag (přetahování).
 // Přepínač nahoře (jen správce pokladny): Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce (stav S.tm); režimy pokladny vykresluje cashPanel() z events.js.
-// Hráčka s příznakem pokladník vidí formaci, náhradnice, soupisku a realizační tým jen ke čtení (bez úprav a přetahování).
+// Hráčka s příznakem pokladník vidí formaci a náhradnice jen ke čtení (bez přetahování); u hráček a realizačního týmu mění jen platby
+// (okno Platby / Plat v modal.js – ostatní pole dokumentu zůstanou, pravidla databáze jí víc nedovolí).
 // Role: přidávat a mazat hráčky a spravovat realizační tým smí jen trenér; kustod u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
 // Tlačítka, na která role nemá právo, se nezobrazují (práva navíc vynucují pravidla databáze).
 import {KIND,POS,ST} from "../config/constants.js";
@@ -31,7 +32,8 @@ const Q2=s=>document.querySelector(s)||{};
 export function players(a){const cnt=k=>S.pl.filter(p=>stOf(p)===k).length;const l=S.pl.filter(p=>(S.pf==="all"||stOf(p)===S.pf)&&(S.pq==="all"||(p.pos||"")===S.pq)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));
 const T=[...S.tr].sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs"));
 // Oprávnění přihlášeného uživatele
-const coach=HK.can("roster"),cashier=HK.can("money")&&!ro(),edit=!ro();
+// Upravit hráčku: trenér, kustod (stav) a správce pokladny (pole plateb – i hráčka s příznakem pokladník); sestavu a přetahování hráčka-pokladník nemění
+const coach=HK.can("roster"),cashier=HK.can("money"),edit=!ro()||cashier;
 a.innerHTML=`${coach?`<div class="cd"><h2>Přidat hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="n"></div><div><label>Číslo</label><input id="c" inputmode="numeric"></div></div>
 <div class="row"><div><label>Pozice</label><select id="p">${POS.map(x=>`<option>${x}</option>`).join("")}<option value="">Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="q"><option value="">–</option>${POS.map(x=>`<option>${x}</option>`).join("")}</select></div></div>
 <div class="row"><div><label>Skupina plateb</label><select id="py">${Object.entries(GRP).map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select></div><div><label>Koeficient (% z ceny)</label><input id="pfx" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="100"></div></div><label class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><input id="pex" type="checkbox" style="width:auto;margin:0"> Osvobozená (zvýhodněná) hráčka</label><label>Poznámka k platbám (např. kompenzace)</label><input id="pnt">

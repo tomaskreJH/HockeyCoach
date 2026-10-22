@@ -4,6 +4,23 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v18.9.2 (22. 10. 2026) – Oprava: pokladník nastavuje platby hráček; ⚙️ Kontrola dat (pole ex) – ⚠️ SAHÁ NA PLATBY
+> **Nasazení:** nahrát kód (nic se nemaže). Pravidla databáze beze změny – pokladníkovi úpravu polí plateb (`grp`, `fx`, `ex`, `note`) a platu (`pay`) povolovala už dřív, chybělo jen tlačítko v aplikaci. Pak trenér: ⚙️ → **Kontrola dat → Doplnit pole ex** (před zápisem se sama stáhne záloha). Až budou všechna zařízení na v18.9.2: ⚙️ → 🔒 Vyžadovat verzi (doporučeno – převod mění data hráček).
+> **⚠️ SAHÁ NA PLATBY:** `src/domain/cash.js` (nová čistá funkce `exFixPlan`, výpočty beze změny), okna úpravy hráčky a člena týmu (`src/views/modal.js`) – pole plateb. QR, předpisy, úhrady, účty a `firestore.rules` beze změny.
+
+**Opraveno**
+- **Pokladník nemohl nastavit platby hráček** (nález z testu v18.9.1): hráčka s příznakem pokladník neměla u hráček ani u realizačního týmu tlačítko Upravit (chyba už ze starších verzí, ne z úklidu). Nově má u hráček **Upravit → okno „Platby“** (skupina plateb, osvobozená, koeficient, poznámka) a u realizačního týmu **Upravit → „Plat“**. Jméno, číslo, pozici, stav, funkci ani sestavu a formaci nemění (přetahování zůstává vypnuté); uloží se jen pole plateb, ostatní údaje dokumentu zůstanou.
+
+**Přidáno**
+- **⚙️ → Kontrola dat** (jen trenér): seznam hráček bez pole `ex` (starší data) a co dostanou – starý tvar osvobozené (`fx` 0 bez `ex`) → osvobozená, koeficient 100 %; ostatní → neosvobozená. Platby se nemění (`exOf` a `fxOf` dávají totéž). Potvrzení druhým klepnutím, před zápisem se stáhne záloha (JSON), lze spustit znovu. Po převodu ukáže ✅. Je podmínkou pro D3 (odstranění `legacyEx`).
+- `domain/cash.js`: `exFixPlan(players)`; test `tests/ex-fix.test.js`. Zástupce Firebase zaznamenává zápisy (`__fb.writes`) pro testy.
+
+**Změněno**
+- `src/views/team.js` (Upravit i pro pokladníka), `src/views/modal.js` (režim jen plateb / platu), `src/data/storage.js` (Kontrola dat), `src/views/help.js` (kapitoly Team a ⚙️), `src/views/shell.js` (komentář).
+
+**Beze změny**
+- Trenér a kustod upravují hráčky stejně jako dřív; živý zápis, statistiky, docházka, pokladna, QR, pravidla databáze. Ověřeno kouřovým testem (jsdom): obrazovky všech rolí kromě Team u hráčky-pokladníka a ⚙️ shodné s v18.9.1; zápis pokladníka mění jen `grp`, `fx`, `note` / `pay`.
+
 ## v18.9.1 (22. 10. 2026) – Úklid kódu D1, část 2: statistiky, oprávnění, nastavení týmu, rozdělení živého zápisu (fáze D1 f–i) – ⚠️ SAHÁ NA PLATBY
 > **Nasazení:** nahrát kód a **smazat z webu i z repozitáře `src/views/live.js`** (nahradily ho tři nové soubory – starý soubor by v offline cache nevadil, ale nemá zůstat). Pravidla databáze beze změny (publikovat netřeba), tvar dat beze změny – 🔒 Vyžadovat verzi není nutné.
 > **⚠️ SAHÁ NA PLATBY – jen dotaz na oprávnění, výsledky beze změny:** `src/views/mine.js`, `src/views/payments.js`, `src/views/money.js`, `src/views/cashbook.js`, `src/views/cash-settings.js` (`HK.isCash()` → `HK.can("money")`, návrh účtu `HK.role() === "trener"` → `HK.can("accounts")`). `src/domain/cash.js`, `src/domain/bank-account.js`, `src/views/qr-image.js` a `firestore.rules` se nemění.

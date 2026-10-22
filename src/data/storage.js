@@ -15,7 +15,7 @@
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
 import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.js";
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
-import {exOf, fxOf} from "../domain/cash.js";
+import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -329,10 +329,12 @@ function openCfg() {
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option><option value="kustod" selected>Kustod</option>' : ""}<option value="hracka"${coach ? "" : " selected"}>Hráčka</option></select><select id="cmp"${coach ? ' style="display:none"' : ""}><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
+ ${coach ? exFixHtml() : ""}
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.${verInfo()}</div><button class="s w" id="cu2">Načíst novou verzi</button>${coach && canRaise(APP_VERSION, minVer()) ? `<button class="s w" id="cmv" style="margin-top:8px">🔒 Vyžadovat verzi v${APP_VERSION}</button>` : ""}
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close;
-  if (q("#cmv")) q("#cmv").onclick = () => raiseMinVer(q("#cmv"), close); q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
+  if (q("#cmv")) q("#cmv").onclick = () => raiseMinVer(q("#cmv"), close);
+  if (q("#cex")) q("#cex").onclick = () => runExFix(q("#cex"), close); q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#clo").onclick = async () => { pvWrite(null); await signOut(auth); location.reload(); };
   bindPv(q);
   if (staff) { q("#ce").onclick = exportJSON; q("#cc").onclick = exportCSV; }
@@ -386,6 +388,24 @@ function verInfo() {
   const a = data.settings[APP_DOC] || {}, m = a.minVer;
   if (!m) return "<br>Minimální verze není nastavená (zapisovat smí každá verze).";
   return "<br>Minimální verze: <b>v" + esc(m) + "</b>" + (a.minAt ? " (" + esc(String(a.minAt).slice(0, 10)) + (a.minBy ? ", " + esc(a.minBy) : "") + ")" : "") + (outdated() ? " – <b>tato verze je starší, zápis je zablokovaný.</b>" : ".");
+}
+// ===== Kontrola dat: pole ex u hráček =====
+// Náhled převodu (kolik hráček nemá pole ex a co dostanou); bez nálezu jen potvrzení, že je vše v pořádku
+function exFixHtml() {
+  const plan = exFixPlan(data.players);
+  if (!plan.length) return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">✅ Všechny hráčky mají pole <b>ex</b> (osvobozená ano / ne).</div>`;
+  const list = plan.map(x => esc(x.name) + " → " + (x.ex ? "osvobozená, koeficient 100 %" : "neosvobozená")).join("<br>");
+  return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">Pole <b>ex</b> chybí u ${plan.length} hráček. Doplnění nic nemění na platbách (stejný význam jako dosud) – je nutné před odstraněním starého tvaru dat:<br>${list}</div><button class="s w" id="cex">Doplnit pole ex (${plan.length})</button>`;
+}
+// Doplnění pole ex (jen trenér): potvrzení druhým klepnutím, před zápisem se stáhne záloha; lze spustit znovu (doplní jen chybějící)
+async function runExFix(btn, close) {
+  if (!btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Opravdu doplnit? Nejdřív se stáhne záloha – klepni znovu"; return; }
+  if (blocked()) return;
+  const plan = exFixPlan(data.players);
+  if (!plan.length) { say("Není co doplnit"); close(); return; }
+  exportJSON();
+  try { await commitOps(plan.map(x => ["set", "players", x.id, x.doc])); say("Pole ex doplněno u " + plan.length + " hráček"); close(); }
+  catch (e) { say("Doplnění se nepovedlo: " + errTxt(e)); }
 }
 // Trenér zvýší minimální verzi na tuto (potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
 async function raiseMinVer(btn, close) {

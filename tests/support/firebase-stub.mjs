@@ -1,7 +1,8 @@
 // Zástupce Firebase SDK pro testy v Node: aplikace importuje SDK z gstatic.com, testy ho nahrazují tímto modulem (bez sítě a bez databáze).
 // Struktura: Pomocné funkce -> Exporty se stejnými názvy jako skutečné SDK (firebase-app, firebase-auth, firebase-firestore).
-// Bez nastavení se nic nepřihlásí a nic nenačte. Test může nastavit globalThis.__fb = {user, members, data}:
-// přihlášený uživatel, dokumenty members/{email} a obsah kolekcí (poslech kolekce je dostane hned).
+// Bez nastavení se nic nepřihlásí a nic nenačte. Test může nastavit globalThis.__fb = {user, members, data, writes}:
+// přihlášený uživatel, dokumenty members/{email}, obsah kolekcí (poslech kolekce je dostane hned)
+// a pole writes, do kterého se zapíše každý setDoc a zápis dávky ({path, d}, u smazání {path, del: true}).
 // Testy nezapisují do databáze přes SDK – zápisy zachytává zástupné S.db (tests/support/fake-db.mjs).
 
 // ===== Pomocné funkce =====
@@ -22,7 +23,12 @@ export const onAuthStateChanged = (auth, cb) => { const f = fb(); if (f) Promise
 export const query = none, where = none, deleteField = none, initializeFirestore = none, persistentLocalCache = none, persistentMultipleTabManager = none;
 export const collection = (fs, c) => ({c});
 export const doc = (fs, c, id) => ({c, id});
-export const deleteDoc = later, setDoc = later, getDocs = async () => ({docs: []});
+// Zápisy do __fb.writes (jen když ho test nastaví)
+const rec = w => { const f = fb(); if (f && f.writes) f.writes.push(w); };
+const path = ref => (ref ? ref.c + "/" + ref.id : "?");
+export const getDocs = async () => ({docs: []});
+export const setDoc = async (ref, d) => { rec({path: path(ref), d: JSON.parse(JSON.stringify(d))}); };
+export const deleteDoc = async ref => { rec({path: path(ref), del: true}); };
 // Dokument members/{email} z __fb.members (role účtu)
 export const getDoc = async ref => {
   const f = fb(), d = f && ref && ref.c === "members" ? (f.members || {})[ref.id] : null;
@@ -34,4 +40,4 @@ export const onSnapshot = (ref, cb) => {
   if (d) cb({docs: Object.entries(d).map(([id, x]) => ({id, data: () => x}))});
   return () => {};
 };
-export const writeBatch = () => ({set() {}, delete() {}, commit: later});
+export const writeBatch = () => { const ops = []; return {set(ref, d) { ops.push({path: path(ref), d: JSON.parse(JSON.stringify(d))}); }, delete(ref) { ops.push({path: path(ref), del: true}); }, update(ref, d) { ops.push({path: path(ref), d: JSON.parse(JSON.stringify(d))}); }, commit: async () => { ops.forEach(rec); }}; };

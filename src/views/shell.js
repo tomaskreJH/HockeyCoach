@@ -1,7 +1,7 @@
 // Kostra aplikace: záložky a hlavní vykreslení.
 // Záložka Události obsahuje zápasy i tréninky: je-li otevřený zápas (S.mid), zobrazí se jeho karta, jinak seznam událostí.
 // Přihlášená hráčka (role "hracka") vidí záložky Události, Statistiky, Soupeři (jen ke čtení) a Moje platby; karta zápasu je jen pro trenéra a kustoda.
-// Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.can("money")) ho vidí také – formaci a soupisku jen ke čtení, plus Platby / Pokladna / Měsíce.
+// Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.can("money")) ho vidí také – formaci jen ke čtení, u soupisky a realizačního týmu jen platby, plus Platby / Pokladna / Měsíce.
 // Statistiky jsou přístupné všem členům týmu (jen ke čtení).
 // Záložka Moje platby je pro každého, kdo má v účtu propojenou hráčku nebo člena týmu (pid / tid).
 // Náhled role: při aktivním náhledu je v horní liště nad záložkami stálý pruh „Náhled: … · Ukončit náhled“

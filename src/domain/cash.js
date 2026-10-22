@@ -64,6 +64,13 @@ const legacyEx = p => !!p && p.ex == null && p.fx != null && +p.fx === 0;
 export const exOf = p => !!p && (p.ex === true || legacyEx(p));
 // Koeficient 0..1 (starý tvar osvobozené = 1, tedy 100 %)
 export const fxOf = p => { if (legacyEx(p)) return 1; const v = p && p.fx != null ? +p.fx : 1; return v >= 0 && v <= 1 ? v : 1; };
+// Převod starého tvaru (⚙️ → Kontrola dat): hráčky bez pole ex dostanou ex; starý tvar osvobozené (fx 0) ex true a fx 1.
+// Význam se nemění (exOf a fxOf dávají před převodem i po něm totéž). players = {id: dokument}; vrací [{id, name, ex, doc}].
+export const exFixPlan = players => Object.entries(players || {}).filter(([, p]) => p && p.ex == null).map(([id, p]) => {
+  const ex = legacyEx(p), doc = {...p, ex};
+  if (ex) doc.fx = 1;
+  return {id, name: p.name || id, ex, doc};
+});
 export const grpOf = p => (p && p.grp === "single" ? "single" : "monthly");
 // Skupina pro výpočet události: osvobozená má vlastní skupinu, jinak skupina plateb
 export const grpKey = p => (exOf(p) ? "exempt" : grpOf(p));

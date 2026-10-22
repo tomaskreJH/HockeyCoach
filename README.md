@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v18.9.1 (22. 10. 2026)** – úklid kódu D1, část 2 (bez změny chování a vzhledu): jeden výpočet statistik `playerStats`, oprávnění jen přes `HK.can(akce)`, název týmu a aplikace v `src/config/team-config.js`, živý zápis rozdělený na `live-view.js`, `live-panels.js` a `live-events.js`. Pravidla databáze beze změny. Dříve v18.9: společné pomůcky `confirm2`, `pn` / `nm`, `csv`, `core/drag.js`.
+**Aktuální verze: v18.9.2 (22. 10. 2026)** – oprava: pokladník (i hráčka s příznakem pokladník) nastavuje platby hráček a plat realizačního týmu; ⚙️ → Kontrola dat doplní pole `ex` u starších hráček (bez změny plateb). Pravidla databáze beze změny. Dříve v18.9.1: úklid kódu D1 (`playerStats`, `HK.can`, `config/team-config.js`, rozdělený živý zápis).
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
