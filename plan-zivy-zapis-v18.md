@@ -13,10 +13,12 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu – **hotovo**, otestováno |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, otestováno (hráčka) |
-| v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, k testu (čeká na potvrzení účtu druhým trenérem a test QR v mBank) |
+| v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, otestováno (QR v mBank OK, 22. 10. 2026) |
 | v18.6.2 | P2 | ⭐ **Důležité:** pevně uložený účet v telefonu hráčky (opsáním), jméno příjemce v QR, „čeká na potvrzení přijetí“ – **odloženo**, zařadit po v18.7 |
-| v18.7 | C | Docházka pro všechny (📊 v Událostech, období od–do), značka ⛓ dlužnic v docházce – **hotovo**, k testu (⚠️ nejdřív publikovat `firestore.rules`, pak ⚙️ → Přepočítat dlužníky) |
+| v18.7 | C | Docházka pro všechny (📊 v Událostech, období od–do), značka ⛓ dlužnic v docházce – **hotovo**, otestováno (22. 10. 2026) |
+| v18.7.1 | Q | ⬇️ Uložit QR do telefonu (obrázek pro bankovní aplikaci) – **další na řadě** |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
+| v18.9 | N | 🔔 Notifikace (blížící se událost, uzávěrka přihlašování, nová událost, nový předpis) – **návrh**, rozhodnout otázky 13–17 |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
 | později | E | Modul Trénink (zatím neřešit) |
@@ -66,7 +68,9 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **Stav 22. 10. 2026 (15:30):** v18.6.1 nahraná, druhý trenér zatím změnu účtu nepotvrdil → QR v mBank zatím neověřeno. Test v18.6.1 proběhne souběžně s v18.7 (nálezy jako v18.6.x). Bezpečnostní rozšíření plateb zapsáno jako **⭐ Důležité kroky** (sekce P2, v18.6.2).
 - **Rozhodnuto 22. 10. 2026 (C):** C1 a C2 v jedné verzi v18.7; Docházka jako přepínač v Událostech se všemi sloupci (účast, %, nejdu, nejistá, bez odpovědi); místo „aktivní hráčky“ (data o příchodu ani historie stavu neexistují) **volba období od–do, výchozí zimní sezóna 1. 8. – 1. 7.**; dlužníky ukázat **značkou mříží ⛓ v docházce** (ne samostatný seznam v Moje platby).
 - **v18.7 (C) dodáno, k testu.** `src/domain/attendance.js` (čisté funkce), `src/views/attendance.js` (přehled, značka `debtTag`), `src/domain/debtors.js`; `debtors/{mid} = {mid, since, dues: [{d, x}]}` bez částek – `dues` nese splatnosti a výjimku, aby šly ⛓ / 🔓 a dny po splatnosti dopočítat v zařízení i bez nového zápisu. Zápis ve stejné dávce: `payments.js` (vyúčtování, úhrada, výjimka), `money.js` (vystavení / smazání příspěvku), `cashbook.js` (storno), `storage.js` (smazání události, obnova ze zálohy). **Publikovat `firestore.rules` PŘED nahráním kódu** (jinak selžou dávky s předpisy), pak ⚙️ → ⛓ Přepočítat dlužníky. Kouřový test jsdom 25 kontrol.
-- **Pokračování:** test v18.7 a v18.6.1 (nálezy jako v18.7.x / v18.6.x), pak ⭐ **v18.6.2 P2**, potom v18.8 D.
+- **Test 22. 10. 2026 (16:10):** v18.6.1 – QR v mBank čte správně; v18.7 – testy v pořádku. Obě verze otestované.
+- **Nové požadavky 22. 10. 2026:** ⬇️ uložení QR do telefonu (sekce Q, v18.7.1) a 🔔 notifikace (sekce N, v18.9).
+- **Pokračování:** **v18.7.1 Q** (uložení QR) → ⭐ **v18.6.2 P2** → **v18.8 D** (úklid) → **v18.9 N** (notifikace; pořadí D a N lze prohodit).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -191,6 +195,31 @@ Stav: předpisy (`charges`) čte jen jejich vlastník a správci pokladny – os
 - Rozhodnuto (otázka 6): dlužnice s výjimkou zůstává se značkou 🔓, realizační tým se nezapisuje.
 - **Dodáno ve v18.7:** místo samostatného seznamu značka ⛓ (mříže) s dny po splatnosti u jména v Docházce a v detailu události, v Docházce karta „⛓ Po splatnosti“ od nejdelšího. Dokument rozšířen o `dues: [{d, x}]` (splatnosti a výjimka, bez částek).
 
+## Q – v18.7.1: Uložení QR do telefonu (přidáno 22. 10. 2026)
+Cíl: hráčka platí z téhož telefonu – QR na displeji bankovní aplikace nenačte, potřebuje ho jako obrázek (banky umí „QR z galerie / ze souboru“).
+- V okně QR (`src/views/mine.js`) tlačítko **⬇️ Uložit QR** → obrázek PNG ve vysokém rozlišení s bílou tichou zónou (QR z `src/lib/qrcode.js`, vykreslení na canvas).
+- Android: systémové **Sdílet** (`navigator.share` se souborem) → Uložit do Galerie / poslat rovnou do bankovní aplikace; jinde stažení souboru (`<a download>`).
+- Obsah QR beze změny (účet, částka, VS, zpráva, `PT:IP`). Uložení až po zobrazení QR – kontrola účtu a „Ověřila jsem účet“ platí i pro obrázek.
+- Sahá na platby (`mine.js`) → v CHANGELOG výslovně označit. Pravidla databáze beze změny.
+- **Rozhodnout (navrženo, nepotvrzeno):** (a) popisek pod QR v obrázku – příjemce, číslo účtu + IBAN, částka, VS, zpráva, datum vytvoření (návrh ANO, kvůli kontrole v galerii); (b) název souboru `QR-platba-RRRR-MM-DD-VS.png`.
+
+## N – v18.9: Notifikace (přidáno 22. 10. 2026, návrh)
+Cíl: upozornit každého, koho se to týká, i když aplikaci nemá otevřenou.
+**Druhy upozornění:**
+1. **Blíží se událost** – jen přihlášeným („Jdu“), např. 3 h před začátkem (trénink i zápas).
+2. **Blíží se uzávěrka přihlašování** – členům **bez odpovědi** (případně i „Nejsem jistý“), např. 24 h a 2 h před `dl`.
+3. **Nová událost** – všem členům (trénink / zápas založený trenérem nebo kustodem), s tlačítkem otevřít detail.
+4. **Nový platební předpis** – jen vlastníkovi předpisu (`mid` = jeho `pid` / `tid`): vyúčtování události, měsíční příspěvek; bez částky v textu na zamčené obrazovce (návrh), částka až v aplikaci. Volitelně i připomínka splatnosti / „po splatnosti – přihlášení zablokováno“.
+**Technické řešení (návrh):**
+- **Web Push přes Firebase Cloud Messaging (FCM):** PWA si vyžádá povolení (klepnutím, ne automaticky), uloží token zařízení do `pushTokens/{token} = {email, pid, tid, ua, at}`; service worker `sw.js` zobrazí notifikaci a po klepnutí otevře příslušnou obrazovku (událost / Moje platby).
+- **Odesílání ze serveru:** **Cloud Functions** – spouštěče Firestore (nový dokument v `events` / `matches` → upozornění 3; nový dokument v `charges` → upozornění 4) a plánovaná funkce (např. každých 15 min) pro upozornění 1 a 2. Klient sám nic neposílá (klíč serveru nesmí být v aplikaci). **Vyžaduje tarif Firebase Blaze** (platba podle využití; pro tým v rámci bezplatných limitů) a nasazení funkcí (`firebase deploy --only functions`) – nová část repozitáře `functions/`.
+- **Deduplikace:** záznam odeslaných upozornění `pushLog/{druh}_{eid}_{člen}`, aby plánovaná funkce neposílala dvakrát.
+- **Nastavení u člena:** v ⚙️ „🔔 Upozornění“ – zapnout v tomto zařízení, volba druhů (1–4) a předstihu; uloženo v `members/{email}.notify` nebo v `pushTokens`.
+- **Omezení:** iPhone jen u PWA přidané na plochu (iOS 16.4+); Android Chrome bez omezení; bez internetu se upozornění doručí po připojení. Prohlížeč bez podpory → aplikace jen ukáže, že upozornění nejdou.
+- **Pravidla:** `pushTokens` zapisuje jen vlastník (e-mail tokenu = přihlášený), čte jen server (Admin SDK pravidla obchází) → **publikovat firestore.rules**.
+- **Alternativa bez serveru (slabší):** jen místní upozornění při otevřené / nedávno otevřené aplikaci (Notification API v `sw.js`) – nespolehlivé, nedoporučeno.
+- **Postup:** nejdřív kostra (povolení, token, testovací upozornění z ⚙️ přes funkci), pak druhy 3 a 4 (spouštěče), nakonec 1 a 2 (plánovaná funkce). Případně rozdělit na v18.9 a v18.9.1.
+
 ## D – v18.8: Úklid kódu (bez změn UI)
 
 Zjištěno při kontrole v17.7 – návrh, co sjednotit, zjednodušit nebo smazat:
@@ -228,6 +257,11 @@ Původní znění:
 6. Dlužníci: skrýt dlužnici s výjimkou z blokace? Ukazovat i realizační tým (nemá předpisy – asi ne)?
 7. Docházka: počítat jen uplynulé události, nebo i budoucí s odpovědí? Procenta z událostí, na které byla hráčka nominovatelná (aktivní), nebo ze všech?
 11. Náhled role (G): kdo ho smí používat – jen vývojář (seznam e-mailů), nebo každý trenér? Má být v náhledu zápis zakázaný (návrh: ano)?
+13. Notifikace (N): souhlas s Firebase Blaze + Cloud Functions (nutné pro doručení při zavřené aplikaci)? Kdo nasadí funkce (`firebase deploy`)?
+14. Notifikace: předstih – událost (návrh 3 h), uzávěrka (návrh 24 h a 2 h); upozornit na uzávěrku i „Nejsem jistý“?
+15. Notifikace: nová událost všem, nebo jen hráčkám bez ukončených (⛔) a realizačnímu týmu? Upozornit i na změnu času / místa a zrušení události?
+16. Notifikace předpisu: s částkou v textu, nebo bez (zamčená obrazovka)? Připomínat splatnost (např. den před) a „po splatnosti“?
+17. Notifikace: smí si každý člen druhy upozornění vypnout sám (návrh ano), nebo je určuje trenér?
 12. Souběžné tresty (H): má aplikace znát souběžné tresty s náhradou (5 na 5) vedle 4 na 4? Doplnit chybějící hráčku dočasně jen pro trest, nebo trvale? Při 4 na 4 použít OS1/OS2, nebo nové jednotky „4 na 4“?
 
 ## Pravidla práce (z projektu)
