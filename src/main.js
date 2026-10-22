@@ -1,4 +1,4 @@
-// Spuštění aplikace: připojení k úložišti, odběr změn dat, první vykreslení.
+// Spuštění aplikace: připojení k úložišti, odběr změn dat, první vykreslení, obsluha tlačítka Zpět (v18.0).
 // Kolekce events, attendance (docházka) a staff (realizační tým) nesmí blokovat zbytek aplikace: při chybě (např. chybějící pravidla) se jen zobrazí hláška v záložce Události.
 // Správci pokladny (trenér a pokladník) poslouchají charges (všechny předpisy), cash, audit a evcash (vyúčtování událostí).
 // Ostatní členové poslouchají jen své předpisy (charges s mid = jejich pid / tid, včetně měsíčních příspěvků); pravidla jiné předpisy nepustí.
@@ -7,6 +7,7 @@
 import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
 import {fixClosed, syncOps} from "./core/actions.js";
+import {initNav} from "./core/nav.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {openCashSettings} from "./views/cash-settings.js";
@@ -19,6 +20,8 @@ if(new URLSearchParams(location.search).has("debug"))installDebug();
 initTableSort();
 // Nápověda: tlačítko ❓ v záhlaví
 initHelp();
+// Tlačítko Zpět na telefonu: zavírá okna a detaily uvnitř aplikace, z domovské stránky se zeptá na ukončení (v18.0)
+initNav();
 // Okno nastavení pokladny se otevírá z ⚙️
 HK.openCash=openCashSettings;
 setInterval(liveTick,500);

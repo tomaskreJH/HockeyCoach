@@ -12,6 +12,7 @@ const SECTIONS = [
 <li><b>Trenér</b> smí vše. <b>Kustod</b> vede zápasy (nominace, sestava, živý zápis, opravy), soupeře, základní formaci, události a docházku; u hráčky mění jen stav. <b>Hráčka</b> vidí Události, Statistiky a Moje platby a zapisuje docházku jen za sebe. <b>Pokladník</b> je příznak navíc k roli: spravuje pokladnu, skupiny plateb a platy.</li>
 <li><b>Telefon:</b> v Chrome otevři adresu aplikace → menu ⋮ → Přidat na plochu / Instalovat aplikaci. Přihlášení zůstává uložené.</li>
 <li><b>Bez signálu (hala):</b> aplikace funguje dál, změny se odešlou po připojení. Živý zápis zápasu veď jen z jednoho telefonu (při souběhu vyhrává poslední zápis).</li>
+<li><b>Tlačítko Zpět na telefonu</b> (od v18.0) funguje uvnitř aplikace: zavře otevřené okno nebo panel, z detailu se vrátí na seznam, z karty zápasu o krok zpět, z jiné záložky na Události. Na domovské stránce se zeptá „Ukončit aplikaci?“. V živém zápisu nic nezapíše ani nezastaví čas – zavře rychlý zápis nebo menu, jinak se zeptá „Odejít ze živého zápisu?“ (hodiny běží dál).</li>
 <li><b>Stará verze po aktualizaci:</b> ⚙️ → Načíst novou verzi. Data zůstanou v databázi.</li>
 </ul>`},
   {t: "2. Události a docházka", h: `
@@ -147,6 +148,7 @@ const SECTIONS = [
 <tr><td>Vklad / výdaj</td><td>Team → 🏦 Pokladna</td></tr>
 <tr><td>Odklikat docházku</td><td>Události → klepnout na událost</td></tr>
 <tr><td>Vytvořit zálohu</td><td>⚙️ → Stáhnout zálohu (JSON)</td></tr>
+<tr><td>Zavřít okno / vrátit se</td><td>Tlačítko Zpět na telefonu</td></tr>
 </table>`}
 ];
 
