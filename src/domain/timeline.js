@@ -1,4 +1,11 @@
 // Doména: úplná časová osa zápasu a statistika střídání (bez DOM).
+// Struktura: Importy -> Pomocné funkce -> Třetiny a čas -> Střídání (shiftsOf, shiftList, shiftStats) -> Časová osa (timeline) -> Exporty.
+// Společné pravidlo střídání (v18.1) – shiftList(m) používají všechny přehledy (statistiky zápasu, Čas na ledě v živém zápisu,
+// Střídání hráček v rozboru, celkové statistiky, vývoj zápasu):
+//   1) záznamy s délkou ≤ 0 se vynechají,
+//   2) navazující záznamy téže hráčky (konec = začátek dalšího) se sloučí do jednoho střídání – hráčka plynule pokračuje
+//      (návrat do řad po PP/OS, „Sestava znovu“, změna jednotky nebo pozice).
+// Uložená data (live.sh) ani editace střídání (shift-edit.js) se nemění – pravidlo platí jen pro výpočty a zobrazení.
 import {COLS, SIT} from "../config/constants.js";
 import {pl} from "../core/selectors.js";
 import {mmss} from "../core/utils.js";
@@ -33,10 +40,27 @@ export function shiftsOf(m) {
   return out;
 }
 
-// Statistika střídání po hráčkách: počet, součet, průměr, nejdelší, počet dlouhých
+// Společné pravidlo střídání (v18.1): bez nulových záznamů, navazující záznamy téže hráčky sloučené.
+// Výsledek: {p, c (sloupec na začátku), c2 (sloupec na konci), a, b, open}, seřazeno podle začátku.
+export function shiftList(m) {
+  const by = {};
+  shiftsOf(m).filter(x => x.b - x.a > 0).forEach(x => (by[x.p] = by[x.p] || []).push(x));
+  const out = [];
+  Object.values(by).forEach(list => {
+    list.sort((x, y) => x.a - y.a);
+    let cur = null;
+    list.forEach(x => {
+      if (cur && x.a === cur.b) { cur.b = x.b; cur.c2 = x.c; cur.open = !!x.open; }   // plynulé pokračování téže hráčky
+      else { cur = {p: x.p, c: x.c, c2: x.c, a: x.a, b: x.b, open: !!x.open}; out.push(cur); }
+    });
+  });
+  return out.sort((x, y) => x.a - y.a || x.b - y.b);
+}
+
+// Statistika střídání po hráčkách: počet, součet, průměr, nejdelší, počet dlouhých (společné pravidlo shiftList)
 export function shiftStats(m, limit) {
   const R = {};
-  shiftsOf(m).forEach(x => {
+  shiftList(m).forEach(x => {
     const d = x.b - x.a;
     if (d <= 0) return;
     const r = R[x.p] = R[x.p] || {p: x.p, n: 0, total: 0, max: 0, maxAt: 0, long: 0};
@@ -80,7 +104,8 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
   });
   if (m.end) push(m.end.at, 10, {kind: "end", per: m.end.per, el: mmss(m.end.at - periodStart(m, m.end.per)), text: "🏁 Konec zápasu"});
   if (subs && m.live) {
-    const sh = shiftsOf(m), start = sh.filter(x => x.a === 0);
+    // střídání podle společného pravidla: plynulé pokračování hráčky se jako střídání nezobrazí
+    const sh = shiftList(m), start = sh.filter(x => x.a === 0);
     if (start.length) push(0, 0, {kind: "start", per: 1, el: "00:00", text: "▶ Začátek zápasu – na ledě: " + COLS.map(c => { const x = start.find(y => y.c === c); return x ? c + " " + nameOf(x.p) : null; }).filter(Boolean).join(", ")});
     const times = new Set();
     sh.forEach(x => { if (!x.open) times.add(x.b); if (x.a > 0) times.add(x.a); });
@@ -89,8 +114,8 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
       const used = new Set(), parts = []; let long = false;
       out.forEach(o => {
         const d = o.b - o.a, isLong = d >= limit; if (isLong) long = true;
-        const i = inn.find(y => y.c === o.c && !used.has(y)); if (i) used.add(i);
-        parts.push(`${o.c}: ↘ ${nameOf(o.p)} (${mmss(d)}${isLong ? " ⚠️ dlouhé" : ""})${i ? " ↗ " + nameOf(i.p) : " – místo prázdné"}`);
+        const oc = o.c2 || o.c, i = inn.find(y => y.c === oc && !used.has(y)); if (i) used.add(i);
+        parts.push(`${oc}: ↘ ${nameOf(o.p)} (${mmss(d)}${isLong ? " ⚠️ dlouhé" : ""})${i ? " ↗ " + nameOf(i.p) : " – místo prázdné"}`);
       });
       inn.filter(y => !used.has(y)).forEach(y => parts.push(`${y.c}: ↗ ${nameOf(y.p)} nastupuje`));
       const pa = periodAt(m, T);

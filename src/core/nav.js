@@ -1,19 +1,21 @@
-// Tlačítko Zpět (v18.0): systémové Zpět na telefonu (i v prohlížeči) funguje uvnitř aplikace.
-// Princip: v historii prohlížeče je vždy jeden „strážní záznam“. Každé Zpět ho spotřebuje (událost popstate),
-// aplikace zavře nejvyšší otevřenou vrstvu a strážní záznam vrátí. Okna se zavírají klepnutím na jejich
-// vlastní tlačítko Zavřít / Zrušit, takže logika jednotlivých obrazovek se nemění.
+// Tlačítko Zpět (v18.0, oprava v18.1): systémové Zpět na telefonu (i v prohlížeči) funguje uvnitř aplikace.
+// Princip: v historii prohlížeče jsou nad základním záznamem až 3 „strážní záznamy“. Každé Zpět jeden spotřebuje
+// (událost popstate) a aplikace zavře nejvyšší otevřenou vrstvu. Okna se zavírají klepnutím na jejich vlastní
+// tlačítko Zavřít / Zrušit, takže logika jednotlivých obrazovek se nemění.
+// Oprava v18.1: Chrome přeskakuje záznamy historie vložené bez aktivace uživatelem. Dotyk prstem (pointerdown) aktivací
+// není – aktivací je až puštění prstu / klepnutí (pointerup, touchend, click) nebo klávesa. Strážní záznamy se proto
+// doplňují jen při takové aktivaci a do zásoby (3), aby i několik Zpět po sobě bez klepnutí došlo až k dotazu na ukončení.
 // Pořadí zavírání (od nejvyšší vrstvy):
 //   1) okna nad vším (nápověda, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
-//   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; hodiny běží dál, nic se nezapisuje),
+//   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas – v18.1),
 //   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
 //   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), jiná záložka → Události, Události → Nadcházející,
 //   5) domovská stránka: dotaz „Ukončit aplikaci?“.
-// Chrome přeskakuje záznamy historie vytvořené bez dotyku uživatele; příznak se ale zruší, jakmile uživatel
-// na stránku klepne. Proto se strážní záznam vkládá hned a znovu se ověří při každém klepnutí.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Potvrzovací okno -> Zavření nejvyšší vrstvy -> Eventy -> Export.
+// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Potvrzovací okno -> Ukončení aplikace -> Zavření nejvyšší vrstvy -> Eventy -> Export.
 
 // ===== Importy =====
 import {S} from "./state.js";
+import {toast} from "./utils.js";
 import {render} from "../views/shell.js";
 
 // ===== Konstanty a stav =====
@@ -33,13 +35,15 @@ const DOM_LAYERS = [
   "#rp #rpx",                  // zápis utkání
   "#app #cbc"                  // pokladna: rozpracovaný vklad / výdaj
 ];
-const MARK = {hcNav: 1};       // značka strážního záznamu v historii
-let ask = null;                // otevřený dotaz: {yes: funkce, guard: zda se po zavření vrací strážní záznam}
+const DEPTH = 3;               // zásoba strážních záznamů nad základním záznamem
+let ask = null;                // otevřený dotaz: {yes: funkce}
+let hooks = {};                // obsluha z obrazovek (leaveLive = odchod ze živého zápisu se zastavením času)
 
 // ===== Pomocné funkce =====
-const isGuard = st => !!(st && st.hcNav);
-// Vložení strážního záznamu (jen pokud už není aktuální)
-const arm = () => { if (!isGuard(history.state)) history.pushState(MARK, ""); };
+// Pořadí strážního záznamu (1..DEPTH), 0 = základní záznam (nebo cizí stránka)
+const lvl = st => (st && st.hcNav) || 0;
+// Doplnění zásoby strážních záznamů – volat jen při aktivaci uživatelem
+const refill = () => { for (let n = lvl(history.state); n < DEPTH; n++) history.pushState({hcNav: n + 1}, ""); };
 // Prvek existuje a je vidět
 const vis = el => !!el && el.isConnected && el.getClientRects().length > 0;
 // Klepne na první viditelný prvek podle selektoru; vrací, zda se něco zavřelo
@@ -49,47 +53,48 @@ const top0 = () => window.scrollTo(0, 0);
 // ===== Potvrzovací okno =====
 // Vlastní okno nad všemi vrstvami včetně nápovědy (z-index 90, hláška toast má 80)
 function closeAsk() { const el = document.getElementById("navq"); if (el) el.remove(); ask = null; }
-function openAsk(title, text, yesLabel, noLabel, yes, guard) {
+function openAsk(title, text, yesLabel, noLabel, yes) {
   closeAsk();
-  ask = {yes, guard};
+  ask = {yes};
   const el = document.createElement("div");
   el.id = "navq";
   el.className = "md";
   el.style.zIndex = "90";
   el.innerHTML = `<div class="mb"><h2>${title}</h2><div class="mu" style="margin-bottom:12px">${text}</div><div class="row"><button class="p" data-nq="yes" style="min-height:52px">${yesLabel}</button><button class="s" data-nq="no" style="min-height:52px">${noLabel}</button></div></div>`;
   document.body.appendChild(el);
-  // Ne / klepnutí mimo okno: zavřít; u dotazu na ukončení se strážní záznam vrátí
-  const no = () => { const g = ask && ask.guard; closeAsk(); if (g) arm(); };
-  el.querySelector('[data-nq="no"]').onclick = no;
-  el.onclick = e => { if (e.target === el) no(); };
+  el.querySelector('[data-nq="no"]').onclick = closeAsk;
+  el.onclick = e => { if (e.target === el) closeAsk(); };
   el.querySelector('[data-nq="yes"]').onclick = () => { const f = ask && ask.yes; closeAsk(); if (f) f(); };
 }
-// Ukončení aplikace: strážní záznam už je spotřebovaný, Zpět opustí stránku.
-// Pokud je aplikace na začátku historie (spuštěná z plochy), prohlížeč ji skriptem zavřít nedovolí – pak stačí ještě jednou Zpět.
+
+// ===== Ukončení aplikace =====
+// Odejde ze všech strážních záznamů a o jeden dál (opustí aplikaci). Aplikaci spuštěnou z plochy je její záznam první
+// v historii – skript ji pak zavřít nesmí, proto zůstane jen na základním záznamu a další systémové Zpět ji zavře.
 function exitApp() {
-  const before = location.href;
+  const n = lvl(history.state), before = location.href;
   try { window.close(); } catch (e) { /* okno nelze zavřít skriptem */ }
-  history.back();
+  history.go(-(n + 1));
   setTimeout(() => {
     if (location.href === before && document.visibilityState === "visible") {
-      openAsk("Ukončení aplikace", "Aplikaci zavřeš dalším stisknutím tlačítka Zpět na telefonu.", "Rozumím", "Zůstat", null, true);
+      if (lvl(history.state) > 0) history.go(-lvl(history.state));   // odejít aspoň na základní záznam
+      toast("Aplikaci zavřeš ještě jedním stisknutím Zpět.");
     }
-  }, 400);
+  }, 500);
 }
 
 // ===== Zavření nejvyšší vrstvy =====
-// Vrací true, pokud se něco zavřelo (strážní záznam se má vrátit); false = jsme na domovské stránce
+// Vrací true, pokud se něco zavřelo; false = jsme na domovské stránce
 function closeTop() {
   // 0) vlastní dotaz (Zpět = Ne)
   if (ask) { closeAsk(); return true; }
   // 1) okna s tlačítkem zavření
   if (DOM_LAYERS.some(tap)) return true;
-  // 2) živý zápis: nic se nezapisuje, hodiny běží dál
+  // 2) živý zápis: při odchodu se zastaví čas (v18.1), nic jiného se nezapisuje
   if (S.lv && vis(document.getElementById("lv"))) {
     if (S.qa) { if (!tap('#lv [data-qb="x"]')) { S.qa = null; render(); } return true; }
     if (S.lmenu && S.lsub) { if (!tap('#lv [data-m="back"]')) { S.lsub = null; S.injp = null; render(); } return true; }
     if (S.lmenu) { if (!tap('#lv [data-m="cl"]')) { S.lmenu = false; S.injp = null; render(); } return true; }
-    openAsk("Odejít ze živého zápisu?", "Hodiny běží dál a nic se nezapíše. Do živého zápisu se vrátíš z karty zápasu.", "Odejít", "Zůstat", () => { S.lv = false; S.qa = null; S.lmenu = false; S.lsub = null; S.injp = null; render(); }, false);
+    openAsk("Odejít ze živého zápisu?", "Čas zápasu se zastaví. Do živého zápisu se vrátíš z karty zápasu (▶ Pokračovat) a hru znovu spustíš tlačítkem ▶ Start.", "Odejít", "Zůstat", () => { if (hooks.leaveLive) hooks.leaveLive(); else { S.lv = false; render(); } });
     return true;
   }
   // 3) formuláře a detaily
@@ -106,18 +111,16 @@ function closeTop() {
 }
 
 // ===== Eventy =====
-function onPop() {
-  if (isGuard(history.state)) return;            // návrat na strážní záznam (např. po Ne) – nic nedělat
-  if (closeTop()) { arm(); return; }
-  // Domovská stránka: strážní záznam se nevrací – dalším Zpět aplikace skončí i bez potvrzení
-  openAsk("Ukončit aplikaci?", "Aplikace se zavře. Data jsou uložená.", "Ukončit", "Ne", exitApp, true);
-}
+// Každé Zpět: zavřít vrstvu, nebo se na domovské stránce zeptat na ukončení
+function onPop() { if (!closeTop()) openAsk("Ukončit aplikaci?", "Aplikace se zavře. Data jsou uložená.", "Ukončit", "Ne", exitApp); }
+// Aktivace uživatelem: doplnit zásobu strážních záznamů (ne během dotazu – tlačítka dotazu se postarají sama)
+function onUse() { if (!ask) refill(); }
 
 // ===== Export =====
-export function initNav() {
+// h.leaveLive = odchod ze živého zápisu (zastaví čas a zavře obrazovku); předává main.js z views/live.js
+export function initNav(h) {
   if (!window.history || !history.pushState) return;
-  arm();
+  hooks = h || {};
   window.addEventListener("popstate", onPop);
-  // Klepnutí uživatele: obnoví strážní záznam, pokud chybí (a zruší příznak „bez dotyku“ v Chrome)
-  document.addEventListener("pointerdown", () => { if (!ask) arm(); }, {capture: true, passive: true});
+  ["pointerup", "touchend", "click", "keydown"].forEach(t => document.addEventListener(t, onUse, {capture: true, passive: true}));
 }

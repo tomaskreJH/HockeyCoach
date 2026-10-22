@@ -12,7 +12,7 @@ import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {openCashSettings} from "./views/cash-settings.js";
 import {initHelp} from "./views/help.js";
-import {liveTick} from "./views/live.js";
+import {leaveLive, liveTick} from "./views/live.js";
 import {render} from "./views/shell.js";
 
 if(new URLSearchParams(location.search).has("debug"))installDebug();
@@ -20,8 +20,9 @@ if(new URLSearchParams(location.search).has("debug"))installDebug();
 initTableSort();
 // Nápověda: tlačítko ❓ v záhlaví
 initHelp();
-// Tlačítko Zpět na telefonu: zavírá okna a detaily uvnitř aplikace, z domovské stránky se zeptá na ukončení (v18.0)
-initNav();
+// Tlačítko Zpět na telefonu: zavírá okna a detaily uvnitř aplikace, z domovské stránky se zeptá na ukončení (v18.0);
+// odchod ze živého zápisu zastaví čas zápasu (v18.1, leaveLive z views/live.js)
+initNav({leaveLive});
 // Okno nastavení pokladny se otevírá z ⚙️
 HK.openCash=openCashSettings;
 setInterval(liveTick,500);

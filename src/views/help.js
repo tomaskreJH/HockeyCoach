@@ -12,7 +12,7 @@ const SECTIONS = [
 <li><b>Trenér</b> smí vše. <b>Kustod</b> vede zápasy (nominace, sestava, živý zápis, opravy), soupeře, základní formaci, události a docházku; u hráčky mění jen stav. <b>Hráčka</b> vidí Události, Statistiky a Moje platby a zapisuje docházku jen za sebe. <b>Pokladník</b> je příznak navíc k roli: spravuje pokladnu, skupiny plateb a platy.</li>
 <li><b>Telefon:</b> v Chrome otevři adresu aplikace → menu ⋮ → Přidat na plochu / Instalovat aplikaci. Přihlášení zůstává uložené.</li>
 <li><b>Bez signálu (hala):</b> aplikace funguje dál, změny se odešlou po připojení. Živý zápis zápasu veď jen z jednoho telefonu (při souběhu vyhrává poslední zápis).</li>
-<li><b>Tlačítko Zpět na telefonu</b> (od v18.0) funguje uvnitř aplikace: zavře otevřené okno nebo panel, z detailu se vrátí na seznam, z karty zápasu o krok zpět, z jiné záložky na Události. Na domovské stránce se zeptá „Ukončit aplikaci?“. V živém zápisu nic nezapíše ani nezastaví čas – zavře rychlý zápis nebo menu, jinak se zeptá „Odejít ze živého zápisu?“ (hodiny běží dál).</li>
+<li><b>Tlačítko Zpět na telefonu</b> (od v18.0) funguje uvnitř aplikace: zavře otevřené okno nebo panel, z detailu se vrátí na seznam, z karty zápasu o krok zpět, z jiné záložky na Události. Na domovské stránce se zeptá „Ukončit aplikaci?“. V živém zápisu nejdřív zavře rychlý zápis nebo menu, jinak se zeptá „Odejít ze živého zápisu?“ – odchod <b>zastaví čas</b>. Zpět hned po spuštění aplikace (před prvním klepnutím) ji může zavřít bez dotazu – tak to vyžaduje prohlížeč.</li>
 <li><b>Stará verze po aktualizaci:</b> ⚙️ → Načíst novou verzi. Data zůstanou v databázi.</li>
 </ul>`},
   {t: "2. Události a docházka", h: `
@@ -54,9 +54,11 @@ const SECTIONS = [
 <li><b>Střela:</b> klepnutí na hráčku na ledě zapíše její střelu, <b>STŘELA NA NAŠI BRÁNU</b> střelu soupeře. Při přerušené hře se střely zapsat nedají.</li>
 <li><b>Spodní lišta:</b> za běhu jen ↩ Zpět a Start/Přerušit. Po přerušení přibude ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby.</li>
 <li><b>Gól naši:</b> střelkyně → 1. asistence → 2. asistence (nebo „Bez asistence“). Situaci nastaví aplikace sama. <b>Gól soupeře:</b> jedno klepnutí.</li>
-<li><b>Dlouhé střídání:</b> po překročení limitu (výchozí 2:00, ⋯ → Nastavení) se dlaždice hráčky zbarví a telefon zavibruje.</li>
+<li><b>Průběh</b> (dole): všechny kroky zápasu včetně střídání – góly, střely, tresty, návraty z trestu, pětky a jednotky, zranění, brankářka, konce třetin. Nejnovější nahoře, seznam se posouvá prstem. Nad ním je pevný řádek upozornění (počet hráček na ledě, dlouhé střídání), takže tlačítka už neposkakují.</li>
+<li><b>Dlouhé střídání:</b> po překročení limitu (výchozí 2:00, ⋯ → Nastavení) se dlaždice hráčky zbarví, telefon zavibruje a upozornění se objeví nad průběhem; v průběhu je takové střídání zvýrazněné.</li>
+<li><b>Odchod ze živého zápisu</b> (⋯ → ✕ Zavřít živý zápis nebo Zpět na telefonu) zastaví čas zápasu. Pokračuješ z karty zápasu a tlačítkem ▶ Start.</li>
 <li><b>↩ Zpět</b> vrací poslední akci (střídání, střelu, gól, trest, jednotku…).</li>
-<li>Za živého zápisu živá obrazovka překrývá záhlaví s ❓ – nápovědu otevři před zápasem nebo po ✕ Zavřít živý zápis.</li>
+<li>Za živého zápisu živá obrazovka překrývá záhlaví s ❓ – nápovědu otevři před zápasem nebo po ✕ Zavřít živý zápis (čas se zastaví).</li>
 </ul>`},
   {t: "6. Tresty, přesilovky a oslabení", h: `
 <ul>
@@ -75,7 +77,7 @@ const SECTIONS = [
 <li><b>🤕 Trvale:</b> hráčka je odebrána z nominace i sestavy a v soupisce označena jako zraněná. Smí i kustod.</li>
 <li><b>🧤 Brankářka:</b> výměna brankářky v bráně.</li>
 <li><b>⬇️ Sundat z ledu:</b> ruční odstranění hráčky z ledu. <b>🔄 Sestava znovu:</b> znovu načte řady ze sestavy.</li>
-<li><b>📊 Čas na ledě:</b> přehled časů a střídání, tabulku lze řadit klepnutím na hlavičku.</li>
+<li><b>📊 Čas na ledě:</b> přehled časů a střídání, tabulku lze řadit klepnutím na hlavičku. <b>Počet střídání</b> se všude (statistiky zápasu, rozbor, celkové statistiky) počítá stejně: nulové záznamy se vynechají a když hráčka plynule pokračuje (návrat do řad po přesilovce, Sestava znovu, změna jednotky), je to jedno střídání.</li>
 <li><b>⚙️ Nastavení:</b> limit dlouhého střídání (pamatuje se v každém zařízení zvlášť).</li>
 <li><b>Konec třetiny / Konec zápasu:</b> po 3. třetině se prodlužuje jen při nerozhodném stavu a povoleném prodloužení, jinak tlačítko znamená Konec zápasu. Konec jde vrátit (↩ Zpět nebo „Zrušit konec zápasu“).</li>
 </ul>`},

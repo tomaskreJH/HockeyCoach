@@ -1,15 +1,16 @@
 // Záložka Statistiky: sezónní přehledy.
 // Všechny tabulky mají třídu "sortable" – řadí se klepnutím na hlavičku (viz core/table-sort.js).
 // Ø střídání = součet času na ledě ze všech uzavřených zápasů / počet jejích střídání (zápasy bez živého zápisu se nepočítají).
+// Střídání se počítají společným pravidlem shiftList z domain/timeline.js (v18.1).
 import {isG, luPlayers, pl, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {mmss} from "../core/utils.js";
-import {shiftsOf} from "../domain/timeline.js";
+import {shiftList} from "../domain/timeline.js";
 
 export function stats(a){const T={};const GK={},TT={sf:0,sa:0,gf:0,ga:0};const gg=id=>GK[id]=GK[id]||{sa:0,ga:0};const g=id=>T[id]=T[id]||{sh:0,gp:0,g:0,a:0,pim:0,pm:0,ppg:0,hp:0,ap:0,toi:0,sw:0};
 S.ma.filter(m=>m.closed).forEach(m=>{luPlayers(m.lineup).forEach(id=>g(id).gp++);
-// každé střídání (uzavřené i probíhající) přičte svůj čas a zvýší počet střídání hráčky
-shiftsOf(m).forEach(x=>{const d=x.b-x.a;if(d>0){const s=g(x.p);s.toi+=d;s.sw++}});
+// každé střídání podle společného pravidla shiftList (v18.1) přičte svůj čas a zvýší počet střídání hráčky
+shiftList(m).forEach(x=>{const s=g(x.p);s.toi+=x.b-x.a;s.sw++});
 (m.events||[]).forEach(e=>{
 if(e.k==="G"){const us=e.team==="us";
 if(us){const s=g(e.scorer);s.g++;s.sh++;if(e.sit==="PP")s.ppg++;[e.scorer,e.a1,e.a2].filter(Boolean).forEach(id=>g(id)[m.home?"hp":"ap"]++);[e.a1,e.a2].filter(Boolean).forEach(id=>g(id).a++)}

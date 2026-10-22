@@ -5,13 +5,13 @@ import {curM, isG, pl, pn, score, shots, skaters, slotIds} from "../core/selecto
 import {S} from "../core/state.js";
 import {$, downloadFile, esc, fd, mmss} from "../core/utils.js";
 import {benchM} from "../domain/lineup.js";
-import {nameOf, perLabel, shiftStats, timeline} from "../domain/timeline.js";
-import {el_, shiftMax} from "../domain/live-engine.js";
+import {nameOf, perLabel, shiftList, shiftStats, timeline} from "../domain/timeline.js";
+import {shiftMax} from "../domain/live-engine.js";
 
-// statistiky zápasu
-export function matchStatsHtml(m){const L=m.live,now=L?el_(L):0,T={},GK={},g=id=>T[id]=T[id]||{toi:0,sw:0,g:0,a:0,sh:0,pim:0,pm:0},gg=id=>GK[id]=GK[id]||{sa:0,ga:0};
+// Statistiky zápasu. Čas na ledě a počet střídání podle společného pravidla shiftList (v18.1): nulová vynechá, navazující sloučí.
+export function matchStatsHtml(m){const L=m.live,T={},GK={},g=id=>T[id]=T[id]||{toi:0,sw:0,g:0,a:0,sh:0,pim:0,pm:0},gg=id=>GK[id]=GK[id]||{sa:0,ga:0};
 skaters(m.lineup).forEach(g);
-if(L){(L.sh||[]).forEach(x=>{const r=g(x.p);r.toi+=x.b-x.a;r.sw++});COLS.forEach(c=>{const p=L.ice[c];if(p){const r=g(p);r.toi+=now-(L.since[p]||0);r.sw++}})}
+if(L)shiftList(m).forEach(x=>{const r=g(x.p);r.toi+=x.b-x.a;r.sw++});
 (m.events||[]).forEach(e=>{
 if(e.k==="G"){const us=e.team==="us";if(us){g(e.scorer).g++;g(e.scorer).sh++;[e.a1,e.a2].filter(Boolean).forEach(i=>g(i).a++)}else{const k=e.gk||(e.on||[]).find(i=>isG(pl(i)));if(k){gg(k).sa++;gg(k).ga++}}
  if(e.sit!=="PP")(e.on||[]).forEach(i=>{if(!isG(pl(i)))g(i).pm+=us?1:-1})}

@@ -5,17 +5,24 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 
 | Verze | Fáze | Obsah |
 |---|---|---|
-| v18.0 | A | Tlačítko Zpět v aplikaci, dotaz na ukončení z domovské stránky |
-| v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky |
+| v18.0 | A | Tlačítko Zpět v aplikaci, dotaz na ukončení z domovské stránky – **hotovo** (opravy ve v18.1) |
+| v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky – **hotovo**, k testu |
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) |
 | v18.3 | B3 | Ovládání rotace |
 | v18.4 | B4 | Sestava hned po trestu a zranění |
 | v18.5 | B5 | Volitelné rozložení obrazovky živého zápisu |
 | v18.6 | C | Docházka pro všechny, přehled dlužníků pro všechny |
 | v18.7 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
+| později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
 | později | E | Modul Trénink (zatím neřešit) |
 
 ---
+
+## Stav a rozhodnutí (aktualizováno 22. 10. 2026)
+- **v18.0 (A) dodáno.** Test: Zpět zavírá okna a detaily, ale na ukončení se neptalo. Příčina: Chrome přeskakuje záznamy historie vložené bez aktivace uživatelem a dotyk prstem (pointerdown) aktivací není. Oprava ve v18.1: zásoba 3 strážních záznamů doplňovaná při klepnutí (pointerup / touchend / click / klávesa).
+- **Odchod ze živého zápisu zastaví čas** (přání po testu v18.0) – platí pro tlačítko Zpět i ⋯ → ✕ Zavřít živý zápis (`leaveLive` v `live.js`). Pokračování: karta zápasu → ▶ Pokračovat → ▶ Start.
+- **v18.1 (B1) dodáno** spolu s opravami A.
+- Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
 ## A – v18.0: Tlačítko Zpět (Všeobecně 1a)
 
@@ -25,7 +32,7 @@ Stav: aplikace nepoužívá History API (`popstate` / `pushState` nikde), proto 
 - Pořadí zavírání (od nejvyšší vrstvy): potvrzovací/QR okna a modaly (`#mod`, `#cpay`, `#mkq`, menu ⋯ živého zápisu) → celoobrazovková okna (nápověda, ⚙️ `#cfg`, Nastavení pokladny `#cset`, Opravy zápisu `#ed`, Zápis utkání `#rp`) → živý zápis (`#lv`) → detail (zápas `S.mid`, událost `S.evid`, soupeř `S.oid`, formulář `S.evf`) → režim Team (`S.tm`) → jiná záložka → domovská stránka (Události, Nadcházející).
 - Na domovské stránce: Zpět zobrazí dotaz „Ukončit aplikaci?“ (Ano / Ne). PWA se nedá zavřít příkazem – po „Ano“ se pustí systémové Zpět (opustí strážní záznam historie), po „Ne“ se strážní záznam obnoví.
 - Živý zápis: Zpět nesmí omylem nic zapsat ani zastavit čas – jen zavře panel / menu, případně se zeptá „Odejít ze živého zápisu?“ (hodiny běží dál).
-- Nové místo: `src/core/nav.js` (zásobník a `popstate`), volání z `shell.js` (záložky), otevírání oken ve view souborech.
+- Řešení (v18.0, opraveno v18.1): `src/core/nav.js` – strážní záznamy historie, `popstate` zavře nejvyšší vrstvu klepnutím na její vlastní tlačítko zavření (logika obrazovek se nemění), karta zápasu jde o krok zpět, z domovské stránky dotaz na ukončení. Aplikaci spuštěnou z plochy nelze zavřít skriptem – po potvrzení ji zavře další Zpět.
 
 ## B – Živý zápis (body 1a–1g)
 
@@ -61,6 +68,16 @@ Stav: aplikace nepoužívá History API (`popstate` / `pushState` nikde), proto 
 - Varianta A (dnešní): fronty nahoře → na ledě → čára → střela soupeře dole.
 - Varianta B: střela soupeře nahoře → dělicí čára → pětka na ledě → pod ní střídající formace (pořadí front obrácené, na řadě hned pod ledem).
 - Volba v nastavení živého zápisu, pamatuje se v zařízení (LS) – každý uživatel si zvolí sám.
+
+## F – později: Jeden zapisovatel živého zápisu (duplicity, dvě zařízení)
+Stav: živý zápis může otevřít víc zařízení zároveň; při souběhu vyhrává poslední zápis (`save` přepíše celý zápas), takže se dvě zařízení „přetahují“ a mohou vzniknout duplicitní záznamy (dvakrát zapsaná střela, gól, střídání).
+- **Zámek zapisovatele:** v zápase pole `live.dev = {id zařízení, jméno uživatele, ts}`; zařízení drží zámek obnovou `ts` (např. každých 20 s při otevřeném živém zápisu).
+- **Ostatní zařízení jen ke čtení:** vidí živý zápis (skóre, čas, průběh), ale tlačítka zápisu jsou zamčená s informací „Zapisuje: jméno“. Tlačítko **Převzít zápis** (s potvrzením; automaticky, když zámek vyprší – např. 60 s bez obnovy).
+- **Zápis přes transakci** (Firestore `runTransaction`) s kontrolou zámku, aby dva zápisy těsně po sobě nepřepsaly jeden druhý.
+- **Ochrana proti dvojímu klepnutí:** stejná akce (střela, gól, střídání téže hráčky) do ~1 s po předchozí se nezapíše podruhé, nebo se nabídne „Opravdu znovu?“.
+- Offline: zámek se v hale bez signálu neověří – zapisující zařízení pokračuje, převzetí se povolí až po obnovení spojení.
+- Pravidla databáze: pravděpodobně beze změny (zápasy zapisuje trenér a kustod), případně kontrola pole `live.dev` – **pak nutné publikovat `firestore.rules`**.
+- Zařadit po fázi D (před modulem Trénink), nebo dřív, pokud budou souběhy v praxi vadit.
 
 ## C – v18.6: Docházka a dlužníci pro všechny
 
@@ -106,6 +123,8 @@ Postup: každá položka samostatně, bez změny chování; po úklidu ověřit 
 Podrobný modul: plán tréninku, docházka, rozdělení tréninku (stanoviště, pětky, cvičení), dlouhodobý plán, statistiky pokroku hráček. Začne se až po dokončení v18.x. Příprava: docházka v C1 jako čistá doménová funkce (`attendance.js`), aby ji Trénink převzal.
 
 ## Otevřené otázky
+Rozhodnuto 22. 10. 2026: 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – výchozí rozložení A; 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí, kdy byla hráčka aktivní; 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
+Původní znění:
 1. Zpět ze živého zápisu: jen zavřít panel/menu, nebo i opustit živý zápis (s dotazem)?
 2. Rotace: má malé tlačítko partnerky posílat rovnou na led (bez změny pořadí rotace), nebo jen přehodit pořadí? Jak pak měnit pořadí rotace ručně (podržením)?
 3. Po trestu: otevřít panel automaticky vždy, nebo jen když máme sestavené jednotky PP/OS? Má se otevřít i po skončení trestu (návrat do řad)?
