@@ -6,14 +6,16 @@
 //    už vystavené předpisy se nepřepisují, nezaplacený jde smazat; úhrada stejně jako u událostí (💰 Platby, příjem kategorie Příspěvky),
 //  - plat = výdaj cash/{sal_RRRR-MM_tid} {d, k:"out", amt, cat:"Platy trenérů", mid:tid, ym, note, by}; návrh podle staff.pay (měsíčně / za událost),
 //    zapisuje se ručně tlačítkem Vyplatit (jeden plat za člena a měsíc); oprava = storno v 🏦 Pokladna a nový zápis,
-//  - každý zápis jde do audit (contrib, contrib-del, plat).
+//  - každý zápis jde do audit (contrib, contrib-del, plat),
+//  - v17.7: příspěvek nese účet příspěvků z nastavení (acc) a zprávu pro příjemce (msg, např. „Příspěvek 10/2026 - Jana“); plat se vyplácí z hlavního účtu;
+//    CSV pohybů a předpisů obsahuje i účet, VS a zprávu (párování s výpisem z banky).
 
 // ===== Importy =====
 import {pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {downloadFile, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_SALARY, STAFF_PAY, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, csvText, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
+import {CAT_SALARY, STAFF_PAY, accName, accOf, cashAcc, chargeMsg, payMsg, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, csvText, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
@@ -73,7 +75,7 @@ const stamp = () => td();
 function issueContrib(rows, cfg) {
   if (Date.now() < busy) return;
   busy = Date.now() + 2500;
-  const plan = contribPlan(ym, rows, cfg, S.ch);
+  const plan = contribPlan(ym, rows, cfg, S.ch, pid => payMsg({type: "contrib", ym}, (S.pl.find(p => p.id === pid) || {}).name || ""));
   if (!plan.length) { toast("Není co vystavit"); return; }
   const b = S.db.batch(), tot = plan.reduce((s, x) => s + x.d.amt, 0);
   plan.forEach(x => b.set("charges/" + x.id, x.d));
@@ -95,7 +97,7 @@ function paySalary(r, amt) {
   if (!(amt > 0)) { toast("Zadej kladnou částku"); return false; }
   if (S.cs.some(x => x.id === r.id)) { toast("Plat za tento měsíc je už zapsaný"); return false; }
   const note = "Plat " + ymShort(ym) + (r.m === "event" ? " (" + r.n + "× " + kc(r.rate) + ")" : "");
-  S.db.batch().set("cash/" + r.id, {d: salaryDay(ym, td()), k: "out", amt: r2(amt), cat: CAT_SALARY, mid: r.tid, ym, note, by: email()})
+  S.db.batch().set("cash/" + r.id, {d: salaryDay(ym, td()), k: "out", amt: r2(amt), cat: CAT_SALARY, mid: r.tid, ym, note, acc: "main", by: email()})
     .set("audit/" + uid(), audit("", "plat", r.name + ": " + kc(amt) + " za " + ymShort(ym))).commit();
   return true;
 }
@@ -166,16 +168,20 @@ function csvHtml() {
 }
 // Sestavení a stažení CSV
 function exportCsv(kind) {
+  const cfg = cashCfg(S.cc);
   const out = kind => {
     if (kind === "ch") {
       const rows = [...S.ch].sort((a, b) => (a.due || "").localeCompare(b.due || ""));
-      return {name: "predpisy", rows: [["Osoba", "Druh", "Událost / měsíc", "Částka", "Zaplaceno", "Zbývá", "Splatnost", "VS", "Výjimka z blokace"],
-        ...rows.map(x => [plainName(x.mid), isContrib(x) ? "Příspěvek" : x.kind === "event" ? "Událost" : (x.kind || ""), plainEvent(x.eid), csvNum(+x.amt || 0), csvNum(Math.min(+x.paid || 0, +x.amt || 0)), csvNum(restOf(x)), (x.due || "").replace("T", " "), x.vs || "", x.exc ? "ano" : ""])]};
+      return {name: "predpisy", rows: [["Osoba", "Druh", "Událost / měsíc", "Částka", "Zaplaceno", "Zbývá", "Splatnost", "VS", "Účet", "Zpráva pro příjemce", "Výjimka z blokace"],
+        ...rows.map(x => [plainName(x.mid), isContrib(x) ? "Příspěvek" : x.kind === "event" ? "Událost" : (x.kind || ""), plainEvent(x.eid), csvNum(+x.amt || 0), csvNum(Math.min(+x.paid || 0, +x.amt || 0)), csvNum(restOf(x)), (x.due || "").replace("T", " "), x.vs || "", accName(cfg, accOf(x, cfg)), chargeMsg(x, S), x.exc ? "ano" : ""])]};
     }
     if (kind === "mon") return {name: "pokladna-mesice", rows: [["Měsíc", "Příjmy", "Výdaje", "Saldo", "Zůstatek"], ...monthRows(S.cs).map(r => [r.ym, csvNum(r.in), csvNum(r.out), csvNum(r.net), csvNum(r.bal)])]};
     const src = S.cs.filter(x => (x.k === "in" || x.k === "out") && (kind !== "cash-y" || String(x.d || "").startsWith(yr))).sort((a, b) => (a.d || "").localeCompare(b.d || ""));
-    return {name: kind === "cash-y" ? "pokladna-" + yr : "pokladna", rows: [["Datum", "Typ", "Částka", "Kategorie", "Osoba", "Událost / měsíc", "Poznámka", "Zapsal"],
-      ...src.map(x => [x.d || "", x.k === "in" ? "Příjem" : "Výdaj", csvNum((x.k === "out" ? -1 : 1) * (+x.amt || 0)), x.cat || "", plainName(x.mid), plainEvent(x.eid), x.note || "", x.by || ""])]};
+    // Starší úhrady bez uložené zprávy a VS (před v17.7) je převezmou z předpisu
+    const chOf = x => (x.cid ? S.ch.find(c => c.id === x.cid) : null);
+    const noteOf = x => { const c = chOf(x); return x.cid && !x.vs && c ? [chargeMsg(c, S), x.note || ""].filter(Boolean).join(" · ") : x.note || ""; };
+    return {name: kind === "cash-y" ? "pokladna-" + yr : "pokladna", rows: [["Datum", "Typ", "Částka", "Účet", "Kategorie", "Osoba", "Událost / měsíc", "VS", "Poznámka / zpráva", "Zapsal"],
+      ...src.map(x => [x.d || "", x.k === "in" ? "Příjem" : "Výdaj", csvNum((x.k === "out" ? -1 : 1) * (+x.amt || 0)), accName(cfg, cashAcc(x, cfg)), x.cat || "", plainName(x.mid), plainEvent(x.eid), x.vs || (chOf(x) || {}).vs || "", noteOf(x), x.by || ""])]};
   };
   const r = out(kind);
   downloadFile(r.name + "-" + stamp() + ".csv", csvText(r.rows), "text/csv");

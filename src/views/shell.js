@@ -1,6 +1,6 @@
 // Kostra aplikace: záložky a hlavní vykreslení.
 // Záložka Události sloučila dřívější Zápasy a Tréninky: je-li otevřený zápas (S.mid), zobrazí se jeho karta, jinak seznam událostí.
-// Přihlášená hráčka (role "hracka") vidí záložky Události, Statistiky a Moje platby; karta zápasu a Soupeři jsou jen pro trenéra a kustoda.
+// Přihlášená hráčka (role "hracka") vidí záložky Události, Statistiky, Soupeři (od v17.7, jen ke čtení) a Moje platby; karta zápasu je jen pro trenéra a kustoda.
 // Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.isCash) ho vidí také – formaci a soupisku jen ke čtení, plus Platby / Pokladna / Měsíce (v17.5).
 // Statistiky jsou od v17.3 přístupné všem členům týmu (jen ke čtení).
 // Záložka Moje platby je pro každého, kdo má v účtu propojenou hráčku nebo člena týmu (pid / tid).
@@ -19,8 +19,8 @@ import {formV} from "./team.js";
 
 const onlyPl = () => HK.role() === "hracka";
 const hasMine = () => !!(HK.pid() || HK.tid());
-// Záložky dostupné hráčce; hráčka-pokladník má navíc Team
-const plTabs = () => HK.isCash() ? ["ev", "fo", "st", "mk"] : ["ev", "st", "mk"];
+// Záložky dostupné hráčce (od v17.7 i Soupeři, jen ke čtení); hráčka-pokladník má navíc Team
+const plTabs = () => HK.isCash() ? ["ev", "fo", "st", "op", "mk"] : ["ev", "st", "op", "mk"];
 
 export function tabs(){const all=[["ev","Události"],["fo","Team"],["st","Statistiky"],["op","Soupeři"]],base=onlyPl()?all.filter(([k])=>plTabs().includes(k)):all,list=hasMine()?[...base,["mk","Moje platby"]]:base;$("#nav").innerHTML=list.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
 $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.mid=null;S.oid=null;S.evid=null;S.evf=null;S.evr=null;S.evBack=null;render()})}

@@ -97,26 +97,28 @@ const SECTIONS = [
 <li><b>Záložka Statistiky</b> je přístupná všem členům týmu, včetně hráček (jen ke čtení).</li>
 <li><b>Statistiky hráčů</b> (jen uzavřené zápasy): Z, <b>Ø stř.</b> (průměrná délka střídání), střely, góly, %, asistence, body, +/-, TM, góly v PP, body doma a venku. +/- se nepočítá u gólů v přesilovce.</li>
 <li><b>Ø stř.</b> = celkový čas na ledě děleno počtem střídání hráčky (jen zápasy se živým zápisem, bez střídání „–“).</li>
-<li><b>Tým</b> a <b>Brankáři</b> (střely, góly, zákroky, úspěšnost). <b>Soupeři</b> (trenér, kustod): správa soupeřů a vzájemné zápasy.</li>
+<li><b>Tým</b> a <b>Brankáři</b> (střely, góly, zákroky, úspěšnost). <b>Soupeři</b> (všichni členové týmu; přidat, přejmenovat a smazat jen trenér a kustod): u každého soupeře rovnou bilance V–R–P a skóre, po rozkliknutí jednotlivé zápasy – klepnutím na zápas se otevře zápis utkání s kompletním vývojem zápasu.</li>
 <li><b>Řazení:</b> klepnutím na hlavičku sloupce. První klepnutí řadí čísla a časy sestupně, text vzestupně, další přepíná ▲/▼. Prázdné hodnoty jsou vždy na konci.</li>
 </ul>`},
   {t: "10. Moje platby", h: `
 <ul>
 <li><b>Moje platby</b> vidí každý, kdo má účet propojený s hráčkou nebo členem týmu: dluh, částka po splatnosti a seznam předpisů (události i měsíční příspěvky).</li>
-<li><b>📱 Zaplatit (QR):</b> QR platba pro bankovní aplikaci (účet, částka, variabilní symbol a zpráva pro příjemce, např. „Zápas 10.10. Sokol - Jana“ nebo „Trénink 14.10. - Jana“). Při ruční platbě opiš do zprávy text uvedený u předpisu. Zaplacení se v aplikaci objeví, až ho pokladník zapíše.</li>
+<li><b>📱 Zaplatit (QR):</b> QR platba pro bankovní aplikaci (účet, částka, variabilní symbol a zpráva pro příjemce, např. „Zápas 10.10. Sokol - Jana“ nebo „Trénink 14.10. - Jana“). Při ruční platbě opiš VS a zprávu uvedené u předpisu. Zaplacení se v aplikaci objeví, až ho pokladník zapíše.</li>
+<li><b>Dva účty:</b> tým může mít hlavní účet (např. příspěvky) a provozní účet (např. platby za události). U každého předpisu je vidět, na který účet patří, a QR vede právě tam.</li>
+<li><b>📱 Zaplatit vše (souhrnná platba):</b> víc předpisů na <b>stejný účet</b> zaplatíš jedním QR s osobním VS a zprávou „Souhrn: …“. Platby na různé účty sloučit nejde – každý účet se platí zvlášť.</li>
 <li><b>Blokace:</b> neuhrazený předpis po splatnosti zablokuje vlastní přihlášení „Jdu“. Odhlásit se a „Nejdu“ jde vždy.</li>
 </ul>`},
   {t: "11. Pokladna (trenér a pokladník)", h: `
 <ul>
 <li><b>Kdo platí:</b> každá skupina (s příspěvkem, za událost, osvobozené) má vlastní volbu Platí ANO / NE a Výpočet / Pevná částka – v šablonách i u každé události. Cena se dělí všemi přihlášenými hráčkami (každá jako jeden celý kus) a násobí koeficientem hráčky v %.</li>
 <li><b>Vyúčtování události</b> (detail události → 💰 Pokladna na konci stránky): šablona, náklady, kdo platí (výpočet / pevná částka), náhled „vybereme X z Y“ a <b>Uzavřít vyúčtování</b> → vzniknou předpisy. Po uzavření se nic samo nepřepočítává; úprava jen přes ↩ Znovu otevřít.</li>
-<li><b>Team → 💰 Platby:</b> dluhy podle hráček a podle událostí a příspěvků, 💳 úhrada (i částečná), ✅ Zaplatila vše, 🔒 výjimka z blokace u předpisu po splatnosti, neuzavřená vyúčtování.</li>
-<li><b>Team → 🏦 Pokladna:</b> zůstatek, ➕ vklad / příjem, ➖ výdaj, součty podle kategorií, seznam pohybů s filtry, 🗑 storno (u úhrady vrátí částku na předpis).</li>
+<li><b>Team → 💰 Platby:</b> dluhy podle hráček a podle událostí a příspěvků; u předpisu VS, účet a zpráva pro příjemce (stejné jako v QR – pro párování s výpisem), osobní VS hráčky pro souhrnnou platbu, 💳 úhrada (i částečná), ✅ Zaplatila vše (zvlášť za každý účet), 🔒 výjimka z blokace u předpisu po splatnosti, neuzavřená vyúčtování.</li>
+<li><b>Team → 🏦 Pokladna:</b> zůstatek, při dvou účtech zůstatek každého účtu, ➕ vklad / příjem, ➖ výdaj (s volbou účtu), součty podle kategorií, seznam pohybů s filtry (účet, typ, kategorie) – u úhrady je VS a zpráva „za co“, 🗑 storno (u úhrady vrátí částku na předpis).</li>
 <li><b>Team → 📅 Měsíce – příspěvky:</b> vyber měsíc ◀ ▶, zkontroluj návrh (příspěvek × koeficient; jen skupina Příspěvek, bez brankářek a ukončených; osvobozené jsou předem vynechané a klepnutím na – je pro měsíc zahrneš), případně hráčku vynech (–) nebo uprav částku a <b>📨 Vystavit příspěvky</b>. Už vystavené se nepřepisují, nezaplacený příspěvek jde smazat 🗑.</li>
 <li><b>📅 Měsíce – platy:</b> návrh podle platu člena týmu (měsíčně, nebo za událost × počet událostí měsíce, na které byl přihlášen „Jdu“). <b>💸 Vyplatit</b> zapíše výdaj do pokladny (kategorie Platy trenérů), jeden plat za člena a měsíc. Oprava = storno v 🏦 Pokladna a nové vyplacení.</li>
 <li><b>📅 Měsíce – hospodaření:</b> příjmy, výdaje, saldo a zůstatek po měsících vybraného roku; klepnutím na měsíc rozpad podle kategorií a předpisů se splatností v měsíci.</li>
 <li><b>⬇️ CSV:</b> pohyby za rok nebo vše, předpisy a přehled po měsících (pro Excel, oddělovač středník).</li>
-<li><b>⚙️ → Nastavení pokladny:</b> IBAN pro QR, výše příspěvku a den splatnosti, splatnost událostí, kategorie a šablony událostí.</li>
+<li><b>⚙️ → Nastavení pokladny:</b> IBAN hlavního a provozního účtu, na který účet se platí příspěvky, u šablony účet pro platby za událost (u konkrétní události lze účet změnit), výše příspěvku a den splatnosti, splatnost událostí, kategorie a šablony událostí.</li>
 </ul>`},
   {t: "12. Záloha a nastavení účtu (⚙️)", h: `
 <ul>

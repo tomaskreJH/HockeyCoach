@@ -3,6 +3,7 @@
 // Data: náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
 // V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Přesun ze starého tvaru (v17.2) je hotový, starý tvar se už nečte (v17.3).
 // Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
+// v17.7: předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
 // Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js, příspěvky, platy a měsíce ve views/money.js.
 
 // ===== Importy =====
@@ -10,7 +11,7 @@ import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_CONTRIB, CAT_EVENT, GRP, WHO, calcCash, cashCfg, cxOf, defDue, evCash, fmtDue, fxPct, grpKey, kc, overdue, payAmount, planCharges, r2, restOf} from "../domain/cash.js";
+import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc} from "../domain/cash.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -32,7 +33,7 @@ function draft(ev, cfg) {
   return dr;
 }
 // Hodnoty rozpracované úpravy ve tvaru pro uložení (náklady s nulovou částkou se zahodí)
-const fromDraft = () => { const c = {tpl: dr.tpl, cost: clone(dr.cost).filter(x => +x.amt > 0), who: clone(dr.who)}; if (dr.due) c.due = dr.due; return c; };
+const fromDraft = () => { const c = {tpl: dr.tpl, cost: clone(dr.cost).filter(x => +x.amt > 0), who: clone(dr.who), acc: dr.acc}; if (dr.due) c.due = dr.due; return c; };
 
 // ===== Uzavření vyúčtování (zápis) =====
 // V JEDNÉ dávce uloží evcash, příznak ss v dokumentu události, předpisy a audit. Vrací výpočet, nebo null (nic se nestalo).
@@ -43,16 +44,18 @@ export function settleEvent(ev, raw, force, d) {
   if (!HK.isCash()) return null;
   const cx0 = ev.cx || cxOf(ev.id, S.ec);
   if (cx0.settle) return null;
-  const cfg = cashCfg(S.cc), c = d ? {tpl: d.tpl, cost: clone(d.cost).filter(x => +x.amt > 0), who: clone(d.who), due: d.due || ""} : evCash({...ev, cx: cx0}, cfg);
+  const cfg = cashCfg(S.cc), c = d ? {tpl: d.tpl, cost: clone(d.cost).filter(x => +x.amt > 0), who: clone(d.who), due: d.due || "", acc: d.acc || "op"} : evCash({...ev, cx: cx0}, cfg);
   const k = calcCash(c, players(ev.id));
   if (!force && !k.payers.length) return null;
   const due = c.due || defDue(raw.date, dueDays(cfg, c.tpl));
   const settle = {at: new Date().toISOString(), by: who(), tpl: c.tpl, cost: c.cost, who: c.who, due, n: k.N, total: k.total, collect: k.collect, lines: k.payers};
-  const cx = {tpl: c.tpl, cost: c.cost, who: c.who, settle};
+  const cx = {tpl: c.tpl, cost: c.cost, who: c.who, acc: c.acc, settle};
   if (c.due) cx.due = c.due;
   const have = {};
   S.ch.filter(x => x.eid === ev.id && x.kind === "event").forEach(x => { have[x.mid] = x; });
-  const plan = planCharges(ev.id, k, due, have, S.ch), b = S.db.batch();
+  // Zpráva pro příjemce se sestaví z dat události (raw) a jména hráčky a uloží se do předpisu (v17.7)
+  const item = evItem(ev.type, raw), msg = pid => payMsg(item, (pl(pid) || {}).name || "");
+  const plan = planCharges(ev.id, k, due, have, S.ch, {acc: c.acc, msg}), b = S.db.batch();
   b.set("evcash/" + ev.id, cx);
   b.merge(evPath(ev), {ss: 1});
   plan.set.forEach(x => b.set("charges/" + x.id, x.d));
@@ -66,17 +69,19 @@ export function settleEvent(ev, raw, force, d) {
 // ===== Úhrady =====
 // Zámek proti dvojímu klepnutí (než se změna vrátí přes odběr dat)
 const busy = new Set();
-// Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné dávce
-export function payCharge(cid, amt) {
+// Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné dávce.
+// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu (v17.7); extra = doplněk poznámky (např. souhrnná platba).
+export function payCharge(cid, amt, extra) {
   const x = S.ch.find(c => c.id === cid);
   if (!x || busy.has(cid)) return false;
   const rest = restOf(x), a = amt == null ? rest : r2(amt);
   if (rest <= 0 || !(a > 0) || a > rest + 1e-9) return false;
   busy.add(cid);
   setTimeout(() => busy.delete(cid), 2000);
-  const d = {...chData(x), paid: r2((+x.paid || 0) + a)};
+  const d = {...chData(x), paid: r2((+x.paid || 0) + a)}, cfg = cashCfg(S.cc);
+  const note = [chargeMsg(x, S), a < rest ? "částečná úhrada" : "", extra || ""].filter(Boolean).join(" · ");
   S.db.batch()
-    .set("cash/" + uid(), {d: td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note: a < rest ? "Částečná úhrada" : "", by: who()})
+    .set("cash/" + uid(), {d: td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()})
     .set("charges/" + cid, d).commit();
   toast(a < rest ? "Částečná úhrada zapsána" : "Úhrada zapsána");
   return true;
@@ -89,7 +94,8 @@ export function openPay(cid) {
   if (!e) { e = document.createElement("div"); e.id = "cpay"; document.body.appendChild(e); }
   e.style.cssText = "position:fixed;inset:0;z-index:57;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center";
   const rest = restOf(x), close = () => { e.style.display = "none"; e.innerHTML = ""; };
-  e.innerHTML = `<div class="mb"><h2>💳 Úhrada</h2><div class="mu" style="margin-bottom:8px">${pn(x.mid)} · předpis ${kc(+x.amt || 0)}, zaplaceno ${kc(+x.paid || 0)}, zbývá <b>${kc(rest)}</b></div><label>Zaplacená částka (Kč)</label><input id="cpa" type="number" min="0" step="0.01" inputmode="decimal" value="${rest}"><div id="cpe" class="mu" style="color:var(--no);margin-bottom:8px"></div><div class="row"><button class="p" id="cpo" style="min-height:52px">Zapsat úhradu</button><button class="s" id="cpx" style="min-height:52px">Zavřít</button></div></div>`;
+  const cfg = cashCfg(S.cc);
+  e.innerHTML = `<div class="mb"><h2>💳 Úhrada</h2><div class="mu" style="margin-bottom:8px">${pn(x.mid)} · předpis ${kc(+x.amt || 0)}, zaplaceno ${kc(+x.paid || 0)}, zbývá <b>${kc(rest)}</b></div><div class="mu" style="margin-bottom:8px">VS <b>${esc(x.vs || "–")}</b> · ${esc(chargeMsg(x, S))}${twoAcc(cfg) ? " · " + esc(accName(cfg, accOf(x, cfg))) : ""}</div><label>Zaplacená částka (Kč)</label><input id="cpa" type="number" min="0" step="0.01" inputmode="decimal" value="${rest}"><div id="cpe" class="mu" style="color:var(--no);margin-bottom:8px"></div><div class="row"><button class="p" id="cpo" style="min-height:52px">Zapsat úhradu</button><button class="s" id="cpx" style="min-height:52px">Zavřít</button></div></div>`;
   e.onclick = ev => { if (ev.target === e) close(); };
   document.getElementById("cpx").onclick = close;
   document.getElementById("cpo").onclick = () => {
@@ -116,7 +122,8 @@ export function toggleExc(cid) {
 function closedHtml(ev, st, err) {
   const cs = S.ch.filter(x => x.eid === ev.id && pl(x.mid)).sort(byName);
   const tot = cs.reduce((s, x) => s + (+x.amt || 0), 0), got = cs.reduce((s, x) => s + Math.min(+x.paid || 0, +x.amt || 0), 0);
-  const rows = cs.map(x => `<div class="pr"><div>${pn(x.mid)}<div class="mu">${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}</div></div><div class="evq">${restOf(x) > 0 ? `<button data-cp="${x.id}" style="min-width:150px">💳 Zaplatit ${kc(restOf(x))}</button>` : '<button class="on-yes" disabled style="min-width:150px">✅ Zaplaceno</button>'}${overdue(x) ? `<button data-cx="${x.id}" style="min-width:150px">${x.exc ? "🔓 Zrušit výjimku" : "🔒 Dát výjimku z blokace"}</button>` : ""}</div></div>`).join("");
+  const cfg = cashCfg(S.cc), two = twoAcc(cfg);
+  const rows = cs.map(x => `<div class="pr"><div>${pn(x.mid)}<div class="mu">VS ${esc(x.vs || "–")}${two ? " · " + esc(accName(cfg, accOf(x, cfg))) : ""} · ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}</div></div><div class="evq" style="flex-direction:column">${restOf(x) > 0 ? `<button data-cp="${x.id}" style="min-width:150px">💳 Zaplatit ${kc(restOf(x))}</button>` : '<button class="on-yes" disabled style="min-width:150px">✅ Zaplaceno</button>'}${overdue(x) ? `<button data-cx="${x.id}" style="min-width:150px">${x.exc ? "🔓 Zrušit výjimku" : "🔒 Dát výjimku z blokace"}</button>` : ""}</div></div>`).join("");
   const logs = S.au.filter(x => x.eid === ev.id).sort((a, b) => (b.ts || "").localeCompare(a.ts || "")).slice(0, 5)
     .map(x => `<div class="mu">${new Date(x.ts).toLocaleString("cs-CZ")} · ${esc(x.act === "close" ? "uzavřeno" : x.act === "reopen" ? "znovu otevřeno" : x.act === "exc" ? "výjimka udělena" : x.act === "exc-off" ? "výjimka zrušena" : x.act)} · ${esc(x.by || "")}${x.note ? " · " + esc(x.note) : ""}</div>`).join("");
   return `<div class="cd"><h2>💰 Pokladna – uzavřeno</h2>${err}<div class="mu" style="margin-bottom:6px">Uzavřeno ${st.at ? new Date(st.at).toLocaleString("cs-CZ") : "–"} (${esc(st.by || "")}). Náklady ${kc(+st.total || 0)}, předepsáno ${kc(+st.collect || 0)}, hráček v poli ${+st.n || 0}. Nic se samo nepřepočítává.</div>
@@ -141,6 +148,7 @@ function editHtml(ev, cfg, err) {
 ${k.payers.length ? k.payers.map(l => `<div class="pr"><div>${pn(l.pid)}<div class="mu">${l.g === "exempt" ? "Osvobozená" : GRP[l.g]}${l.fx !== 1 ? " · koeficient " + fxPct(l.fx) : ""}</div></div><b>${kc(l.amt)}</b></div>`).join("") : '<div class="mu">Nikdo neplatí (např. venkovní zápas – náklady nese soupeř).</div>'}`;
   return `<div class="cd" id="cew"><h2>💰 Pokladna – vyúčtování</h2>${err}<div class="mu" style="margin-bottom:6px">Dosud neuzavřeno. Po uzavření vzniknou předpisy a vyúčtování se už samo nemění.</div>
 <label>Šablona</label><div class="chips">${tplChips}</div><h3>Náklady</h3>${cost || '<div class="mu" style="margin-bottom:6px">Žádné náklady.</div>'}<button class="s" data-ca style="margin-bottom:10px">+ Nákladová položka</button>
+${twoAcc(cfg) ? `<h3>Platby na účet</h3><div class="chips">${Object.entries(ACC).map(([key, t]) => `<button class="chip ${d.acc === key ? "on" : ""}" data-acc="${key}">${t}</button>`).join("")}</div><div class="mu" style="margin-bottom:6px">Výchozí účet určuje šablona (⚙️ → Nastavení pokladny). Hráčky platí na tento účet a v QR se jim nabídne právě on.</div>` : ""}
 <h3>Kdo platí a jak se počítá</h3>${wh}<label>Splatnost (prázdné = výchozí ${def})</label><input type="datetime-local" data-f="due" value="${esc(d.due)}">
 <h3>Pokrytí nákladů</h3>${preview}
 <div class="row" style="margin-top:12px"><button class="s" id="ces" style="min-height:52px">💾 Uložit nastavení</button><button class="p" id="cec" style="min-height:52px">💰 Uzavřít vyúčtování</button></div></div>`;
@@ -168,7 +176,8 @@ export function bindPay(a, ev) {
   };
   const act = (s, fn) => q(s).forEach(b => { b.onclick = () => { sync(); fn(b); render(); }; });
   q("#cew [data-f]").forEach(i => { i.onchange = () => { sync(); render(); }; });
-  act("[data-tpl]", b => { const t = cfg.tpls[b.dataset.tpl]; dr.tpl = b.dataset.tpl; if (t) { dr.cost = clone(t.cost); dr.who = clone(t.who); Object.keys(WHO).forEach(g => { if (!dr.who[g]) dr.who[g] = {pays: false, mode: "calc", flat: 0}; }); } });
+  act("[data-acc]", b => { dr.acc = b.dataset.acc; });
+  act("[data-tpl]", b => { const t = cfg.tpls[b.dataset.tpl]; dr.tpl = b.dataset.tpl; if (t) { dr.cost = clone(t.cost); dr.who = clone(t.who); dr.acc = t.acc || "op"; Object.keys(WHO).forEach(g => { if (!dr.who[g]) dr.who[g] = {pays: false, mode: "calc", flat: 0}; }); } });
   act("[data-ca]", () => { dr.cost.push({cat: cfg.cats.out[0] || "", payee: "", amt: 0}); });
   act("[data-cr]", b => { dr.cost.splice(+b.dataset.cr, 1); });
   act("[data-wp]", b => { const w = dr.who[b.dataset.wp]; w.pays = !w.pays; });

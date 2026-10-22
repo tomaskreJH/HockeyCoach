@@ -13,7 +13,7 @@ import {benchGrouped, bindLu, luEditor, matchDrag} from "./lineup-editor.js";
 import {renderEditor} from "./editor.js";
 import {liveRender} from "./live.js";
 import {modal} from "./modal.js";
-import {h2h} from "./opponents.js";
+import {bindH2h, h2h} from "./opponents.js";
 import {evOfMatch, settleEvent} from "./payments.js";
 import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
@@ -54,7 +54,7 @@ a.querySelectorAll("[data-ot]").forEach(b=>b.onclick=()=>{const n=clone(m);n.ot=
 a.querySelectorAll("[data-pl]").forEach(b=>b.onclick=()=>{const n=clone(m);n.perLen=Math.max(1,Math.min(30,(m.perLen||20)+ +b.dataset.pl));upd(n)});
 a.querySelectorAll("[data-lvo]").forEach(b=>b.onclick=()=>{S.lv=true;liveRender()});
 a.querySelectorAll("[data-edt]").forEach(b=>b.onclick=()=>{if(m.live&&m.live.running)return toast("Nejdřív přeruš hodiny v živém zápisu");S.ed={tab:"ev",f:null,shots:false};renderEditor()});
-a.querySelectorAll("[data-rpt]").forEach(b=>b.onclick=()=>{S.rp=true;renderReport()});
+a.querySelectorAll("[data-rpt]").forEach(b=>b.onclick=()=>{S.rp=true;renderReport()});bindH2h(a);
 Q("#em").onclick=()=>{S.M={k:"EM",id:m.id,opp:m.opp,date:m.date,home:m.home};modal()};
 Q("#tn").onclick=()=>{S.showNom=!S.showNom;render()};
 const two=(id,f)=>{if(S.cf===id){S.cf=null;f()}else{S.cf=id;render();setTimeout(()=>{if(S.cf===id){S.cf=null;render()}},4000)}};
