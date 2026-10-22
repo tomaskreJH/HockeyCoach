@@ -20,6 +20,31 @@ service cloud.firestore {
     // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno). Stará pole pokladny jsou od v17.3 přesunutá do evcash.
     function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss']); }
 
+    // ===== Účty týmu pro QR platby (v18.6.1): princip čtyř očí =====
+    // iban / iban2 = platné účty, ibanBy = kdo změnu navrhl, ibanOk = kdo ji potvrdil, ibanAt = kdy, ibanPend = čekající návrh {iban, iban2, by, at}.
+    // Návrh smí podat jen trenér (pod svým e-mailem), potvrdit jen JINÝ správce pokladny a jen přesně navržené účty.
+    function sNew(k) { return request.resource.data.get(k, ''); }
+    function sOld(k) { return resource.data.get(k, ''); }
+    function pendNew() { return request.resource.data.get('ibanPend', null); }
+    function pendOld() { return resource.data.get('ibanPend', null); }
+    function accSame() { return sNew('iban') == sOld('iban') && sNew('iban2') == sOld('iban2') && sNew('ibanBy') == sOld('ibanBy') && sNew('ibanOk') == sOld('ibanOk') && sNew('ibanAt') == sOld('ibanAt'); }
+    function pendByMe() { return pendNew() != null && isCoach() && pendNew().by == mail(); }
+    function cashSettingsUpdate() {
+      return isCash() && (
+        (accSame() && pendNew() == pendOld())                     // běžná změna nastavení (účty beze změny)
+        || (accSame() && pendNew() == null)                       // zrušení / zamítnutí návrhu
+        || (accSame() && pendByMe())                              // nový návrh – jen trenér
+        || (pendOld() != null && pendNew() == null                // potvrzení jiným správcem přesně podle návrhu
+            && pendOld().by != mail()
+            && sNew('iban') == pendOld().get('iban', '') && sNew('iban2') == pendOld().get('iban2', '')
+            && sNew('ibanBy') == pendOld().by && sNew('ibanOk') == mail()));
+    }
+    // Nový dokument nastavení pokladny: bez účtů, nejvýš s návrhem trenéra
+    function cashSettingsCreate() {
+      return isCash() && sNew('iban') == '' && sNew('iban2') == '' && sNew('ibanBy') == '' && sNew('ibanOk') == '' && sNew('ibanAt') == ''
+        && (pendNew() == null || pendByMe());
+    }
+
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
     // Pokladník smí přidávat a měnit členy, jen ne členy s rolí trener
     match /members/{email} {
@@ -53,10 +78,12 @@ service cloud.firestore {
     }
     match /opponents/{id} { allow read: if isMember(); allow write: if isStaff(); }
 
-    // ===== Nastavení: základní formace trenér a kustod, settings/cash (IBAN, šablony, kategorie) jen správce pokladny; čtou všichni členové =====
+    // ===== Nastavení: základní formace trenér a kustod, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení (v18.6.1); čtou všichni členové =====
     match /settings/{id} {
       allow read: if isMember();
-      allow write: if id == 'cash' ? isCash() : isStaff();
+      allow create: if id == 'cash' ? cashSettingsCreate() : isStaff();
+      allow update: if id == 'cash' ? cashSettingsUpdate() : isStaff();
+      allow delete: if id != 'cash' && isStaff();
     }
 
     // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen příznak ss =====

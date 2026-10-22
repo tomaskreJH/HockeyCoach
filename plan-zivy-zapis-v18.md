@@ -12,7 +12,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo** (v18.4.1 otestováno, opravy ve v18.4.2) |
 | v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu – **hotovo**, otestováno |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
-| v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, k testu |
+| v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, otestováno (hráčka) |
+| v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, k testu |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
@@ -58,7 +59,10 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **v18.4.2 otestováno** (22. 10. 2026).
 - **Otázka 11 rozhodnuta (22. 10. 2026):** náhled smí jen vybrané e-maily vývojáře (`DEV_EMAILS` v `storage.js`, nyní tomaskre@gmail.com); výchozí jen ke čtení, zápis lze v ⚙️ povolit zaškrtávátkem „Povolit zápis“.
 - **v18.6 (G) dodáno, k testu.** ⚙️ → 👁 Náhled role (role, hráčka `pid`, člen týmu `tid`, pokladník, povolit zápis); volba v `sessionStorage` (`hk-preview`), po spuštění / ukončení se aplikace načte znovu a role náhledu platí od `boot()` – `main.js` tak poslouchá jen data povolená roli (hráčka: jen své předpisy, bez `cash`, `audit`, `evcash`). Pruh „👁 Náhled: … · Ukončit náhled“ v liště `#nav`. Strážce `HK.blocked()` v `writeDoc`, `removeDoc`, `batch().commit()`, členech, obnově zálohy a v `save` / `upd`. `firestore.rules` beze změny. Kouřový test jsdom.
-- **Pokračování:** po testu v18.6 další bod plánu – **v18.7 C (Docházka a dlužníci pro všechny)**; před C2 rozhodnout otázku 6 (rozhodnuto: dlužnice s výjimkou zůstává se značkou 🔓).
+- **Test v18.6 (22. 10. 2026):** náhled hráčky funguje. Zásadní nález: mBank QR nepřečte („neplatný QR kód“), Fio ano. Požadavky: zadávat číslo účtu (IBAN dopočítat), okamžitá platba, texty bez diakritiky, kontrolní součet hned při zadání, ochrana proti podvržení účtu, upozornění na kontrolu před platbou a vyloučení odpovědnosti.
+- **Rozhodnuto 22. 10. 2026 (QR):** účty mění jen trenér; změnu musí potvrdit druhý správce pokladny (4 oči); okamžitá platba přepínačem v nastavení (výchozí ANO).
+- **v18.6.1 (P) dodáno, k testu** – viz sekce P. **Nutné publikovat `firestore.rules`.** Po nasazení u stávajícího účtu chybí záznam o změně (zobrazí se „zatím nezaznamenána“); doporučeno účty jednou znovu navrhnout a potvrdit, aby měly záznam.
+- **Pokračování:** po testu v18.6.1 (mBank!) další bod plánu – **v18.7 C (Docházka a dlužníci pro všechny)**; před C2 rozhodnout otázku 6 (rozhodnuto: dlužnice s výjimkou zůstává se značkou 🔓).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -142,6 +146,14 @@ Stav: vývojář (účet trenéra / správce) vidí aplikaci jen ve své roli �
 - Pravidla databáze se nemění (náhled je jen v aplikaci) → `firestore.rules` publikovat nebude nutné.
 - **Rozhodnuto (otázka 11, 22. 10. 2026):** jen vybrané e-maily vývojáře; výchozí jen ke čtení, s volbou „Povolit zápis“ (zapisuje se pod účtem vývojáře za vybranou roli).
 - **Hotovo ve v18.6** (k testu).
+
+## P – v18.6.1: Bezpečné QR platby (přidáno 22. 10. 2026, hotovo)
+- **QR pro všechny banky:** celý text jen v alfanumerickém režimu QR (VELKÁ písmena bez diakritiky, číslice, mezera, `$ % * + - . / :`); `qrMsg` v `cash.js`, kód `qrcode(0,"M").addData(text,"Alphanumeric")`, tichá zóna 4 moduly. Ověřit v mBank (dříve „neplatný QR kód“).
+- **Okamžitá platba:** `PT:IP` podle přepínače `inst` v Nastavení pokladny (výchozí ANO; banka bez podpory pošle běžnou platbu).
+- **Číslo účtu → IBAN:** `src/domain/bank-account.js` – `parseAcc` (české číslo účtu nebo IBAN), kontrola mod 11 (předčíslí a číslo, váhy ČNB) a mod 97 (IBAN), `accCheck` před každým QR.
+- **Čtyři oči:** návrh `ibanPend {iban, iban2, by, at}` podává jen trenér; potvrzuje jiný správce pokladny → `iban`, `iban2`, `ibanBy`, `ibanOk`, `ibanAt`. Vynucují pravidla (`cashSettingsUpdate` / `cashSettingsCreate`). Audit `acc-prop / acc-ok / acc-no / acc-off`, historie v nastavení, upozornění správcům v Událostech.
+- **Hráčka:** účet v českém tvaru i IBAN, kdo a kdy změnil, vždy upozornění na kontrolu a vyloučení odpovědnosti; zařízení si pamatuje ověřené účty (`hk-acc-seen`) – nový / nedávno změněný účet (14 dní) nejdřív varování, QR až po potvrzení.
+- **Zbývající riziko (k rozhodnutí):** trenér může přidat člena s příznakem pokladník (např. svůj druhý e-mail) a návrh si potvrdit sám. Brání tomu jen viditelnost (audit, varování hráčkám s e-maily navrhovatele a schvalovatele). Možné rozšíření: audit změn členů týmu a v pravidlech zákaz potvrzení členem přidaným navrhovatelem v posledních N dnech (vyžaduje datum přidání v `members`).
 
 ## C – v18.7: Docházka a dlužníci pro všechny
 

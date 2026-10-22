@@ -17,6 +17,10 @@
 //    starší záznamy bez acc se zařadí podle druhu (příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní).
 //    Souhrnná platba (jeden QR na více předpisů) smí obsahovat jen předpisy se stejným IBAN,
 //  - zpráva pro příjemce (msg) se uloží do předpisu při jeho vzniku; stejný text je v QR, u úhrady v pokladně i v CSV (párování s výpisem).
+//  - QR (v18.6.1): celý text jen ze znaků alfanumerického režimu QR (VELKÁ písmena bez diakritiky, číslice, mezera, $ % + - . / :),
+//    kvůli přísnějším bankám (mBank); volitelně PT:IP = okamžitá platba (nastavení inst, výchozí zapnuto).
+//  - zabezpečení účtů (v18.6.1): iban / iban2 mění jen potvrzený návrh (ibanPend od trenéra, potvrdí jiný správce pokladny);
+//    ibanBy = kdo navrhl, ibanOk = kdo potvrdil, ibanAt = kdy (pravidla databáze to vynucují).
 // Migrace z v16.3 a přesun dat do evcash (v17.0–v17.2) jsou hotové a z kódu odstraněné (v17.3).
 
 // ===== Importy =====
@@ -137,6 +141,8 @@ export function cashCfg(r) {
   const c = r.cats || {};
   return {
     iban: r.iban || "", iban2: r.iban2 || "", acc: {contrib: accKey(r.acc && r.acc.contrib, "main")}, contrib: +r.contrib || 0,
+    // Zabezpečení účtů a okamžitá platba (v18.6.1): pole se přenesou jen když existují (uložení nesmí přidat prázdné hodnoty)
+    ...accMeta(r), inst: r.inst !== false,
     due: {ev: r.due && r.due.ev != null ? +r.due.ev : 3, cm: r.due && r.due.cm != null ? +r.due.cm : 1},
     cats: {in: c.in && c.in.length ? cl(c.in) : cl(CATS.in), out: c.out && c.out.length ? cl(c.out) : cl(CATS.out)},
     tpls
@@ -177,10 +183,16 @@ export function uniqVs(id, taken) {
   while (taken.has(String(n))) n = (n + 1) % 4294967296;
   return String(n);
 }
+// Pole zabezpečení účtů z dokumentu settings/cash (jen existující)
+export const ACC_META = ["ibanBy", "ibanOk", "ibanAt", "ibanPend"];
+export function accMeta(r) { const o = {}; ACC_META.forEach(k => { if (r && r[k] != null && r[k] !== "") o[k] = cl(r[k]); }); return o; }
 // QR platba v českém formátu SPD (zpráva jen ASCII bez znaku *)
 const asciiFull = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "");
 export const asciiMsg = s => asciiFull(s).slice(0, 60).trim();
-export const spdPay = (iban, amt, vs, msg) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + vs + (asciiMsg(msg) ? "*MSG:" + asciiMsg(msg) : "");
+// Zpráva pro QR (v18.6.1): bez diakritiky, VELKÁ písmena, jen znaky alfanumerického režimu QR, jednoduché mezery, max. 60 znaků
+export const qrMsg = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 $%+\-./:]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60).trim();
+// Text QR platby; inst = požadavek na okamžitou platbu (PT:IP, banka bez podpory ho ignoruje)
+export const spdPay = (iban, amt, vs, msg, inst) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + String(vs).replace(/\D/g, "").slice(0, 10) + (qrMsg(msg) ? "*MSG:" + qrMsg(msg) : "") + (inst ? "*PT:IP" : "");
 // ===== Účty (v17.7) =====
 // Platný klíč účtu, jinak výchozí
 const accKey = (v, def) => (v === "main" || v === "op" ? v : def);
@@ -201,7 +213,7 @@ export const personVs = mid => vsOf(PVS + mid);
 // Zpráva pro příjemce (v17.6): za co se platí, aby pokladník platbu poznal i bez variabilního symbolu.
 // it = {type: "match" | "training" | "contrib", title, date "RRRR-MM-DD", opp, ym "RRRR-MM"}, name = jméno plátce (nepovinné).
 // Tvary: "Zápas 10.10. Sokol - Jana", "Trénink 14.10. - Jana", "Mimořádný trénink 18.10. - Jana", "Příspěvek 10/2026 - Jana".
-// Do QR jde přes asciiMsg (bez diakritiky, nejvýše 60 znaků), proto je jméno na konci a případné zkrácení postihne jen jeho konec.
+// Do QR jde přes qrMsg (bez diakritiky, VELKÁ písmena, nejvýše 60 znaků; v18.6.1), proto je jméno na konci a případné zkrácení postihne jen jeho konec.
 const dayMonth = d => { const [, m, x] = String(d || "").split("-"); return m && x ? +x + "." + +m + "." : ""; };
 export function payMsg(it, name) {
   const t = it || {};

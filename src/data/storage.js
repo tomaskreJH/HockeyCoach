@@ -17,7 +17,7 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v18.6 · 22. 10. 2026";
+const VERSION = "v18.6.1 · 22. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
@@ -358,6 +358,10 @@ async function commitOps(ops) {
 // Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a pokladny je nesmaže).
 // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
 // Kolekce payments (staré platby do v16.3) se z dřívějších záloh neobnovuje – už se nepoužívá.
+// Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
+// návrhem a potvrzením (v18.6.1, vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
+const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
+function keepAcc(d) { const o = clone(d), cur = data.settings.cash || {}; ACC_KEYS.forEach(k => { if (cur[k] != null) o[k] = clone(cur[k]); else delete o[k]; }); return o; }
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
   if (ro()) throw new Error(RO_MSG);
@@ -365,8 +369,8 @@ async function importData(obj, replace) {
   COLL.forEach(c => {
     if (c === "audit") return;
     const src = obj.data[c] || {};
-    if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src)) ops.push(["del", c, id]); });
-    Object.entries(src).forEach(([id, d]) => ops.push(["set", c, id, d]));
+    if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && id === "cash")) ops.push(["del", c, id]); });
+    Object.entries(src).forEach(([id, d]) => ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : d]));
   });
   await commitOps(ops);
 }

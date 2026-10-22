@@ -1,18 +1,25 @@
 // Nastavení pokladny (trenér a pokladník): IBAN, příspěvek, splatnosti, kategorie a šablony událostí. Ukládá se do settings/cash.
 // v17.7: dva účty – hlavní (iban) a provozní (iban2, nepovinný); na který účet se platí příspěvky (acc.contrib) a výchozí účet každé šablony (t.acc).
-// Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení -> Eventy -> Export.
+// v18.6.1: účty se zadávají jako české číslo účtu (nebo IBAN), IBAN se dopočítá a ověří kontrolními součty (mod 11 a mod 97).
+//   Změnu účtu jen navrhuje trenér (ibanPend); platí až po potvrzení JINÝM správcem pokladny (trenér / pokladník) – princip čtyř očí.
+//   Návrh, potvrzení, zamítnutí i zrušení se zapisují do auditu (acc-prop, acc-ok, acc-no, acc-off) a pravidla databáze to vynucují.
+//   Běžné „Uložit nastavení“ účty nikdy nemění (pole účtů se při uložení převezmou z aktuálního stavu v databázi).
+//   Přepínač okamžité platby (inst) přidá do QR PT:IP.
+// Struktura: Importy -> Stav -> Pomocné funkce -> Účty (v18.6.1) -> Vykreslení -> Eventy -> Export.
 // Celoobrazovkové okno #cset se vytváří za běhu (stejně jako nápověda), otevírá se z ⚙️ (HK.openCash).
 
 // ===== Importy =====
 import {S} from "../core/state.js";
 import {clone, esc, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {ACC, WHO, cashCfg} from "../domain/cash.js";
+import {accCheck, ibanFmt, ibanToCz, parseAcc} from "../domain/bank-account.js";
+import {ACC, ACC_META, WHO, accMeta, cashCfg} from "../domain/cash.js";
 
 // ===== Stav =====
 let D = null;        // rozpracované nastavení
 let sel = "train";   // vybraná šablona
 let arm = false;     // potvrzení smazání šablony
+let accIn = null;    // rozpracované vstupy nových účtů {a1, a2} (jen trenér)
 
 // ===== Pomocné funkce =====
 const el = () => document.getElementById("cset");
@@ -26,7 +33,59 @@ function setP(i) {
 }
 const sync = e => e.querySelectorAll("[data-f]").forEach(setP);
 const chip = (on, attr, label) => `<button class="chip ${on ? "on" : ""}" ${attr}>${label}</button>`;
-const IBAN = /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/;
+
+// ===== Účty (v18.6.1) =====
+const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
+const fDt = iso => { const d = new Date(iso); return isNaN(d) ? "?" : d.toLocaleString("cs-CZ", {day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"}); };
+// Účet pro zobrazení: české číslo + IBAN po čtveřicích (prázdný = „nenastaven“)
+const accTxt = ib => ib ? `<b>${esc(ibanToCz(ib) || ib)}</b> <span class="mu">(${esc(ibanFmt(ib))})</span>${accCheck(ib) ? "" : ' <b style="color:var(--no)">⚠️ neplatný – QR se nevytvoří</b>'}` : '<span class="mu">nenastaven</span>';
+// Výsledek kontroly vstupu pod polem
+function chkTxt(v) {
+  const r = parseAcc(v);
+  if (!String(v || "").trim()) return {r, h: '<div class="mu" style="margin:-6px 0 10px">Prázdné = bez účtu</div>'};
+  return {r, h: r.err ? `<div style="margin:-6px 0 10px;color:var(--no);font-weight:600">✗ ${esc(r.err)}</div>` : `<div style="margin:-6px 0 10px;color:var(--ok);font-weight:600">✓ Kontrolní součty v pořádku · IBAN ${esc(ibanFmt(r.iban))}</div>`};
+}
+// Záznam do auditu (jen přidání; pravidla databáze ho nedovolí změnit ani smazat)
+const auditDoc = (act, note) => ({ts: new Date().toISOString(), by: me(), eid: "", act, note});
+const ACT_TXT = {"acc-prop": "návrh změny účtu", "acc-ok": "změna účtu potvrzena", "acc-no": "návrh zamítnut", "acc-off": "návrh zrušen"};
+const pairTxt = (a, b) => "hlavní " + (ibanToCz(a) || a || "–") + ", provozní " + (ibanToCz(b) || b || "–");
+// Sekce účtů: aktuální stav, poslední změna, čekající návrh (potvrdit / zamítnout / zrušit), formulář návrhu (trenér), historie
+function accHtml() {
+  const c = S.cc || {}, pend = c.ibanPend, coach = HK.role() === "trener", mine = pend && pend.by === me();
+  const last = c.ibanAt ? `Platí od ${esc(fDt(c.ibanAt))} · navrhl ${esc(c.ibanBy || "?")} · potvrdil ${esc(c.ibanOk || "?")}` : "Změna účtu zatím nebyla zaznamenána (účet zadaný před v18.6.1).";
+  const pendH = pend ? `<div class="cd" style="border-color:var(--wa);padding:10px"><b style="color:var(--wa)">⏳ Čeká na potvrzení změny účtů</b><div style="margin:6px 0">Hlavní: ${accTxt(pend.iban)}<br>Provozní: ${accTxt(pend.iban2)}</div><div class="mu">Navrhl ${esc(pend.by)} · ${esc(fDt(pend.at))}</div>
+${mine ? '<div class="mu" style="margin:6px 0">Potvrdit musí jiný trenér nebo pokladník.</div><button class="s w" data-apx>Zrušit návrh</button>' : '<div class="mu" style="margin:6px 0">Před potvrzením ověř číslo účtu s navrhovatelem jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
+  const v1 = accIn ? accIn.a1 : ibanToCz(c.iban) || c.iban || "", v2 = accIn ? accIn.a2 : ibanToCz(c.iban2) || c.iban2 || "";
+  const form = coach ? `<h3>Navrhnout změnu účtů</h3><label>Hlavní účet – číslo účtu (např. 19-2000145399/0800) nebo IBAN</label><input id="acc1" value="${esc(v1)}" inputmode="text" autocomplete="off"><div id="ack1">${chkTxt(v1).h}</div><label>Provozní účet (nepovinné; prázdné = vše na hlavní účet)</label><input id="acc2" value="${esc(v2)}" inputmode="text" autocomplete="off"><div id="ack2">${chkTxt(v2).h}</div><div class="mu" style="margin-bottom:6px">Změna se projeví až po potvrzení jiným trenérem nebo pokladníkem. Návrh i potvrzení se zapíší do auditu a hráčkám se nový účet zobrazí s varováním.</div><button class="s w" data-apr>📝 Navrhnout změnu účtů</button>` : '<div class="mu" style="margin-top:6px">Čísla účtů navrhuje jen trenér; pokladník změnu potvrzuje.</div>';
+  const hist = (S.au || []).filter(x => ACT_TXT[x.act]).sort((a, b) => (b.ts || "").localeCompare(a.ts || "")).slice(0, 10)
+    .map(x => `<div class="mu">${esc(fDt(x.ts))} · ${esc(ACT_TXT[x.act])} · ${esc(x.by || "")}${x.note ? " · " + esc(x.note) : ""}</div>`).join("");
+  return `<div class="cd"><h2>🏦 Účty pro QR platby</h2><div>Hlavní: ${accTxt(c.iban)}<br>Provozní: ${accTxt(c.iban2)}</div><div class="mu" style="margin:6px 0 10px">${last}</div>${pendH}${form}${hist ? `<h3>Historie změn účtů</h3>${hist}` : ""}</div>`;
+}
+// Akce účtů: zapisují se hned dávkou (nastavení + audit), nezávisle na „Uložit nastavení“
+function propose(e) {
+  const a = chkTxt(e.querySelector("#acc1").value).r, b = chkTxt(e.querySelector("#acc2").value).r, c = S.cc || {};
+  if (a.err || b.err) return toast("Oprav číslo účtu – neprošlo kontrolou");
+  if (!a.iban) return toast("Hlavní účet je povinný");
+  if (a.iban === (c.iban || "") && b.iban === (c.iban2 || "")) return toast("Účty jsou stejné jako současné");
+  const p = {iban: a.iban, iban2: b.iban, by: me(), at: new Date().toISOString()};
+  S.db.batch().merge("settings/cash", {ibanPend: p}).set("audit/" + uid(), auditDoc("acc-prop", pairTxt(p.iban, p.iban2))).commit();
+  accIn = null;
+  toast("Návrh odeslán – potvrdí ho jiný trenér nebo pokladník");
+}
+function approve() {
+  const p = (S.cc || {}).ibanPend;
+  if (!p || p.by === me()) return;
+  if (!accCheck(p.iban) || (p.iban2 && !accCheck(p.iban2))) return toast("Navržený účet neprošel kontrolou – zamítni ho");
+  if (!confirm("Potvrzuješ nové účty týmu?\n\n" + pairTxt(p.iban, p.iban2) + "\n\nNavrhl: " + p.by + "\nOvěřils číslo účtu s navrhovatelem jinou cestou?")) return;
+  S.db.batch().merge("settings/cash", {iban: p.iban, iban2: p.iban2 || "", ibanBy: p.by, ibanOk: me(), ibanAt: new Date().toISOString(), ibanPend: "__del"})
+    .set("audit/" + uid(), auditDoc("acc-ok", pairTxt(p.iban, p.iban2) + " (navrhl " + p.by + ")")).commit();
+  toast("Změna účtů potvrzena");
+}
+function dropPend(act) {
+  const p = (S.cc || {}).ibanPend;
+  if (!p) return;
+  S.db.batch().merge("settings/cash", {ibanPend: "__del"}).set("audit/" + uid(), auditDoc(act, pairTxt(p.iban, p.iban2) + " (navrhl " + p.by + ")")).commit();
+}
 
 // ===== Vykreslení =====
 function html() {
@@ -40,7 +99,8 @@ function html() {
     return `<div class="cd" style="padding:10px;margin-bottom:8px"><b>${WHO[g]}</b><div class="chips" style="margin-top:6px">${chip(w.pays, `data-wp="${g}"`, w.pays ? "Platí: ANO" : "Platí: NE")}${chip(w.mode !== "flat", `data-wm="${g}|calc"`, "Výpočet")}${chip(w.mode === "flat", `data-wm="${g}|flat"`, "Pevná částka")}</div>${w.mode === "flat" ? `<input data-f="t.who.${g}.flat" data-n="1" type="number" min="0" value="${w.flat || ""}" placeholder="Kč na osobu (před koeficientem)" style="max-width:200px;margin:0">` : ""}</div>`;
   }).join("");
   return `<div style="max-width:800px;margin:0 auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><h2 style="margin:0">💰 Nastavení pokladny</h2><button class="s" id="csx">Zavřít</button></div>
-<div class="cd"><h2>Obecné</h2><label>Hlavní účet – IBAN (pro QR platby)</label><input data-f="iban" value="${esc(D.iban)}" placeholder="CZ00 0000 0000 0000 0000 0000"><label>Provozní účet – IBAN (nepovinné; prázdné = vše na hlavní účet)</label><input data-f="iban2" value="${esc(D.iban2)}" placeholder="CZ00 0000 0000 0000 0000 0000"><label>Příspěvky se platí na</label><div class="chips">${Object.entries(ACC).map(([a, t]) => chip(D.acc.contrib === a, `data-ac="${a}"`, t)).join("")}</div><div class="mu" style="margin-bottom:6px">Platby na různé účty hráčka nesmí sloučit do jednoho převodu; souhrnná platba (jeden QR) jde jen za předpisy na stejný účet.</div><label>Měsíční příspěvek (Kč, jedna částka pro všechny; individuálně přes koeficient hráčky v %)</label><input data-f="contrib" data-n="1" type="number" min="0" value="${D.contrib || ""}" style="max-width:160px"><div class="row"><div><label>Splatnost události: dnů po události</label><input data-f="due.ev" data-n="1" type="number" min="0" value="${D.due.ev}"></div><div><label>Splatnost příspěvku: den v měsíci (předem)</label><input data-f="due.cm" data-n="1" type="number" min="1" max="28" value="${D.due.cm}"></div></div></div>
+${accHtml()}
+<div class="cd"><h2>Obecné</h2><label>Okamžitá platba v QR</label><div class="chips">${chip(D.inst !== false, "data-ip", D.inst !== false ? "Okamžitá platba: ANO" : "Okamžitá platba: NE")}</div><div class="mu" style="margin-bottom:6px">QR požádá banku o okamžitou platbu (PT:IP); banka, která ji nepodporuje, pošle běžnou platbu.</div><label>Příspěvky se platí na</label><div class="chips">${Object.entries(ACC).map(([a, t]) => chip(D.acc.contrib === a, `data-ac="${a}"`, t)).join("")}</div><div class="mu" style="margin-bottom:6px">Platby na různé účty hráčka nesmí sloučit do jednoho převodu; souhrnná platba (jeden QR) jde jen za předpisy na stejný účet.</div><label>Měsíční příspěvek (Kč, jedna částka pro všechny; individuálně přes koeficient hráčky v %)</label><input data-f="contrib" data-n="1" type="number" min="0" value="${D.contrib || ""}" style="max-width:160px"><div class="row"><div><label>Splatnost události: dnů po události</label><input data-f="due.ev" data-n="1" type="number" min="0" value="${D.due.ev}"></div><div><label>Splatnost příspěvku: den v měsíci (předem)</label><input data-f="due.cm" data-n="1" type="number" min="1" max="28" value="${D.due.cm}"></div></div></div>
 <div class="cd"><h2>Kategorie příjmů</h2>${cats("in")}</div><div class="cd"><h2>Kategorie výdajů</h2>${cats("out")}</div>
 <div class="cd"><h2>Šablony událostí</h2><div class="chips">${keys.map(k => chip(k === sel, `data-tp="${k}"`, esc(D.tpls[k].name))).join("")}</div>
 <label>Název šablony</label><input data-f="t.name" value="${esc(t.name)}"><label>Platby za událost na účet</label><div class="chips">${Object.entries(ACC).map(([a, n]) => chip((t.acc || "op") === a, `data-ta="${a}"`, n)).join("")}</div><label>Splatnost: dnů po události (prázdné = výchozí)</label><input data-f="t.dueDays" data-n="nul" type="number" min="0" value="${t.dueDays != null ? t.dueDays : ""}" style="max-width:160px">
@@ -63,6 +123,15 @@ function bind(e) {
   q("[data-f]").forEach(i => { i.onchange = () => { sync(e); draw(); }; });
   act("[data-tp]", b => { sel = b.dataset.tp; });
   act("[data-ac]", b => { D.acc.contrib = b.dataset.ac; });
+  act("[data-ip]", () => { D.inst = D.inst === false; });
+  // Účty (v18.6.1): průběžná kontrola při psaní, rozpracované hodnoty přežijí překreslení
+  const a1 = e.querySelector("#acc1"), a2 = e.querySelector("#acc2");
+  const keep = () => { if (a1) accIn = {a1: a1.value, a2: a2.value}; };
+  if (a1) { a1.oninput = () => { keep(); e.querySelector("#ack1").innerHTML = chkTxt(a1.value).h; }; a2.oninput = () => { keep(); e.querySelector("#ack2").innerHTML = chkTxt(a2.value).h; }; }
+  act("[data-apr]", () => propose(e));
+  act("[data-apo]", () => approve());
+  act("[data-apn]", () => { if (confirm("Zamítnout návrh změny účtů?")) dropPend("acc-no"); });
+  act("[data-apx]", () => dropPend("acc-off"));
   act("[data-ta]", b => { D.tpls[sel].acc = b.dataset.ta; });
   act("[data-ra]", b => { const k = b.dataset.ra, v = (document.getElementById("nc" + k).value || "").trim(); if (v && !D.cats[k].includes(v)) D.cats[k].push(v); });
   act("[data-rc]", b => { const [k, i] = b.dataset.rc.split("|"); D.cats[k].splice(+i, 1); });
@@ -78,10 +147,10 @@ function bind(e) {
   q("#csx, #csx2").forEach(b => { b.onclick = close; });
   q("#css")[0].onclick = () => {
     sync(e);
-    const iban = D.iban.replace(/\s+/g, "").toUpperCase(), iban2 = (D.iban2 || "").replace(/\s+/g, "").toUpperCase();
-    if (iban && !IBAN.test(iban)) return toast("IBAN hlavního účtu nemá platný tvar");
-    if (iban2 && !IBAN.test(iban2)) return toast("IBAN provozního účtu nemá platný tvar");
-    D.iban = iban; D.iban2 = iban2;
+    // Účty a jejich zabezpečení se nikdy nemění tímto uložením: převezmou se z aktuálního stavu databáze (i čekající návrh)
+    const c = S.cc || {};
+    ACC_META.forEach(k => { delete D[k]; });
+    Object.assign(D, {iban: c.iban || "", iban2: c.iban2 || ""}, accMeta(c));
     S.db.doc("settings/cash").set(D).then(() => toast("Nastavení pokladny uloženo")).catch(() => toast("Uložení se nepovedlo"));
     close();
   };
@@ -97,5 +166,8 @@ export function openCashSettings() {
   D = cashCfg(S.cc);
   sel = "train";
   arm = false;
+  accIn = null;
   draw();
 }
+// Překreslení otevřeného okna po změně nastavení v databázi (potvrzení / návrh z jiného zařízení); rozpracované údaje zůstávají
+export function refreshCashSettings() { const e = el(); if (D && e && e.style.display !== "none") { sync(e); draw(); } }

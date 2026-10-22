@@ -4,6 +4,28 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.6.1 (22. 10. 2026) – bezpečné QR platby (oprava po testu v18.6)
+**Opraveno**
+- mBank hlásil „neplatný QR kód“ (Fio četl správně). QR byl v binárním režimu kvůli malým písmenům a čárkám ve zprávě. Nyní je celý text QR jen ze znaků alfanumerického režimu (VELKÁ písmena bez diakritiky, číslice, mezera, `$ % * + - . / :`), zpráva `qrMsg` bez zdvojených mezer, VS jen číslice, okraj kódu 4 moduly (doporučená tichá zóna).
+
+**Přidáno**
+- Účty se zadávají jako české číslo účtu `[předčíslí-]číslo/kód banky` (nebo IBAN); nový modul `src/domain/bank-account.js` dopočítá IBAN a ověří kontrolní součty mod 11 (číslo účtu, váhy ČNB) i mod 97 (IBAN) – výsledek se ukazuje hned při psaní. Neplatný účet nejde navrhnout a QR se z něj nevytvoří.
+- Princip čtyř očí: změnu účtů navrhuje jen trenér (`ibanPend`), platí až po potvrzení jiným správcem pokladny (`ibanBy`, `ibanOk`, `ibanAt`). Návrh, potvrzení, zamítnutí a zrušení jdou do auditu (`acc-prop`, `acc-ok`, `acc-no`, `acc-off`), v nastavení je Historie změn účtů. Čekající návrh ukáže správcům pokladny upozornění v Událostech.
+- Okamžitá platba: přepínač v Nastavení pokladny (`inst`, výchozí ANO) → `PT:IP` v QR.
+- Okno platby: účet v českém tvaru i jako IBAN, datum platnosti účtu (kdo navrhl a potvrdil), vždy upozornění na kontrolu účtu před odesláním a vyloučení odpovědnosti. Zařízení si pamatuje ověřené účty – při novém účtu oproti dřívějšku nebo změně v posledních 14 dnech nejdřív varování, QR až po „Ověřila jsem účet“.
+
+**Změněno**
+- `firestore.rules`: `settings/cash` – účty mění jen potvrzený návrh (jiný správce, přesně navržené účty, navrhovatel pod vlastním e-mailem), dokument nastavení pokladny nejde smazat → **publikovat firestore.rules**.
+- `src/domain/cash.js`: `qrMsg`, `spdPay` (alfanumerický text, `PT:IP`), `cashCfg` přenáší pole zabezpečení (`accMeta`) a `inst`.
+- `src/views/cash-settings.js`: sekce 🏦 Účty pro QR platby (návrh, potvrzení, zamítnutí, historie), přepínač okamžité platby; „Uložit nastavení“ účty nikdy nemění.
+- `src/views/mine.js`: okno QR (kontrola účtu, varování o změně, upozornění, alfanumerický režim), zpráva u předpisu stejná jako v QR, upozornění na čekající návrh.
+- `src/main.js`: otevřené nastavení pokladny se po změně v databázi překreslí.
+- `src/data/storage.js`: obnova ze zálohy účty v `settings/cash` nemění (zůstávají aktuální), verze.
+- `src/views/help.js` (kapitoly 10 a 11), `README.md`, `package.json`, `sw.js` (cache hokej-v46), `plan-zivy-zapis-v18.md`.
+
+**Beze změny**
+- Výpočty předpisů, úhrady, VS, živý zápis, statistiky. Uložená zpráva předpisu (`msg`) zůstává s diakritikou; převádí se až při zobrazení a v QR.
+
 ## v18.6 (22. 10. 2026) – Náhled role pro vývojáře (fáze G)
 **Přidáno**
 - ⚙️ → **👁 Náhled role** (jen účty v `DEV_EMAILS`, nyní tomaskre@gmail.com): výběr role Hráčka (konkrétní hráčka ze soupisky) / Kustod / Trenér, volitelně člen realizačního týmu (`tid`) a příznak Pokladník. Volba je jen v paměti zařízení (`sessionStorage`, klíč `hk-preview`), databáze `members` se nemění; po spuštění se aplikace načte znovu a role náhledu platí od startu.
