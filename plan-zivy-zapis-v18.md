@@ -30,7 +30,13 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **v18.2 otestováno** (22. 10. 2026): odezva (záblesk i vibrace) výborná, zůstává. Pevná místa (prázdné rámečky, led a střela moc dole) a dvojí význam dlaždice nepřehledné.
 - **Rozhodnuto 22. 10. 2026:** B5 + B3 v jedné verzi v18.3; rozložení A úplně nahrazeno rozložením B (bez volby); tresty a PP/OS do horní lišty.
 - **v18.3 (B5 + B3) dodáno, k testu.** Rozložení B: horní lišta s řádkem stavu `#lchips` (situace, PP/OS, tresty, ošetřování; pevná výška, posun do strany) → střela soupeře → čára → pětky → led → sloupce čekajících (na řadě nahoře u ledu). Rotace: partnerka = malé tlačítko pod hráčkou (klepnutí = na led přes `doSub`, podržení = `swapRot`), dole ve sloupci partnerka hráčky na ledě. Engine beze změny.
-- **Další: v18.4 (B4)** – sestava hned po trestu a zranění, až po testu v18.3.
+- **Test v18.3 (22. 10. 2026) – požadavky do v18.4** (B4 + úprava rozložení; zadání pro další vlákno):
+  1. **Chyba:** při zranění v oslabení chybí upozornění na chybějící hráčku na ledě (zjistit příčinu – podmínka v `liveTick` / `#lwarn`, případně umístění upozornění dole).
+  2. **Situace do hlavičky:** stav (5 na 5, přesilovka, oslabení) do hlavičky zápasu vedle čísla třetiny, ne do řádku stavu.
+  3. **„Hřiště“:** velký obdélník v barvě ledu – nahoře STŘELA NA NAŠI BRÁNU, pod ní tlustá červená dělicí čára (jako střed hřiště), pod ní hráčky na ledě; celý blok má vypadat jako hřiště. Pod hřištěm naznačený **mantinel**, za ním tlačítka celých pětek a pak hráčky ve frontě podle pravidel (na řadě nahoře, rotující partnerka pod hráčkou, partnerky hráček na ledě dole).
+  4. **B4 – PP/OS se odsouhlasí:** při přesilovce / oslabení se nabídne sestava jednotky k odsouhlasení a po potvrzení se rovnou přepne do režimu PP/OS – tlačítka a fronty jen pro jednotky PP/OS (běžné pětky 1.–4. se v tu chvíli nezobrazují). Po skončení nerovnosti návrat k běžným pětkám (↩ Řady). Zranění: hned otevřít Sestavu s vyznačeným prázdným místem (B4).
+  5. **Upozornění:** varování (kdo je zraněný, kdo sedí na trestu, chybějící / přebývající hráčka, dlouhé střídání, nestandardní situace) v horním řádku průběhu – **jen když nějaké je**; jinak se řádek nezobrazuje (zrušit „✓ Bez upozornění“). Řádek stavu v hlavičce pak nese jen tresty s odpočtem a ✕ a tlačítka PP/OS – upřesnit v novém vlákně, co v něm zůstane.
+  Zachovat: odezva (vibrace + záblesk) z v18.2, ovládání rotace z v18.3, engine beze změny (zásah do `live-engine.js` jen po dotazu).
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
 ## A – v18.0: Tlačítko Zpět (Všeobecně 1a)
