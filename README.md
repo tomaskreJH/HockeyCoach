@@ -1,6 +1,6 @@
 # Hokej – zápasy (modulární projekt)
 
-**Aktuální verze: v18.7 (22. 10. 2026)** – 📊 Docházka pro všechny v Událostech (uplynulé tréninky, domácí a venkovní zápasy v období od–do, výchozí sezóna 1. 8. – 1. 7.; účast, %, nejdu, nejistá, bez odpovědi) a značka ⛓ u dlužnic po splatnosti (🔓 s výjimkou) z veřejného souhrnu bez částek; ⚠️ sahá na platby – před nahráním publikovat firestore.rules, pak ⚙️ → Přepočítat dlužníky. Dříve v18.6.1: bezpečné QR platby (mBank, okamžitá platba, kontrola čísla účtu, změna účtu jen návrhem a potvrzením jiným správcem pokladny). Změny všech verzí jsou v [CHANGELOG.md](CHANGELOG.md), plán dalších verzí v [plan-zivy-zapis-v18.md](plan-zivy-zapis-v18.md).
+**Aktuální verze: v18.7.1 (22. 10. 2026)** – ⬇️ Uložit QR v okně platby (Moje platby): obrázek PNG ve vysokém rozlišení s bílou tichou zónou a popiskem (účet, IBAN, částka, VS, zpráva, datum); na Androidu / iPhonu systémové Sdílet (Uložit do Galerie, bankovní aplikace), jinde stažení souboru `QR-platba-RRRR-MM-DD-VS.png`. Obsah QR beze změny; ⚠️ sahá na platby (`mine.js`), pravidla databáze beze změny. Dříve v18.7: 📊 Docházka pro všechny a značka ⛓ u dlužnic. Změny všech verzí jsou v [CHANGELOG.md](CHANGELOG.md), plán dalších verzí v [plan-zivy-zapis-v18.md](plan-zivy-zapis-v18.md).
 
 Aplikace pro trenéry, kustody a hráčky: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, měsíční příspěvky, platy, hospodaření po měsících), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA, nepotřebuje Claude ani vlastní server. Data jsou v databázi Firebase (Firestore) a přistupuje se k nim po přihlášení účtem Google. Bez signálu aplikace funguje dál a změny se odešlou po připojení.
@@ -38,6 +38,7 @@ HockeyCoach/
 │ ├─ cashbook.js pokladna: zůstatek, vklady, výdaje, součty podle kategorií, seznam pohybů, storno
 │ ├─ money.js pokladna – měsíce (F4): příspěvky, platy, hospodaření po měsících, CSV export
 │ ├─ mine.js Moje platby (předpisy člena, dluh, QR platba) a banner s upozorněním na dluh
+│ ├─ qr-image.js Uložení QR platby jako obrázek PNG (popisek, Sdílet / stažení) – v18.7.1
 │ ├─ cash-settings.js nastavení pokladny (IBAN, příspěvek, splatnosti, kategorie, šablony)
 │ ├─ lineup-editor.js live.js live-quick.js report.js
 │ ├─ live-feedback.js odezva živého zápisu: vibrace haptic(kind) a zablikání tlačítka, vypínač vibrace (v18.2)

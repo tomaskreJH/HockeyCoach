@@ -10,18 +10,22 @@
 // (zpráva qrMsg – bez diakritiky, VELKÁ písmena), volitelně okamžitá platba. Zařízení si pamatuje ověřené účty (seenAccs):
 // je-li účet nový oproti dřívějšku, nebo změněný v posledních 14 dnech, okno nejdřív ukáže varování a QR až po potvrzení.
 // V okně je vždy upozornění na kontrolu účtu před odesláním a vyloučení odpovědnosti. Správcům pokladny ukáže banner čekající návrh změny účtu.
+// Uložení QR (v18.7.1): tlačítko ⬇️ Uložit QR je jen u zobrazeného QR (po kontrole účtu a ověření); obrázek PNG se kreslí
+// z téhož objektu qrcode, který okno zobrazilo (qr-image.js) – obsah QR se nemění. Android / iPhone: Sdílet, jinde stažení.
 
 // ===== Importy =====
 import {S} from "../core/state.js";
-import {esc, fd} from "../core/utils.js";
+import {esc, fd, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
 import {accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsOf} from "../domain/cash.js";
 import qrcode from "../lib/qrcode.js";
+import {qrFileName, saveQrImage} from "./qr-image.js";
 import {render} from "./shell.js";
 
 // ===== Stav =====
 let qr = null;   // otevřené okno s QR: id předpisu, nebo "g:" + IBAN + "|" + mid pro souhrnnou platbu
+let shown = null; // právě zobrazený QR (v18.7.1): {q – objekt qrcode, info – údaje popisku, name – název souboru}; jinak null
 
 // ===== Pomocné funkce =====
 const ids = () => [HK.pid(), HK.tid()].filter(Boolean);
@@ -74,6 +78,7 @@ export function bindBanner(a) {
 
 // ===== QR okno =====
 function qrHtml() {
+  shown = null;   // uložit lze jen QR, který se v tomto vykreslení skutečně zobrazí
   if (!qr) return "";
   const cfg = cashCfg(S.cc), p = payData(cfg);
   if (!p) { qr = null; return ""; }
@@ -97,7 +102,11 @@ function qrHtml() {
       const q = qrcode(0, "M");
       q.addData(spdPay(p.iban, p.amt, p.vs, p.msg, cfg.inst), "Alphanumeric");
       q.make();
+      // Údaje pro obrázek (v18.7.1) – stejné hodnoty jako v okně, zpráva přesně jako v QR
+      shown = {q, name: qrFileName(p.vs), info: {title: p.title, accName: accName(cfg, p.acc), cz, iban: p.iban, ibanFmt: ibanFmt(p.iban), amtTxt: kc(p.amt), vs: p.vs, msg, inst: !!cfg.inst, created: new Date().toLocaleDateString("cs-CZ")}};
       body = `<div style="background:#fff;padding:12px;border-radius:12px;width:min(300px,100%);margin:0 auto">${q.createSvgTag({cellSize: 4, margin: 4, scalable: true})}</div>
+<button class="s w" id="mksave" style="margin-top:10px;min-height:48px">⬇️ Uložit QR</button>
+<div class="mu" style="margin-top:4px;text-align:center">Platíš z tohoto telefonu? Ulož QR do Galerie a v bankovní aplikaci ho načti z obrázku.</div>
 <div class="mu" style="margin-top:10px;text-align:center">Naskenuj v bankovní aplikaci. Údaje pro ruční platbu:</div>${facts}${since}${warn}`;
     } catch (e) { body = `<div class="mu" style="color:var(--no)">QR kód se nepodařilo vytvořit. Použij údaje pro ruční platbu.</div>${facts}${warn}`; }
   }
@@ -130,6 +139,16 @@ export function mineView(a) {
   // Hráčka potvrdila ověření nového účtu: zapamatuje se v zařízení a ukáže se QR
   const ok = a.querySelector("[data-mkok]");
   if (ok) ok.onclick = () => { const p = payData(cashCfg(S.cc)); if (p && p.iban) markSeen(p.iban); render(); };
+  // ⬇️ Uložit QR (v18.7.1): obrázek ze zobrazeného QR – Sdílet (Galerie / banka), jinde stažení souboru
+  const sv = a.querySelector("#mksave");
+  if (sv) sv.onclick = () => {
+    const sh = shown;   // kopie – okno se mezitím může překreslit
+    if (!sh) return;
+    saveQrImage(sh.q, sh.info, sh.name).then(r => {
+      if (r === "download") toast("QR uložen jako " + sh.name);
+      else if (r === "error") toast("Obrázek QR se nepodařilo vytvořit. Použij údaje pro ruční platbu.");
+    }).catch(() => toast("Obrázek QR se nepodařilo uložit."));
+  };
   const x = a.querySelector("#mkx");
   if (x) x.onclick = () => { qr = null; render(); };
   const bg = a.querySelector("#mkq");

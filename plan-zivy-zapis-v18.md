@@ -16,7 +16,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, otestováno (QR v mBank OK, 22. 10. 2026) |
 | v18.6.2 | P2 | ⭐ **Důležité:** pevně uložený účet v telefonu hráčky (opsáním), jméno příjemce v QR, „čeká na potvrzení přijetí“ – **odloženo**, zařadit po v18.7 |
 | v18.7 | C | Docházka pro všechny (📊 v Událostech, období od–do), značka ⛓ dlužnic v docházce – **hotovo**, otestováno (22. 10. 2026) |
-| v18.7.1 | Q | ⬇️ Uložit QR do telefonu (obrázek pro bankovní aplikaci) – **další na řadě** |
+| v18.7.1 | Q | ⬇️ Uložit QR do telefonu (obrázek pro bankovní aplikaci) – **hotovo**, k testu |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
 | v18.9 | N | 🔔 Notifikace (blížící se událost, uzávěrka přihlašování, nová událost, nový předpis) – **návrh**, rozhodnout otázky 13–17 |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
@@ -70,7 +70,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **v18.7 (C) dodáno, k testu.** `src/domain/attendance.js` (čisté funkce), `src/views/attendance.js` (přehled, značka `debtTag`), `src/domain/debtors.js`; `debtors/{mid} = {mid, since, dues: [{d, x}]}` bez částek – `dues` nese splatnosti a výjimku, aby šly ⛓ / 🔓 a dny po splatnosti dopočítat v zařízení i bez nového zápisu. Zápis ve stejné dávce: `payments.js` (vyúčtování, úhrada, výjimka), `money.js` (vystavení / smazání příspěvku), `cashbook.js` (storno), `storage.js` (smazání události, obnova ze zálohy). **Publikovat `firestore.rules` PŘED nahráním kódu** (jinak selžou dávky s předpisy), pak ⚙️ → ⛓ Přepočítat dlužníky. Kouřový test jsdom 25 kontrol.
 - **Test 22. 10. 2026 (16:10):** v18.6.1 – QR v mBank čte správně; v18.7 – testy v pořádku. Obě verze otestované.
 - **Nové požadavky 22. 10. 2026:** ⬇️ uložení QR do telefonu (sekce Q, v18.7.1) a 🔔 notifikace (sekce N, v18.9).
-- **Pokračování:** **v18.7.1 Q** (uložení QR) → ⭐ **v18.6.2 P2** → **v18.8 D** (úklid) → **v18.9 N** (notifikace; pořadí D a N lze prohodit).
+- **v18.7.1 (Q) dodáno, k testu (22. 10. 2026).** ⬇️ Uložit QR pod zobrazeným QR v `mine.js`, nový `src/views/qr-image.js` (canvas z téhož objektu `qrcode` – obsah QR beze změny, tichá zóna 4 moduly, QR cca 1000 px). Sdílet se souborem všude, kde to prohlížeč umí (`navigator.canShare`), jinak stažení; zrušení sdílení nic nedělá. Pravidla databáze beze změny. Kouřový test jsdom 28 kontrol (varování / chybný účet bez tlačítka, shoda modulů s QR, název souboru, popisek, Sdílet, zrušení, stažení, souhrnná platba).
+- **Pokračování:** **v18.7.1 Q** (uložení QR, k testu) → ⭐ **v18.6.2 P2** → **v18.8 D** (úklid) → **v18.9 N** (notifikace; pořadí D a N lze prohodit).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -201,7 +202,8 @@ Cíl: hráčka platí z téhož telefonu – QR na displeji bankovní aplikace n
 - Android: systémové **Sdílet** (`navigator.share` se souborem) → Uložit do Galerie / poslat rovnou do bankovní aplikace; jinde stažení souboru (`<a download>`).
 - Obsah QR beze změny (účet, částka, VS, zpráva, `PT:IP`). Uložení až po zobrazení QR – kontrola účtu a „Ověřila jsem účet“ platí i pro obrázek.
 - Sahá na platby (`mine.js`) → v CHANGELOG výslovně označit. Pravidla databáze beze změny.
-- **Rozhodnout (navrženo, nepotvrzeno):** (a) popisek pod QR v obrázku – příjemce, číslo účtu + IBAN, částka, VS, zpráva, datum vytvoření (návrh ANO, kvůli kontrole v galerii); (b) název souboru `QR-platba-RRRR-MM-DD-VS.png`.
+- **Rozhodnuto 22. 10. 2026:** (a) popisek ANO, **bez varovného řádku** – název platby, příjemce = **jen název účtu** (Účet týmu / Hlavní / Provozní účet), účet + IBAN, částka, VS, zpráva (jako v QR), okamžitá platba, datum vytvoření; (b) název souboru `QR-platba-RRRR-MM-DD-VS.png`; (c) Sdílet se souborem **všude, kde to prohlížeč umí** (Android i iPhone), jinak stažení.
+- **Hotovo ve v18.7.1** (k testu).
 
 ## N – v18.9: Notifikace (přidáno 22. 10. 2026, návrh)
 Cíl: upozornit každého, koho se to týká, i když aplikaci nemá otevřenou.

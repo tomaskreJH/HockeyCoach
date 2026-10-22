@@ -4,6 +4,21 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.7.1 (22. 10. 2026) – ⬇️ Uložení QR do telefonu (fáze Q) – ⚠️ SAHÁ NA PLATBY
+> **Pozor – verze sahá na soubor plateb:** `src/views/mine.js` (okno QR v Moje platby) a nový `src/views/qr-image.js`. **Obsah QR se nemění** – obrázek se kreslí z téhož objektu `qrcode`, který okno zobrazí (`spdPay`, `qrMsg`, `PT:IP` beze změny). `bank-account.js`, `cash.js`, `cash-settings.js` a `firestore.rules` se **nemění** – pravidla publikovat netřeba.
+
+**Přidáno**
+- **⬇️ Uložit QR** v okně platby pod zobrazeným QR: obrázek PNG ve vysokém rozlišení (QR cca 1000 px) s bílou tichou zónou 4 moduly a popiskem pod kódem – název platby, příjemce (název účtu: Účet týmu / Hlavní / Provozní účet), účet v českém tvaru, IBAN, částka, VS, zpráva pro příjemce (přesně jako v QR), případně okamžitá platba, datum vytvoření. Bez varovného řádku (rozhodnuto 22. 10. 2026).
+- Uložení: kde prohlížeč umí sdílet soubor (`navigator.canShare` se souborem – Android, iPhone) systémové **Sdílet** (Uložit do Galerie / poslat do bankovní aplikace); jinde stažení souboru `QR-platba-RRRR-MM-DD-VS.png`. Zrušení sdílení nic nedělá.
+- Nový modul `src/views/qr-image.js` (`drawQrCanvas`, `saveQrImage`, `qrFileName`).
+
+**Změněno**
+- `src/views/mine.js`: tlačítko a obsluha uložení; tlačítko je jen u zobrazeného QR, tedy až po kontrole účtu (`accCheck`) a po „Ověřila jsem účet“ – u varování ani u chybného účtu se nezobrazí.
+- `src/views/help.js` (kapitola 10), `README.md`, `package.json`, `src/data/storage.js` (verze), `sw.js` (cache hokej-v48), `plan-zivy-zapis-v18.md`.
+
+**Beze změny**
+- Text a obsah QR, výpočty předpisů, VS, účty a jejich zabezpečení (v18.6.1), docházka a dlužníci (v18.7), živý zápis, statistiky.
+
 ## v18.7 (22. 10. 2026) – Docházka a dlužníci pro všechny (fáze C) – ⚠️ SAHÁ NA PLATBY
 > **Pozor – verze sahá na soubory plateb:** `firestore.rules` (nová kolekce `debtors`), `src/views/payments.js`, `src/views/money.js`, `src/views/cashbook.js`, `src/data/storage.js` (zápis souhrnu dlužníků ve stejné dávce jako změny předpisů). `bank-account.js`, `mine.js`, `cash.js` a pravidla `settings/cash` z v18.6.1 se **nemění**. Výpočty předpisů, úhrad, VS, QR a účty beze změny.
 >

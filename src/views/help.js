@@ -6,6 +6,7 @@
 // v18.6: kapitola 12 – 👁 Náhled role (jen účet vývojáře).
 // v18.6.1: kapitoly 10 a 11 – QR bez diakritiky a okamžitá platba, kontrola a zabezpečení účtů (návrh a potvrzení, varování o změně).
 // v18.7: kapitola 2 – 📊 Docházka (přehled pro všechny, období od–do) a značka ⛓ / 🔓 u dlužnic; kapitola 12 – ⛓ Přepočítat dlužníky.
+// v18.7.1: kapitola 10 – ⬇️ Uložit QR (obrázek do Galerie / bankovní aplikace).
 
 // ===== Obsah nápovědy =====
 // Každá sekce: t = nadpis, h = HTML obsah (zobrazí se po rozbalení)
@@ -121,6 +122,7 @@ const SECTIONS = [
 <li><b>Moje platby</b> vidí každý, kdo má účet propojený s hráčkou nebo členem týmu: dluh, částka po splatnosti a seznam předpisů (události i měsíční příspěvky).</li>
 <li><b>📱 Zaplatit (QR):</b> QR platba pro bankovní aplikaci (účet, částka, variabilní symbol a zpráva pro příjemce bez diakritiky velkými písmeny, např. „ZAPAS 10.10. SOKOL - JANA“ nebo „TRENINK 14.10. - JANA“; od v18.6.1 i požadavek na okamžitou platbu, pokud ho tým zapnul a banka podporuje). Při ruční platbě opiš účet, VS a zprávu z okna platby. Zaplacení se v aplikaci objeví, až ho pokladník zapíše.</li>
 <li><b>Bezpečnost platby</b> (od v18.6.1): účet je v okně platby v českém tvaru (např. 19-2000145399/0800) i jako IBAN. <b>Před odesláním vždy zkontroluj v bance číslo účtu příjemce.</b> Pokud se účet týmu změnil od tvé minulé platby (nebo v posledních 14 dnech), aplikace nejdřív ukáže varování s datem změny a kdo ji navrhl a potvrdil – QR uvidíš až po klepnutí „Ověřila jsem účet“; ověř si ho přímo u trenéra. Účet, který neprojde kontrolou čísla, QR nevytvoří – neplať a ozvi se. Aplikace ani správci týmu neodpovídají za platbu odeslanou na jiný účet.</li>
+<li><b>⬇️ Uložit QR</b> (od v18.7.1): platíš z téhož telefonu? Pod QR klepni na <b>⬇️ Uložit QR</b>. Na Androidu (i iPhonu) se otevře <b>Sdílet</b> – zvol <b>Uložit do Galerie</b> (Fotky) nebo rovnou svou bankovní aplikaci; na počítači se obrázek stáhne jako soubor <b>QR-platba-RRRR-MM-DD-VS.png</b>. V bankovní aplikaci pak zvol načtení QR <b>z obrázku / z galerie</b>. Obrázek má pod kódem popisek (účet, IBAN, částka, VS, zpráva, datum vytvoření) a obsahuje přesně stejný QR jako okno platby. Tlačítko je jen u zobrazeného QR – tedy až po kontrole účtu a případném „Ověřila jsem účet“. <b>I u uloženého obrázku zkontroluj v bance číslo účtu příjemce</b>; starý obrázek po změně účtu nebo částky už nepoužívej.</li>
 <li><b>Dva účty:</b> tým může mít hlavní účet (např. příspěvky) a provozní účet (např. platby za události). U každého předpisu je vidět, na který účet patří, a QR vede právě tam.</li>
 <li><b>📱 Zaplatit vše (souhrnná platba):</b> víc předpisů na <b>stejný účet</b> zaplatíš jedním QR s osobním VS a zprávou „Souhrn: …“. Platby na různé účty sloučit nejde – každý účet se platí zvlášť.</li>
 <li><b>Blokace:</b> neuhrazený předpis po splatnosti zablokuje vlastní přihlášení „Jdu“. Odhlásit se a „Nejdu“ jde vždy.</li>
