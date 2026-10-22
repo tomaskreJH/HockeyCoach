@@ -6,6 +6,8 @@
 //        jednotka k odsouhlasení (#lmw, S.lsub "uask"), po potvrzení jsou tlačítka a fronty jen jednotek situace; po konci nerovnosti
 //        se obrazovka vrátí k řadám. Po zranění se hned otevře Sestava s vyznačeným místem (S.lgap). Řádek stavu = tresty s ✕
 //        a tlačítko nabídky jednotky / ↩ Řady. Upozornění jsou v horním řádku průběhu (#lwarn) jen když nějaké je.
+// v18.4.1: samostatný řádek stavu zrušen – tresty (číslo hráčky, odpočet, ✕) a nabídka jednotky / ↩ Řady jsou malé štítky
+//        velikosti situace přímo v řádku třetiny (#lchips, posun do strany); nižší dlaždice hráček na ledě; mantinel modrý.
 //        Oprava: chybějící hráčka na ledě se hlásí i při čekajícím trestu (2+2, třetí trest) a jako varování ⚠️.
 // v18.3: rozložení B (jediné) – horní lišta s řádkem stavu (tresty, ošetřování, PP/OS), střela soupeře, čára, pětky, led,
 //        pod ním čekající; rotace: dlaždice má jedinou akci, partnerka je malé tlačítko pod hráčkou (klepnutí = na led,
@@ -80,18 +82,20 @@ if(!shown.some(c=>dq[c].length))shown.forEach(c=>{dq[c]=[...(L.q[c]||[])]})}
 else{shown.forEach(c=>{dq[c]=[...(L.q[c]||[])]});
 COLS.filter(c=>!shown.includes(c)).forEach(hc=>{const t=(HM[hc]||["C"]).find(x=>shown.includes(x))||shown[0];if(t)(L.q[hc]||[]).forEach(id=>{if(!dq[t].includes(id))dq[t].push(id)})})}
 // ===== Rozložení v18.4 – shora dolů =====
-// 1) horní lišta (sticky): třetina se situací, čas ◀ ▶, skóre se střelami; pod tím řádek stavu pevné výšky #lchips
-//    (tresty s odpočtem a ✕, nabídka jednotky PP/OS / ↩ Řady) – posouvá se do strany, takže nic pod lištou neposune
+// 1) horní lišta (sticky): řádek třetiny #lchips (třetina, situace, malé štítky trestů s odpočtem a ✕, nabídka jednotky PP/OS /
+//    ↩ Řady – jeden řádek, posouvá se do strany, takže nic pod lištou neposune), čas ◀ ▶, skóre se střelami
 // 2) hřiště: STŘELA NA NAŠI BRÁNU → červená středová čára → hráčky na ledě (klepnutí = střela)
 // 3) mantinel → tlačítka celých pětek (v režimu PP/OS tlačítka jednotek situace a ↩ Řady)
 // 4) pod každým místem sloupec čekajících: na řadě (větší dlaždice) → pod ní malé tlačítko rotující partnerky → další ve frontě
 //    → dole partnerky hráček na ledě; 5) průběh s řádkem upozornění nahoře (jen když nějaké je).
 const tag=`<span class="tag ${us>op?"pp":op>us?"sh":""} lsit">${sit}</span>`,
-pchips=(L.pen||[]).map(x=>{const tl={min:"2 min",maj:"5 min",mis:"10 min",gm:"do konce"}[x.ty],t=x.ty==="gm"?tl:x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<span class="lchip pen"><span>🚫 ${x.t==="us"?pn(x.p):"Soupeř"} ${t}</span><button data-pcx="${x.id}" aria-label="Zrušit trest" title="Zrušit trest">✕</button></span>`}).join(""),
-// Řádek stavu: při nerovnosti bez režimu PP/OS tlačítko nabídky jednotky; jednotka z minulé nerovnosti (situace skončila) → ↩ Řady
-uchips=(grp&&!uv?`<button class="lchip ub ${us>op?"pp":"sh"}" data-uask="1">${us>op?"⚡ Jednotka PP":"🛡 Jednotka OS"}</button>`:"")+(L.unit&&!uv?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:""),
-chips=pchips+uchips||'<span class="lchip-none">Bez trestů</span>';
-let h=`<div class="lt lt-b"><div class="lt-r1"><div><div class="lper"><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small>${tag}</div><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div></div><div id="lchips" class="lchips">${chips}</div></div>`;
+// Štítek trestu (v18.4.1, kompaktní): naše hráčka číslem (bez čísla jménem), soupeř „Soup.“, odpočet / délka a ✕
+pnum=id=>{const p=pl(id);return p?(p.num?"#"+esc(p.num):esc(p.name)):"?"},
+pchips=(L.pen||[]).map(x=>{const tl={min:"2'",maj:"5'",mis:"10'",gm:"DK"}[x.ty],t=x.ty==="gm"?tl:x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<span class="lchip pen" title="${x.t==="us"?esc((pl(x.p)||{}).name||""):"Soupeř"}">🚫 ${x.t==="us"?pnum(x.p):"Soup."} ${t}<button data-pcx="${x.id}" aria-label="Zrušit trest" title="Zrušit trest">✕</button></span>`}).join(""),
+// Nabídka jednotky při nerovnosti bez režimu PP/OS; jednotka z minulé nerovnosti (situace skončila) → ↩ Řady
+uchips=(grp&&!uv?`<button class="lchip ub ${us>op?"pp":"sh"}" data-uask="1">${us>op?"⚡ PP":"🛡 OS"}</button>`:"")+(L.unit&&!uv?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:""),
+chips=pchips+uchips;
+let h=`<div class="lt lt-b"><div class="lt-r1"><div class="lt-left"><div class="lper" id="lchips"><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small>${tag}${chips}</div><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div></div></div>`;
 // Pomocné pro dlaždice: pětka hráčky (barva), číslo, jméno
 const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc((pl(id)||{}).name||"?");
 const firstUp=new Set(shown.map(c=>dq[c][0]).filter(Boolean)),waiting=new Set(COLS.flatMap(c=>dq[c]||[])),lastShift=(L.sh||[]).slice(-1)[0],playerState=id=>`live-player${onIce.has(id)?" on-ice":""}${firstUp.has(id)?" next":""}${lastShift&&lastShift.p===id&&waiting.has(id)?" just-off":""}`;

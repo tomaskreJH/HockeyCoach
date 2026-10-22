@@ -9,7 +9,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky – **hotovo**, k testu |
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo** (odezva zůstává, rozložení nahradila v18.3) |
 | v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, otestováno (požadavky do v18.4) |
-| v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo**, k testu |
+| v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo** (úprava hlavičky v18.4.1, k testu) |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
@@ -44,6 +44,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
   4. Po trestu, který změní počty a vytvoří nerovnost, panel „uask“: navržená jednotka (nejvíc dostupných hráček, přepínač druhé), vyloučená červeně, nesestavená místa z front; ✓ Potvrdit a nasadit → režim PP/OS (tlačítka jednotek situace + ↩ Řady pod mantinelem, fronty jen z jednotek); Ponechat pětky; ✏️ Upravit jednotky. Režim se zobrazuje jen, když `L.unit` patří k platné situaci – po konci nerovnosti se obrazovka sama vrátí k pětkám (uložené `L.unit` zruší až pětka / ↩ Řady, upozornění to připomene). Po zranění (dočasném i trvalém) hned Sestava s vyznačeným místem (`S.lgap`).
   5. Upozornění `#lwarn` v horním řádku průběhu jen když nějaké je: chybí / přebývá hráčka, dlouhé střídání, jednotka po konci nerovnosti, nevybraná brankářka (⚠️), na trestu, v ošetřování (info).
   **K potvrzení – návrh řádku stavu v hlavičce:** tresty (naše i soupeř) s odpočtem a ✕; při nerovnosti bez režimu PP/OS tlačítko ⚡ Jednotka PP / 🛡 Jednotka OS (znovu otevře nabídku); po konci nerovnosti s jednotkou na ledě ↩ Řady; jinak tlumené „Bez trestů“. Pevná výška zůstává (sticky hlavička, nic neposune). Situace, 🩹 a tlačítka jednotek z řádku odešly (hlavička / upozornění / pod mantinel).
+- **Test v18.4 (22. 10. 2026):** tresty zabírají zbytečně místo (při více trestech nepřehledné) → do horního stavového okna jako štítky velikosti situace; snížit rámeček hráček na ledě (písmo zachovat); mantinel červený nebo modrý.
+- **v18.4.1 dodáno, k testu.** Řádek stavu zrušen: tresty (🚫 #číslo odpočet ✕), ⚡ PP / 🛡 OS a ↩ Řady jsou malé štítky v řádku třetiny vedle situace (jeden řádek, posun do strany). Dlaždice na ledě 64 px (dřív 92 px). Mantinel modrý (červená zůstává středové čáře).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 

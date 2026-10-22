@@ -2,6 +2,7 @@
 // Struktura: Importy -> Zápis události (commitEv) -> Start rychlého zápisu (qaStart) -> Okno kroků (qaHtml) -> Klepnutí v okně (qaClick).
 // v18.2: po zapsání gólu a trestu odezva (live-feedback.js) – vibrace a záblesk skóre / místa trestů. Zápis se nemění.
 // v18.3: tresty jsou v řádku stavu horní lišty (#lchips) – záblesk po trestu míří tam.
+// v18.4.1: tresty jsou malé štítky v řádku třetiny (stále #lchips) – záblesk po trestu míří tam.
 // v18.4: po zapsání vyloučení, které změní počty a vytvoří přesilovku / oslabení, se otevře nabídka jednotky k odsouhlasení (askUnit, B4).
 import {COLS, REA, SIT} from "../config/constants.js";
 import {upd} from "../core/actions.js";
@@ -36,7 +37,7 @@ else if(Q_.step==="len"){t="Délka trestu"+(Q_.team==="opp"?" (soupeř)":"");b=[
 else{t="Důvod";b=REA.map(r=>bt("why:"+r,r)).join("")}
 return`<div class="lmw" id="qw"><div class="lmb"><h2>${t}</h2><div class="mu" style="margin-bottom:8px">${Q_.per}. tř. ${esc(Q_.time)}</div>${x}<div class="qg">${b}</div><button class="s w" data-qb="x" style="margin-top:14px;min-height:54px">Zrušit</button></div></div>`}
 // ===== Klepnutí v okně =====
-// Poslední krok zapíše událost (commitEv) a dá odezvu: gól = záblesk skóre, trest = záblesk řádku stavu (#lchips);
+// Poslední krok zapíše událost (commitEv) a dá odezvu: gól = záblesk skóre, trest = záblesk řádku třetiny se štítky trestů (#lchips);
 // po trestu se porovná počet hráček před a po zápisu a případně se nabídne jednotka PP/OS (askUnit)
 export function qaClick(id,m,L){const Q_=S.qa,i=id.indexOf(":"),k=i<0?id:id.slice(0,i),v=i<0?"":id.slice(i+1);
 function fin(){const e={id:uid(),k:"G",team:"us",per:Q_.per,time:Q_.time,sit:Q_.sit,scorer:Q_.scorer,a1:Q_.a1,a2:Q_.a2,on:liveIds(L)};S.qa=null;commitEv(e);feedback("ok",".lsc")}

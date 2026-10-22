@@ -267,19 +267,21 @@ th { color: var(--mu); font-size: 12px; }
    Shora: horní lišta (třetina se situací, čas, skóre) + řádek stavu → hřiště (střela soupeře → středová čára → led)
    → mantinel → pětky / jednotky PP/OS → čekající s rotujícími partnerkami → průběh s upozorněními.
    ========================================================== */
-/* Horní lišta (sticky): řádek 1 čas a skóre, řádek 2 stav pevné výšky (posouvá se do strany) */
+/* Horní lišta (sticky): řádek třetiny se situací a štítky trestů (.lper, v18.4.1), pod ním čas; vpravo skóre */
 .lt-b { display: block; position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 0 4px; margin-bottom: 6px; }
 .lt-r1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .lnud { min-width: 52px; min-height: 48px; border-radius: 10px; border: 1px solid var(--bd); background: var(--cd); color: var(--tx); font-weight: 700; font-size: 16px; }
-.lchips { display: flex; align-items: center; gap: 6px; height: 44px; margin-top: 4px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; }
-.lchips::-webkit-scrollbar { display: none; }
-.lt .lchips b { display: inline; font-size: 13px; line-height: inherit; }   /* odpočet trestu – ne velké písmo času (.lt b) */
 .lchip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px; border-radius: 19px; font-size: 13px; box-sizing: border-box; }
-.lper { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }   /* třetina + situace (v18.4) */
-.lper .lsit { font-size: 12px; padding: 2px 8px; }
-.lchip-none { flex: 0 0 auto; font-size: 13px; color: var(--mu); padding: 0 4px; }   /* prázdný řádek stavu */
-.lchip.pen { background: #fde8e5; color: var(--no); padding-right: 4px; }
-.lchip.pen button { min-width: 32px; height: 32px; padding: 0; border-radius: 16px; border: 1px solid var(--no); background: transparent; color: var(--no); font-weight: 700; }
+/* Řádek třetiny (v18.4.1): třetina, situace a malé štítky trestů / jednotky v jednom řádku, posun do strany */
+.lt-left { flex: 1; min-width: 0; }
+.lper { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; height: 30px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; }
+.lper::-webkit-scrollbar { display: none; }
+.lper > small { flex: 0 0 auto; }
+.lper .lsit { flex: 0 0 auto; font-size: 12px; padding: 2px 8px; }
+.lper .lchip { height: 26px; padding: 0 8px; gap: 4px; border-radius: 13px; font-size: 12px; }
+.lt .lper b { display: inline; font-size: 12px; line-height: inherit; }   /* odpočet trestu – ne velké písmo času (.lt b) */
+.lchip.pen { background: #fde8e5; color: var(--no); padding-right: 2px; }
+.lchip.pen button { min-width: 26px; height: 22px; padding: 0; border-radius: 11px; border: 1px solid var(--no); background: transparent; color: var(--no); font-weight: 700; font-size: 11px; }
 .lchip.tmp { background: #fff3dc; color: #5a3a00; }
 .lchip.ub { border: 2px solid var(--ac); background: var(--cd); color: var(--ac); font-weight: 700; }
 .lchip.ub.pp { background: var(--ac); color: #fff; }
@@ -297,8 +299,9 @@ th { color: var(--mu); font-size: 12px; }
 .lrink .lpos { margin-bottom: 4px; }
 .lrink .lpos small { color: #3d4b5c !important; font-weight: 700; }
 .lrink .lg.ice-strip { background: transparent; padding: 0; }
-/* Mantinel pod hřištěm (bílá deska se žlutým okopovým pruhem) */
-.lboard { height: 14px; margin: 6px 4px 10px; border-radius: 7px; border: 2px solid #8a96a3; background: linear-gradient(#f4f4f4 0 55%, #f1c40f 55% 100%); }
+.lrink .lice { min-height: 64px; padding: 2px 4px; gap: 1px; }   /* v18.4.1 nižší dlaždice, písmo beze změny */
+/* Mantinel pod hřištěm (v18.4.1 modrý pruh) */
+.lboard { height: 12px; margin: 6px 4px 10px; border-radius: 6px; border: 2px solid #143f82; background: #1e5bb8; }   /* v18.4.1 modrý */
 
 /* Tlačítka celých pětek */
 .lpl-row { flex-wrap: nowrap; gap: 8px; margin-bottom: 8px; }

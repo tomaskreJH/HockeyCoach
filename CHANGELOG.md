@@ -4,6 +4,16 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.4.1 (22. 10. 2026) – kompaktní hlavička živého zápisu (úprava po testu v18.4)
+**Změněno**
+- `src/views/live.js`: samostatný řádek stavu zrušen – tresty jsou malé štítky velikosti situace přímo v řádku třetiny (`#lchips` = `.lper`: třetina, situace, 🚫 #číslo odpočet ✕, soupeř „Soup.“, délka 2'/5'/10'/DK), stejně malé štítky ⚡ PP / 🛡 OS (nabídka jednotky) a ↩ Řady; jeden řádek s posunem do strany, výška lišty stálá. Hlavička je o řádek nižší.
+- `styles/main.css`: štítky v řádku třetiny, nižší dlaždice hráček na ledě v hřišti (64 px místo 92 px, písmo beze změny), mantinel modrý; odstraněn styl `.lchips`.
+- `src/views/live-quick.js`: jen komentáře (záblesk po trestu dál míří na `#lchips`).
+- `src/views/help.js` (kapitoly 5 a 6), `README.md`, `src/data/storage.js` (verze), `package.json`, `sw.js` (cache hokej-v43), `plan-zivy-zapis-v18.md`.
+
+**Beze změny:** logika živého zápisu z v18.4 a `live-engine.js`, odezva, rotace, uložená data, pravidla databáze (`firestore.rules` není nutné publikovat).
+Ověřeno kouřovým testem v jsdom (34 kontrol – kontroly v18.4 + štítky trestů v řádku třetiny, zrušený řádek stavu).
+
 ## v18.4 (22. 10. 2026) – hřiště, režim PP/OS a nabídky po trestu a zranění (fáze B4 + úpravy po testu v18.3)
 **Opraveno**
 - Zranění v oslabení: upozornění na chybějící hráčku na ledě chybělo. Příčina: v `liveTick` podmínka `!(L.pen).some(… x.end==null)` hlášku potlačila, kdykoli náš trest čekal (druhá část 2+2, třetí trest), a hláška byla jen tlumená „ℹ️“ s podmínkou neprázdných front. Nyní se chybějící i přebývající hráčka hlásí vždy jako ⚠️ (kromě ukončeného zápasu).
