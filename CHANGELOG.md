@@ -2,7 +2,31 @@
 
 Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep a Changelog“: u každé verze datum, krátké shrnutí a seznam dotčených souborů.
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
-Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
+Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
+
+## v18.8 (22. 10. 2026) – Řád projektu a pojistky (fáze K) – ⚠️ MĚNÍ PRAVIDLA DATABÁZE
+> **Postup nasazení (pořadí je důležité):** 1) **publikovat `firestore.rules`** (pokladník a členové, nový `settings/app`), 2) nahrát kód a **smazat `plan-zivy-zapis-v18.md` z kořene** (přesunut do `docs/`), 3) ověřit přihlášení trenéra, hráčky a pokladníka (👁 Náhled role), 4) až budou všechna zařízení na v18.8: trenér ⚙️ → **🔒 Vyžadovat verzi v18.8**.
+> Na platby se nesahá: `cash.js`, `bank-account.js`, `mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js` beze změny. Pravidla `charges`, `cash`, `audit`, `evcash`, `debtors` a `settings/cash` beze změny.
+
+**Opraveno (bezpečnost)**
+- **Pokladník si mohl dát roli kustod** (nález 1 z kontroly 22. 10. 2026): pravidlo `members` pouštělo pokladníka ke každému členovi, jen ne s rolí trenér – i k vlastnímu dokumentu. Nově pokladník (bez role trenér) smí zakládat, měnit a mazat jen členy s rolí `hracka` (před změnou i po ní) a nikdy vlastní dokument; trenér beze změny. V ⚙️ → Členové týmu má pokladník jen roli Hráčka a tlačítko Odebrat jen u hráček (ne u sebe).
+
+**Přidáno**
+- **Brána verze** `settings/app = {minVer, minBy, minAt}`: trenér v ⚙️ → Verze aplikace nastaví **🔒 Vyžadovat verzi** (jen zvýšit, potvrzení druhým klepnutím). Zařízení se starší verzí nic nezapisuje (strážce `blocked()` v `storage.js` – stejné místo jako náhled role: `doc.set`, `add`, `delete`, dávky, členové, obnova zálohy, přepočet dlužníků, zápis zápasu) a nahoře ukáže červený pruh **⚠️ Starší verze aplikace – zápis je zablokovaný · Načíst novou verzi**. Chybějící minimum bránu nezavírá. `settings/app` se ze zálohy neobnovuje ani nemaže. Pravidla: zapisuje jen trenér (jen pole `minVer`, `minBy`, `minAt`, `minBy` = jeho e-mail), nejde smazat. Chrání až od v18.8 – starší verze bránu neznají.
+- Nový modul `src/core/app-version.js`: jediné místo s číslem verze (`APP_VERSION`, `APP_DATE`, `APP_LABEL`), porovnání po číslech `cmpVer` (18.10 > 18.9), `isOutdated`, `canRaise`.
+- **Automatické testy** `tests/` (39 kontrol, `npm test`, Node 22+, bez balíčků z npm): pokladna (dělení ceny, osvobozené v děliteli, fx, předpisy, úhrady, dluh, zůstatek), QR (alfanumerický text, SPD, okamžitá platba), účty (mod 11, mod 97, IBAN), docházka (sezóna, uplynulé události, procenta), dlužníci (bez částek, ⛓ / 🔓, plán zápisu), živý zápis (počáteční stav, střídání, rotace, Zpět, trest a formace 4 hráček, konec trestu, gól v přesilovce, max. 2 tresty, konec třetiny, časová osa), soulad verze (`app-version.js` = `package.json` = CHANGELOG, README) a pravidla databáze (kontrola textu). Zástupci prohlížeče a Firebase SDK v `tests/support/` – aplikace se kvůli testům nemění.
+- `docs/KONVENCE.md` – programovací řád: mapa souborů, závislosti, struktura souboru, data a pravidla (merge, dva kroky, brána verze), verze a vydání, testy, nasazení a návrat, práce s Claude.
+- `docs/plan-v18.md` (aktuální plán, dříve `plan-zivy-zapis-v18.md`), `docs/archiv-plan-v18.md` (dokončené fáze A, B, G, P, C, Q a průběžný stav), `docs/archiv-readme-v18.7.1.md` (původní podrobné README).
+
+**Změněno**
+- `README.md` zkráceno (66 kB → cca 5 kB): současný stav, spuštění a testy, Firebase, nasazení a návrat, role, odkazy na dokumentaci.
+- `src/data/storage.js` (verze z `app-version.js`, brána verze, sekce Verze aplikace v ⚙️, členové pro pokladníka, obnova bez `settings/app`), `src/views/shell.js` (pruh staré verze), `src/views/help.js` (kapitoly 1 a 12), `package.json` (verze 18.8, skript `test`, `engines`), `sw.js` (cache hokej-v49, komentář bez historie).
+
+**Odstraněno**
+- `plan-zivy-zapis-v18.md` z kořene repozitáře (obsah v `docs/plan-v18.md` a `docs/archiv-plan-v18.md`) – **smazat ručně**.
+
+**Beze změny**
+- Živý zápis, střely, góly, časomíra, tresty, statistiky, docházka, pokladna, QR a účty (logika); vzhled aplikace kromě pruhu staré verze a sekce Verze aplikace v ⚙️.
 
 ## v18.7.1 (22. 10. 2026) – ⬇️ Uložení QR do telefonu (fáze Q) – ⚠️ SAHÁ NA PLATBY
 > **Pozor – verze sahá na soubor plateb:** `src/views/mine.js` (okno QR v Moje platby) a nový `src/views/qr-image.js`. **Obsah QR se nemění** – obrázek se kreslí z téhož objektu `qrcode`, který okno zobrazí (`spdPay`, `qrMsg`, `PT:IP` beze změny). `bank-account.js`, `cash.js`, `cash-settings.js` a `firestore.rules` se **nemění** – pravidla publikovat netřeba.

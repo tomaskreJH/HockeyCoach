@@ -45,13 +45,23 @@ service cloud.firestore {
         && (pendNew() == null || pendByMe());
     }
 
+    // ===== Brána verze (settings/app): {minVer, minBy, minAt} – minimální verze aplikace, která smí zapisovat =====
+    // Nastavuje jen trenér; minVer = číslo verze (např. 18.8), minBy = jeho e-mail. Dokument nejde smazat.
+    function appSettingsOk() {
+      return isCoach() && request.resource.data.keys().hasOnly(['minVer', 'minBy', 'minAt'])
+        && request.resource.data.minVer is string && request.resource.data.minVer.matches('^[0-9]+([.][0-9]+){0,2}$')
+        && request.resource.data.get('minBy', mail()) == mail();
+    }
+
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
-    // Pokladník smí přidávat a měnit členy, jen ne členy s rolí trener
+    // Trenér spravuje všechny členy. Pokladník (bez role trenér) jen členy s rolí hracka – před změnou i po ní –
+    // a nikdy vlastní dokument (jinak by si mohl dát roli kustod a získat sportovní zápis).
+    function cashierMember(email, d) { return isCash() && email != mail() && d.role == 'hracka'; }
     match /members/{email} {
       allow read: if signedIn() && (email == mail() || isCoach() || isCash());
-      allow create: if isCoach() || (isCash() && request.resource.data.role != 'trener');
-      allow update: if isCoach() || (isCash() && request.resource.data.role != 'trener' && resource.data.role != 'trener');
-      allow delete: if isCoach() || (isCash() && resource.data.role != 'trener');
+      allow create: if isCoach() || cashierMember(email, request.resource.data);
+      allow update: if isCoach() || (cashierMember(email, request.resource.data) && cashierMember(email, resource.data));
+      allow delete: if isCoach() || cashierMember(email, resource.data);
     }
 
     // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st), pokladník jen pole plateb (grp, fx = koeficient 0..1, ex = osvobozená, note) =====
@@ -78,12 +88,13 @@ service cloud.firestore {
     }
     match /opponents/{id} { allow read: if isMember(); allow write: if isStaff(); }
 
-    // ===== Nastavení: základní formace trenér a kustod, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení (v18.6.1); čtou všichni členové =====
+    // ===== Nastavení: základní formace trenér a kustod, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení;
+    // settings/app (brána verze) jen trenér; čtou všichni členové. settings/cash ani settings/app nejde smazat =====
     match /settings/{id} {
       allow read: if isMember();
-      allow create: if id == 'cash' ? cashSettingsCreate() : isStaff();
-      allow update: if id == 'cash' ? cashSettingsUpdate() : isStaff();
-      allow delete: if id != 'cash' && isStaff();
+      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : isStaff());
+      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : isStaff());
+      allow delete: if id != 'cash' && id != 'app' && isStaff();
     }
 
     // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen příznak ss =====

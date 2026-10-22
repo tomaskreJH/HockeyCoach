@@ -2,8 +2,8 @@
 // Firebase SDK (verzované neměnné adresy na gstatic.com) se ukládá také, aby aplikace šla spustit offline.
 
 // ===== Konstanty =====
-// Název cache se mění s každou verzí, aby se stará kopie aplikace zahodila (v41 = verze 18.3, v44 = verze 18.4.2, v45 = verze 18.6, v46 = verze 18.6.1, v47 = verze 18.7, v48 = verze 18.7.1)
-const C = "hokej-v48", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+// Název cache se mění s každou verzí (hokej-vNN, číslo jen roste), aby se stará kopie aplikace zahodila; přiřazení k verzím je v CHANGELOG.md
+const C = "hokej-v49", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/";
 
 // ===== Instalace a aktivace =====

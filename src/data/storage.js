@@ -6,9 +6,14 @@
    Náhled role (v18.6): vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
    zařízení (sessionStorage), po znovunačtení stránky platí jako role účtu (main.js podle ní poslouchá jen povolená data).
    Výchozí je jen ke čtení – každý zápis (doc.set, add, delete, dávka, členové, obnova zálohy) skončí hláškou „V náhledu se nezapisuje“.
-   Migrace z v16.3 (payments -> charges) a přesun dat pokladny do evcash (v17.2) jsou hotové a z kódu odstraněné (v17.3). */
+   Migrace z v16.3 (payments -> charges) a přesun dat pokladny do evcash (v17.2) jsou hotové a z kódu odstraněné (v17.3).
+   Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
+   strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
+   Minimum nastavuje jen trenér (⚙️ → Verze aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
+   Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze). */
 
 // ===== Importy =====
+import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.js";
 import {downloadFile, esc, toast} from "../core/utils.js";
 import {exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
@@ -18,7 +23,7 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v18.7.1 · 22. 10. 2026";
+const VERSION = APP_LABEL;                                              // číslo verze je jen v core/app-version.js
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
@@ -29,6 +34,8 @@ const STAFF = ["trener", "kustod"];                                     // role 
 const DEV_EMAILS = ["tomaskre@gmail.com"];                              // účty vývojáře se smí přepnout do náhledu role (v18.6)
 const PV_KEY = "hk-preview";                                            // klíč náhledu v sessionStorage (jen toto zařízení / okno)
 const RO_MSG = "V náhledu se nezapisuje";
+const OLD_MSG = "Starší verze aplikace – zápis je zablokovaný. Načti novou verzi (⚙️ → Načíst novou verzi).";
+const APP_DOC = "app";                                                  // settings/app = brána verze {minVer, minBy, minAt}
 
 // pid = hráčka propojená s účtem, tid = člen realizačního týmu propojený s účtem, cash = pokladník (příznak navíc k roli)
 let fs = null, auth = null, user = null, role = null, pid = null, tid = null, cash = false, isReady = false, readyP = null;
@@ -58,11 +65,15 @@ const pvRead = () => { try { const o = JSON.parse(sessionStorage.getItem(PV_KEY)
 const pvWrite = o => { try { if (o) sessionStorage.setItem(PV_KEY, JSON.stringify(o)); else sessionStorage.removeItem(PV_KEY); } catch (e) {} };
 // Náhled jen ke čtení?
 const ro = () => !!(pv && !pv.write);
-// Strážce zápisu: v náhledu jen ke čtení vrátí true a ukáže hlášku (nejvýš jednou za 3 s, aby se hlášky nehromadily)
+// Brána verze: požadované minimum ze settings/app (načítá se s ostatním nastavením) a test, zda je tato verze starší
+const minVer = () => ((data.settings || {})[APP_DOC] || {}).minVer || "";
+const outdated = () => isOutdated(APP_VERSION, minVer());
+// Strážce zápisu: starší verze aplikace nebo náhled jen ke čtení vrátí true a ukáže hlášku (nejvýš jednou za 3 s, aby se hlášky nehromadily)
 function blocked() {
-  if (!ro()) return false;
+  const old = outdated();
+  if (!old && !ro()) return false;
   const t = Date.now();
-  if (t - lastRo > 3000) { lastRo = t; say(RO_MSG); }
+  if (t - lastRo > 3000) { lastRo = t; say(old ? OLD_MSG : RO_MSG); }
   return true;
 }
 // Popis náhledu pro pruh nahoře: role · hráčka / člen týmu · pokladník · režim zápisu
@@ -142,9 +153,10 @@ function writeDebtors(plan) {
   plan.set.forEach(x => writeDoc(DEBT_COLL, x.id, x.d));
   plan.del.forEach(id => deleteDoc(fsDoc(fs, DEBT_COLL, id)).catch(e => say("Souhrn dlužníků se nepovedlo uložit: " + errTxt(e))));
 }
-// Celý přepočet souhrnu dlužníků ze všech předpisů (⚙️ → Přepočítat dlužníky, obnova ze zálohy); ch = předpisy, výchozí aktuální
+// Celý přepočet souhrnu dlužníků ze všech předpisů (⚙️ → Přepočítat dlužníky, obnova ze zálohy); ch = předpisy, výchozí aktuální.
+// Vrací počet dlužníků, nebo null, když zápis zastavil strážce (náhled, starší verze).
 async function rebuildDebtors(ch) {
-  if (blocked()) return 0;
+  if (blocked()) return null;
   if (!isCash()) throw new Error("Přepočet dlužníků smí jen trenér nebo pokladník");
   const plan = debtorRebuild(ch || chList(), Object.keys(data[DEBT_COLL]), isStaffId);
   await commitOps([...plan.set.map(x => ["set", DEBT_COLL, x.id, x.d]), ...plan.del.map(id => ["del", DEBT_COLL, id])]);
@@ -284,7 +296,8 @@ async function renderMembers(el) {
     box.innerHTML = rows.map(r => {
       const p = r.pid && data.players[r.pid], t = r.tid && data.staff[r.tid];
       const who = (r.role === "hracka" ? (p ? " · " + esc((p.num ? "#" + p.num + " " : "") + p.name) : " · ⚠️ bez hráčky") : "") + (r.tid ? (t ? " · 🎓 " + esc(t.name) : " · ⚠️ člen týmu neexistuje") : "") + (r.cash ? " · 💰 pokladník" : "");
-      const canDel = r.email !== user.email.toLowerCase() && (coach || r.role !== "trener");
+      // Odebrat: nikdy vlastní účet; pokladník (bez role trenér) jen členy s rolí Hráčka
+      const canDel = r.email !== user.email.toLowerCase() && (coach || r.role === "hracka");
       return `<div class="it" style="cursor:default"><div><b>${esc(r.email)}</b><div class="mu">${esc(ROLES[r.role] || r.role || "?")}${who}</div></div>${canDel ? `<button class="d" data-md="${esc(r.email)}" style="padding:8px 12px">Odebrat</button>` : ""}</div>`;
     }).join("") || "–";
     box.querySelectorAll("[data-md]").forEach(b => { b.onclick = async () => {
@@ -300,12 +313,13 @@ function openCfg() {
  <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
  ${pvSection()}
  ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button>` : ""}
- ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Členy s rolí Trenér spravuje jen trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option>' : ""}<option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><select id="cmp" style="display:none"><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
+ ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option><option value="kustod" selected>Kustod</option>' : ""}<option value="hracka"${coach ? "" : " selected"}>Hráčka</option></select><select id="cmp"${coach ? ' style="display:none"' : ""}><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
- <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
+ <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.${verInfo()}</div><button class="s w" id="cu2">Načíst novou verzi</button>${coach && canRaise(APP_VERSION, minVer()) ? `<button class="s w" id="cmv" style="margin-top:8px">🔒 Vyžadovat verzi v${APP_VERSION}</button>` : ""}
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
-  q("#cu2").onclick = refresh; q("#cz").onclick = close; q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
+  q("#cu2").onclick = refresh; q("#cz").onclick = close;
+  if (q("#cmv")) q("#cmv").onclick = () => raiseMinVer(q("#cmv"), close); q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#clo").onclick = async () => { pvWrite(null); await signOut(auth); location.reload(); };
   bindPv(q);
   if (staff) { q("#ce").onclick = exportJSON; q("#cc").onclick = exportCSV; }
@@ -313,7 +327,7 @@ function openCfg() {
   // Nastavení pokladny se otevírá z views/cash-settings.js (napojeno v main.js)
   q("#ccs").onclick = () => { close(); if (HK.openCash) HK.openCash(); };
   q("#cdb").onclick = async () => {
-    try { const n = await rebuildDebtors(); if (!ro()) say("Dlužníci přepočítáni (" + n + " s nezaplaceným předpisem)"); }
+    try { const n = await rebuildDebtors(); if (n != null) say("Dlužníci přepočítáni (" + n + " s nezaplaceným předpisem)"); }
     catch (e) { say("Přepočet se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
   };
   renderMembers(el);
@@ -323,6 +337,8 @@ function openCfg() {
     const em = q("#cme").value.trim().toLowerCase(), rl = q("#cmr").value, pp = q("#cmp").value, tt = q("#cmt").value, cc = q("#cmc").value === "1";
     if (!/^\S+@\S+\.\S+$/.test(em)) return say("Zadej platný e-mail");
     if (rl === "hracka" && !pp) return say("Vyber hráčku");
+    // Pokladník bez role trenér: jen role Hráčka a ne vlastní účet (pravidla databáze by zápis odmítla)
+    if (!coach && (rl !== "hracka" || em === user.email.toLowerCase())) return say("Pokladník spravuje jen jiné členy s rolí Hráčka");
     if (blocked()) return;
     const d = {role: rl, addedBy: user.email};
     if (rl === "hracka") d.pid = pp;
@@ -351,6 +367,19 @@ function openCfg() {
     if (!armed) { armed = true; q("#cr").textContent = "Opravdu nahradit? Klepni znovu"; return; }
     try { await importData(pendingImport, true); say("Data nahrazena"); close(); } catch (e) { say(errTxt(e)); }
   };
+}
+// Popis brány verze v ⚙️: požadované minimum, kdo ho nastavil, a zda tato verze stačí
+function verInfo() {
+  const a = data.settings[APP_DOC] || {}, m = a.minVer;
+  if (!m) return "<br>Minimální verze není nastavená (zapisovat smí každá verze).";
+  return "<br>Minimální verze: <b>v" + esc(m) + "</b>" + (a.minAt ? " (" + esc(String(a.minAt).slice(0, 10)) + (a.minBy ? ", " + esc(a.minBy) : "") + ")" : "") + (outdated() ? " – <b>tato verze je starší, zápis je zablokovaný.</b>" : ".");
+}
+// Trenér zvýší minimální verzi na tuto (potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
+async function raiseMinVer(btn, close) {
+  if (!btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Opravdu? Starší verze přestanou zapisovat – klepni znovu"; return; }
+  if (blocked()) return;
+  try { await setDoc(fsDoc(fs, "settings", APP_DOC), {minVer: APP_VERSION, minBy: user.email.toLowerCase(), minAt: new Date().toISOString()}, {merge: true}); say("Minimální verze nastavena na v" + APP_VERSION); close(); }
+  catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); }
 }
 async function refresh() {
   try {
@@ -386,19 +415,21 @@ async function commitOps(ops) {
 // Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a pokladny je nesmaže).
 // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
 // Kolekce payments (staré platby do v16.3) se z dřívějších záloh neobnovuje – už se nepoužívá.
+// Brána verze settings/app se ze zálohy neobnovuje ani nemaže (stará záloha nesmí snížit požadovanou verzi; pravidla mazání nedovolí).
 // Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
 // návrhem a potvrzením (v18.6.1, vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
 const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
 function keepAcc(d) { const o = clone(d), cur = data.settings.cash || {}; ACC_KEYS.forEach(k => { if (cur[k] != null) o[k] = clone(cur[k]); else delete o[k]; }); return o; }
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
+  if (outdated()) throw new Error(OLD_MSG);
   if (ro()) throw new Error(RO_MSG);
   const ops = [];
   COLL.forEach(c => {
     if (c === "audit") return;
     const src = obj.data[c] || {};
-    if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && id === "cash")) ops.push(["del", c, id]); });
-    Object.entries(src).forEach(([id, d]) => ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : d]));
+    if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC))) ops.push(["del", c, id]); });
+    Object.entries(src).forEach(([id, d]) => { if (c === "settings" && id === APP_DOC) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : d]); });
   });
   // Předpisy po obnově (pro přepočet souhrnu dlužníků): nahrazení = jen ze zálohy, sloučení = stávající + ze zálohy
   const chSrc = obj.data.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
@@ -408,7 +439,7 @@ async function importData(obj, replace) {
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
-export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null,
+export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null,
   // Náhled role (v18.6): preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview};
 window.HK = HK;

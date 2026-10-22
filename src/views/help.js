@@ -18,7 +18,7 @@ const SECTIONS = [
 <li><b>Telefon:</b> v Chrome otevři adresu aplikace → menu ⋮ → Přidat na plochu / Instalovat aplikaci. Přihlášení zůstává uložené.</li>
 <li><b>Bez signálu (hala):</b> aplikace funguje dál, změny se odešlou po připojení. Živý zápis zápasu veď jen z jednoho telefonu (při souběhu vyhrává poslední zápis).</li>
 <li><b>Tlačítko Zpět na telefonu</b> (od v18.0) funguje uvnitř aplikace: zavře otevřené okno nebo panel, z detailu se vrátí na seznam, z karty zápasu o krok zpět, z jiné záložky na Události. Na domovské stránce se zeptá „Ukončit aplikaci?“. V živém zápisu nejdřív zavře rychlý zápis nebo menu, jinak se zeptá „Odejít ze živého zápisu?“ – odchod <b>zastaví čas</b>. Zpět hned po spuštění aplikace (před prvním klepnutím) ji může zavřít bez dotazu – tak to vyžaduje prohlížeč. Každé klepnutí do aplikace přidá jeden krok zpět (nejvýš 5); když se při mačkání Zpět po sobě kroky vyčerpají, aplikace se zeptá „Ukončit aplikaci?“ – klepni na <b>Ne</b> a můžeš pokračovat (v18.1.1).</li>
-<li><b>Stará verze po aktualizaci:</b> ⚙️ → Načíst novou verzi. Data zůstanou v databázi.</li>
+<li><b>Stará verze po aktualizaci:</b> ⚙️ → Načíst novou verzi (nebo tlačítko v červeném pruhu ⚠️ Starší verze aplikace – v něm se nic neuloží, dokud verzi nenačteš). Data zůstanou v databázi.</li>
 </ul>`},
   {t: "2. Události a docházka", h: `
 <ul>
@@ -145,9 +145,10 @@ const SECTIONS = [
 <li><b>Stáhnout zálohu (JSON):</b> záloha všech načtených dat (trenér a kustod). Dělej ji pravidelně.</li>
 <li><b>Soupiska (CSV):</b> export pro Excel.</li>
 <li><b>Obnovit ze zálohy</b> (jen trenér): <b>Sloučit s daty</b> přidá/přepíše položky, <b>Nahradit vším</b> nahradí obsah kolekcí ze zálohy (druhé klepnutí potvrdí). Vyžaduje internet.</li>
-<li><b>Členové týmu</b> (trenér a pokladník): e-mail, role, propojení s hráčkou nebo členem realizačního týmu, příznak Pokladník. Vlastní účet nelze odebrat.</li>
+<li><b>Členové týmu</b> (trenér a pokladník): e-mail, role, propojení s hráčkou nebo členem realizačního týmu, příznak Pokladník. Vlastní účet nelze odebrat. <b>Pokladník</b> (bez role trenér) přidává, mění a odebírá jen členy s rolí Hráčka a nemůže měnit vlastní účet – ostatní role spravuje trenér (od v18.8, vynucují pravidla databáze).</li>
 <li><b>⛓ Přepočítat dlužníky</b> (trenér a pokladník, od v18.7): naplní veřejný souhrn dlužníků (bez částek) ze všech předpisů. Spusť jednou po nasazení v18.7 a po ruční změně předpisů v databázi; jinak se souhrn zapisuje sám s každou změnou předpisů. Vyžaduje publikovaná pravidla databáze.</li>
 <li><b>Načíst novou verzi:</b> smaže uloženou kopii aplikace, data zůstanou. Číslo verze je vedle názvu nahoře.</li>
+<li><b>🔒 Vyžadovat verzi</b> (jen trenér, od v18.8): po nahrání nové verze nastaví minimální verzi aplikace. Zařízení se starší verzí pak nic nezapisuje (nesmaže tak nová data) a nahoře ukáže červený pruh <b>⚠️ Starší verze aplikace</b> s tlačítkem Načíst novou verzi. Minimum jde jen zvýšit a ze zálohy se neobnovuje.</li>
 <li><b>👁 Náhled role</b> (od v18.6, jen účet vývojáře): ukáže aplikaci tak, jak ji vidí Hráčka (vybraná ze soupisky), Kustod, Pokladník nebo Trenér – volitelně s propojeným členem realizačního týmu. Platí jen v tomto zařízení (do zavření okna), v databázi se nic nemění. Nahoře je stálý pruh <b>Náhled: … · Ukončit náhled</b>. Načtou se jen data, která by role směla číst (cizí předpisy, vyúčtování a audit ne). Výchozí je jen ke čtení – každý zápis skončí hláškou „V náhledu se nezapisuje“; zaškrtnutím <b>Povolit zápis</b> se zapisuje pod tvým účtem za vybranou roli (např. docházka za hráčku). Odhlášení náhled ukončí.</li>
 </ul>`},
   {t: "13. Rychlá reference", h: `

@@ -1,10 +1,14 @@
 {
   "name": "hokej-zapasy",
-  "version": "18.7.1",
+  "version": "18.8",
   "private": true,
-  "description": "Aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráčů, živý zápis, statistiky, události, docházka a pokladna (předpisy, úhrady, vklady, výdaje, zůstatek, měsíční příspěvky, platy, hospodaření po měsících, CSV).",
+  "description": "HockeyCoach – aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráček, živý zápis, statistiky, události, docházka a pokladna (předpisy, úhrady, vklady, výdaje, zůstatek, měsíční příspěvky, platy, hospodaření po měsících, CSV).",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "start": "npx --yes serve ."
+    "start": "npx --yes serve .",
+    "test": "node --import ./tests/support/setup.mjs --test \"tests/**/*.test.js\""
   }
 }
