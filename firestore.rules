@@ -17,10 +17,10 @@ service cloud.firestore {
     function myPid() { return get(memberPath()).data.pid; }
     // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
-    // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno). Stará pole pokladny jsou od v17.3 přesunutá do evcash.
+    // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno); náklady a vyúčtování jsou v evcash.
     function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss']); }
 
-    // ===== Účty týmu pro QR platby (v18.6.1): princip čtyř očí =====
+    // ===== Účty týmu pro QR platby: princip čtyř očí =====
     // iban / iban2 = platné účty, ibanBy = kdo změnu navrhl, ibanOk = kdo ji potvrdil, ibanAt = kdy, ibanPend = čekající návrh {iban, iban2, by, at}.
     // Návrh smí podat jen trenér (pod svým e-mailem), potvrdit jen JINÝ správce pokladny a jen přesně navržené účty.
     function sNew(k) { return request.resource.data.get(k, ''); }
@@ -123,7 +123,7 @@ service cloud.firestore {
       allow read: if isCash() || ownsMid(resource.data.mid);
       allow write: if isCash();
     }
-    // Souhrn dlužníků (v18.7): dokument {mid, since, dues: [{d, x}]} BEZ částek (splatnosti nezaplacených předpisů a příznak výjimky).
+    // Souhrn dlužníků: dokument {mid, since, dues: [{d, x}]} BEZ částek (splatnosti nezaplacených předpisů a příznak výjimky).
     // Čtou všichni členové (značka ⛓ v Docházce), zapisuje jen správce pokladny ve stejné dávce jako změny předpisů; id dokumentu = mid
     match /debtors/{id} {
       allow read: if isMember();
@@ -138,10 +138,6 @@ service cloud.firestore {
       allow read: if isCash();
       allow create: if isCash();
     }
-
-    // Kolekce payments (staré platby do v16.3) už pravidla nepovolují; po migraci ji lze v konzoli Firebase smazat.
-
-    // ===== Jen pro trenéry (hodnocení hráček, poznámky) – hráčky ani kustodi nevidí =====
-    match /coach/{doc=**} { allow read, write: if isCoach(); }
+    // Ostatní kolekce (i neznámé) pravidla nepovolují – kdo je nemá výslovně uvedené výše, nečte ani nezapisuje.
   }
 }

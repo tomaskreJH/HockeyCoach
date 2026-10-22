@@ -18,7 +18,7 @@
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
-import {confirm2, strip, upd} from "../core/actions.js";
+import {confirm2, upd} from "../core/actions.js";
 import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, dlBeforeStart, dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
@@ -142,8 +142,8 @@ function answer(eid, pid, st) {
   S.evr = {eid, pid, st, reason: cur && cur.st === st ? (cur.reason || "") : "", had: !!cur};
   render();
 }
-// Uložení rozdělení do pětek u tréninku (pětky jsou v poli lines: {hráčka: číslo pětky})
-function saveLines(ev, lines) { const d = strip(clone(ev.raw)); d.lines = lines; S.db.doc("events/" + ev.id).set(d); }
+// Uložení rozdělení do pětek u tréninku (pětky jsou v poli lines: {hráčka: číslo pětky}); merge zapíše jen pole lines
+function saveLines(ev, lines) { S.db.doc("events/" + ev.id).merge({lines}); }
 // Rozdělení podle základní formace (jen hráčky, které jdou); partnerky z rotace ("1C+") patří do téže pětky
 function baseLines(going) {
   const lu = (S.def || {}).lu || {}, r = {};
@@ -202,7 +202,7 @@ ${mode === "cal" ? calHtml(evs, today) : ""}
 ${mode === "att" ? attHtml() : shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml();
   // Eventy seznamu
   const nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
-  if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true, keep: {}}; render(); };
+  if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", dlAuto: true}; render(); };
   if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
   a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
   bindBanner(a);
@@ -274,7 +274,7 @@ ${payHtml(ev)}</div>` + sheetHtml();
   if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
-  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, lines: ev.raw.lines || {}, dlAuto: !ev.dl, keep: ev.raw.ss ? {ss: 1} : {}}; render(); };
+  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, dlAuto: !ev.dl}; render(); };
   // Smazání tréninku: nejdřív kontrola vyúčtování (HK.canDelete), pak docházka; předpisy bez úhrady maže datová vrstva spolu s událostí
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {
@@ -351,8 +351,9 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
       const n = clone(m); n.time = f.time; n.place = f.place; n.dl = f.dl;
       S.evf = null; return upd(n);
     }
-    const d = {type: "training", title: f.title || "Trénink", date: f.date, time: f.time, place: f.place, dl: f.dl, note: f.note || "", lines: f.lines || {}, ...(f.keep || {})};
-    if (f.id) S.db.doc("events/" + f.id).set(d); else S.db.collection("events").add(d);
+    // Úprava zapíše přes merge jen údaje z formuláře – pětky (lines), příznak vyúčtování (ss) a další pole zůstanou
+    const d = {type: "training", title: f.title || "Trénink", date: f.date, time: f.time, place: f.place, dl: f.dl, note: f.note || ""};
+    if (f.id) S.db.doc("events/" + f.id).merge(d); else S.db.collection("events").add({...d, lines: {}});
     S.evf = null; render();
   };
 }

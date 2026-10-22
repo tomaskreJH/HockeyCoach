@@ -51,15 +51,14 @@ el.querySelectorAll("[data-es]").forEach(b=>b.onclick=()=>{rd();M.st=b.dataset.e
 el.querySelectorAll("[data-ey]").forEach(b=>b.onclick=()=>{rd();M.grp=b.dataset.ey;modal()});
 el.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{rd();M.pct=b.dataset.ex;modal()});
 el.querySelectorAll("[data-eo]").forEach(b=>b.onclick=()=>{rd();M.ex=b.dataset.eo==="1";modal()});
-// Uložení: pole plateb (grp, fx, ex, note) zapisuje jen správce pokladny; ostatním se zachovají původní hodnoty z databáze,
-// aby změna stavu kustodem neměnila pole, na která nemá právo (pravidla by zápis odmítla)
-// Jen pole plateb: ostatní pole dokumentu zůstanou beze změny (pravidla pokladníkovi povolí jen grp, fx, ex, note)
-$("#ok").onclick=()=>{rd();if(payOnly){const fx=pctToFx(M.pct);if(fx==null)return toast("Zadej koeficient 0–100 %");const o=S.pl.find(p=>p.id===M.id);if(!o)return;const d={...o};delete d.id;Object.assign(d,{grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()});
-S.db.doc("players/"+M.id).set(d).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"));return}
-const n=M.name.trim();if(!n)return toast("Zadej jméno");const o=S.pl.find(p=>p.id===M.id)||{},d={name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st};
+// Uložení přes merge: zapíšou se jen pole z okna, ostatní pole dokumentu (i ta, která tato verze nezná) zůstanou.
+// Pole plateb (grp, fx, ex, note) zapisuje jen správce pokladny; ostatní je vůbec neposílají (pravidla by změnu odmítla).
+// Jen pole plateb (pokladník bez práva na soupisku): pravidla mu povolí jen grp, fx, ex, note.
+$("#ok").onclick=()=>{rd();if(payOnly){const fx=pctToFx(M.pct);if(fx==null)return toast("Zadej koeficient 0–100 %");if(!S.pl.some(p=>p.id===M.id))return;
+S.db.doc("players/"+M.id).merge({grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"));return}
+const n=M.name.trim();if(!n)return toast("Zadej jméno");const d={name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st};
 if(HK.can("money")){const fx=pctToFx(M.pct);if(fx==null)return toast("Zadej koeficient 0–100 %");Object.assign(d,{grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()})}
-else["grp","fx","ex","note"].forEach(k=>{if(o[k]!=null)d[k]=o[k]});
-S.db.doc("players/"+M.id).set(d).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
+S.db.doc("players/"+M.id).merge(d).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
 
 // --- Člen realizačního týmu (kolekce staff): jméno, funkce, plat ---
 // Jméno a funkci mění jen trenér; správce pokladny (pokladník) jen plat
@@ -68,8 +67,9 @@ $("#cl").onclick=()=>{S.M=null;modal()};$("#bg").onclick=e=>{if(e.target.id==="b
 const rs=()=>{if($("#sn"))M.name=$("#sn").value;M.pay=M.pay||{m:"none",amt:0};M.pay.amt=+$("#sa").value||0};
 el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{rs();M.kind=b.dataset.sk;modal()});
 el.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{rs();M.pay.m=b.dataset.sm;modal()});
-$("#ok").onclick=()=>{rs();if(payOnly){const o=S.tr.find(t=>t.id===M.id);if(!o)return;const d={...o};delete d.id;d.pay=M.pay||{m:"none",amt:0};S.db.doc("staff/"+M.id).set(d).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"));return}
-const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("staff/"+M.id).set({name:n,kind:M.kind||KIND[0],pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
+// Uložení přes merge: jen pole z okna (pokladník jen plat), ostatní pole dokumentu zůstanou
+$("#ok").onclick=()=>{rs();if(payOnly){if(!S.tr.some(t=>t.id===M.id))return;S.db.doc("staff/"+M.id).merge({pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"));return}
+const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("staff/"+M.id).merge({name:n,kind:M.kind||KIND[0],pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
 
 // --- Gól / vyloučení (ruční zadání do zápasu) ---
 const m=S.ma.find(x=>x.id===S.mid);if(!m){S.M=null;el.innerHTML="";return}

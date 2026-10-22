@@ -5,7 +5,7 @@
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, save, upd} from "../core/actions.js";
-import {PG, compactRot, goingOf, nomOf, pl, pn, pri, score, shots, skaters, stOf} from "../core/selectors.js";
+import {PG, compactRot, goingOf, nomOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, Q, clone, dlText, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -25,8 +25,8 @@ const l=[...S.ma].sort((x,y)=>y.date.localeCompare(x.date));
 a.innerHTML=`<button class="p w" id="nw" style="margin-bottom:12px">+ Nový zápas</button><div class="cd">${l.length?l.map(m=>{const[g,o]=score(m);return`<div class="it" data-id="${m.id}"><div><b>${esc(m.opp)}</b><div class="mu">${fd(m.date)} · ${m.home?"doma":"venku"}</div></div><div><b style="font-size:20px">${m.closed?"🔒 ":""}${g}:${o}</b> <span class="tag ${g>o?"pp":g<o?"red":""}">${g>o?"V":g<o?"P":"R"}</span></div></div>`}).join(""):'<div class="msg">Žádné zápasy.</div>'}</div>`;
 $("#nw").onclick=()=>{S.M={k:"NEW",date:td(),opp:"",home:true};modal()};
 a.querySelectorAll(".it").forEach(i=>i.onclick=()=>{S.mid=i.dataset.id;S.showLu=false;S.showNom=false;S.step=1;render()})}
-export function detail(a,m){const[g,o]=score(m);const ev=(m.events||[]).map((e,i)=>({e,i})).sort((x,y)=>y.e.per-x.e.per||(y.e.time||"").localeCompare(x.e.time||"")||y.i-x.i).map(x=>x.e);const sh=shots(m),sk=skaters(m.lineup),gk=m.gk||(m.lineup||{}).G1,ge=m.events||[];const tm=e=>e.per+". tř."+(e.time?" "+esc(e.time):"");
-const lu=m.lineup||{},nom=nomOf(m),GO=goingOf(m.id),lk=!!m.closed,opr=m.opr||[],sg=opr.reduce((x,r)=>x+(+r.g||0),0),sNm=!lk&&!m.live,st=S.step||1,NM=["Zápas","Sestava","Zápas živě"],R0=readiness(m),SU=signupState(GO),BM=benchM(m),ph=m.live||lk?"lu":(!R0.nom.ok?"nom":(S.ph||"lu")),OUT=S.pl.filter(p=>stOf(p)!=="end"&&!nom.includes(p.id)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs")).map(p=>p.id);
+export function detail(a,m){const[g,o]=score(m);const ev=(m.events||[]).map((e,i)=>({e,i})).sort((x,y)=>y.e.per-x.e.per||(y.e.time||"").localeCompare(x.e.time||"")||y.i-x.i).map(x=>x.e);const gk=m.gk||(m.lineup||{}).G1,ge=m.events||[];const tm=e=>e.per+". tř."+(e.time?" "+esc(e.time):"");
+const lu=m.lineup||{},nom=nomOf(m),GO=goingOf(m.id),lk=!!m.closed,st=S.step||1,NM=["Zápas","Sestava","Zápas živě"],R0=readiness(m),SU=signupState(GO),BM=benchM(m),ph=m.live||lk?"lu":(!R0.nom.ok?"nom":(S.ph||"lu"));
 // Postup přípravy: přihlášky (událost) → nominace z přihlášených → sestava → uzavření sestavy → zahájení. Dokud přihlášky nestačí na nominaci (1 + 5), karta vede do detailu události.
 const suCard=()=>`<div class="ev"><div class="b">${SU.ok?"✅":"⏳"} ${SU.txt}<div class="mu">${m.dl?"Uzávěrka přihlášek: "+esc(dlText(m.dl)):"Termín přihlašování není nastaven – nastav ho v Událostech (✏️ Upravit)."}</div></div></div>`;
 const nextBtn=()=>!R0.nom.ok&&!SU.ok?'<button class="s w" data-evo style="padding:16px;margin-top:10px">📅 Přihlášky – detail události</button>':`<button class="p w" data-fx style="padding:16px;margin-top:10px">${!R0.nom.ok?"Nominovat z přihlášených →":"Dokončit sestavu →"}</button>`;

@@ -38,7 +38,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 ### Společné pomůcky (od v18.9 – nepiš vlastní kopii)
 | Pomůcka | Kde | Použití |
 |---|---|---|
-| `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | Potvrzení druhým klepnutím: 1. klepnutí označí (`S.cf`), 2. do 4 s provede `fn`, jinak se označení zruší. `redraw` = vlastní překreslení (výchozí `render`). Text a barvu tlačítka řídí `armed(key)`. |
+| `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | Potvrzení druhým klepnutím: 1. klepnutí označí (`S.cf`), 2. do 4 s provede `fn`, jinak se označení zruší. `redraw` = vlastní překreslení (výchozí `render`). Text a barvu tlačítka řídí `armed(key)`. V ⚙️ (`storage.js`) přes `arm2` – `core/actions.js` se načte až při klepnutí (statický import by vytvořil kruh). Jiné potvrzení (vlastní příznak) nepiš. |
 | `pn(id, {staff, fb})`, `nm(id, {staff, fb})` | `core/selectors.js` | Jméno osoby: `pn` s HTML (číslo, jméno, 🤕 / ⛔, u člena týmu 🎓), `nm` čistý text (CSV, časová osa, hlášky). `staff: true` hledá i realizační tým, `fb` = text pro neznámé id (výchozí „?“). Jméno pro zprávu v QR je `payerName` v `domain/cash.js` (bez čísla). |
 | `csv(rows)` | `core/utils.js` | Jediný text CSV pro Excel (středník, uvozovky, BOM, CRLF); částky přes `csvNum` (`domain/cash.js`), stažení `downloadFile`. |
 | `makeDrag(root, items, {target, start, drop, click})` | `core/drag.js` | Přetahování (prst: podržení 320 ms, myš: > 6 px). `start(b)` → `{data, text}` nebo `null`, `drop(data, cíl)`, `click(b)` → obsluha klepnutí nebo `null`. |
@@ -49,7 +49,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` – tam je strážce `blocked()` (náhled role jen ke čtení, starší verze aplikace). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá.
-- Nová pole zapisovat přes `merge` (`S.db.batch().merge(…)`), ne `set` celého dokumentu – starší klient by je jinak smazal.
+- Úpravy existujícího dokumentu zapisovat přes `merge`, ne `set` celého dokumentu – starší klient by jinak smazal nová pole a souběžná změna jiného pole by se přepsala. Jeden dokument: `S.db.doc(cesta).merge({pole})` (zapíše jen uvedená pole, vnořený objekt nahradí celý, `undefined` / `"__del"` pole smaže; nečeká na server). V dávce: `S.db.batch().merge(cesta, {pole})` (hluboké sloučení, `"__del"` smaže pole). `set` jen pro nový dokument nebo dokument, který aplikace celý vlastní (zápas, `evcash`).
 - Změny dat jen **přidávají** pole / kolekce; stará pole se mažou nejdřív o verzi později, po otestování nové verze.
 - Pravidla databáze ve dvou krocích: 1) rozšířit (staré i nové), 2) převést data, 3) zúžit v další verzi. U každé verze napsat, zda a kdy **publikovat firestore.rules** (před, nebo po nahrání kódu).
 - **Brána verze:** `settings/app = {minVer, minBy, minAt}`. Verze, která mění tvar dat, po nasazení zvýší minimum (⚙️ → 🔒 Vyžadovat verzi, jen trenér). Klient pod minimem nezapisuje a ukáže pruh „Načíst novou verzi“.

@@ -1,6 +1,6 @@
 /* Datová vrstva: Firebase (Firestore + přihlášení přes Google).
-   Rozhraní `db`: collection/doc, set, add, delete, onSnapshot a batch() pro atomické zápisy
-   (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit), merge pro částečné změny dokumentu
+   Rozhraní `db`: collection/doc, set (celý dokument), merge (jen uvedená pole – ostatní pole dokumentu zůstanou), add, delete, onSnapshot
+   a batch() pro atomické zápisy (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit),
    a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy. Struktura: Importy -> Konstanty a stav
    -> Pomocné funkce -> Náhled role -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy -> Exporty.
    Náhled role: vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
@@ -133,6 +133,15 @@ function subscribe(c, cb, er) {
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
 function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); }
+// Hodnoty pro částečný zápis: "__del" smaže pole, ostatní se zkopírují; undefDel = i undefined smaže pole (jinak se vynechá)
+const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k, v]) => { if (v === undefined && !undefDel) return; o[k] = v === "__del" || v === undefined ? deleteField() : clone({v}).v; }); return o; };
+// Částečný zápis dokumentu: změní jen uvedená pole (mergeFields), ostatní pole – i ta, která tato verze nezná – zůstanou.
+// Stejně jako writeDoc nečeká na server (offline se zápis odešle po připojení); chyba se ukáže hláškou.
+function mergeDoc(c, id, d) {
+  if (blocked()) return;
+  const o = mergeVals(d, true);
+  setDoc(fsDoc(fs, c, id), o, {mergeFields: Object.keys(o)}).catch(e => say("Uložení se nepovedlo: " + errTxt(e)));
+}
 // Kontrola mazání události / zápasu s vyúčtováním:
 //  - vyúčtovanou událost smaže jen správce pokladny,
 //  - uzavřené vyúčtování s nezaplacenými předpisy smazat nejde (nejdřív úhrada, nebo „Znovu otevřít“).
@@ -180,7 +189,7 @@ function makeBatch() {
   const b = writeBatch(fs), api = {
     set: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), clone(d)); return api; },
     // Částečná změna dokumentu; hodnota "__del" smaže pole
-    merge: (p, d) => { const [c, id] = splitPath(p), o = {}; Object.entries(d).forEach(([k, v]) => { o[k] = v === "__del" ? deleteField() : clone({v}).v; }); b.set(fsDoc(fs, c, id), o, {merge: true}); return api; },
+    merge: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), mergeVals(d), {merge: true}); return api; },
     delete: p => { const [c, id] = splitPath(p); b.delete(fsDoc(fs, c, id)); return api; },
     // V náhledu jen ke čtení se dávka nepotvrdí (nic neodejde)
     commit: () => blocked() ? Promise.resolve() : b.commit().catch(e => say("Uložení se nepovedlo: " + errTxt(e)))
@@ -198,6 +207,7 @@ const db = {
     const [c, id] = splitPath(p);
     return {
       set: async d => { writeDoc(c, id, d); },
+      merge: async d => { mergeDoc(c, id, d); },
       delete: async () => { removeDoc(c, id); },
       onSnapshot: (cb, er) => subscribe(c, () => { const d = data[c][id]; cb({exists: !!d, data: () => d ? clone(d) : undefined}); }, er)
     };
@@ -276,6 +286,16 @@ async function boot() {
 
 // ===== Okno nastavení =====
 let pendingImport = null;
+let cfgSeq = 0;      // pořadí otevření ⚙️ – klíč potvrzení platí jen v právě otevřeném okně
+// Potvrzení druhým klepnutím v ⚙️ přes společné confirm2 (core/actions.js): 1. klepnutí změní text a barvu tlačítka,
+// 2. klepnutí do 4 s provede fn, jinak se tlačítko vrátí. Modul se načte až při klepnutí – statický import by vytvořil kruh
+// (core/actions.js importuje tento soubor).
+async function arm2(btn, name, txt, fn) {
+  const {armed, confirm2} = await import("../core/actions.js"), key = "cfg:" + cfgSeq + ":" + name;
+  if (btn.dataset.t == null) btn.dataset.t = btn.textContent;
+  const draw = () => { const on = armed(key); btn.textContent = on ? txt : btn.dataset.t; btn.style.background = on ? "var(--no)" : ""; btn.style.color = on ? "#fff" : ""; };
+  confirm2(key, fn, draw);
+}
 // Hráčky pro výběr při propojení účtu (bez ukončených), seřazené podle jména
 const playerOpts = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
   .map(([id, p]) => `<option value="${esc(id)}">${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("");
@@ -321,7 +341,7 @@ async function renderMembers(el) {
 }
 function openCfg() {
   const el = document.getElementById("cfg"), coach = can("admin"), cashier = can("members"), staff = can("sport"), q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
-  pendingImport = null;
+  pendingImport = null; cfgSeq++;
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
  <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
  ${pvSection()}
@@ -333,8 +353,9 @@ function openCfg() {
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.${verInfo()}</div><button class="s w" id="cu2">Načíst novou verzi</button>${coach && canRaise(APP_VERSION, minVer()) ? `<button class="s w" id="cmv" style="margin-top:8px">🔒 Vyžadovat verzi v${APP_VERSION}</button>` : ""}
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close;
-  if (q("#cmv")) q("#cmv").onclick = () => raiseMinVer(q("#cmv"), close);
-  if (q("#cex")) q("#cex").onclick = () => runExFix(q("#cex"), close); q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
+  if (q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => raiseMinVer(close));
+  if (q("#cex")) q("#cex").onclick = () => arm2(q("#cex"), "exfix", "Opravdu doplnit? Nejdřív se stáhne záloha – klepni znovu", () => runExFix(close));
+  q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#clo").onclick = async () => { pvWrite(null); await signOut(auth); location.reload(); };
   bindPv(q);
   if (staff) { q("#ce").onclick = exportJSON; q("#cc").onclick = exportCSV; }
@@ -376,11 +397,11 @@ function openCfg() {
     if (!pendingImport) return say("Nejdřív vyber soubor.");
     try { await importData(pendingImport, false); say("Data sloučena"); close(); } catch (e) { say(errTxt(e)); }
   };
-  let armed = false;
-  q("#cr").onclick = async () => {
+  q("#cr").onclick = () => {
     if (!pendingImport) return say("Nejdřív vyber soubor.");
-    if (!armed) { armed = true; q("#cr").textContent = "Opravdu nahradit? Klepni znovu"; return; }
-    try { await importData(pendingImport, true); say("Data nahrazena"); close(); } catch (e) { say(errTxt(e)); }
+    arm2(q("#cr"), "replace", "Opravdu nahradit? Klepni znovu", async () => {
+      try { await importData(pendingImport, true); say("Data nahrazena"); close(); } catch (e) { say(errTxt(e)); }
+    });
   };
 }
 // Popis brány verze v ⚙️: požadované minimum, kdo ho nastavil, a zda tato verze stačí
@@ -395,21 +416,20 @@ function exFixHtml() {
   const plan = exFixPlan(data.players);
   if (!plan.length) return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">✅ Všechny hráčky mají pole <b>ex</b> (osvobozená ano / ne).</div>`;
   const list = plan.map(x => esc(x.name) + " → " + (x.ex ? "osvobozená, koeficient 100 %" : "neosvobozená")).join("<br>");
-  return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">Pole <b>ex</b> chybí u ${plan.length} hráček. Doplnění nic nemění na platbách (stejný význam jako dosud) – je nutné před odstraněním starého tvaru dat:<br>${list}</div><button class="s w" id="cex">Doplnit pole ex (${plan.length})</button>`;
+  return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">⚠️ Pole <b>ex</b> chybí u ${plan.length} hráček. Bez doplnění se hráčka s koeficientem 0 % nepočítá jako osvobozená (starý tvar dat se už nečte). Doplnění vrátí význam, jaký data měla:<br>${list}</div><button class="s w" id="cex">Doplnit pole ex (${plan.length})</button>`;
 }
-// Doplnění pole ex (jen trenér): potvrzení druhým klepnutím, před zápisem se stáhne záloha; lze spustit znovu (doplní jen chybějící)
-async function runExFix(btn, close) {
-  if (!btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Opravdu doplnit? Nejdřív se stáhne záloha – klepni znovu"; return; }
+// Doplnění pole ex (jen trenér, po potvrzení druhým klepnutím): před zápisem se stáhne záloha; lze spustit znovu (doplní jen chybějící)
+async function runExFix(close) {
   if (blocked()) return;
   const plan = exFixPlan(data.players);
   if (!plan.length) { say("Není co doplnit"); close(); return; }
   exportJSON();
-  try { await commitOps(plan.map(x => ["set", "players", x.id, x.doc])); say("Pole ex doplněno u " + plan.length + " hráček"); close(); }
+  // Zapíšou se jen pole ex (a fx u starého tvaru osvobozené) – ostatní pole hráčky zůstanou
+  try { await commitOps(plan.map(x => ["merge", "players", x.id, x.ex ? {ex: true, fx: 1} : {ex: false}])); say("Pole ex doplněno u " + plan.length + " hráček"); close(); }
   catch (e) { say("Doplnění se nepovedlo: " + errTxt(e)); }
 }
-// Trenér zvýší minimální verzi na tuto (potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
-async function raiseMinVer(btn, close) {
-  if (!btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Opravdu? Starší verze přestanou zapisovat – klepni znovu"; return; }
+// Trenér zvýší minimální verzi na tuto (po potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
+async function raiseMinVer(close) {
   if (blocked()) return;
   try { await setDoc(fsDoc(fs, "settings", APP_DOC), {minVer: APP_VERSION, minBy: user.email.toLowerCase(), minAt: new Date().toISOString()}, {merge: true}); say("Minimální verze nastavena na v" + APP_VERSION); close(); }
   catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); }
@@ -436,17 +456,20 @@ function exportCSV() {
   const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Skupina plateb", "Osvobozená", "Koeficient (%)", "Poznámka k platbám"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.grp || "monthly", exOf(p) ? "ano" : "", String(Math.round(fxOf(p) * 1000) / 10).replace(".", ","), p.note || ""])];
   downloadFile("soupiska-" + stamp() + ".csv", csv(rows), "text/csv");
 }
-// Zápis po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu
+// Zápis po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu. Operace: ["set" | "merge" | "del", kolekce, id, data]
 async function commitOps(ops) {
   for (let i = 0; i < ops.length; i += 400) {
     const b = writeBatch(fs);
-    ops.slice(i, i + 400).forEach(([t, c, id, d]) => { if (t === "set") b.set(fsDoc(fs, c, id), clone(d)); else b.delete(fsDoc(fs, c, id)); });
+    ops.slice(i, i + 400).forEach(([t, c, id, d]) => {
+      if (t === "set") b.set(fsDoc(fs, c, id), clone(d));
+      else if (t === "merge") b.set(fsDoc(fs, c, id), mergeVals(d), {merge: true});
+      else b.delete(fsDoc(fs, c, id));
+    });
     await b.commit();
   }
 }
 // Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a pokladny je nesmaže).
 // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
-// Kolekce payments (staré platby) se z dřívějších záloh neobnovuje – už se nepoužívá.
 // Brána verze settings/app se ze zálohy neobnovuje ani nemaže (stará záloha nesmí snížit požadovanou verzi; pravidla mazání nedovolí).
 // Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
 // návrhem a potvrzením (vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.

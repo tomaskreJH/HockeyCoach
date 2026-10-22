@@ -1,5 +1,6 @@
-// Test převodu pole ex u hráček (⚙️ → Kontrola dat, v18.9.2): exFixPlan v domain/cash.js.
-// Doplní ex jen hráčkám bez pole; význam pro výpočet plateb (exOf, fxOf) se převodem nesmí změnit.
+// Test převodu pole ex u hráček (⚙️ → Kontrola dat): exFixPlan v domain/cash.js.
+// Doplní ex jen hráčkám bez pole; starý tvar osvobozené (fx 0 bez ex) převede na ex true a fx 1 (tak se četl do v18.9.2).
+// Od v18.9.3 exOf a fxOf starý tvar nečtou – osvobozená je jen hráčka s ex: true.
 // Struktura: Importy -> Testovací data -> Testy.
 
 // ===== Importy =====
@@ -15,6 +16,9 @@ const P = {
   ok: {name: "Hotová", fx: 0, ex: false},             // má ex – nemění se
   okEx: {name: "Osvobozená", fx: 1, ex: true}
 };
+// Jak se starý tvar četl do v18.9.2 (význam, který převod musí zachovat)
+const oldEx = p => p.ex === true || (p.ex == null && p.fx != null && +p.fx === 0);
+const oldFx = p => (p.ex == null && p.fx != null && +p.fx === 0) ? 1 : fxOf(p);
 
 // ===== Testy =====
 test("exFixPlan: jen hráčky bez pole ex; starý tvar osvobozené dostane ex true a fx 1", () => {
@@ -25,11 +29,19 @@ test("exFixPlan: jen hráčky bez pole ex; starý tvar osvobozené dostane ex tr
   assert.deepEqual(plan[2].doc, {name: "Bez koeficientu", ex: false});
 });
 
-test("exFixPlan: význam pro platby (osvobozená, koeficient) je před převodem i po něm stejný", () => {
+test("exFixPlan: převedená data mají pro platby stejný význam, jaký měl starý tvar", () => {
   exFixPlan(P).forEach(x => {
-    assert.equal(exOf(x.doc), exOf(P[x.id]), x.id + " osvobozená");
-    assert.equal(fxOf(x.doc), fxOf(P[x.id]), x.id + " koeficient");
+    assert.equal(exOf(x.doc), oldEx(P[x.id]), x.id + " osvobozená");
+    assert.equal(fxOf(x.doc), oldFx(P[x.id]), x.id + " koeficient");
   });
+});
+
+test("exOf / fxOf: starý tvar (fx 0 bez ex) se už nečte jako osvobozená", () => {
+  assert.equal(exOf(P.old), false);
+  assert.equal(fxOf(P.old), 0);
+  assert.equal(exOf(P.okEx), true);
+  assert.equal(exOf(P.ok), false);
+  assert.equal(fxOf(P.none), 1);
 });
 
 test("exFixPlan: po převodu není co doplnit (lze spustit znovu), prázdná soupiska", () => {

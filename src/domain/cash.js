@@ -11,7 +11,7 @@
 //  - cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx, zaokrouhleno nahoru na celé Kč,
 //  - do dělitele ceny se každá přihlášená hráčka počítá jako jeden celý kus (bez ohledu na skupinu, osvobození i fx),
 //  - měsíční příspěvek = částka z nastavení × fx, platí ho hráčky ve skupině monthly (ne ukončené, ne brankářky, ne fx 0; osvobozené jen po zahrnutí),
-//  - starý tvar osvobozené hráčky (fx 0 bez pole ex) se čte jako osvobozená s fx 100 % (legacyEx; do první úpravy hráčky),
+//  - osvobozená je jen hráčka s ex: true; starý tvar (fx 0 bez pole ex) se už nečte – převede ho ⚙️ → Kontrola dat (exFixPlan),
 //  - zůstatek pokladny = součet příjmů (cash.k "in") − součet výdajů (cash.k "out"),
 //  - dva účty: hlavní (iban, např. příspěvky) a provozní (iban2, např. platby za události). Předpis i pohyb nese pole acc ("main" | "op");
 //    starší záznamy bez acc se zařadí podle druhu (příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní).
@@ -58,16 +58,14 @@ export const r2 = n => Math.round((+n || 0) * 100) / 100;
 export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " Kč";
 // Platné datum ve tvaru RRRR-MM-DD
 export const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")) && !isNaN(new Date(s + "T12:00:00"));
-// Starý tvar osvobozené hráčky: fx 0 a žádné pole ex
-const legacyEx = p => !!p && p.ex == null && p.fx != null && +p.fx === 0;
 // Osvobozená (zvýhodněná) hráčka
-export const exOf = p => !!p && (p.ex === true || legacyEx(p));
-// Koeficient 0..1 (starý tvar osvobozené = 1, tedy 100 %)
-export const fxOf = p => { if (legacyEx(p)) return 1; const v = p && p.fx != null ? +p.fx : 1; return v >= 0 && v <= 1 ? v : 1; };
-// Převod starého tvaru (⚙️ → Kontrola dat): hráčky bez pole ex dostanou ex; starý tvar osvobozené (fx 0) ex true a fx 1.
-// Význam se nemění (exOf a fxOf dávají před převodem i po něm totéž). players = {id: dokument}; vrací [{id, name, ex, doc}].
+export const exOf = p => !!p && p.ex === true;
+// Koeficient 0..1 (chybí-li, 100 %)
+export const fxOf = p => { const v = p && p.fx != null ? +p.fx : 1; return v >= 0 && v <= 1 ? v : 1; };
+// Převod dat bez pole ex (⚙️ → Kontrola dat): hráčky bez pole ex dostanou ex; starý tvar osvobozené (fx 0 bez ex) dostane ex true a fx 1
+// (tak se dřív četl), ostatní ex false. players = {id: dokument}; vrací [{id, name, ex, doc}]. Lze spustit znovu (doplní jen chybějící).
 export const exFixPlan = players => Object.entries(players || {}).filter(([, p]) => p && p.ex == null).map(([id, p]) => {
-  const ex = legacyEx(p), doc = {...p, ex};
+  const ex = p.fx != null && +p.fx === 0, doc = {...p, ex};
   if (ex) doc.fx = 1;
   return {id, name: p.name || id, ex, doc};
 });

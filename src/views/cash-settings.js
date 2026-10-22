@@ -4,11 +4,14 @@
 //   Změnu účtu jen navrhuje trenér (ibanPend); platí až po potvrzení JINÝM správcem pokladny (trenér / pokladník) – princip čtyř očí.
 //   Návrh, potvrzení, zamítnutí i zrušení se zapisují do auditu (acc-prop, acc-ok, acc-no, acc-off) a pravidla databáze to vynucují.
 //   Běžné „Uložit nastavení“ účty nikdy nemění (pole účtů se při uložení převezmou z aktuálního stavu v databázi).
+//   Uložení zapisuje přes merge jen pole nastavení, která okno zná (vnořené objekty – šablony, kategorie – se nahradí celé);
+//   ostatní pole dokumentu settings/cash zůstanou. Smazání šablony se potvrzuje druhým klepnutím (confirm2, do 4 s).
 //   Přepínač okamžité platby (inst) přidá do QR PT:IP.
 // Struktura: Importy -> Stav -> Pomocné funkce -> Účty -> Vykreslení -> Eventy -> Export.
 // Celoobrazovkové okno #cset se vytváří za běhu (stejně jako nápověda), otevírá se z ⚙️ (HK.openCash).
 
 // ===== Importy =====
+import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {clone, esc, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -18,7 +21,7 @@ import {ACC, ACC_META, WHO, accMeta, cashCfg} from "../domain/cash.js";
 // ===== Stav =====
 let D = null;        // rozpracované nastavení
 let sel = "train";   // vybraná šablona
-let arm = false;     // potvrzení smazání šablony
+const TD_KEY = "cset-tpl-del";   // klíč potvrzení smazání šablony (confirm2)
 let accIn = null;    // rozpracované vstupy nových účtů {a1, a2} (jen trenér)
 
 // ===== Pomocné funkce =====
@@ -32,6 +35,8 @@ function setP(i) {
   o[ks[0]] = i.dataset.n === "nul" ? (i.value === "" ? null : +i.value) : i.dataset.n != null ? (+i.value || 0) : i.value.trim();
 }
 const sync = e => e.querySelectorAll("[data-f]").forEach(setP);
+// Zrušení rozpracovaného potvrzení smazání šablony
+const disarm = () => { if (armed(TD_KEY)) S.cf = null; };
 const chip = (on, attr, label) => `<button class="chip ${on ? "on" : ""}" ${attr}>${label}</button>`;
 
 // ===== Účty =====
@@ -106,7 +111,7 @@ ${accHtml()}
 <label>Název šablony</label><input data-f="t.name" value="${esc(t.name)}"><label>Platby za událost na účet</label><div class="chips">${Object.entries(ACC).map(([a, n]) => chip((t.acc || "op") === a, `data-ta="${a}"`, n)).join("")}</div><label>Splatnost: dnů po události (prázdné = výchozí)</label><input data-f="t.dueDays" data-n="nul" type="number" min="0" value="${t.dueDays != null ? t.dueDays : ""}" style="max-width:160px">
 <h3>Náklady</h3>${cost || '<div class="mu" style="margin-bottom:6px">Bez nákladů (doplní se u konkrétní události).</div>'}<button class="s" data-ca style="margin-bottom:10px">+ Nákladová položka</button>
 <h3>Kdo platí a jak se počítá</h3><div class="mu" style="margin-bottom:6px">Cena se dělí všemi přihlášenými hráčkami (každá jako jeden celý kus) a násobí koeficientem hráčky. Osvobozené (zvýhodněné) hráčky mají vlastní nastavení.</div>${who}
-<div class="row"><button class="s" data-tn>+ Nová šablona (kopie této)</button>${sel.startsWith("t_") ? `<button class="d" data-td style="${arm ? "background:var(--no);color:#fff" : ""}">${arm ? "Opravdu smazat? Klepni znovu" : "Smazat šablonu"}</button>` : ""}</div></div>
+<div class="row"><button class="s" data-tn>+ Nová šablona (kopie této)</button>${sel.startsWith("t_") ? `<button class="d" data-td style="${armed(TD_KEY) ? "background:var(--no);color:#fff" : ""}">${armed(TD_KEY) ? "Opravdu smazat? Klepni znovu" : "Smazat šablonu"}</button>` : ""}</div></div>
 <button class="p w" id="css" style="min-height:52px">💾 Uložit nastavení</button><button class="s w" id="csx2" style="margin-top:10px;min-height:48px">Zavřít bez uložení</button></div>`;
 }
 
@@ -119,7 +124,8 @@ function draw() {
 }
 function bind(e) {
   const q = s => e.querySelectorAll(s), close = () => { e.style.display = "none"; e.innerHTML = ""; D = null; };
-  const act = (s, fn) => q(s).forEach(b => { b.onclick = () => { sync(e); arm = false; fn(b); draw(); }; });
+  // Každá jiná akce zruší rozpracované potvrzení smazání šablony (vybraná šablona se pak nemůže změnit pod rukou)
+  const act = (s, fn) => q(s).forEach(b => { b.onclick = () => { sync(e); disarm(); fn(b); draw(); }; });
   q("[data-f]").forEach(i => { i.onchange = () => { sync(e); draw(); }; });
   act("[data-tp]", b => { sel = b.dataset.tp; });
   act("[data-ac]", b => { D.acc.contrib = b.dataset.ac; });
@@ -142,17 +148,18 @@ function bind(e) {
   act("[data-wp]", b => { const w = wOf(b.dataset.wp); w.pays = !w.pays; });
   act("[data-wm]", b => { const [g, m] = b.dataset.wm.split("|"); wOf(g).mode = m; });
   act("[data-tn]", () => { const k = "t_" + uid(), c = clone(D.tpls[sel]); c.name = "Nová šablona"; D.tpls[k] = c; sel = k; });
-  q("[data-td]").forEach(b => { b.onclick = () => { sync(e); if (arm) { delete D.tpls[sel]; sel = "train"; arm = false; } else arm = true; draw(); }; });
+  // Smazání šablony: 1. klepnutí označí, 2. do 4 s smaže (jen z rozpracovaného nastavení – do databáze až „Uložit“)
+  q("[data-td]").forEach(b => { b.onclick = () => { sync(e); confirm2(TD_KEY, () => { delete D.tpls[sel]; sel = "train"; draw(); }, refreshCashSettings); }; });
   // Tlačítka Zavřít (každému tlačítku zvlášť; q() vrací seznam uzlů)
-  q("#csx, #csx2").forEach(b => { b.onclick = close; });
+  q("#csx, #csx2").forEach(b => { b.onclick = () => { disarm(); close(); }; });
   q("#css")[0].onclick = () => {
     sync(e);
     // Účty a jejich zabezpečení se nikdy nemění tímto uložením: převezmou se z aktuálního stavu databáze (i čekající návrh)
     const c = S.cc || {};
     ACC_META.forEach(k => { delete D[k]; });
     Object.assign(D, {iban: c.iban || "", iban2: c.iban2 || ""}, accMeta(c));
-    S.db.doc("settings/cash").set(D).then(() => toast("Nastavení pokladny uloženo")).catch(() => toast("Uložení se nepovedlo"));
-    close();
+    S.db.doc("settings/cash").merge(D).then(() => toast("Nastavení pokladny uloženo")).catch(() => toast("Uložení se nepovedlo"));
+    disarm(); close();
   };
 }
 
@@ -165,7 +172,7 @@ export function openCashSettings() {
   e.style.cssText = "position:fixed;inset:0;z-index:56;background:var(--bg);overflow:auto;padding:12px;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));display:block";
   D = cashCfg(S.cc);
   sel = "train";
-  arm = false;
+  disarm();
   accIn = null;
   draw();
 }

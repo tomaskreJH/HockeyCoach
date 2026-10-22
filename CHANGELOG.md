@@ -4,6 +4,28 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v18.9.3 (22. 10. 2026) – Úklid D3: mazání starého kódu, zápisy přes merge, jednotné potvrzení – ⚠️ SAHÁ NA PLATBY
+> **Nasazení:** 1) **Ještě na v18.9.2:** trenér ⚙️ → Kontrola dat musí ukázat ✅ (jinak nejdřív **Doplnit pole ex**). Hráčka se starými daty (koeficient 0 % bez pole `ex`) se od v18.9.3 nepočítá jako osvobozená – tlačítko Kontrola dat ale zůstává i ve v18.9.3, kdyby se nějaká objevila. 2) Nahrát kód (nic se nemaže). 3) **Publikovat firestore.rules** (po nahrání kódu; jen smazané pravidlo `coach` a komentáře – na pořadí nezáleží). 4) Pokud v konzoli Firebase existuje kolekce `coach`, lze ji smazat (aplikace ji nepoužívá). 🔒 Vyžadovat verzi není nutné (tvar dat se nemění).
+> **⚠️ SAHÁ NA PLATBY:** `src/domain/cash.js` (`exOf` / `fxOf` bez starého tvaru, `exFixPlan` beze změny výsledku), `src/views/cash-settings.js` (uložení nastavení přes `merge`, potvrzení smazání šablony přes `confirm2`), `firestore.rules` (smazané pravidlo `coach`, komentáře). Výpočty předpisů, QR, účty a pravidla pokladny beze změny.
+
+**Smazáno**
+- `legacyEx` v `domain/cash.js` (bod D9): osvobozená je jen hráčka s `ex: true`; `fxOf` vrací uložený koeficient. Převod starých dat zůstává v ⚙️ → Kontrola dat (`exFixPlan`), nově zapíše jen pole `ex` (a `fx` u starého tvaru osvobozené) přes merge.
+- `firestore.rules`: pravidlo `match /coach/{doc=**}` (D24, kolekce se nepoužívá) a poznámka o kolekci `payments` (D10, D25); poznámka o `payments` i v `storage.js` (obnova zálohy). Komentáře pravidel bez čísel verzí.
+- Nepoužité proměnné a importy v `src/views/matches.js` (`sh`, `sk`, `sg`, `sNm`, `OUT`, `opr`, importy `shots`, `skaters`) – ověřeno ESLintem (mimo repozitář), jinde žádné nepoužité proměnné ani nedefinované názvy.
+
+**Změněno**
+- **Zápisy nových polí přes merge** (pravidlo z `docs/KONVENCE.md`): datová vrstva má `S.db.doc(cesta).merge(pole)` – zapíše jen uvedená pole (`mergeFields`), `undefined` / `"__del"` pole smaže, ostatní pole dokumentu zůstanou (i ta, která starší verze nezná); stejně jako `set` nečeká na server (offline). Přes merge nově ukládá: úprava hráčky (trenér, kustod) a okno Platby (pokladník), úprava člena realizačního týmu a Plat, trvalé zranění v živém zápisu (jen `st`), rozdělení do pětek (jen `lines`), úprava tréninku (jen údaje formuláře – pětky a příznak vyúčtování zůstanou samy, pomocné pole `keep` zrušeno), uložení nastavení pokladny (účty dál přebírá z databáze), Kontrola dat. Dávkový `batch().merge` se nemění.
+- **Potvrzení druhým klepnutím sjednocené** (nález 1 z v18.9): ⚙️ → Nahradit vším, 🔒 Vyžadovat verzi, Doplnit pole ex a smazání šablony v nastavení pokladny používají `confirm2` – druhé klepnutí do 4 s, jinak se tlačítko vrátí (dřív zůstalo označené); tlačítko se při označení zbarví červeně. Označení platí jen v právě otevřeném okně ⚙️; v nastavení pokladny ho zruší každá jiná akce.
+- Nápověda (`help.js`) bez „(od v18.x)“ a dalších čísel verzí (nález 4 z v18.9); doplněno potvrzení do 4 s a dopad chybějícího pole `ex`.
+- `src/debug.js` (D27): popis odpovídá skutečnosti (jen ruční ladění, testy importují moduly přímo), navíc zpřístupní `domain/cash`, `bank-account`, `attendance`, `debtors`, `shift-edit`.
+- Testy: `tests/d3-cleanup.test.js` (mazání, potvrzení, nápověda, merge), `tests/ex-fix.test.js` (starý tvar se nečte, převod zachová význam), zástupci `tests/support/firebase-stub.mjs` (volby `setDoc`, `deleteField`) a `fake-db.mjs` (`merge`). Celkem 78 testů zelených, srovnávací test D1 beze změny.
+
+**Rozhodnuto bez změny kódu**
+- D22 `trOf` zůstává (od v18.9 ho používají `pn` / `nm`). D30 název balíčku `hokej-zapasy`, `index.html` a `manifest.webmanifest` zůstávají (značka zálohy `app: "hokej-zapasy"`). Odebrání člena v ⚙️ zůstává se systémovým dotazem (nešlo o potvrzení druhým klepnutím).
+
+**Beze změny**
+- Živý zápis (střely, góly, časomíra, tresty, střídání), statistiky, docházka, výpočty pokladny, QR, předpisy a úhrady. Ověřeno: `npm test` (78), kouřový test v jsdom mimo repozitář (⚙️ potvrzení a vypršení po 4 s, Kontrola dat, smazání a uložení šablony pokladny).
+
 ## v18.9.2 (22. 10. 2026) – Oprava: pokladník nastavuje platby hráček; ⚙️ Kontrola dat (pole ex) – ⚠️ SAHÁ NA PLATBY
 > **Nasazení:** nahrát kód (nic se nemaže). Pravidla databáze beze změny – pokladníkovi úpravu polí plateb (`grp`, `fx`, `ex`, `note`) a platu (`pay`) povolovala už dřív, chybělo jen tlačítko v aplikaci. Pak trenér: ⚙️ → **Kontrola dat → Doplnit pole ex** (před zápisem se sama stáhne záloha). Až budou všechna zařízení na v18.9.2: ⚙️ → 🔒 Vyžadovat verzi (doporučeno – převod mění data hráček).
 > **⚠️ SAHÁ NA PLATBY:** `src/domain/cash.js` (nová čistá funkce `exFixPlan`, výpočty beze změny), okna úpravy hráčky a člena týmu (`src/views/modal.js`) – pole plateb. QR, předpisy, úhrady, účty a `firestore.rules` beze změny.
