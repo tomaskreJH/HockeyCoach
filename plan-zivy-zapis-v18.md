@@ -13,7 +13,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu – **hotovo**, otestováno |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, otestováno (hráčka) |
-| v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, k testu |
+| v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, k testu (čeká na potvrzení účtu druhým trenérem a test QR v mBank) |
+| v18.6.2 | P2 | ⭐ **Důležité:** pevně uložený účet v telefonu hráčky (opsáním), jméno příjemce v QR, „čeká na potvrzení přijetí“ – **odloženo**, zařadit po v18.7 |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
@@ -62,7 +63,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **Test v18.6 (22. 10. 2026):** náhled hráčky funguje. Zásadní nález: mBank QR nepřečte („neplatný QR kód“), Fio ano. Požadavky: zadávat číslo účtu (IBAN dopočítat), okamžitá platba, texty bez diakritiky, kontrolní součet hned při zadání, ochrana proti podvržení účtu, upozornění na kontrolu před platbou a vyloučení odpovědnosti.
 - **Rozhodnuto 22. 10. 2026 (QR):** účty mění jen trenér; změnu musí potvrdit druhý správce pokladny (4 oči); okamžitá platba přepínačem v nastavení (výchozí ANO).
 - **v18.6.1 (P) dodáno, k testu** – viz sekce P. **Nutné publikovat `firestore.rules`.** Po nasazení u stávajícího účtu chybí záznam o změně (zobrazí se „zatím nezaznamenána“); doporučeno účty jednou znovu navrhnout a potvrdit, aby měly záznam.
-- **Pokračování:** po testu v18.6.1 (mBank!) další bod plánu – **v18.7 C (Docházka a dlužníci pro všechny)**; před C2 rozhodnout otázku 6 (rozhodnuto: dlužnice s výjimkou zůstává se značkou 🔓).
+- **Stav 22. 10. 2026 (15:30):** v18.6.1 nahraná, druhý trenér zatím změnu účtu nepotvrdil → QR v mBank zatím neověřeno. Test v18.6.1 proběhne souběžně s v18.7 (nálezy jako v18.6.x). Bezpečnostní rozšíření plateb zapsáno jako **⭐ Důležité kroky** (sekce P2, v18.6.2).
+- **Pokračování:** **v18.7 C (Docházka a dlužníci pro všechny)**; před C2 rozhodnout otázku 6 (rozhodnuto: dlužnice s výjimkou zůstává se značkou 🔓).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -154,6 +156,20 @@ Stav: vývojář (účet trenéra / správce) vidí aplikaci jen ve své roli �
 - **Čtyři oči:** návrh `ibanPend {iban, iban2, by, at}` podává jen trenér; potvrzuje jiný správce pokladny → `iban`, `iban2`, `ibanBy`, `ibanOk`, `ibanAt`. Vynucují pravidla (`cashSettingsUpdate` / `cashSettingsCreate`). Audit `acc-prop / acc-ok / acc-no / acc-off`, historie v nastavení, upozornění správcům v Událostech.
 - **Hráčka:** účet v českém tvaru i IBAN, kdo a kdy změnil, vždy upozornění na kontrolu a vyloučení odpovědnosti; zařízení si pamatuje ověřené účty (`hk-acc-seen`) – nový / nedávno změněný účet (14 dní) nejdřív varování, QR až po potvrzení.
 - **Zbývající riziko (k rozhodnutí):** trenér může přidat člena s příznakem pokladník (např. svůj druhý e-mail) a návrh si potvrdit sám. Brání tomu jen viditelnost (audit, varování hráčkám s e-maily navrhovatele a schvalovatele). Možné rozšíření: audit změn členů týmu a v pravidlech zákaz potvrzení členem přidaným navrhovatelem v posledních N dnech (vyžaduje datum přidání v `members`).
+
+## ⭐ Důležité kroky – P2 v18.6.2: Jistota plateb pro hráčky (přidáno 22. 10. 2026, odloženo)
+Cíl: co největší jistota platící, že peníze odešly na správný účet – i kdyby někdo podvrhl data (Firestore, zneužitý účet správce, domluva dvou správců).
+Omezení (vědomě): kontrola v aplikaci nechrání před změnou samotného kódu (napadený GitHub / hosting) – útočník by ji z kódu odstranil. Proti tomu jen ochrana mimo aplikaci (body 5–7).
+**V aplikaci (v18.6.2):**
+1. **Účet uložený v telefonu hráčky:** hráčka si účet týmu uloží jednou **opsáním** čísla účtu (z papíru / od trenéra osobně), ne klepnutím. Nahradí dnešní „Ověřila jsem účet“ (`seenAccs` / `markSeen` v `bank-account.js`, okno QR v `mine.js`).
+2. **Porovnání při každém QR:** účet z databáze ≠ uložený v telefonu → QR se **nevytvoří**, červené varování „Účet týmu nesouhlasí s účtem uloženým v tvém telefonu – neplať a ozvi se trenérovi“. Změna = znovu opsat nové číslo.
+3. **Jméno příjemce v QR** (`RN:` – název majitele účtu přesně podle banky; banky ho zobrazí, ověřování jména příjemce u CZK plateb se zavádí, povinné do 2027). Rozhodnout: přesný název majitele účtu.
+4. **Potvrzení přijetí:** u předpisu stav „odesláno – čeká na potvrzení přijetí“ (hráčka označí odeslání), když pokladník úhradu do X dní nezapíše → připomenutí hráčce, ať se ozve. Rozhodnout: lhůta (návrh 7 dní).
+**Mimo aplikaci (doporučení pro tým, do nápovědy):**
+5. Účet týmu uložit jako **příjemce / šablonu v bankovní aplikaci** každé hráčky (ověřit osobně jednou) – nejsilnější ochrana, nezávislá na aplikaci.
+6. **Jediný zdroj pravdy mimo aplikaci:** číslo účtu na papíře v šatně / na webu klubu; změnu účtu oznamovat osobně na tréninku, nikdy jen zprávou.
+7. **Zabezpečení přístupů:** GitHub i Google/Firebase jen s dvoufázovým ověřením (passkey / bezpečnostní klíč), minimum lidí s právem zápisu a vlastníků projektu Firebase, ochrana hlavní větve na GitHubu, upozornění na změny ve Firebase. Každá verze, která sahá na platby, je v CHANGELOG výslovně označena (`bank-account.js`, `mine.js`, `cash.js`, `firestore.rules`) – zkontrolovat před nahráním.
+8. Navazuje zbývající riziko z P (trenér přidá vlastní druhý e-mail jako pokladníka): audit změn členů týmu a zákaz potvrzení čerstvě přidaným členem.
 
 ## C – v18.7: Docházka a dlužníci pro všechny
 
