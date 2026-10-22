@@ -15,6 +15,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
+| později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
 | později | E | Modul Trénink (zatím neřešit) |
 
@@ -103,6 +104,23 @@ Stav: aplikace nepoužívá History API (`popstate` / `pushState` nikde), proto 
 - Varianta B: střela soupeře nahoře → dělicí čára → pětka na ledě → pod ní střídající formace (pořadí front obrácené, na řadě hned pod ledem).
 - Volba v nastavení živého zápisu, pamatuje se v zařízení (LS) – každý uživatel si zvolí sám.
 
+## H – později: Souběžné tresty a chybějící hráčka při vyrovnané hře (myšlenka, přidáno 22. 10. 2026)
+Zatím jen zamyšlení – nezařazeno do verze, rozhodne se po v18.6.
+
+**Situace:** obě mužstva dostanou trest současně (souběžné / vzájemně se rušící tresty) nebo naše hráčka dostane trest, který tým neoslabuje (10 min osobní, do konce zápasu). Na trestné sedí jedna nebo dvě naše hráčky, ale hra je vyrovnaná – podle pravidel IIHF dál 5 na 5 (náhrada na ledě je povolena), případně 4 na 4 nebo 3 na 3. Skupina jednotek PP/OS se nepoužije (`grpFor` = null), přesto **hráčka v pětce chybí** a trenér musí hned reagovat: kdo jde za ni do pětky, případně jak hrát se čtyřmi.
+
+**Stav v kódu (v18.4.2):**
+- `sk` v `live-engine.js` počítá každý menší a větší trest jako oslabení, takže jeden trest na každé straně = **4 na 4**. Souběžné tresty s náhradou (5 na 5) aplikace nezná – pravidlo IIHF pro tento případ ověřit (kdy 4 na 4 a kdy náhrada).
+- Při 4 na 4 se ukáže rozložení pro 4 (`LAYOUT(4)`) s běžnými pětkami; jednotka 4 hráček se nenabídne (OS1/OS2 jsou jen pro oslabení).
+- Osobní trest (10 min) tým neoslabuje: hráčka zmizí z ledu i fronty, její místo v pětce zůstane prázdné a doplní se jen z fronty – žádné upozornění ani nabídka.
+
+**Možný směr (k rozhodnutí):**
+- Po zápisu trestu, kdy hra zůstane vyrovnaná, ale naše hráčka chybí v pětce, hned otevřít nabídku podobnou té po zranění: Sestava s vyznačeným místem (`S.lgap`), návrh náhradnice (stejná pozice, nejméně času na ledě), potvrzení jedním klepnutím. Náhrada jen dočasná – po návratu z trestu se sestava vrátí.
+- Při 4 na 4 nabídnout „čtyřku“ – buď jednotky OS1/OS2, nebo samostatnou volbu „4 na 4“ (nové jednotky v `sp` by znamenaly změnu dat a předzápasové sestavy).
+- Upozornění v `#lwarn`: „V 2. pětce chybí #12 (trest) – doplň místo“.
+- Volba při zápisu trestu „souběžný trest – s náhradou“ (hra 5 na 5) by vyžadovala zásah do `live-engine.js` (`addPen` / `sk`) – jen po dotazu.
+- Otevřené: viz otázka 12.
+
 ## F – později: Jeden zapisovatel živého zápisu (duplicity, dvě zařízení)
 Stav: živý zápis může otevřít víc zařízení zároveň; při souběhu vyhrává poslední zápis (`save` přepíše celý zápas), takže se dvě zařízení „přetahují“ a mohou vzniknout duplicitní záznamy (dvakrát zapsaná střela, gól, střídání).
 - **Zámek zapisovatele:** v zápase pole `live.dev = {id zařízení, jméno uživatele, ts}`; zařízení drží zámek obnovou `ts` (např. každých 20 s při otevřeném živém zápisu).
@@ -175,6 +193,7 @@ Původní znění:
 6. Dlužníci: skrýt dlužnici s výjimkou z blokace? Ukazovat i realizační tým (nemá předpisy – asi ne)?
 7. Docházka: počítat jen uplynulé události, nebo i budoucí s odpovědí? Procenta z událostí, na které byla hráčka nominovatelná (aktivní), nebo ze všech?
 11. Náhled role (G): kdo ho smí používat – jen vývojář (seznam e-mailů), nebo každý trenér? Má být v náhledu zápis zakázaný (návrh: ano)?
+12. Souběžné tresty (H): má aplikace znát souběžné tresty s náhradou (5 na 5) vedle 4 na 4? Doplnit chybějící hráčku dočasně jen pro trest, nebo trvale? Při 4 na 4 použít OS1/OS2, nebo nové jednotky „4 na 4“?
 
 ## Pravidla práce (z projektu)
 - Vždy vypsat načtenou verzi; vracet změněné soubory jako celky ke stažení (zip s cestami), žádné NAJDI/NAHRAĎ, žádné zkracování.
