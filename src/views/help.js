@@ -34,7 +34,7 @@ const SECTIONS = [
 <li><b>Soupiska:</b> přidání a smazání hráčky jen trenér; úprava stavu (aktivní / zraněná / ukončila) i kustod; skupina plateb (Příspěvek / Za událost), osvobozená (zvýhodněná), koeficient v procentech (0–100 % z ceny) a poznámka trenér a pokladník.</li>
 <li><b>Realizační tým:</b> členy přidává a maže trenér, plat (měsíčně / za událost) nastavuje trenér nebo pokladník (Upravit → Plat).</li>
 <li><b>Správa pokladny:</b> trenér a pokladník mají nahoře v Teamu přepínač <b>Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce</b>. Hráčka-pokladník vidí formaci a soupisku jen ke čtení.</li>
-<li><b>Rotace dvou hráček na jednom místě:</b> pod každou pětkou je řádek <b>⇄ rotace</b>. Hlavní hráčka nastupuje první, pořadí změníš přetažením. Štítek <b>⇄ jméno</b> ve frontě ukazuje, kdo za hráčku skočí, klepnutím rotaci ručně přehodíš.</li>
+<li><b>Rotace dvou hráček na jednom místě:</b> pod každou pětkou je řádek <b>⇄ rotace</b>. Hlavní hráčka nastupuje první, pořadí změníš přetažením. V živém zápisu je partnerka malé tlačítko <b>⇄ číslo jméno</b> pod hráčkou ve frontě (od v18.3) – viz kapitola 5.</li>
 </ul>`},
   {t: "4. Nový zápas (3 kroky)", h: `
 <p><b>Zápas → Sestava → Zápas živě.</b> Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav ✅/⛔ Nominace a Sestava.</p>
@@ -49,10 +49,12 @@ const SECTIONS = [
   {t: "5. Živý zápis", h: `
 <ul>
 <li><b>Horní lišta:</b> čas s posunem ◀ ▶ o 5 s, skóre se střelami a aktuální situace (5 na 5, přesilovka, oslabení).</li>
-<li><b>Pevné rozložení</b> (od v18.2): tresty, jednotky PP/OS a řádek „V ošetřování“ mají vyhrazené místo stejné výšky, i když jsou prázdné. Fronty jsou v rámečku pevné výšky – řádek „na řadě“ je vždy hned nad ledem, delší fronta (při oslabení nebo po nasazení jednotky) se posouvá prstem uvnitř rámečku. Tlačítka pětek, led a střela se tak nikdy neposunou. Více než dva tresty najednou se posouvají uvnitř místa pro tresty.</li>
+<li><b>Rozložení</b> (od v18.3) shora dolů: horní lišta (čas, skóre) s <b>řádkem stavu</b> → <b>STŘELA NA NAŠI BRÁNU</b> → červená čára → tlačítka pětek → <b>hráčky na ledě</b> → pod každou z nich sloupec čekajících (první pod ledem je ta <b>na řadě</b> – větší, zeleně orámovaná). Dole upozornění a průběh.</li>
+<li><b>Řádek stavu</b> pod časem: situace (5 na 5, přesilovka, oslabení), tlačítka ⚡ přesilovek / 🛡 oslabení a ↩ Řady, tresty s odpočtem a ✕ pro zrušení, 🩹 hráčky v ošetřování. Má stálou výšku, když se nevejde, posuneš ho prstem do strany – tlačítka pod ním se nikdy nepohnou.</li>
+<li><b>Rotace</b> (od v18.3): každá dlaždice má jen jednu akci – poslat hráčku na led. Rotující partnerka je malé čárkované tlačítko <b>⇄ číslo jméno</b> přímo pod hráčkou, se kterou rotuje: <b>klepnutí</b> ji pošle rovnou na led, <b>podržení</b> (asi půl sekundy) změní pořadí rotace – partnerka se postaví do fronty místo hráčky. Tečkované tlačítko úplně dole ve sloupci je partnerka hráčky, která je právě na ledě (klepnutím ji vystřídá). Při aktivní přesilovce nebo oslabení se rotace nezobrazuje.</li>
 <li><b>Odezva</b> (od v18.2): po střídání, střele, gólu, trestu, nasazení pětky nebo jednotky a ↩ Zpět telefon krátce zavibruje a tlačítko zabliká. Vibraci vypneš v ⋯ → ⚙️ Nastavení; zablikání zůstává (iPhone vibrace nepodporuje).</li>
 <li><b>Celá pětka na led:</b> tlačítka 1.–4. pětka nasadí celou pětku najednou. Barvy: 1. modrá, 2. žlutá, 3. zelená, 4. růžová, mimo pětky šedá.</li>
-<li><b>Střídání:</b> klepnutí na hráčku ve frontě ji pošle na led místo hráčky pod ní. Podržením a přetažením ji pošleš na jinou pozici. Nejbližší hráčka ve frontě je zvýrazněná.</li>
+<li><b>Střídání:</b> klepnutí na hráčku ve frontě ji pošle na led místo hráčky nad ní. Podržením a přetažením ji pošleš na jinou pozici. Nejbližší hráčka ve frontě je zvýrazněná.</li>
 <li><b>Střela:</b> klepnutí na hráčku na ledě zapíše její střelu, <b>STŘELA NA NAŠI BRÁNU</b> střelu soupeře. Při přerušené hře se střely zapsat nedají.</li>
 <li><b>Spodní lišta:</b> za běhu jen ↩ Zpět a Start/Přerušit. Po přerušení přibude ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby.</li>
 <li><b>Gól naši:</b> střelkyně → 1. asistence → 2. asistence (nebo „Bez asistence“). Situaci nastaví aplikace sama. <b>Gól soupeře:</b> jedno klepnutí.</li>

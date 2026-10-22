@@ -7,10 +7,10 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 |---|---|---|
 | v18.0 | A | Tlačítko Zpět v aplikaci, dotaz na ukončení z domovské stránky – **hotovo** (opravy ve v18.1 a v18.1.1) |
 | v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky – **hotovo**, k testu |
-| v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo**, k testu |
-| v18.3 | B3 | Ovládání rotace |
+| v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo** (odezva zůstává, rozložení nahradila v18.3) |
+| v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, k testu |
 | v18.4 | B4 | Sestava hned po trestu a zranění |
-| v18.5 | B5 | Volitelné rozložení obrazovky živého zápisu |
+| ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
@@ -27,7 +27,10 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **v18.1.1 otestováno** (22. 10. 2026): dotaz na ukončení funguje; opakované Zpět i přes dotaz aplikaci zavře – to je v pořádku (pohodlné).
 - **v18.2 (B2) dodáno, k testu.** Pevná místa: tresty `#lpen` (2 tresty, další se posouvají uvnitř), jednotky `#lunit` (jen když má zápas sestavenou jednotku), ošetřování `#ltmp` (1 řádek), fronty v rámečku pevné výšky `#lqbox` podle sestavy (řádek na řadě dole u ledu, delší fronta při oslabení / po jednotce se posouvá uvnitř – kontrola zjistila, že při oslabení se fronty skrytých sloupců slučují a přidávaly řádky). Odezva: nový `src/views/live-feedback.js` (`haptic`, `flash`), vypínač vibrace v ⋯ → ⚙️ Nastavení (LS `hapticOff`); upozornění na dlouhé střídání a konec trestu vibrují vždy. Gól / trest přes menu ⋯ → okno (`openLive`, `modal.js`) odezvu nemá – v živém zápisu se používá rychlý zápis (viz D3).
 - **Changelog** (od v18.2): historie verzí je v `CHANGELOG.md` (nejnovější nahoře, Přidáno / Změněno / Beze změny), README popisuje jen aktuální stav a odkazuje na changelog a plán. Pravidlo projektu „upravit README (historie verzí)“ = nově zapsat verzi do `CHANGELOG.md` a aktualizovat řádek Aktuální verze v README.
-- **Další: v18.3 (B3)** – ovládání rotace, až po testu v18.2.
+- **v18.2 otestováno** (22. 10. 2026): odezva (záblesk i vibrace) výborná, zůstává. Pevná místa (prázdné rámečky, led a střela moc dole) a dvojí význam dlaždice nepřehledné.
+- **Rozhodnuto 22. 10. 2026:** B5 + B3 v jedné verzi v18.3; rozložení A úplně nahrazeno rozložením B (bez volby); tresty a PP/OS do horní lišty.
+- **v18.3 (B5 + B3) dodáno, k testu.** Rozložení B: horní lišta s řádkem stavu `#lchips` (situace, PP/OS, tresty, ošetřování; pevná výška, posun do strany) → střela soupeře → čára → pětky → led → sloupce čekajících (na řadě nahoře u ledu). Rotace: partnerka = malé tlačítko pod hráčkou (klepnutí = na led přes `doSub`, podržení = `swapRot`), dole ve sloupci partnerka hráčky na ledě. Engine beze změny.
+- **Další: v18.4 (B4)** – sestava hned po trestu a zranění, až po testu v18.3.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
 ## A – v18.0: Tlačítko Zpět (Všeobecně 1a)
@@ -60,7 +63,7 @@ Stav: aplikace nepoužívá History API (`popstate` / `pushState` nikde), proto 
 - Pevné pozice: rezervovat místa s pevnou výškou pro tresty, jednotky PP/OS a upozornění (prázdné místo zůstane, když nic není), aby se tlačítka nasazení a střel nikdy neposunula. Ověřit při: začátku/konci trestu, přepnutí PP/OS, dlouhém střídání, ošetřování.
 - Haptika: helper `haptic(kind)` (např. `tap` 15 ms, `ok` 30 ms, `warn` [200,100,200]) volaný z `act()` / po úspěšném střídání, střele, gólu, trestu, nasazení pětky, undo. Krátký vizuální záblesk tlačítka jako potvrzení i tam, kde vibrace nejde (iPhone/Safari `navigator.vibrate` nepodporuje). Vypínač v nastavení živého zápisu (LS).
 
-### B3 – v18.3: Ovládání rotace (bod 1d)
+### B3 – v18.3: Ovládání rotace (bod 1d) – hotovo
 - Zrušit dvojí význam dlaždice (jméno = rotace, číslo = střídání). Každá dlaždice má jednu akci: poslat tuto hráčku na led.
 - Rotující dvojice zůstane u sebe ve sloupci. Návrh pořadí ve sloupci (směrem od ledu nahoru): **na řadě (velká dlaždice) → nad ní menší tlačítko čekající rotující partnerky (poslat rovnou ji místo té na řadě) → další pětka → nahoře rotující partnerky hráček, které jsou právě na ledě.**
 - Ruční změna pořadí rotace (dnes `swapRot`) přes menší tlačítko / podržení – upřesnit (otázka 2).
@@ -70,7 +73,7 @@ Stav: aplikace nepoužívá History API (`popstate` / `pushState` nikde), proto 
 - Po zapsání trestu (naše i soupeřovo vyloučení, které mění počty) hned otevřít panel PP/OS: aktivní jednotky pro danou situaci, vyloučená hráčka červeně, tlačítka nasadit jednotku / upravit místo; kustod z něj přečte sestavu. Zavření jedním klepnutím (i tlačítkem Zpět z fáze A).
 - Po zranění (dočasné i trvalé) hned otevřít Sestavu s vyznačeným prázdným místem a náhradnicemi.
 
-### B5 – v18.5: Volitelné rozložení obrazovky (bod 1g)
+### B5 – sloučeno do v18.3: Rozložení obrazovky (bod 1g) – hotovo jen varianta B
 - Varianta A (dnešní): fronty nahoře → na ledě → čára → střela soupeře dole.
 - Varianta B: střela soupeře nahoře → dělicí čára → pětka na ledě → pod ní střídající formace (pořadí front obrácené, na řadě hned pod ledem).
 - Volba v nastavení živého zápisu, pamatuje se v zařízení (LS) – každý uživatel si zvolí sám.
@@ -137,13 +140,13 @@ Postup: každá položka samostatně, bez změny chování; po úklidu ověřit 
 Podrobný modul: plán tréninku, docházka, rozdělení tréninku (stanoviště, pětky, cvičení), dlouhodobý plán, statistiky pokroku hráček. Začne se až po dokončení v18.x. Příprava: docházka v C1 jako čistá doménová funkce (`attendance.js`), aby ji Trénink převzal.
 
 ## Otevřené otázky
-Rozhodnuto 22. 10. 2026: 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – výchozí rozložení A; 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí, kdy byla hráčka aktivní; 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
+Rozhodnuto 22. 10. 2026: 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – jen rozložení B, A zrušeno (změna po testu v18.2); 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí, kdy byla hráčka aktivní; 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
 Původní znění:
 1. Zpět ze živého zápisu: jen zavřít panel/menu, nebo i opustit živý zápis (s dotazem)?
 2. Rotace: má malé tlačítko partnerky posílat rovnou na led (bez změny pořadí rotace), nebo jen přehodit pořadí? Jak pak měnit pořadí rotace ručně (podržením)?
 3. Po trestu: otevřít panel automaticky vždy, nebo jen když máme sestavené jednotky PP/OS? Má se otevřít i po skončení trestu (návrat do řad)?
 4. Upozornění v průběhu: jako řádky v seznamu, nebo jednořádkový pevný ticker nad průběhem?
-5. Výchozí rozložení živého zápisu pro nové uživatele: A, nebo B?
+5. Výchozí rozložení živého zápisu pro nové uživatele: A, nebo B? → **změněno 22. 10. 2026: jen B** (A zrušeno).
 6. Dlužníci: skrýt dlužnici s výjimkou z blokace? Ukazovat i realizační tým (nemá předpisy – asi ne)?
 7. Docházka: počítat jen uplynulé události, nebo i budoucí s odpovědí? Procenta z událostí, na které byla hráčka nominovatelná (aktivní), nebo ze všech?
 11. Náhled role (G): kdo ho smí používat – jen vývojář (seznam e-mailů), nebo každý trenér? Má být v náhledu zápis zakázaný (návrh: ano)?

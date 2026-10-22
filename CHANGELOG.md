@@ -4,7 +4,17 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
-## v18.2 (22. 10. 2026) – pevné rozložení a odezva živého zápisu (fáze B2 plánu v18)
+## v18.3 (22. 10. 2026) – rozložení B a ovládání rotace (fáze B5 + B3 plánu v18)
+**Změněno**
+- `src/views/live.js`: jediné rozložení B – horní lišta (čas, skóre) s řádkem stavu `#lchips` pevné výšky (situace, ⚡ PP / 🛡 OS, ↩ Řady, tresty s odpočtem a ✕, 🩹 ošetřování; posouvá se do strany) → STŘELA NA NAŠI BRÁNU → čára → tlačítka pětek → hráčky na ledě → sloupce čekajících pod každým místem (na řadě nahoře, větší). Rozložení A zrušeno (bez volby v nastavení). Pevná místa z v18.2 (`#lpen`, `#lunit`, `#ltmp`, `#lqbox`) nahradil řádek stavu.
+- Rotace: dlaždice ve frontě má jedinou akci (na led); štítek ⇄ v dlaždici zrušen. Partnerka = malé tlačítko pod hráčkou – klepnutí pošle rovnou na led (`doSub`), podržení 0,55 s změní pořadí rotace (`swapRot`). Dole ve sloupci partnerka hráčky na ledě (klepnutí ji vystřídá).
+- `src/views/live-quick.js`: záblesk po trestu míří na řádek stavu `#lchips`.
+- `styles/main.css`: oddíl 8b přepsán pro rozložení B (řádek stavu, čára, pětky, sloupce čekajících, tlačítko partnerky).
+- `src/views/help.js` (kapitoly 3 a 5), `README.md`, `src/data/storage.js` (verze), `package.json`, `sw.js` (cache hokej-v41), `plan-zivy-zapis-v18.md`.
+
+**Beze změny:** odezva z v18.2 (vibrace a záblesk), střely, góly, tresty, časomíra, logika střídání a rotace (`putOn`, `swapRot`, `rotate`, `requeue`), uložená data, pravidla databáze (`firestore.rules` není nutné publikovat).
+Ověřeno kouřovým testem v jsdom (20 kontrol: pořadí rozložení B, rozložení beze změny po střídání, střele, trestu, jednotce a ošetřování, odezva u všech akcí, klepnutí a podržení partnerky, zapsaná data).
+ – pevné rozložení a odezva živého zápisu (fáze B2 plánu v18)
 **Přidáno**
 - `src/views/live-feedback.js`: `haptic(kind)` (vibrace `tap` / `ok` / `undo` / `err`), `flash(selektor)` a `applyFlash` (zablikání tlačítka, které přežije nové vykreslení), vypínač vibrace (LS `hapticOff`).
 - Odezva po střídání (klepnutí i přetažení), střele naší i soupeře, gólu, trestu, nasazení pětky, jednotky, ↩ Zpět na řady a ↩ Zpět; chybová vibrace, když se střídání, pětka nebo jednotka neprovede.

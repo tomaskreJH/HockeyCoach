@@ -261,33 +261,44 @@ th { color: var(--mu); font-size: 12px; }
 .lq .rt { display: block; font-size: 11px; font-weight: 600; opacity: .85; line-height: 1.1; padding-top: 2px; }
 
 /* ==========================================================
-   8b. ŽIVÝ ZÁPIS – PEVNÉ ROZLOŽENÍ A ODEZVA (v18.2)
-   Vyhrazená místa pevné výšky, aby se tlačítka pětek, front, ledu a střely neposouvala.
+   8b. ŽIVÝ ZÁPIS – ROZLOŽENÍ B (v18.3) A ODEZVA (v18.2)
+   Shora: horní lišta + řádek stavu → střela soupeře → čára → pětky → led → čekající s rotujícími partnerkami.
    ========================================================== */
-/* Společný vzhled vyhrazeného místa a jeho prázdného stavu */
-.lzone { box-sizing: border-box; margin-bottom: 10px; }
-.lzone-empty { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 36px; border: 1px dashed var(--bd); border-radius: 10px; color: var(--mu); font-size: 13px; text-align: center; padding: 0 8px; box-sizing: border-box; }
-.lzone-line { height: 20px; line-height: 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; }
+/* Horní lišta (sticky): řádek 1 čas a skóre, řádek 2 stav pevné výšky (posouvá se do strany) */
+.lt-b { display: block; position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 0 4px; margin-bottom: 6px; }
+.lt-r1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.lnud { min-width: 52px; min-height: 48px; border-radius: 10px; border: 1px solid var(--bd); background: var(--cd); color: var(--tx); font-weight: 700; font-size: 16px; }
+.lchips { display: flex; align-items: center; gap: 6px; height: 44px; margin-top: 4px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; }
+.lchips::-webkit-scrollbar { display: none; }
+.lt .lchips b { display: inline; font-size: 13px; line-height: inherit; }   /* odpočet trestu – ne velké písmo času (.lt b) */
+.lchip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px; border-radius: 19px; font-size: 13px; box-sizing: border-box; }
+.lchip-sit { flex: 0 0 auto; font-size: 13px; }
+.lchip.pen { background: #fde8e5; color: var(--no); padding-right: 4px; }
+.lchip.pen button { min-width: 32px; height: 32px; padding: 0; border-radius: 16px; border: 1px solid var(--no); background: transparent; color: var(--no); font-weight: 700; }
+.lchip.tmp { background: #fff3dc; color: #5a3a00; }
+.lchip.ub { border: 2px solid var(--ac); background: var(--cd); color: var(--ac); font-weight: 700; }
+.lchip.ub.pp { background: var(--ac); color: #fff; }
+.lchip.ub.sh { background: var(--wa); border-color: var(--wa); color: #fff; }
+.lchip.ub.on { outline: 3px solid var(--ok); }
 
-/* Tresty (#lpen): místo na 2 tresty, další se posouvají uvnitř */
-.lzone-pen { height: 84px; overflow-y: auto; }
-.lzone-pen .bx { min-height: 38px; padding: 3px 8px; margin-bottom: 4px; box-sizing: border-box; }
-.lzone-pen .bx button { padding: 4px 10px; }
-.lzone-pen .lzone-empty { height: 80px; }
+/* Střela soupeře nahoře a dělicí čára pod ní */
+#lv .lgk { margin-top: 0; min-height: 66px; font-size: 15px; }
+.ldiv { border-top: 4px dashed var(--no); margin: 12px 0 10px; }
 
-/* Jednotky PP/OS (#lunit): řádek tlačítek (52 px) + řádek stavu */
-.lzone-unit { height: 80px; }
-.lzone-ubtn { height: 54px; margin-bottom: 4px; flex-wrap: nowrap; }
-.lzone-ubtn .lzone-empty { height: 52px; }
+/* Tlačítka celých pětek */
+.lpl-row { flex-wrap: nowrap; gap: 8px; margin-bottom: 8px; }
+.lpl-row button { flex: 1; min-height: 42px; border-radius: 10px; border: 2px solid; font-weight: 700; font-size: 14px; }
 
-/* Ošetřování (#ltmp): vždy jeden řádek */
-.lzone-tmp { margin: 4px 0 10px; }
+/* Čekající: pod každým místem sloupec (na řadě nahoře u ledu, větší) */
+.lqs { margin-top: 10px; align-items: start; }
+.lqcol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lqcol .lq { min-height: 54px; }
+.lqcol .lq.nx { min-height: 64px; border-width: 3px; box-shadow: 0 0 0 2px var(--ok); }
 
-/* Fronty (#lqbox): rámeček pevné výšky, řádky odspodu (na řadě hned nad ledem), delší fronty se posouvají nahoru */
-.lqbox { display: flex; flex-direction: column-reverse; gap: 8px; overflow-y: auto; overscroll-behavior: contain; }
-.lqbox > .lg { flex: 0 0 auto; }
-.lqbox .lq { height: 58px; min-height: 58px; box-sizing: border-box; }
-.lq-ph { height: 58px; }
+/* Rotující partnerka: malé tlačítko pod hráčkou (klepnutí = na led, podržení = pořadí rotace) */
+.lrp { min-height: 34px; padding: 2px 3px; border-radius: 8px; border: 1px dashed var(--bd); background: var(--cd); color: var(--tx); font-size: 12px; line-height: 1.1; overflow: hidden; overflow-wrap: anywhere; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.lrp.ofice { border-style: dotted; opacity: .8; }
+.lrp.L1 { border-color: #1e5bb8; } .lrp.L2 { border-color: #f9c80e; } .lrp.L3 { border-color: #2e7d32; } .lrp.L4 { border-color: #d94f8a; }
 
 /* Záblesk tlačítka po zápisu (délka = FLASH_MS v live-feedback.js) */
 @keyframes hcFlash {

@@ -1,5 +1,8 @@
 // Živý zápis: obrazovka, střídání, přetahování, odpočty.
 // Struktura: Importy -> Gól / trest přes okno (openLive) -> Střídání s odezvou (subFb) -> Přetahování (lvDrag) -> Vykreslení (liveRender) -> Odchod (leaveLive) -> Čas (nudgeT, liveTick).
+// v18.3: rozložení B (jediné) – horní lišta s řádkem stavu (tresty, ošetřování, PP/OS), střela soupeře, čára, pětky, led,
+//        pod ním čekající; rotace: dlaždice má jedinou akci, partnerka je malé tlačítko pod hráčkou (klepnutí = na led,
+//        podržení = pořadí rotace). Pevná místa z v18.2 (#lpen, #lunit, #ltmp, #lqbox) nahradil řádek #lchips.
 // v18.2: pevné rozložení – tresty (#lpen), jednotky PP/OS (#lunit) a ošetřování (#ltmp) mají vyhrazená místa pevné výšky
 //        a fronty jsou v rámečku pevné výšky (#lqbox, řádek na řadě dole), takže tlačítka pětek, front, ledu a střely se neposouvají.
 //        Odezva (live-feedback.js): vibrace a záblesk tlačítka po střídání, střele, gólu, trestu, nasazení pětky / jednotky a ↩ Zpět;
@@ -57,34 +60,37 @@ shown.forEach(c=>{const seen=new Set(),a=[];grp.forEach(k=>{const id=((m.sp||{})
 if(!shown.some(c=>dq[c].length))shown.forEach(c=>{dq[c]=[...(L.q[c]||[])]})}
 else{shown.forEach(c=>{dq[c]=[...(L.q[c]||[])]});
 COLS.filter(c=>!shown.includes(c)).forEach(hc=>{const t=(HM[hc]||["C"]).find(x=>shown.includes(x))||shown[0];if(t)(L.q[hc]||[]).forEach(id=>{if(!dq[t].includes(id))dq[t].push(id)})})}
-let h=`<div class="lt" style="position:sticky;top:0;z-index:3;background:var(--bg);padding:6px 0"><div><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" style="min-width:52px;min-height:48px;border-radius:10px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-weight:700;font-size:16px">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" style="min-width:52px;min-height:48px;border-radius:10px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);font-weight:700;font-size:16px">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div><span class="tag ${us>op?"pp":op>us?"sh":""}" style="font-size:14px">${sit}</span></div>`;
-// Tresty (v18.2): vyhrazené místo pevné výšky na 2 tresty (#lpen); další tresty se posouvají uvnitř, nic pod nimi se nehne
-{const pens=(L.pen||[]).map(x=>{const tl={min:"2 min",maj:"5 min",mis:"10 min osobní",gm:"do konce"}[x.ty],t=x.ty==="gm"?"":x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<div class="bx"><span>🚫 ${x.t==="us"?pn(x.p):"Soupeř"} · ${tl} ${t}</span><button class="s" data-pcx="${x.id}">Zrušit</button></div>`}).join("");
-h+=`<div id="lpen" class="lzone lzone-pen">${pens||'<div class="lzone-empty">Bez trestů</div>'}</div>`}
-const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc((pl(id)||{}).name||"?"),
-rb=id=>{if(um)return"";const lu=m.lineup||{},k=slotKey(lu,id);if(!k)return"";const r=slotIds(lu,baseKey(k));return r.length<2?"":`<span class="rt" data-rot="${id}">⇄ ${nmOf(r[(r.indexOf(id)+1)%r.length])}</span>`};
+// ===== Rozložení B (v18.3) – shora dolů =====
+// 1) horní lišta (sticky): třetina a čas ◀ ▶, skóre se střelami; pod tím řádek pevné výšky #lchips (situace, tresty, ošetřování,
+//    tlačítka PP/OS) – posouvá se do strany, takže nic pod lištou neposune
+// 2) STŘELA NA NAŠI BRÁNU → dělicí čára → tlačítka pětek → 3) hráčky na ledě (klepnutí = střela)
+// 4) pod každým místem sloupec čekajících: na řadě (větší dlaždice) → pod ní malé tlačítko rotující partnerky → další ve frontě
+//    → dole partnerky hráček na ledě; 5) upozornění a průběh. Každé tlačítko má jedinou akci (rotace podržením partnerky).
+const tag=`<span class="tag ${us>op?"pp":op>us?"sh":""} lchip-sit">${sit}</span>`,
+pchips=(L.pen||[]).map(x=>{const tl={min:"2 min",maj:"5 min",mis:"10 min",gm:"do konce"}[x.ty],t=x.ty==="gm"?tl:x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<span class="lchip pen"><span>🚫 ${x.t==="us"?pn(x.p):"Soupeř"} ${t}</span><button data-pcx="${x.id}" aria-label="Zrušit trest" title="Zrušit trest">✕</button></span>`}).join(""),
+tchips=(L.tmp||[]).map(id=>`<span class="lchip tmp">🩹 ${pn(id)}</span>`).join(""),
+ub=(us>op?["PP1","PP2"]:op>us?(us===4?["SH1","SH2"]:["SH3","SH4"]):[]).filter(k=>Object.values((m.sp||{})[k]||{}).some(Boolean)),
+uchips=ub.map(k=>`<button class="lchip ub ${k[0]==="P"?"pp":"sh"}${L.unit===k?" on":""}" data-unit="${k}">${k[0]==="P"?"⚡ ":"🛡 "}${ULAB[k]}</button>`).join("")+(L.unit?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:"");
+let h=`<div class="lt lt-b"><div class="lt-r1"><div><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div></div><div id="lchips" class="lchips">${tag}${uchips}${pchips}${tchips}</div></div>`;
+// Pomocné pro dlaždice: pětka hráčky (barva), číslo, jméno
+const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc((pl(id)||{}).name||"?");
 const firstUp=new Set(shown.map(c=>dq[c][0]).filter(Boolean)),waiting=new Set(COLS.flatMap(c=>dq[c]||[])),lastShift=(L.sh||[]).slice(-1)[0],playerState=id=>`live-player${onIce.has(id)?" on-ice":""}${firstUp.has(id)?" next":""}${lastShift&&lastShift.p===id&&waiting.has(id)?" just-off":""}`;
+// 2) Střela soupeře a dělicí čára
+h+=`<button class="lgk${run?"":" dd"}" id="lgk">🥅 STŘELA NA NAŠI BRÁNU<br><small style="font-weight:400">${L.G?pn(L.G):"brankářka?"} · střely soupeře: ${sh.opp}${run?"":" · hra je přerušena"}</small></button><div class="ldiv"></div>`;
+// Tlačítka celých pětek (nasadí celou pětku najednou)
 {const lbn=[1,2,3,4].filter(n=>COLS.some(c=>(m.lineup||{})[n+c]));
-if(lbn.length)h+=`<div class="mu" style="margin:2px 0 4px">Celá pětka na led</div><div class="row" style="margin-bottom:10px;flex-wrap:nowrap;gap:8px">${lbn.map(n=>`<button class="L${n}" data-pline="${n}" style="flex:1;min-height:46px;border-radius:10px;border:2px solid;font-weight:700;font-size:15px">${n}. pětka</button>`).join("")}</div>`;
-// Jednotky PP/OS (v18.2): má-li zápas sestavenou aspoň jednu jednotku, je pro ně vždy vyhrazené místo pevné výšky (#lunit)
-// – řádek tlačítek a řádek stavu; mimo přesilovku a oslabení zůstane prázdné místo s popiskem.
-const ub=(us>op?["PP1","PP2"]:op>us?(us===4?["SH1","SH2"]:["SH3","SH4"]):[]).filter(k=>Object.values((m.sp||{})[k]||{}).some(Boolean)),
-hasU=UK.some(k=>Object.values((m.sp||{})[k]||{}).some(Boolean));
-if(hasU||L.unit)h+=`<div id="lunit" class="lzone lzone-unit"><div class="row lzone-ubtn">${ub.length||L.unit?ub.map(k=>`<button class="p" data-unit="${k}" style="min-height:52px;${k[0]==="S"?"background:var(--wa);border-color:var(--wa);":""}${L.unit===k?"outline:3px solid var(--ok);":""}">${k[0]==="P"?"⚡ ":"🛡 "}${ULAB[k]}</button>`).join("")+(L.unit?`<button class="s" data-lines="1" style="min-height:52px">↩ Zpět na řady</button>`:""):'<div class="lzone-empty">⚡ 🛡 Jednotky se ukážou při přesilovce nebo oslabení</div>'}</div><div class="mu lzone-line">${L.unit?`Aktivní: <b>${ULAB[L.unit]}</b> – ve frontě jsou hráčky z druhé jednotky (rotace se nepoužívá).`:"&nbsp;"}</div></div>`}
-// Ošetřování (v18.2): vždy jeden řádek pevné výšky (#ltmp), dlouhý seznam se zkrátí třemi tečkami
-// Fronty (v18.2): rámeček front #lqbox má pevnou výšku podle sestavy – nejvíc hráček na jednom místě (všechny pětky i rotace) minus
-// jedna na ledě. Řádky se skládají odspodu (řádek „na řadě“ je vždy hned nad ledem); delší fronty při oslabení (sloučené sloupce)
-// nebo po nasazení jednotky se posouvají uvnitř rámečku nahoru – led, tlačítko střely ani pětky se tím neposunou.
-const luN={};Object.keys(m.lineup||{}).filter(k=>/^\d/.test(k)&&m.lineup[k]).forEach(k=>{const c=baseKey(k).slice(1);luN[c]=(luN[c]||0)+1});
-const mq=Math.min(8,Math.max(0,...shown.map(c=>dq[c].length))),rows=Math.min(8,Math.max(1,...COLS.map(c=>(luN[c]||0)-1)));
-h+=`<div id="ltmp" class="mu lzone-line lzone-tmp">${(L.tmp||[]).length?`🩹 V ošetřování: <b>${L.tmp.map(pn).join(", ")}</b>`:"&nbsp;"}</div>`;
+if(lbn.length)h+=`<div class="row lpl-row">${lbn.map(n=>`<button class="L${n}" data-pline="${n}" title="Celá ${n}. pětka na led">${n}. pětka</button>`).join("")}</div>`}
+// 3) Hráčky na ledě: popisky míst a dlaždice (klepnutí = střela, odpočet střídání)
 h+=`<div class="lg" style="margin-bottom:4px;${gt}">${shown.map(c=>`<small class="mu" style="text-align:center;font-size:11px">${us===4&&c==="LK"?"Ú":c}</small>`).join("")}</div>`;
-// Řádky v pořadí 1 (na řadě, dole) → výš; rámeček je flex column-reverse, výška = rows řádků po 58 px + mezery + okraj pruhu na řadě
-h+=`<div id="lqbox" class="lqbox" style="height:${rows*58+(rows-1)*8+16}px">`;
-for(let r=1;r<=Math.max(1,mq);r++)h+=`<div class="lg${r===1?" nx-strip":""}" style="${gt}">${shown.map(c=>{const q=dq[c][r-1];return q?`<button class="lq L${lineOf(q)} ${playerState(q)} tl${r===1?" nx":""}" data-q="${q}" data-col="${c}"><span class="n">${numOf(q)}</span><span class="nm">${nmOf(q)}</span>${rb(q)}</button>`:'<div class="lq-ph"></div>'}).join("")}</div>`;
-h+=`</div>`;
-h+=`<div class="lg ice-strip" style="margin-top:40px;${gt}">${shown.map(c=>{const p=L.ice[c];return p?`<button class="lice L${lineOf(p)} ${playerState(p)} tl" data-ice="${c}"><span class="n">${numOf(p)}</span><span class="nm">${nmOf(p)}</span><span class="t" data-sh="${p}">${mmss(now-(L.since[p]||0))}</span></button>`:`<button class="lice tl" data-ice="${c}"><span class="nm">— prázdné —</span></button>`}).join("")}</div>`;
-h+=`<div style="margin-top:22px;padding-top:14px;border-top:4px dashed var(--no)"><button class="lgk${run?"":" dd"}" id="lgk" style="margin-top:0;min-height:66px;font-size:15px">🥅 STŘELA NA NAŠI BRÁNU<br><small style="font-weight:400">${L.G?pn(L.G):"brankářka?"} · střely soupeře: ${sh.opp}${run?"":" · hra je přerušena"}</small></button></div>`;
+h+=`<div class="lg ice-strip" style="${gt}">${shown.map(c=>{const p=L.ice[c];return p?`<button class="lice L${lineOf(p)} ${playerState(p)} tl" data-ice="${c}"><span class="n">${numOf(p)}</span><span class="nm">${nmOf(p)}</span><span class="t" data-sh="${p}">${mmss(now-(L.since[p]||0))}</span></button>`:`<button class="lice tl" data-ice="${c}"><span class="nm">— prázdné —</span></button>`}).join("")}</div>`;
+// 4) Čekající a rotace (B3): partnerky = ostatní hráčky téhož místa sestavy (k+, k++), které jsou k dispozici
+// (ne na ledě, ne ve frontě, ne vyloučené ani v ošetřování); při aktivní jednotce PP/OS se rotace nepoužívá.
+const unav=new Set([...(L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p),...(L.tmp||[])]),nomL=nomOf(m),
+rp=id=>{if(um)return[];const lu=m.lineup||{},k=slotKey(lu,id);if(!k)return[];return slotIds(lu,baseKey(k)).filter(x=>x!==id&&pl(x)&&nomL.includes(x)&&!onIce.has(x)&&!waiting.has(x)&&!unav.has(x))},
+pbtn=(x,c,of)=>`<button class="lrp L${lineOf(x)}${of?"":" ofice"}" data-rp="${x}" data-col="${c}"${of?` data-of="${of}"`:""} title="${of?"Klepnutí: rovnou na led · podržení: změnit pořadí rotace":"Klepnutí: vystřídá partnerku na ledě"}">⇄ ${numOf(x)} ${nmOf(x)}</button>`,
+colHtml=c=>{let s="";(dq[c]||[]).slice(0,8).forEach((q,i)=>{s+=`<button class="lq L${lineOf(q)} ${playerState(q)} tl${i===0?" nx":""}" data-q="${q}" data-col="${c}"><span class="n">${numOf(q)}</span><span class="nm">${nmOf(q)}</span></button>`;rp(q).forEach(x=>{s+=pbtn(x,c,q)})});
+const ip=L.ice[c];if(ip)rp(ip).forEach(x=>{s+=pbtn(x,c,null)});return`<div class="lqcol">${s}</div>`};
+h+=`<div class="lg lqs" style="${gt}">${shown.map(colHtml).join("")}</div>`;
 // Průběh (v18.1): všechny kroky zápasu včetně střídání, nejnovější nahoře; dlouhá střídání zvýrazněná.
 // Nad ním pevný řádek upozornění #lwarn (plní liveTick), aby se tlačítka nad ním nikdy neposouvala.
 const lim=shiftMax()*1000,tl=timeline(m,{shots:true,subs:true,limit:lim}).reverse();
@@ -126,9 +132,15 @@ Q2("[data-pline]").forEach(b=>b.onclick=()=>{const k=+b.dataset.pline;act(k+". p
 Q2("[data-us]").forEach(b=>b.onclick=()=>{S.lsub="usel:"+b.dataset.us;liveRender()});
 Q2("[data-usp]").forEach(b=>b.onclick=()=>{const[,k,c]=S.lsub.split(":"),n=clone(m);n.sp=n.sp||{};n.sp[k]=n.sp[k]||{};if(b.dataset.usp)n.sp[k][c]=b.dataset.usp;else delete n.sp[k][c];S.lsub="units";upd(n)});
 Q2("[data-unit]").forEach(b=>b.onclick=()=>{const k=b.dataset.unit;S.lmenu=false;S.lsub=null;act(ULAB[k],(L2,n,ids,t)=>{const r=applyUnit(L2,n,k,t);if(r.none){toast("Jednotku nelze nasadit (hráčky nejsou k dispozici)");haptic("err");return}feedback("ok",`[data-unit="${k}"]`);logEv(n,{ty:"unit",label:ULAB[k],at:t,per:L2.per});if(r.skip.length||r.rep.length)toast((r.skip.length?"Nenasazeny: "+r.skip.join(", "):"")+(r.rep.length?(r.skip.length?" – ":"")+"doplnily: "+r.rep.join(", "):""));else if(r.trim)toast("Jednotka zkrácena podle počtu hráček na ledě")})});
-Q2("[data-lines]").forEach(b=>b.onclick=()=>{S.lmenu=false;S.lsub=null;act("Zpět na řady",(L2,n,ids,t)=>{toLines(L2,n,t);feedback("ok","#lunit");logEv(n,{ty:"unit",label:"Zpět na řady",at:t,per:L2.per})})});
+Q2("[data-lines]").forEach(b=>b.onclick=()=>{S.lmenu=false;S.lsub=null;act("Zpět na řady",(L2,n,ids,t)=>{toLines(L2,n,t);feedback("ok","#lchips");logEv(n,{ty:"unit",label:"Zpět na řady",at:t,per:L2.per})})});
 Q2("[data-pcx]").forEach(b=>b.onclick=()=>act("Zrušení trestu",(L,n,i,t)=>{const c=L.pen.find(x=>x.id===b.dataset.pcx);if(!c)return;L.pen=L.pen.filter(x=>x!==c);afterRemove(L,c,t)}));
-Q2("[data-rot]").forEach(s=>s.onclick=ev=>{ev.stopPropagation();const id=s.dataset.rot;act("Rotace: "+(pl(id)||{}).name,(L2,n)=>swapRot(L2,n,id))});
+// Rotující partnerka (v18.3): klepnutí = rovnou na led (stejné střídání jako z fronty), podržení u partnerky čekající hráčky =
+// změna pořadí rotace (swapRot – partnerka se postaví do fronty místo ní)
+Q2("[data-rp]").forEach(b=>{let tmr=null,held=false;
+const hold=()=>{held=false;clearTimeout(tmr);if(!b.dataset.of)return;tmr=setTimeout(()=>{held=true;const of=b.dataset.of,x=b.dataset.rp;act("Rotace: "+(pl(of)||{}).name,(L2,n)=>swapRot(L2,n,of));feedback("ok",`[data-q="${x}"]`)},550)},stop=()=>clearTimeout(tmr);
+b.addEventListener("pointerdown",hold);["pointerup","pointerleave","pointercancel"].forEach(t=>b.addEventListener(t,stop));
+b.addEventListener("contextmenu",ev=>ev.preventDefault());
+b.onclick=()=>{if(held){held=false;return}subFb(b.dataset.rp,b.dataset.col)}});
 lvDrag(e);
 if(S.lmenu){const cl=()=>{S.lmenu=false;S.lsub=null;S.injp=null;liveRender()};
 e.querySelector("#lmw").onclick=ev=>{if(ev.target.id==="lmw")cl()};
