@@ -4,6 +4,7 @@
 // v18.3: tresty jsou v řádku stavu horní lišty (#lchips) – záblesk po trestu míří tam.
 // v18.4.1: tresty jsou malé štítky v řádku třetiny (stále #lchips) – záblesk po trestu míří tam.
 // v18.4: po zapsání vyloučení, které změní počty a vytvoří přesilovku / oslabení, se otevře nabídka jednotky k odsouhlasení (askUnit, B4).
+// v18.4.2: ikona gólu 🥅 místo ⚽; nabídku jednotky po změně počtů bez trestu (konec trestu, gól, ✕) hlídá live.js (watchSit).
 import {COLS, REA, SIT} from "../config/constants.js";
 import {upd} from "../core/actions.js";
 import {curM, isG, liveIds, nomOf, pl, pn} from "../core/selectors.js";
@@ -28,7 +29,7 @@ S.qa=kind==="G"?{k:"G",...b,team:"us",step:"scorer",scorer:null,a1:null,a2:null,
 // ===== Okno kroků =====
 export function qaHtml(m,L){const Q_=S.qa,ice=COLS.map(c=>L.ice[c]).filter(Boolean),bt=(id,l,c)=>`<button class="${c||"s"}" data-qb="${id}">${l}</button>`;let t="",b="",x="";
 if(Q_.k==="G"){x=`<div class="chips" style="margin-bottom:10px">${["E","PP","SH"].map(s=>`<button class="chip ${Q_.sit===s?"on":""}" data-qs="${s}">${SIT[s]}</button>`).join("")}</div>`;
- if(Q_.step==="scorer"){t="⚽ Kdo dal gól?";b=ice.map(i=>bt("sc:"+i,pn(i))).join("")}
+ if(Q_.step==="scorer"){t="🥅 Kdo dal gól?";b=ice.map(i=>bt("sc:"+i,pn(i))).join("")}
  else if(Q_.step==="a1"){t="1. asistence";b=bt("a1:-","Bez asistence","p")+ice.filter(i=>i!==Q_.scorer).map(i=>bt("a1:"+i,pn(i))).join("")}
  else{t="2. asistence";b=bt("a2:-","Hotovo – bez 2. asistence","p")+ice.filter(i=>i!==Q_.scorer&&i!==Q_.a1).map(i=>bt("a2:"+i,pn(i))).join("")}}
 else if(Q_.step==="who"){t="🚫 Vyloučení – kdo?";b=bt("who:opp","Soupeř","d")+ice.map(i=>bt("who:"+i,pn(i))).join("")+bt("who:other","Jiná hráčka…")}

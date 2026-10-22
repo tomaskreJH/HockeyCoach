@@ -10,7 +10,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo** (odezva zůstává, rozložení nahradila v18.3) |
 | v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, otestováno (požadavky do v18.4) |
 | v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo** (v18.4.1 otestováno, opravy ve v18.4.2) |
-| v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu |
+| v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu – **hotovo**, k testu |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
@@ -53,6 +53,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
   3. **Góly v průběhu podsvítit** – zvlášť náš gól (zelené / modré pozadí) a gól soupeře (červené pozadí); podle typu položky z `timeline()`.
   4. **Mantinel bílo-modrý** (jako dřív bílo-žlutý, jen žlutou nahradit modrou).
   5. **Rotující partnerka (`.lrp`) v tmavém režimu nečitelná** – zajistit kontrastní text i pozadí (světlé i tmavé schéma).
+- **v18.4.2 dodáno, k testu (22. 10. 2026).** (1) Více trestů: `unitView` uzná jednotku stejného druhu (PP / OS) i z jiné skupiny, tlačítka a fronty ukazují skupinu platné situace (5 = pětky / PP, 4 = OS1/OS2, 3 = OS3/OS4); nový hlídač `watchSit` v `live.js` po každé změně počtů (konec trestu, gól, ✕, Zpět) při nevyrovnané hře s novou skupinou hned otevře nabídku „uask“, při vyrovnané hře ji zavře. `live-engine.js` beze změny (žádné automatické nasazení). (2) Ikona gólu 🥅 ve všech výskytech. (3) Góly v průběhu podsvícené (náš zeleně, soupeř červeně, obě schémata). (4) Mantinel bílo-modrý. (5) `.lrp` vlastní kontrastní barvy ve světlém i tmavém schématu. Kouřový test jsdom 44 kontrol (scénáře 3→4→5 na 5, PP 5 na 3 → 5 na 4, gól v PP i OS, ✕).
 - **Pokračování:** po v18.4.2 a jejím testu další bod plánu – **v18.6 G (Náhled role)**; před ním rozhodnout otázku 11 (kdo náhled smí, zda zakázat zápis – návrh: jen vybrané e-maily vývojáře, zápis zakázán).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).

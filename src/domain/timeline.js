@@ -1,4 +1,5 @@
 // Doména: úplná časová osa zápasu a statistika střídání (bez DOM).
+// v18.4.2: ikona gólu 🥅 (hokejová branka) místo ⚽; položka gólu nese kind "G" a team (podsvícení v živém průběhu).
 // Struktura: Importy -> Pomocné funkce -> Třetiny a čas -> Střídání (shiftsOf, shiftList, shiftStats) -> Časová osa (timeline) -> Exporty.
 // Společné pravidlo střídání (v18.1) – shiftList(m) používají všechny přehledy (statistiky zápasu, Čas na ledě v živém zápisu,
 // Střídání hráček v rozboru, celkové statistiky, vývoj zápasu):
@@ -75,8 +76,8 @@ const evText = (e) => {
   if (e.k === "G") {
     const sit = SIT[e.sit] || SIT.E;
     return e.team === "us"
-      ? `⚽ Gól: ${nameOf(e.scorer)} (asistence: ${[e.a1, e.a2].filter(Boolean).map(nameOf).join(", ") || "bez asistence"}) – ${sit}`
-      : `⚽ Gól soupeře – ${sit}`;
+      ? `🥅 Gól: ${nameOf(e.scorer)} (asistence: ${[e.a1, e.a2].filter(Boolean).map(nameOf).join(", ") || "bez asistence"}) – ${sit}`
+      : `🥅 Gól soupeře – ${sit}`;
   }
   if (e.k === "P") return `🚫 Vyloučení: ${e.team === "us" ? nameOf(e.pid) : "soupeř"} – ${e.min} min${e.reason ? ", " + e.reason : ""}`;
   return e.team === "us" ? `🏒 Střela: ${nameOf(e.shooter)}` : `🏒 Střela soupeře${e.gk ? " (brankářka " + nameOf(e.gk) + ")" : ""}`;

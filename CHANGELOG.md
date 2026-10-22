@@ -4,6 +4,24 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.4.2 (22. 10. 2026) – více trestů, ikona gólu a čitelnost (úprava po testu v18.4.1)
+**Opraveno**
+- Více trestů: po skončení jednoho ze dvou trestů (3 na 5 → 4 na 5) se obrazovka vracela k pětkám, i když hra zůstala v oslabení. Příčina: `unitView` uznal jen jednotku ze skupiny platné situace (OS3 ∉ OS1/OS2) a nabídka jednotky se otevírala jen po zapsání trestu. Nyní se formace řídí počtem našich hráček na ledě (5 = pětky, při přesilovce PP; 4 = OS1/OS2; 3 = OS3/OS4), režim PP/OS trvá s tlačítky a frontami nové skupiny a k pětkám se vrací až při vyrovnané hře.
+- Rotující partnerka (`.lrp`) v tmavém režimu nečitelná (barvy pětek `.L1`–`.L4` jí vnutily text bez kontrastu) – vlastní kontrastní barvy pro světlé i tmavé schéma, barva pětky v levém okraji.
+
+**Přidáno**
+- Hlídač situace `watchSit` (`live.js`): po každé změně počtů – trest vyprší, gól ukončí trest, ✕ zrušení, ↩ Zpět – při stále nevyrovnané hře s jinou skupinou jednotek hned otevře nabídku jednotky (panel „uask“); při vyrovnané hře otevřenou nabídku zavře. Nepřekryje jiné otevřené okno, nic nezapisuje.
+- Góly v průběhu živého zápisu podsvícené: náš gól zeleně, gól soupeře červeně (světlé i tmavé schéma).
+
+**Změněno**
+- `src/views/live.js`: `unitView` (stejný druh PP / OS), pořadí front jednotek `unitQueueOrder`, štítek nabídky i při jednotce jiné skupiny, tlačítko „Ponechat <jednotku>“ v nabídce při aktivním režimu, upozornění „Situace se změnila…“, `watchSit`, třídy gólů v průběhu, ikona 🥅.
+- Ikona gólu ⚽ → 🥅 (hokejová branka): `live.js`, `live-quick.js`, `src/domain/timeline.js`, `report.js`, `matches.js`, `modal.js`, `help.js`.
+- `styles/main.css`: mantinel bílo-modrý (bílá deska, modrý okop), `.lrp` kontrastní barvy, `.lev-gu` / `.lev-go`.
+- `src/views/help.js` (kapitoly 5 a 6), `README.md`, `src/data/storage.js` (verze), `package.json`, `sw.js` (cache hokej-v44), `plan-zivy-zapis-v18.md`.
+
+**Beze změny:** `live-engine.js` (zápis trestů, gólů, střel, časomíra, střídání, nasazení jednotky `applyUnit`), odezva z v18.2, rotace z v18.3, hřiště a štítky trestů z v18.4.1, uložená data, pravidla databáze (`firestore.rules` není nutné publikovat).
+Ověřeno kouřovým testem v jsdom (44 kontrol – 3 na 5 → 4 na 5 → 5 na 5, PP 5 na 3 → 5 na 4, gól v přesilovce i oslabení, zrušení ✕ při 3 na 5 i 4 na 5, podsvícení gólů, ikona 🥅, styly mantinelu a partnerky).
+
 ## v18.4.1 (22. 10. 2026) – kompaktní hlavička živého zápisu (úprava po testu v18.4)
 **Změněno**
 - `src/views/live.js`: samostatný řádek stavu zrušen – tresty jsou malé štítky velikosti situace přímo v řádku třetiny (`#lchips` = `.lper`: třetina, situace, 🚫 #číslo odpočet ✕, soupeř „Soup.“, délka 2'/5'/10'/DK), stejně malé štítky ⚡ PP / 🛡 OS (nabídka jednotky) a ↩ Řady; jeden řádek s posunem do strany, výška lišty stálá. Hlavička je o řádek nižší.

@@ -1,5 +1,6 @@
 // Statistiky zápasu a zápis utkání (tisk / export).
 // Tabulky statistik mají třídu "sortable" – řadí se klepnutím na hlavičku (viz core/table-sort.js).
+// v18.4.2: ikona gólu 🥅 (hokejová branka) místo ⚽.
 import {COLS, SIT, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {curM, isG, pl, pn, score, shots, skaters, slotIds} from "../core/selectors.js";
 import {S} from "../core/state.js";
@@ -27,7 +28,7 @@ const G={},A={};E.forEach(e=>{if(e.k==="G"&&e.team==="us"){if(e.scorer)G[e.score
 const lst=o2=>Object.entries(o2).sort((x,y)=>y[1]-x[1]).map(([id,n])=>nm(id)+(n>1?" ("+n+")":"")).join(", ")||"–";
 const lines=[1,2,3,4].filter(n=>COLS.some(c=>lu[n+c])),inj=(m.injLog||[]).map(x=>({tmp:"🩹 dočasně vyřazena",perm:"🤕 trvalé zranění",back:"↩ vrácena do sestavy"}[x.ty]+": "+nm(x.id)+" ("+x.per+". tř. "+(x.time||"")+")"));
 const units=UK.filter(k=>Object.values((m.sp||{})[k]||{}).some(Boolean));
-const evT=e=>e.k==="G"?(e.team==="us"?"⚽ Gól: <b>"+nm(e.scorer)+"</b> (asistence: "+([e.a1,e.a2].filter(Boolean).map(nm).join(", ")||"bez asistence")+") – "+(SIT[e.sit]||SIT.E):"⚽ Gól soupeře – "+(SIT[e.sit]||SIT.E)):"🚫 "+(e.team==="us"?nm(e.pid):"Soupeř")+" – "+e.min+" min"+(e.reason?", "+esc(e.reason):"");
+const evT=e=>e.k==="G"?(e.team==="us"?"🥅 Gól: <b>"+nm(e.scorer)+"</b> (asistence: "+([e.a1,e.a2].filter(Boolean).map(nm).join(", ")||"bez asistence")+") – "+(SIT[e.sit]||SIT.E):"🥅 Gól soupeře – "+(SIT[e.sit]||SIT.E)):"🚫 "+(e.team==="us"?nm(e.pid):"Soupeř")+" – "+e.min+" min"+(e.reason?", "+esc(e.reason):"");
 return`<h2 style="font-size:22px">Zápis utkání <small class="mu" style="font-weight:400">– oficiální část</small></h2><div class="cd"><b>${m.home?"HC Střely – "+esc(m.opp):esc(m.opp)+" – HC Střely"}</b><br><span class="mu">${fd(m.date)} · ${m.home?"doma":"venku"} · třetina ${m.perLen||20} min · ${m.end?"ukončen po "+(m.end.per<4?m.end.per+". třetině":"prodloužení"):"zápas neukončen"} · ${m.closed?"uzavřen":"neuzavřen"}${m.ot===false?" · bez prodloužení":""}</span><div class="sc">${g} : ${o}</div><div class="mu" style="text-align:center">Střely ${sh.us} : ${sh.opp}</div></div>
 <div class="cd"><h2>Souhrn</h2><div class="mu"><b>Góly:</b> ${lst(G)}<br><b>Asistence:</b> ${lst(A)}</div><div class="tw" style="margin-top:8px"><table style="min-width:340px"><tr><th></th><th>Góly</th><th>Střely</th></tr>${pers.map(n=>`<tr><td>${perN(n)}</td><td>${cnt(n,"us")}:${cnt(n,"opp")}</td><td>${scn(n,"us")}:${scn(n,"opp")}</td></tr>`).join("")}</table></div></div>
 <div class="cd"><h2>Sestava</h2><div class="tw"><table style="min-width:480px"><tr><th>Pětka</th>${COLS.map(c=>`<th>${c}</th>`).join("")}</tr>${lines.map(n=>`<tr><td>${n}.</td>${COLS.map(c=>`<td>${slotIds(lu,n+c).map(nm).join(" ⇄ ")||"–"}</td>`).join("")}</tr>`).join("")}</table></div><div class="mu" style="margin-top:6px"><b>Brankářky:</b> ${nm(lu.G1)}${lu.G2?", "+nm(lu.G2):""}<br><b>Náhradnice:</b> ${benchM(m).map(nm).join(", ")||"–"}${inj.length?"<br><b>Zranění:</b><br>"+inj.join("<br>"):""}${units.length?"<br><b>Jednotky:</b><br>"+units.map(k=>ULAB[k]+": "+USLOT[k].map(c=>slab(k,c)+" "+nm(((m.sp||{})[k]||{})[c])).join(", ")).join("<br>"):""}</div></div>

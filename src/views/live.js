@@ -9,6 +9,10 @@
 // v18.4.1: samostatný řádek stavu zrušen – tresty (číslo hráčky, odpočet, ✕) a nabídka jednotky / ↩ Řady jsou malé štítky
 //        velikosti situace přímo v řádku třetiny (#lchips, posun do strany); nižší dlaždice hráček na ledě; mantinel modrý.
 //        Oprava: chybějící hráčka na ledě se hlásí i při čekajícím trestu (2+2, třetí trest) a jako varování ⚠️.
+// v18.4.2: formace podle počtu našich hráček na ledě – 5 = pětky (při přesilovce PP), 4 = OS1/OS2, 3 = OS3/OS4. Režim PP/OS
+//        trvá při změně skupiny (3 na 5 → 4 na 5): tlačítka a fronty jednotek nové skupiny; k pětkám až při vyrovnané hře.
+//        Hlídač situace (watchSit) po každé změně počtů (konec trestu, gól, zrušení ✕, Zpět) při stále nevyrovnané hře
+//        a nové skupině jednotek hned nabídne jednotku (panel „uask“). Góly v průběhu podsvícené (náš / soupeř), ikona gólu 🥅.
 // v18.3: rozložení B (jediné) – horní lišta s řádkem stavu (tresty, ošetřování, PP/OS), střela soupeře, čára, pětky, led,
 //        pod ním čekající; rotace: dlaždice má jedinou akci, partnerka je malé tlačítko pod hráčkou (klepnutí = na led,
 //        podržení = pořadí rotace). Pevná místa z v18.2 (#lpen, #lunit, #ltmp, #lqbox) nahradil řádek #lchips.
@@ -36,8 +40,11 @@ import {render} from "./shell.js";
 // ===== Situace a režim jednotek (v18.4) =====
 // Skupina jednotek pro danou situaci: přesilovka → PP1/PP2, oslabení 4 hráčky → SH1/SH2, 3 hráčky → SH3/SH4; vyrovnaná hra → null
 const grpFor=(us,op)=>us>op?["PP1","PP2"]:op>us?(us===4?["SH1","SH2"]:["SH3","SH4"]):null;
-// Režim PP/OS na obrazovce: nasazená jednotka (L.unit) patří k právě platné situaci; jinak se zobrazují běžné pětky
-const unitView=(L,us,op)=>{const g=grpFor(us,op);return !!L.unit&&!!g&&g.includes(L.unit)};
+// Režim PP/OS na obrazovce (v18.4.2): je nasazená jednotka (L.unit) a hra je nevyrovnaná ve stejném smyslu (PP při přesilovce,
+// OS při oslabení). Jednotka nemusí být ze skupiny platné situace (OS3 při 4 na 5) – tlačítka a fronty pak ukazují novou skupinu.
+const unitView=(L,us,op)=>{const g=grpFor(us,op);return !!L.unit&&!!g&&L.unit[0]===g[0][0]};
+// Pořadí jednotek pro fronty v režimu PP/OS: nejdřív ostatní jednotky platné skupiny, nakonec aktivní (je-li z této skupiny)
+const unitQueueOrder=(L,g)=>[...g.filter(k=>k!==L.unit),...(g.includes(L.unit)?[L.unit]:[])];
 // Krátký popisek jednotky pro tlačítko (dlouhý název je v ULAB)
 const unitLabel=k=>k[0]==="P"?"⚡ PP "+k[2]:"🛡 OS "+(k==="SH1"||k==="SH3"?1:2);
 // Návrh jednotky k odsouhlasení: první jednotka skupiny, která má nejvíc dostupných (nevyloučených, nominovaných) hráček
@@ -73,11 +80,11 @@ e.style.display="block";migrate(m.live);const L=m.live,[g,o]=score(m),sh=shots(m
 const sit=us>op?"Přesilovka "+us+" na "+op:op>us?"Oslabení "+us+" na "+op:us+" na "+op,grp=grpFor(us,op),uv=unitView(L,us,op);e.style.paddingBottom=run?"130px":"310px";const lay=LAYOUT(us),shown=COLS.filter(c=>lay.includes(c)||L.ice[c]),gt=`grid-template-columns:repeat(${shown.length},minmax(0,1fr))`;
 // Zobrazené fronty.
 // Běžné řady: při oslabení se fronty skrytých sloupců (PK, u 3 hráček i LK) přidají pod nejbližší viditelný sloupec (stejné pořadí jako ve fitLayout), aby čekající hráčky šly nasadit.
-// Režim PP/OS (uv, v18.4 jen když jednotka patří k platné situaci): ve frontě jsou hráčky z druhé jednotky téhož druhu (pak z aktivní,
-// pokud někdo vystřídal), bez rotace; nemá-li jednotky nikdo na střídání, zobrazí se běžná fronta.
+// Režim PP/OS (uv): ve frontě jsou hráčky z jednotek platné skupiny (v18.4.2 i po změně skupiny, např. OS3 → OS1/OS2; aktivní
+// jednotka nakonec, pokud do skupiny patří), bez rotace; nemá-li jednotky nikdo na střídání, zobrazí se běžná fronta.
 const um=uv,onIce=new Set(COLS.map(c=>L.ice[c]).filter(Boolean)),HM={LK:["LK","C"],PK:["LK","C"]},dq={};
-if(um){const bad=new Set([...(L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p),...(L.tmp||[])]),nmL=nomOf(m),grp=[...UGRP(L.unit).filter(k=>k!==L.unit),L.unit];
-shown.forEach(c=>{const seen=new Set(),a=[];grp.forEach(k=>{const id=((m.sp||{})[k]||{})[c];if(id&&!seen.has(id)&&!onIce.has(id)&&!bad.has(id)&&nmL.includes(id)&&pl(id)){seen.add(id);a.push(id)}});dq[c]=a});
+if(um){const bad=new Set([...(L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p),...(L.tmp||[])]),nmL=nomOf(m),ord=unitQueueOrder(L,grp);
+shown.forEach(c=>{const seen=new Set(),a=[];ord.forEach(k=>{const id=((m.sp||{})[k]||{})[c];if(id&&!seen.has(id)&&!onIce.has(id)&&!bad.has(id)&&nmL.includes(id)&&pl(id)){seen.add(id);a.push(id)}});dq[c]=a});
 if(!shown.some(c=>dq[c].length))shown.forEach(c=>{dq[c]=[...(L.q[c]||[])]})}
 else{shown.forEach(c=>{dq[c]=[...(L.q[c]||[])]});
 COLS.filter(c=>!shown.includes(c)).forEach(hc=>{const t=(HM[hc]||["C"]).find(x=>shown.includes(x))||shown[0];if(t)(L.q[hc]||[]).forEach(id=>{if(!dq[t].includes(id))dq[t].push(id)})})}
@@ -92,8 +99,8 @@ const tag=`<span class="tag ${us>op?"pp":op>us?"sh":""} lsit">${sit}</span>`,
 // Štítek trestu (v18.4.1, kompaktní): naše hráčka číslem (bez čísla jménem), soupeř „Soup.“, odpočet / délka a ✕
 pnum=id=>{const p=pl(id);return p?(p.num?"#"+esc(p.num):esc(p.name)):"?"},
 pchips=(L.pen||[]).map(x=>{const tl={min:"2'",maj:"5'",mis:"10'",gm:"DK"}[x.ty],t=x.ty==="gm"?tl:x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<span class="lchip pen" title="${x.t==="us"?esc((pl(x.p)||{}).name||""):"Soupeř"}">🚫 ${x.t==="us"?pnum(x.p):"Soup."} ${t}<button data-pcx="${x.id}" aria-label="Zrušit trest" title="Zrušit trest">✕</button></span>`}).join(""),
-// Nabídka jednotky při nerovnosti bez režimu PP/OS; jednotka z minulé nerovnosti (situace skončila) → ↩ Řady
-uchips=(grp&&!uv?`<button class="lchip ub ${us>op?"pp":"sh"}" data-uask="1">${us>op?"⚡ PP":"🛡 OS"}</button>`:"")+(L.unit&&!uv?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:""),
+// Nabídka jednotky při nerovnosti bez režimu PP/OS nebo s jednotkou jiné skupiny (v18.4.2); jednotka z minulé nerovnosti → ↩ Řady
+uchips=(grp&&(!uv||!grp.includes(L.unit))?`<button class="lchip ub ${us>op?"pp":"sh"}" data-uask="1">${us>op?"⚡ PP":"🛡 OS"}</button>`:"")+(L.unit&&!uv?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:""),
 chips=pchips+uchips;
 let h=`<div class="lt lt-b"><div class="lt-r1"><div class="lt-left"><div class="lper" id="lchips"><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small>${tag}${chips}</div><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div></div></div>`;
 // Pomocné pro dlaždice: pětka hráčky (barva), číslo, jméno
@@ -119,9 +126,10 @@ const ip=L.ice[c];if(ip)rp(ip).forEach(x=>{s+=pbtn(x,c,null)});return`<div class
 h+=`<div class="lg lqs" style="${gt}">${shown.map(colHtml).join("")}</div>`;
 // Průběh (v18.1): všechny kroky zápasu včetně střídání, nejnovější nahoře; dlouhá střídání zvýrazněná.
 // Horní řádek průběhu #lwarn (v18.4) plní liveTick a ukazuje se jen, když nějaké upozornění je (průběh je dole – nic neposune).
-const lim=shiftMax()*1000,tl=timeline(m,{shots:true,subs:true,limit:lim}).reverse();
-h+=`<div style="margin-top:22px"><div class="mu" style="text-align:center;margin-bottom:4px">PRŮBĚH</div><div id="lwarn" style="display:none"></div><div style="height:220px;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:0 6px">${tl.map(x=>`<div class="ev" style="padding:6px 0;${x.long?"background:#fff3dc;color:#5a3a00;border-radius:6px;padding-left:4px;padding-right:4px":""}"><div class="t">${perLabel(x.per)} ${esc(x.el)}</div><div class="b">${esc(x.text)}</div></div>`).join("")||'<div class="mu" style="text-align:center;padding:10px 0">Zatím nic.</div>'}</div></div>`;
-h+=`<div class="lb" style="flex-direction:column;gap:10px">${run?"":ended?`<div style="display:flex;gap:12px"><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`:`<div style="display:flex;gap:12px"><button id="qg" style="flex:1;font-size:16px;background:var(--ac);color:#fff;border-color:transparent">⚽ Gól HC Střely</button><button id="qo" style="flex:1;font-size:16px;background:var(--no);color:#fff;border-color:transparent">⚽ Gól soupeř</button></div><div style="display:flex;gap:12px"><button id="qp" style="flex:1;font-size:15px">🚫 Trest</button><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`}<div style="display:flex;gap:12px"><button id="lun" style="flex:1;font-size:14px" title="${u?esc(u.t):""}">↩ Zpět</button><button id="lpl" style="flex:2.4;font-size:20px;background:${ended?"#6b7480":run?"var(--no)":"var(--ok)"};color:#fff;border-color:transparent">${ended?"🏁 Zápas ukončen":run?"⏸ Přerušit":"▶ Start"}</button></div></div>`;
+// Góly (v18.4.2) podsvícené podle týmu: náš gól .lev-gu (zelená), gól soupeře .lev-go (červená) – barvy pro obě schémata v main.css.
+const lim=shiftMax()*1000,tl=timeline(m,{shots:true,subs:true,limit:lim}).reverse(),evCls=x=>x.kind==="G"?(x.team==="us"?" lev-gu":" lev-go"):"";
+h+=`<div style="margin-top:22px"><div class="mu" style="text-align:center;margin-bottom:4px">PRŮBĚH</div><div id="lwarn" style="display:none"></div><div style="height:220px;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:0 6px">${tl.map(x=>`<div class="ev${evCls(x)}" style="padding:6px 0;${x.long?"background:#fff3dc;color:#5a3a00;border-radius:6px;padding-left:4px;padding-right:4px":""}"><div class="t">${perLabel(x.per)} ${esc(x.el)}</div><div class="b">${esc(x.text)}</div></div>`).join("")||'<div class="mu" style="text-align:center;padding:10px 0">Zatím nic.</div>'}</div></div>`;
+h+=`<div class="lb" style="flex-direction:column;gap:10px">${run?"":ended?`<div style="display:flex;gap:12px"><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`:`<div style="display:flex;gap:12px"><button id="qg" style="flex:1;font-size:16px;background:var(--ac);color:#fff;border-color:transparent">🥅 Gól HC Střely</button><button id="qo" style="flex:1;font-size:16px;background:var(--no);color:#fff;border-color:transparent">🥅 Gól soupeř</button></div><div style="display:flex;gap:12px"><button id="qp" style="flex:1;font-size:15px">🚫 Trest</button><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`}<div style="display:flex;gap:12px"><button id="lun" style="flex:1;font-size:14px" title="${u?esc(u.t):""}">↩ Zpět</button><button id="lpl" style="flex:2.4;font-size:20px;background:${ended?"#6b7480":run?"var(--no)":"var(--ok)"};color:#fff;border-color:transparent">${ended?"🏁 Zápas ukončen":run?"⏸ Přerušit":"▶ Start"}</button></div></div>`;
 if(S.lmenu){const dis=run?"disabled":"";let b;
 if(S.lsub==="off")b=`<h2>Kdo opustí led?</h2><div class="lmg">${COLS.map(c=>L.ice[c]).filter(Boolean).map(i=>`<button class="s" data-off="${i}">${pn(i)}</button>`).join("")}</div>`;
 else if(S.lsub==="lineup")b=`<h2>Sestava</h2>${S.lgap?`<div class="lgap-note">${S.lgap.kind==="perm"?"🤕":"🩹"} <b>${pn(S.lgap.id)}</b> – ${S.lgap.kind==="perm"?"trvale zraněná, místo v sestavě je prázdné":"v ošetřování, na ledě chybí"}. Vyznačené místo doplň: klepni na něj a vyber hráčku, nebo přetáhni náhradnici.</div>`:""}<div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš nebo prohodíš. Změna se hned promítne do střídání (fronty pod místy).</div>${luEditor(m.lineup||{},0,"m:")}<div class="lnl" style="margin-top:12px">Náhradnice (podle pozic)</div><div class="bz" data-bz="b">${benchGrouped(m)}</div>`;
@@ -130,7 +138,7 @@ else if(S.lsub==="units")b=`<h2>Přesilovky a oslabení</h2>${UK.map(k=>{const u
 // nesestavená místa se doplní z front; potvrzení = nasazení jednotky (data-unit) a režim PP/OS
 else if(S.lsub==="uask"){if(!grp)b=`<h2>Jednotka PP/OS</h2><div class="mu">Hra je vyrovnaná (${sit}) – jednotka není potřeba.</div>`;
 else{const k=S.uk&&grp.includes(S.uk)?S.uk:proposeUnit(m,L,grp),lay=LAYOUT(us),u=(m.sp||{})[k]||{},cols=USLOT[k].filter(c=>lay.includes(c)),built=cols.some(c=>u[c]&&pl(u[c]));
-b=`<h2>${us>op?"⚡":"🛡"} ${sit}</h2><div class="mu" style="margin-bottom:8px">Zkontroluj jednotku a potvrď. Pak budou tlačítka a fronty jen pro ${us>op?"přesilovku":"oslabení"}; po skončení se obrazovka vrátí k pětkám.</div><div class="chips" style="margin-bottom:8px">${grp.map(x=>`<button class="chip ${x===k?"on":""}" data-uk="${x}">${ULAB[x]}</button>`).join("")}</div><div class="ln">${cols.map(c=>{const id=u[c],ok=id&&pl(id),bx=ok&&((L.pen||[]).some(x=>x.t==="us"&&x.p===id)||(L.tmp||[]).includes(id));return`<div class="sl ${ok?"f":""}${bx?" lu-gap":""}"><small>${slab(k,c)}</small>${ok?pn(id):"z fronty"}${bx?" 🚫":""}</div>`}).join("")}</div><div class="mu" style="margin:6px 0 10px">${built?"Červeně označenou hráčku nahradí hráčka z fronty.":"Jednotka není sestavená – místa se doplní hráčkami z front."}</div><button class="p w" data-unit="${k}" style="min-height:58px">✓ Potvrdit a nasadit</button><button class="s w" data-m="units" style="min-height:50px;margin-top:8px">✏️ Upravit jednotky</button><button class="s w" data-m="cl" style="min-height:50px;margin-top:8px">Ponechat pětky</button>`}}
+b=`<h2>${us>op?"⚡":"🛡"} ${sit}</h2><div class="mu" style="margin-bottom:8px">Zkontroluj jednotku a potvrď. Pak budou tlačítka a fronty jen pro ${us>op?"přesilovku":"oslabení"}; po skončení se obrazovka vrátí k pětkám.</div><div class="chips" style="margin-bottom:8px">${grp.map(x=>`<button class="chip ${x===k?"on":""}" data-uk="${x}">${ULAB[x]}</button>`).join("")}</div><div class="ln">${cols.map(c=>{const id=u[c],ok=id&&pl(id),bx=ok&&((L.pen||[]).some(x=>x.t==="us"&&x.p===id)||(L.tmp||[]).includes(id));return`<div class="sl ${ok?"f":""}${bx?" lu-gap":""}"><small>${slab(k,c)}</small>${ok?pn(id):"z fronty"}${bx?" 🚫":""}</div>`}).join("")}</div><div class="mu" style="margin:6px 0 10px">${built?"Červeně označenou hráčku nahradí hráčka z fronty.":"Jednotka není sestavená – místa se doplní hráčkami z front."}</div><button class="p w" data-unit="${k}" style="min-height:58px">✓ Potvrdit a nasadit</button><button class="s w" data-m="units" style="min-height:50px;margin-top:8px">✏️ Upravit jednotky</button><button class="s w" data-m="cl" style="min-height:50px;margin-top:8px">${L.unit&&uv?"Ponechat "+esc(ULAB[L.unit]||L.unit):"Ponechat pětky"}</button>`}}
 else if((S.lsub||"").startsWith("usel:")){const[,uk,uc]=S.lsub.split(":"),cur=((m.sp||{})[uk]||{})[uc],inU=UGRP(uk).flatMap(x=>Object.entries((m.sp||{})[x]||{}).filter(([c])=>!(x===uk&&c===uc)).map(([c,v])=>v)),want=/^(LO|PO)$/.test(uc)?POS[1]:POS[0],pool=S.pl.filter(p=>nomOf(m).includes(p.id)&&!inU.includes(p.id)).sort((x,y)=>(y.pos===want)-(x.pos===want)||x.name.localeCompare(y.name,"cs"));
 b=`<h2>${uk} – ${uc}</h2><div class="chips">${pool.map(p=>`<button class="chip ${cur===p.id?"on":""}" data-usp="${p.id}">${pn(p.id)}</button>`).join("")||"Nikdo není nominován."}</div><button class="s w" data-usp="" style="min-height:50px">Vyprázdnit místo</button>`}
 else if(S.lsub==="inj")b=`<h2>Zranění</h2>${S.injp?`<div class="mu" style="margin-bottom:8px"><b>${pn(S.injp)}</b></div><div class="lmg"><button class="s" data-injt="tmp" style="min-height:66px">🩹 Dočasně<br><small>v ošetřování</small></button><button class="d" data-injt="perm" style="min-height:66px">🤕 Trvale<br><small>na delší dobu</small></button></div>`:`<div class="mu" style="margin-bottom:8px">Vyber zraněnou hráčku:</div><div class="lmg">${[...COLS.map(c=>L.ice[c]),...COLS.flatMap(c=>L.q[c])].filter(Boolean).map(i=>`<button class="s" data-inj="${i}">${pn(i)}</button>`).join("")||"Nikdo."}</div>`}${(L.tmp||[]).length?`<h3 style="margin-top:16px">V ošetřování</h3>${L.tmp.map(id=>`<div class="ev" style="align-items:center"><div class="b"><b>${pn(id)}</b></div><button class="s" data-tmpr="${id}" style="padding:10px 12px">↩ Vrátit</button><button class="d" data-tmpp="${id}" style="padding:10px 12px">Trvalé</button></div>`).join("")}`:""}`;
@@ -202,16 +210,26 @@ Q2("[data-off]").forEach(b=>b.onclick=()=>{const id=b.dataset.off;cl();act("Z le
 Q2("[data-lim]").forEach(b=>b.onclick=()=>{LS.set("shiftMax",Math.max(30,shiftMax()+ +b.dataset.lim));liveRender()});
 // Vypínač vibrace odezvy (v18.2); po zapnutí krátce zavibruje na zkoušku
 Q2("[data-hap]").forEach(b=>b.onclick=()=>{const on=!hapticOn();setHaptic(on);if(on)haptic("ok");liveRender()})}
-liveTick()}
+liveTick();watchSit(m,L,us,op,ended)}
 // Odchod ze živého zápisu (v18.1): zastaví čas zápasu (bez záznamu do Zpět) a zavře obrazovku.
 // Volá menu ⋯ → Zavřít živý zápis a tlačítko Zpět na telefonu (core/nav.js).
-export function leaveLive(){const m=curM();S.qa=null;S.lmenu=false;S.lsub=null;S.injp=null;S.lgap=null;S.uk=null;
+export function leaveLive(){const m=curM();S.qa=null;S.lmenu=false;S.lsub=null;S.injp=null;S.lgap=null;S.uk=null;S.lsit=null;
 if(m&&m.live&&m.live.running&&!m.closed)act(false,(L,n,i,t)=>{L.acc=t;L.running=false;L.t0=0});
 S.lv=false;render()}
 // Nabídka jednotky po trestu (B4, v18.4): volá rychlý zápis po zapsání vyloučení, když se změnil počet hráček
 // a hra je nevyrovnaná (přesilovka / oslabení). Nic nezapisuje – jen otevře panel k odsouhlasení.
 export function askUnit(before){const m=curM();if(!m||!m.live||m.closed)return;const L=m.live,now=el_(L),us=sk(L,"us",now),op=sk(L,"opp",now);
 if(!grpFor(us,op)||(before&&before[0]===us&&before[1]===op))return;S.lmenu=true;S.lsub="uask";S.uk=null;liveRender()}
+// ===== Hlídač situace (v18.4.2) =====
+// Volá se po každém vykreslení. Pamatuje si zápas, počty a skupinu jednotek (S.lsit). Když se počty změní (konec trestu,
+// gól ukončil trest, zrušení ✕, ↩ Zpět) a hra je dál nevyrovnaná s jinou skupinou jednotek (3 na 5 → 4 na 5 = OS3/OS4 → OS1/OS2,
+// oslabení ↔ přesilovka) a nasazená jednotka do ní nepatří, otevře nabídku jednotky. Při vyrovnané hře zavře otevřenou nabídku.
+// Nic nezapisuje; nepřekryje jiné otevřené okno (menu, rychlý zápis). První vykreslení zápasu jen uloží výchozí stav.
+function watchSit(m,L,us,op,ended){const g=grpFor(us,op),gk=g?g.join(","):"",cur={id:m.id,us,op,gk},prev=S.lsit;S.lsit=cur;
+if(!prev||prev.id!==m.id||(prev.us===us&&prev.op===op)||ended)return;
+if(!g){if(S.lmenu&&S.lsub==="uask"){S.lmenu=false;S.lsub=null;S.uk=null;liveRender()}return}
+if(prev.gk===gk||(L.unit&&g.includes(L.unit))||S.qa||(S.lmenu&&S.lsub!=="uask"))return;
+S.lmenu=true;S.lsub="uask";S.uk=null;liveRender()}
 export function nudgeT(d){const m=curM();if(!m||!m.live)return;const L=m.live,el=el_(L)-L.pst;S.toffP=L.per;S.toff=Math.max(-el,toff(L)+d);liveTick()}
 export function liveTick(){if(!S.lv)return;const m=curM();if(!m||!m.live)return;const L=m.live,now=el_(L),mx=shiftMax()*1000,w=[];
 const c=$("#lclk");if(c)c.textContent=cd(perMs(L)-ela(L,now));
@@ -223,7 +241,7 @@ const z=$("#lwarn");if(z){const mx5=sk(L,"us",now),op=sk(L,"opp",now),cnt=skCoun
 if(!ended&&cnt>mx5)wa.push("⚠️ Přebývá hráčka: na ledě je "+cnt+", má být "+mx5+" – sundej ji (⋯ → Sundat z ledu).");
 if(!ended&&cnt<mx5)wa.push("⚠️ Chybí hráčka na ledě: je "+cnt+", má být "+mx5+" – pošli hráčku z fronty.");
 if(w.length)wa.push("⚠️ Dlouhé střídání: "+w.join(" · "));
-if(!ended&&L.unit&&!unitView(L,mx5,op))wa.push("⚠️ Nerovnost skončila, na ledě je jednotka "+(ULAB[L.unit]||L.unit)+" – pošli pětku nebo ↩ Řady.");
+if(!ended&&L.unit&&!unitView(L,mx5,op))wa.push(grpFor(mx5,op)?"⚠️ Situace se změnila, na ledě je jednotka "+(ULAB[L.unit]||L.unit)+" – potvrď novou jednotku nebo ↩ Řady.":"⚠️ Nerovnost skončila, na ledě je jednotka "+(ULAB[L.unit]||L.unit)+" – pošli pětku nebo ↩ Řady.");
 if(!ended&&!L.G)wa.push("⚠️ Není vybraná brankářka (⋯ → Brankářka).");
 const pp=[...new Set((L.pen||[]).filter(x=>x.t==="us"&&x.p).map(x=>x.p))];if(pp.length)nf.push("🚫 Na trestu: "+pp.map(pn).join(", "));
 if((L.tmp||[]).length)nf.push("🩹 V ošetřování: "+L.tmp.map(pn).join(", "));

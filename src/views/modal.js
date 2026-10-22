@@ -1,5 +1,6 @@
 // Modální okna (gól, vyloučení, nový zápas, úprava hráčky, úprava člena realizačního týmu).
 // Struktura: Importy -> Pomocné funkce (chips, opts) -> modal() (výběr hráčky, nový zápas, hráčka, člen týmu, gól/vyloučení) -> bindV.
+// v18.4.2: ikona gólu 🥅 (hokejová branka) místo ⚽.
 import {KIND,LN,POS,REA,SIT,ST} from "../config/constants.js";
 import {ensureOp,save} from "../core/actions.js";
 import {compactRot,isG,lineIds,liveIds,luPlayers,pl,pn} from "../core/selectors.js";
@@ -57,7 +58,7 @@ $("#ok").onclick=()=>{rs();const n=M.name.trim();if(!n)return toast("Zadej jmén
 // --- Gól / vyloučení (ruční zadání do zápasu) ---
 const m=S.ma.find(x=>x.id===S.mid);if(!m){S.M=null;el.innerHTML="";return}
 const lu=m.lineup||{},inl=luPlayers(lu);const lvA=m.live&&!M.all?liveIds(m.live):inl,lvS=m.live&&!M.all?liveIds(m.live).filter(i=>i!==m.live.G):inl;
-let h=`<h2>${M.eid?"✏️ ":""}${M.k==="G"?(M.team==="us"?"⚽ Gól HC Střely":"⚽ Gól soupeře"):"🚫 Vyloučení"}</h2><label>Třetina</label>${opts("per",[[1,"1."],[2,"2."],[3,"3."],...(m.ot===false?[]:[[4,"Prodl."]])],M.per)}<label>Čas ve třetině (volitelně)</label><input id="tm" placeholder="např. 12:35" value="${esc(M.time)}" style="max-width:160px">${m.live&&!M.all?'<div><button class="s" data-all style="margin-bottom:10px">Zobrazit celou sestavu</button></div>':""}`;
+let h=`<h2>${M.eid?"✏️ ":""}${M.k==="G"?(M.team==="us"?"🥅 Gól HC Střely":"🥅 Gól soupeře"):"🚫 Vyloučení"}</h2><label>Třetina</label>${opts("per",[[1,"1."],[2,"2."],[3,"3."],...(m.ot===false?[]:[[4,"Prodl."]])],M.per)}<label>Čas ve třetině (volitelně)</label><input id="tm" placeholder="např. 12:35" value="${esc(M.time)}" style="max-width:160px">${m.live&&!M.all?'<div><button class="s" data-all style="margin-bottom:10px">Zobrazit celou sestavu</button></div>':""}`;
 if(M.k==="G"){h+=`<label>Situace</label>${opts("sit",Object.entries(SIT),M.sit)}`;
 if(M.team==="us")h+=`<label>Střelec</label>${chips("scorer",lvS,M.scorer)}<label>Asistence 1</label>${chips("a1",lvS.filter(i=>i!==M.scorer&&i!==M.a2),M.a1)}<label>Asistence 2</label>${chips("a2",lvS.filter(i=>i!==M.scorer&&i!==M.a1),M.a2)}`;
 h+=`<label>${M.team==="us"?"Další hráči na ledě":"Kdo byl na ledě"} (celá pětka jedním klepnutím)</label><div class="chips">${LN.map(n=>`<button class="chip" data-line="${n}">${n}. pětka</button>`).join("")}</div>${chips("on",lvA,M.on,true)}`}

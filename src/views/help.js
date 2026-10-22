@@ -2,6 +2,7 @@
 // Struktura: Obsah nápovědy -> Pomocné funkce -> Vykreslení -> Eventy (hledání, zavření) -> Export.
 // Nápověda je čistě informační (nesahá do dat ani do stavu aplikace) a funguje i offline. Je jediným návodem k aplikaci
 // (samostatný soubor hockeycoach-navod.html byl v17.3 odstraněn); při změně ovládání se upravuje jen pole SECTIONS.
+// v18.4.2: ikona gólu 🥅, podsvícené góly v průběhu, bílo-modrý mantinel, formace podle počtu hráček při více trestech.
 
 // ===== Obsah nápovědy =====
 // Každá sekce: t = nadpis, h = HTML obsah (zobrazí se po rozbalení)
@@ -49,16 +50,16 @@ const SECTIONS = [
   {t: "5. Živý zápis", h: `
 <ul>
 <li><b>Horní lišta:</b> v řádku třetiny aktuální situace (5 na 5, přesilovka, oslabení) a malé štítky trestů (od v18.4.1), pod ním čas s posunem ◀ ▶ o 5 s, vpravo skóre se střelami.</li>
-<li><b>Rozložení</b> (od v18.4) shora dolů: horní lišta → <b>hřiště</b> (světlý obdélník jako led: nahoře <b>STŘELA NA NAŠI BRÁNU</b>, uprostřed tlustá červená středová čára, pod ní <b>hráčky na ledě</b>) → <b>mantinel</b> → tlačítka pětek → pod každým místem sloupec čekajících (nahoře ta <b>na řadě</b> – větší, zeleně orámovaná, pod ní rotující partnerka, dole partnerky hráček na ledě). Dole průběh.</li>
+<li><b>Rozložení</b> (od v18.4) shora dolů: horní lišta → <b>hřiště</b> (světlý obdélník jako led: nahoře <b>STŘELA NA NAŠI BRÁNU</b>, uprostřed tlustá červená středová čára, pod ní <b>hráčky na ledě</b>) → <b>mantinel</b> (bílo-modrý pruh) → tlačítka pětek → pod každým místem sloupec čekajících (nahoře ta <b>na řadě</b> – větší, zeleně orámovaná, pod ní rotující partnerka, dole partnerky hráček na ledě). Dole průběh.</li>
 <li><b>Štítky v řádku třetiny</b> (od v18.4.1): každý trest jako malý štítek <b>🚫 #číslo odpočet ✕</b> (soupeř „Soup.“; ✕ trest zruší), při přesilovce nebo oslabení štítek <b>⚡ PP / 🛡 OS</b> (otevře nabídku jednotky), po skončení nerovnosti <b>↩ Řady</b>. Když se štítky nevejdou, posuneš řádek prstem do strany – výška lišty se nemění, tlačítka pod ní se nepohnou.</li>
 <li><b>Rotace</b> (od v18.3): každá dlaždice má jen jednu akci – poslat hráčku na led. Rotující partnerka je malé čárkované tlačítko <b>⇄ číslo jméno</b> přímo pod hráčkou, se kterou rotuje: <b>klepnutí</b> ji pošle rovnou na led, <b>podržení</b> (asi půl sekundy) změní pořadí rotace – partnerka se postaví do fronty místo hráčky. Tečkované tlačítko úplně dole ve sloupci je partnerka hráčky, která je právě na ledě (klepnutím ji vystřídá). Při aktivní přesilovce nebo oslabení se rotace nezobrazuje.</li>
 <li><b>Odezva</b> (od v18.2): po střídání, střele, gólu, trestu, nasazení pětky nebo jednotky a ↩ Zpět telefon krátce zavibruje a tlačítko zabliká. Vibraci vypneš v ⋯ → ⚙️ Nastavení; zablikání zůstává (iPhone vibrace nepodporuje).</li>
 <li><b>Celá pětka na led:</b> tlačítka 1.–4. pětka nasadí celou pětku najednou. Barvy: 1. modrá, 2. žlutá, 3. zelená, 4. růžová, mimo pětky šedá.</li>
 <li><b>Střídání:</b> klepnutí na hráčku ve frontě ji pošle na led místo hráčky nad ní. Podržením a přetažením ji pošleš na jinou pozici. Nejbližší hráčka ve frontě je zvýrazněná.</li>
 <li><b>Střela:</b> klepnutí na hráčku na ledě zapíše její střelu, <b>STŘELA NA NAŠI BRÁNU</b> střelu soupeře. Při přerušené hře se střely zapsat nedají.</li>
-<li><b>Spodní lišta:</b> za běhu jen ↩ Zpět a Start/Přerušit. Po přerušení přibude ⚽ Gól naši, ⚽ Gól soupeř, 🚫 Trest a ⋯ Další volby.</li>
+<li><b>Spodní lišta:</b> za běhu jen ↩ Zpět a Start/Přerušit. Po přerušení přibude 🥅 Gól naši, 🥅 Gól soupeř, 🚫 Trest a ⋯ Další volby.</li>
 <li><b>Gól naši:</b> střelkyně → 1. asistence → 2. asistence (nebo „Bez asistence“). Situaci nastaví aplikace sama. <b>Gól soupeře:</b> jedno klepnutí.</li>
-<li><b>Průběh</b> (dole): všechny kroky zápasu včetně střídání – góly, střely, tresty, návraty z trestu, pětky a jednotky, zranění, brankářka, konce třetin. Nejnovější nahoře, seznam se posouvá prstem. V horním řádku průběhu jsou <b>upozornění</b> (od v18.4) – jen když nějaké je: chybějící nebo přebývající hráčka na ledě, dlouhé střídání, jednotka PP/OS po skončení nerovnosti, nevybraná brankářka, kdo sedí na trestu a kdo je v ošetřování. Průběh je dole, takže tlačítka neposkakují.</li>
+<li><b>Průběh</b> (dole): všechny kroky zápasu včetně střídání – góly, střely, tresty, návraty z trestu, pětky a jednotky, zranění, brankářka, konce třetin. Nejnovější nahoře, seznam se posouvá prstem. Góly jsou podsvícené (od v18.4.2): náš gól zeleně, gól soupeře červeně. V horním řádku průběhu jsou <b>upozornění</b> (od v18.4) – jen když nějaké je: chybějící nebo přebývající hráčka na ledě, dlouhé střídání, jednotka PP/OS po skončení nerovnosti, nevybraná brankářka, kdo sedí na trestu a kdo je v ošetřování. Průběh je dole, takže tlačítka neposkakují.</li>
 <li><b>Dlouhé střídání:</b> po překročení limitu (výchozí 2:00, ⋯ → Nastavení) se dlaždice hráčky zbarví, telefon zavibruje a upozornění se objeví v horním řádku průběhu; v průběhu je takové střídání zvýrazněné.</li>
 <li><b>Odchod ze živého zápisu</b> (⋯ → ✕ Zavřít živý zápis nebo Zpět na telefonu) zastaví čas zápasu. Pokračuješ z karty zápasu a tlačítkem ▶ Start.</li>
 <li><b>↩ Zpět</b> vrací poslední akci (střídání, střelu, gól, trest, jednotku…).</li>
@@ -71,7 +72,8 @@ const SECTIONS = [
 <li><b>Gól ukončí</b> nejstarší dvouminutový trest oslabeného týmu, pokud gól dal tým s větším počtem hráčů na ledě. Pětiminutový trest gólem nekončí. U 2+2 gól ukončí jen první dvě minuty.</li>
 <li><b>IIHF pravidla:</b> na ledě min. 3 bruslaři, nejvýše 2 současně odpykávané tresty na tým. Aplikace nepovolí doplnit víc hráček, než dovolují tresty.</li>
 <li><b>Nabídka jednotky</b> (od v18.4): po zapsání trestu, který vytvoří přesilovku nebo oslabení, se hned otevře navržená jednotka (ta s nejvíce dostupnými hráčkami; druhou vybereš nahoře). Vyloučená hráčka je červeně a nahradí ji hráčka z fronty, nesestavená jednotka se doplní z front. <b>✓ Potvrdit a nasadit</b> přepne obrazovku do režimu PP/OS, <b>Ponechat pětky</b> nabídku zavře (otevřeš ji znovu štítkem ⚡ PP / 🛡 OS v řádku třetiny).</li>
-<li><b>Režim PP/OS:</b> pod modrým mantinelem jsou místo pětek tlačítka <b>⚡ PP 1 / PP 2</b> nebo <b>🛡 OS 1 / OS 2</b> a <b>↩ Řady</b>; fronty ukazují jen hráčky jednotek, bez rotace. Když nerovnost skončí, obrazovka se sama vrátí k pětkám a upozornění připomene poslat pětku nebo ↩ Řady. Při oslabení se zobrazí jen 4 resp. 3 pozice.</li>
+<li><b>Více trestů</b> (od v18.4.2): formace se řídí počtem našich hráček na ledě – 5 = pětky (při přesilovce PP 1 / PP 2), 4 = OS 1 / OS 2, 3 = OS 3 / OS 4. Když se počet změní a hra je dál nevyrovnaná (skončí jeden ze dvou trestů, gól ukončí trest, ✕ trest zruší – např. 3 na 5 → 4 na 5), hned se nabídne jednotka nové skupiny. Režim PP/OS zůstává (tlačítka a fronty nové skupiny), k pětkám se obrazovka vrátí až při vyrovnané hře.</li>
+<li><b>Režim PP/OS:</b> pod bílo-modrým mantinelem jsou místo pětek tlačítka <b>⚡ PP 1 / PP 2</b> nebo <b>🛡 OS 1 / OS 2</b> (při 3 hráčkách <b>🛡 OS 1 / OS 2</b> pro OS3 / OS4) a <b>↩ Řady</b>; fronty ukazují jen hráčky jednotek, bez rotace. Když nerovnost skončí, obrazovka se sama vrátí k pětkám a upozornění připomene poslat pětku nebo ↩ Řady. Při oslabení se zobrazí jen 4 resp. 3 pozice.</li>
 <li><b>Úprava jednotek za zápasu:</b> ⋯ → Jednotky PP/OS.</li>
 <li>Nemodelováno: odložený trest, trestné střílení a zvláštní pravidla pro tresty brankářky.</li>
 </ul>`},
@@ -147,7 +149,7 @@ const SECTIONS = [
 <tr><td>Vybrat nominaci</td><td>Zápas → krok 2 → A Nominace</td></tr>
 <tr><td>Spustit živý zápis</td><td>Zahájit zápas (krok 1 nebo 3)</td></tr>
 <tr><td>Střídání / střela</td><td>Klepnout na hráčku ve frontě / na ledě</td></tr>
-<tr><td>Gól / trest</td><td>Přerušit hru → ⚽ / 🚫</td></tr>
+<tr><td>Gól / trest</td><td>Přerušit hru → 🥅 / 🚫</td></tr>
 <tr><td>Opravit událost / střídání</td><td>Krok 3 → ✏️ Opravit zápis</td></tr>
 <tr><td>Statistiky sezóny</td><td>Statistiky</td></tr>
 <tr><td>Zaplatit dluh</td><td>Moje platby → 📱 Zaplatit (QR)</td></tr>
