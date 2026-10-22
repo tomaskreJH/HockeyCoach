@@ -1,17 +1,17 @@
 // Opravy zápisu: úprava událostí, třetin, konce zápasu, základních údajů zápasu a střídání.
 import {REA, SIT} from "../config/constants.js";
-import {ensureOp, upd} from "../core/actions.js";
-import {curM, isG, nomOf, pl, pri} from "../core/selectors.js";
+import {confirm2, ensureOp, upd} from "../core/actions.js";
+import {curM, isG, nm, nomOf, pl, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, esc, fd, mmss, toast, uid} from "../core/utils.js";
 import {clearEnd, lastPer, moveBoundary, parseClock, periodEnd, removeOvertime, setEnd} from "../domain/corrections.js";
-import {eventText, nameOf, perLabel, periodStart} from "../domain/timeline.js";
+import {eventText, perLabel, periodStart} from "../domain/timeline.js";
 import {bindShifts, shiftFormHtml, shiftsHtml} from "./shift-editor.js";
 
 const chip = (k, v, label, on, attr = "data-ef") => `<button class="chip ${on ? "on" : ""}" ${attr}="${k}" data-v="${esc(v)}">${label}</button>`;
 const pool = (m, f, goalie) => [...new Set([...nomOf(m), f.scorer, f.a1, f.a2, f.pid, f.shooter, f.gk, ...(f.on || [])].filter(Boolean))]
   .filter(id => pl(id) && isG(pl(id)) === goalie).sort((x, y) => pri(pl(x)) - pri(pl(y)) || pl(x).name.localeCompare(pl(y).name, "cs"));
-const pc = (m, f, k, sel, goalie = false, ex = []) => `<div class="chips">${pool(m, f, goalie).filter(id => !ex.includes(id)).map(id => chip(k, id, esc(nameOf(id)), sel === id)).join("") || '<span class="mu">Nikdo.</span>'}</div>`;
+const pc = (m, f, k, sel, goalie = false, ex = []) => `<div class="chips">${pool(m, f, goalie).filter(id => !ex.includes(id)).map(id => chip(k, id, esc(nm(id)), sel === id)).join("") || '<span class="mu">Nikdo.</span>'}</div>`;
 const KT = f => ({G: f.team === "us" ? "gól HC Střely" : "gól soupeře", P: "vyloučení", S: f.team === "us" ? "střela" : "střela soupeře"})[f.k];
 
 function formHtml(m, f) {
@@ -19,7 +19,7 @@ function formHtml(m, f) {
   if (f.k === "G") {
     h += `<label>Situace</label><div class="chips">${Object.entries(SIT).map(([k, t]) => chip("sit", k, t, (f.sit || "E") === k)).join("")}</div>`;
     if (f.team === "us") h += `<label>Střelkyně</label>${pc(m, f, "scorer", f.scorer)}<label>Asistence 1</label>${pc(m, f, "a1", f.a1, false, [f.scorer, f.a2])}<label>Asistence 2</label>${pc(m, f, "a2", f.a2, false, [f.scorer, f.a1])}`;
-    h += `<label>Na ledě (určuje +/−)</label><div class="chips">${[...pool(m, f, false), ...pool(m, f, true)].map(id => chip("on", id, esc(nameOf(id)), (f.on || []).includes(id))).join("")}</div>`;
+    h += `<label>Na ledě (určuje +/−)</label><div class="chips">${[...pool(m, f, false), ...pool(m, f, true)].map(id => chip("on", id, esc(nm(id)), (f.on || []).includes(id))).join("")}</div>`;
   } else if (f.k === "P") {
     h += `<label>Tým</label><div class="chips">${chip("team", "us", "HC Střely", f.team === "us")}${chip("team", "opp", "Soupeř", f.team === "opp")}</div>`;
     if (f.team === "us") h += `<label>Hráčka</label>${pc(m, f, "pid", f.pid)}`;
@@ -78,8 +78,7 @@ function bind(e, m) {
   q("[data-ee]").forEach(b => b.onclick = () => { ed.f = {...clone((m.events || []).find(x => x.id === b.dataset.ee)), on: clone(((m.events || []).find(x => x.id === b.dataset.ee).on) || [])}; renderEditor(); });
   q("[data-ed]").forEach(b => b.onclick = () => {
     const id = b.dataset.ed;
-    if (S.cf === "e" + id) { S.cf = null; const n = clone(m); n.events = n.events.filter(x => x.id !== id); upd(n); }
-    else { S.cf = "e" + id; renderEditor(); setTimeout(() => { if (S.cf === "e" + id) { S.cf = null; renderEditor(); } }, 4000); }
+    confirm2("e" + id, () => { const n = clone(m); n.events = n.events.filter(x => x.id !== id); upd(n); }, renderEditor);
   });
   const sync = () => { const t = $("#edt"); if (t) ed.f.time = t.value.trim(); };
   q("[data-ef]").forEach(b => b.onclick = () => {

@@ -1,13 +1,14 @@
-// Přehled plateb a dlužných částek (trenér a pokladník): režim „💰 Platby“ v záložce Team (od v17.5, dříve v Událostech).
+// Přehled plateb a dlužných částek (trenér a pokladník): režim „💰 Platby“ v záložce Team.
 // Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení (souhrn, po hráčkách, po událostech) -> Eventy.
 // Data: kolekce charges (S.ch); událost se bere ze seznamu předaného z events.js (tréninky + zápasy).
 // Měsíční příspěvky (F4) mají eid "c_RRRR-MM": ve výpisech vystupují jako pseudo-událost „Příspěvek měsíc rok“ (📅), klepnutím se otevře režim Team → 📅 Měsíce.
 // Výjimka z blokace „Jdu“ se uděluje u předpisu po splatnosti (tlačítko 🔒).
 // Dluh = součet nezaplacených zbytků předpisů hráčky. Úhrada (částečná i plná) se zapisuje přes okno úhrady z payments.js.
-// v17.7: u předpisu je VS, účet a zpráva pro příjemce (pro párování s výpisem). „Zaplatila vše“ je zvlášť pro každý účet (souhrnná platba
+// U předpisu je VS, účet a zpráva pro příjemce (pro párování s výpisem). „Zaplatila vše“ je zvlášť pro každý účet (souhrnná platba
 // smí obsahovat jen předpisy na stejný účet); souhrnná platba chodí s osobním VS hráčky.
 
 // ===== Importy =====
+import {confirm2} from "../core/actions.js";
 import {pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast} from "../core/utils.js";
@@ -99,12 +100,11 @@ export function bindFinance(a) {
   // Zaplatila vše (na jeden účet): potvrzení druhým klepnutím, každý předpis daného účtu se uhradí celý; poznámka uvede souhrnnou platbu s osobním VS
   a.querySelectorAll("[data-fa]").forEach(b => b.onclick = () => {
     const [pid, iban] = b.dataset.fa.split("|"), key = "fa" + pid + "|" + iban, cfg = cashCfg(S.cc);
-    if (S.cf === key) {
-      S.cf = null;
+    confirm2(key, () => {
       const gr = byAccount(S.ch.filter(x => x.mid === pid), cfg).find(g => g.iban === iban);
       if (gr) gr.items.forEach(x => payCharge(x.id, null, gr.items.length > 1 ? "souhrnná platba VS " + personVs(pid) : ""));
       toast("Označeno jako zaplacené");
-    } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
+    });
   });
   // Otevření detailu události v záložce Události; tlačítko Zpět vrátí do Team → Platby (S.evBack)
   a.querySelectorAll("[data-fe]").forEach(b => b.onclick = () => { S.tab = "ev"; S.mid = null; S.evid = b.dataset.fe; S.evBack = "fo"; render(); window.scrollTo(0, 0); });

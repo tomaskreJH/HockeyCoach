@@ -1,4 +1,4 @@
-// Odezva živého zápisu (v18.2): krátká vibrace haptic(kind) a záblesk tlačítka flash(selektor).
+// Odezva živého zápisu: krátká vibrace haptic(kind) a záblesk tlačítka flash(selektor).
 // Vibrace jde vypnout v živém zápisu: ⋯ → ⚙️ Nastavení (pamatuje se v zařízení, LS „hapticOff“).
 // Záblesk je vždy – potvrzuje zápis i tam, kde vibrace nejde (iPhone / Safari navigator.vibrate nepodporuje).
 // Obrazovka se po každém zápisu znovu vykreslí (nové prvky), proto si záblesk pamatuje selektor a liveRender

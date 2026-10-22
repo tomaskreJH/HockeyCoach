@@ -3,14 +3,14 @@
 // Data: S.ch (u člena jen jeho předpisy, mid = pid / tid), nastavení pokladny S.cc (IBAN hlavního a provozního účtu). Předpis měsíčního příspěvku má eid "c_RRRR-MM" (F4).
 // QR je formát SPD (české QR platby) generovaný lokálně (src/lib/qrcode.js).
 // Zpráva pro příjemce: za co se platí + jméno plátce (chargeMsg v cash.js – uložená v předpisu, u starších sestavená); je u předpisu, v QR okně i v QR kódu (MSG).
-// Dva účty (v17.7): každý předpis má svůj účet (hlavní / provozní). Nezaplacené předpisy se zobrazují po účtech; souhrnnou platbu (jeden QR)
+// Dva účty: každý předpis má svůj účet (hlavní / provozní). Nezaplacené předpisy se zobrazují po účtech; souhrnnou platbu (jeden QR)
 // lze poslat jen za předpisy na STEJNÝ účet (stejný IBAN) – platby na různé účty sloučit nejde. Souhrnná platba má osobní VS a zprávu „Souhrn: …“.
 // Blokace: kdo má neuhrazený předpis po splatnosti bez výjimky, nemůže se přihlásit „Jdu“ (kontrola v events.js, výjimku uděluje pokladník / trenér).
-// Zabezpečení QR (v18.6.1): QR se vytvoří jen z účtu, který projde kontrolními součty (accCheck); kód je v alfanumerickém režimu
+// Zabezpečení QR: QR se vytvoří jen z účtu, který projde kontrolními součty (accCheck); kód je v alfanumerickém režimu
 // (zpráva qrMsg – bez diakritiky, VELKÁ písmena), volitelně okamžitá platba. Zařízení si pamatuje ověřené účty (seenAccs):
 // je-li účet nový oproti dřívějšku, nebo změněný v posledních 14 dnech, okno nejdřív ukáže varování a QR až po potvrzení.
 // V okně je vždy upozornění na kontrolu účtu před odesláním a vyloučení odpovědnosti. Správcům pokladny ukáže banner čekající návrh změny účtu.
-// Uložení QR (v18.7.1): tlačítko ⬇️ Uložit QR je jen u zobrazeného QR (po kontrole účtu a ověření); obrázek PNG se kreslí
+// Uložení QR: tlačítko ⬇️ Uložit QR je jen u zobrazeného QR (po kontrole účtu a ověření); obrázek PNG se kreslí
 // z téhož objektu qrcode, který okno zobrazilo (qr-image.js) – obsah QR se nemění. Android / iPhone: Sdílet, jinde stažení.
 
 // ===== Importy =====
@@ -18,18 +18,18 @@ import {S} from "../core/state.js";
 import {esc, fd, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
-import {accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsOf} from "../domain/cash.js";
+import {accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash} from "../domain/cash.js";
 import qrcode from "../lib/qrcode.js";
 import {qrFileName, saveQrImage} from "./qr-image.js";
 import {render} from "./shell.js";
 
 // ===== Stav =====
 let qr = null;   // otevřené okno s QR: id předpisu, nebo "g:" + IBAN + "|" + mid pro souhrnnou platbu
-let shown = null; // právě zobrazený QR (v18.7.1): {q – objekt qrcode, info – údaje popisku, name – název souboru}; jinak null
+let shown = null; // právě zobrazený QR: {q – objekt qrcode, info – údaje popisku, name – název souboru}; jinak null
 
 // ===== Pomocné funkce =====
 const ids = () => [HK.pid(), HK.tid()].filter(Boolean);
-// Upozornění před platbou (v18.6.1) – vždy v okně QR
+// Upozornění před platbou – vždy v okně QR
 const WARN_TXT = "Před odesláním zkontroluj v bankovní aplikaci číslo účtu příjemce, částku a variabilní symbol. Pokud se účet liší od účtu, který znáš od trenéra, neplať a ozvi se trenérovi. Aplikace ani správci týmu neodpovídají za platbu odeslanou na jiný účet.";
 const fDay = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("cs-CZ"); };
 // Nezaplacené předpisy rozdělené podle IBAN a osoby (souhrnná platba jen v rámci jednoho účtu): [{key, acc, iban, mid, items, sum}]
@@ -54,7 +54,7 @@ function payData(cfg) {
   const x = S.ch.find(c => c.id === qr);
   if (!x || restOf(x) <= 0) return null;
   const a = accOf(x, cfg);
-  return {title: chargeItem(x.eid, S).title, acc: a, iban: accIban(cfg, a), amt: restOf(x), vs: x.vs || vsOf(x.id), msg: chargeMsg(x, S), list: null};
+  return {title: chargeItem(x.eid, S).title, acc: a, iban: accIban(cfg, a), amt: restOf(x), vs: x.vs || vsHash(x.id), msg: chargeMsg(x, S), list: null};
 }
 
 // ===== Banner s upozorněním na dluh (v seznamu Událostí) =====
@@ -102,7 +102,7 @@ function qrHtml() {
       const q = qrcode(0, "M");
       q.addData(spdPay(p.iban, p.amt, p.vs, p.msg, cfg.inst), "Alphanumeric");
       q.make();
-      // Údaje pro obrázek (v18.7.1) – stejné hodnoty jako v okně, zpráva přesně jako v QR
+      // Údaje pro obrázek – stejné hodnoty jako v okně, zpráva přesně jako v QR
       shown = {q, name: qrFileName(p.vs), info: {title: p.title, accName: accName(cfg, p.acc), cz, iban: p.iban, ibanFmt: ibanFmt(p.iban), amtTxt: kc(p.amt), vs: p.vs, msg, inst: !!cfg.inst, created: new Date().toLocaleDateString("cs-CZ")}};
       body = `<div style="background:#fff;padding:12px;border-radius:12px;width:min(300px,100%);margin:0 auto">${q.createSvgTag({cellSize: 4, margin: 4, scalable: true})}</div>
 <button class="s w" id="mksave" style="margin-top:10px;min-height:48px">⬇️ Uložit QR</button>
@@ -132,14 +132,14 @@ export function mineView(a) {
   const list = items.length ? items.map(({x, i}) => {
     const rest = restOf(x), od = overdue(x);
     return `<div class="cd"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(i.title)}</b><span class="tag ${rest ? (od ? "red" : "sh") : "pp"}">${rest ? (od ? "po splatnosti" : "k úhradě") : "zaplaceno"}</span></div>
-<div class="mu">${i.date ? fd(i.date) + " · " : ""}předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${x.exc && rest ? " · 🔓 výjimka od blokace" : ""}</div>${rest ? `<div class="mu">${two ? "Na účet: <b>" + esc(accName(cfg, accOf(x, cfg))) + "</b> · " : ""}VS <b>${esc(x.vs || vsOf(x.id))}</b> · zpráva: <b>${esc(qrMsg(chargeMsg(x, S)))}</b></div>` : ""}${rest ? `<button class="p w" data-mq="${x.id}" style="margin-top:8px;min-height:48px">📱 Zaplatit ${kc(rest)} (QR)</button>` : ""}</div>`;
+<div class="mu">${i.date ? fd(i.date) + " · " : ""}předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${x.exc && rest ? " · 🔓 výjimka od blokace" : ""}</div>${rest ? `<div class="mu">${two ? "Na účet: <b>" + esc(accName(cfg, accOf(x, cfg))) + "</b> · " : ""}VS <b>${esc(x.vs || vsHash(x.id))}</b> · zpráva: <b>${esc(qrMsg(chargeMsg(x, S)))}</b></div>` : ""}${rest ? `<button class="p w" data-mq="${x.id}" style="margin-top:8px;min-height:48px">📱 Zaplatit ${kc(rest)} (QR)</button>` : ""}</div>`;
   }).join("") : '<div class="msg">Zatím nemáš žádné předpisy.</div>';
   a.innerHTML = `${err}<h2 style="margin:0 0 10px">💳 Moje platby</h2>${grid}${state}${sum}${list}` + qrHtml();
   a.querySelectorAll("[data-mq]").forEach(b => b.onclick = () => { qr = b.dataset.mq; render(); });
   // Hráčka potvrdila ověření nového účtu: zapamatuje se v zařízení a ukáže se QR
   const ok = a.querySelector("[data-mkok]");
   if (ok) ok.onclick = () => { const p = payData(cashCfg(S.cc)); if (p && p.iban) markSeen(p.iban); render(); };
-  // ⬇️ Uložit QR (v18.7.1): obrázek ze zobrazeného QR – Sdílet (Galerie / banka), jinde stažení souboru
+  // ⬇️ Uložit QR: obrázek ze zobrazeného QR – Sdílet (Galerie / banka), jinde stažení souboru
   const sv = a.querySelector("#mksave");
   if (sv) sv.onclick = () => {
     const sh = shown;   // kopie – okno se mezitím může překreslit

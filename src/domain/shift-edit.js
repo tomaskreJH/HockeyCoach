@@ -4,13 +4,13 @@
 
 // ===== Importy =====
 import {COLS} from "../config/constants.js";
-import {isG, nomOf, ownCol, pl} from "../core/selectors.js";
+import {isG, nm, nomOf, ownCol, pl} from "../core/selectors.js";
 import {mmss} from "../core/utils.js";
 import {el_} from "./live-engine.js";
-import {nameOf, perLabel, periodAt} from "./timeline.js";
+import {perLabel, periodAt} from "./timeline.js";
 
 // ===== Konstanty =====
-export const MIN_SHIFT = 1000; // nejkratší povolené střídání (ms)
+const MIN_SHIFT = 1000; // nejkratší povolené střídání (ms)
 
 // ===== Pomocné funkce (čtení) =====
 // Jednotný seznam střídání: ref "h<index>" = uzavřené (live.sh), ref "o<místo>" = právě probíhající (na ledě)
@@ -40,7 +40,7 @@ function conflictOf(list, refs) {
   for (const r of refs) {
     const s = list.find(x => x.ref === r);
     if (!s || !real(s)) continue;
-    if (list.some(x => x.ref !== r && x.p === s.p && real(x) && overlap(x, s))) return nameOf(s.p) + " by byla na ledě dvakrát současně";
+    if (list.some(x => x.ref !== r && x.p === s.p && real(x) && overlap(x, s))) return nm(s.p) + " by byla na ledě dvakrát současně";
   }
   return null;
 }
@@ -124,7 +124,7 @@ function replaceOnIce(n, c, np) {
   if (oc) { L.ice[c] = np; L.ice[oc] = old; finish(n); return true; } // obě už na ledě jsou: prohodí se místa, časy zůstanou
   if (unavailable(L, np)) return "Hráčka je vyloučená nebo v ošetřování";
   const from = L.since[old] || 0, probe = {a: from, b: now};
-  if (real(probe) && listShifts(n).some(x => x.p === np && real(x) && overlap(x, probe))) return nameOf(np) + " by byla na ledě dvakrát současně";
+  if (real(probe) && listShifts(n).some(x => x.p === np && real(x) && overlap(x, probe))) return nm(np) + " by byla na ledě dvakrát současně";
   L.since[np] = from; delete L.since[old]; L.ice[c] = np;      // nová hráčka přebírá začátek střídání
   COLS.forEach(k => { L.q[k] = L.q[k].filter(x => x !== np); }); // a mizí z front
   L.q[ownCol(n, old) || c].unshift(old);                       // původní hráčka se vrací na začátek fronty
@@ -138,7 +138,7 @@ export function handoverAt(n, ref, t, np) {
   if (!okPlayer(n, np)) return "Vyber nominovanou bruslařku";
   if (s.p === np) return "Vyber jinou hráčku";
   if (t - s.a < MIN_SHIFT || s.b - t < MIN_SHIFT) return "Čas předání musí ležet uvnitř střídání (aspoň 1 s od okrajů)";
-  if (listShifts(n).some(x => x.p === np && real(x) && x.a < s.b && t < x.b)) return nameOf(np) + " by byla na ledě dvakrát současně";
+  if (listShifts(n).some(x => x.p === np && real(x) && x.a < s.b && t < x.b)) return nm(np) + " by byla na ledě dvakrát současně";
   if (s.open) {
     if (unavailable(L, np)) return "Hráčka je vyloučená nebo v ošetřování";
     if (COLS.some(k => L.ice[k] === np)) return "Hráčka už je na ledě – použij výměnu celého střídání";
@@ -180,12 +180,12 @@ export function checkShifts(m) {
   const now = el_(L), list = listShifts(m), out = [];
   const z = list.filter(x => !x.open && !real(x)).length;
   if (z) out.push("Prázdná střídání (nulová délka): " + z + " – odstraní je „Vyčistit“.");
-  list.filter(x => !x.open && x.b > now).forEach(x => out.push(nameOf(x.p) + ": střídání končí po aktuálním čase (" + at(m, x.b) + ")"));
+  list.filter(x => !x.open && x.b > now).forEach(x => out.push(nm(x.p) + ": střídání končí po aktuálním čase (" + at(m, x.b) + ")"));
   const by = {};
   list.filter(real).forEach(x => (by[x.p] = by[x.p] || []).push(x));
   Object.values(by).forEach(a => {
     a.sort((x, y) => x.a - y.a);
-    for (let i = 1; i < a.length; i++) if (a[i].a < a[i - 1].b) out.push(nameOf(a[i].p) + ": překrývající se střídání kolem " + at(m, a[i].a));
+    for (let i = 1; i < a.length; i++) if (a[i].a < a[i - 1].b) out.push(nm(a[i].p) + ": překrývající se střídání kolem " + at(m, a[i].a));
   });
   return out;
 }

@@ -1,10 +1,8 @@
 // Rychlý zápis gólů a trestů v živém zápisu.
 // Struktura: Importy -> Zápis události (commitEv) -> Start rychlého zápisu (qaStart) -> Okno kroků (qaHtml) -> Klepnutí v okně (qaClick).
-// v18.2: po zapsání gólu a trestu odezva (live-feedback.js) – vibrace a záblesk skóre / místa trestů. Zápis se nemění.
-// v18.3: tresty jsou v řádku stavu horní lišty (#lchips) – záblesk po trestu míří tam.
-// v18.4.1: tresty jsou malé štítky v řádku třetiny (stále #lchips) – záblesk po trestu míří tam.
-// v18.4: po zapsání vyloučení, které změní počty a vytvoří přesilovku / oslabení, se otevře nabídka jednotky k odsouhlasení (askUnit, B4).
-// v18.4.2: ikona gólu 🥅 místo ⚽; nabídku jednotky po změně počtů bez trestu (konec trestu, gól, ✕) hlídá live.js (watchSit).
+// Po zapsání gólu a trestu odezva (live-feedback.js): vibrace a záblesk skóre / štítků trestů v řádku třetiny (#lchips).
+// Vyloučení, které vytvoří přesilovku / oslabení, otevře nabídku jednotky k odsouhlasení (askUnit); změny počtů bez trestu
+// (konec trestu, gól, ✕) hlídá live.js (watchSit). Ikona gólu 🥅.
 import {COLS, REA, SIT} from "../config/constants.js";
 import {upd} from "../core/actions.js";
 import {curM, isG, liveIds, nomOf, pl, pn} from "../core/selectors.js";

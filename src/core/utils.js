@@ -20,5 +20,7 @@ export const dlText=dl=>{const d=new Date(dl);return !dl||isNaN(d)?"":d.getDate(
 // Termín přihlašování musí být před začátkem události (bez času začátku = konec dne)
 export const dlBeforeStart=(dl,date,time)=>!dl||new Date(dl)<=new Date(date+"T"+(time||"23:59"));
 export const mmss=ms=>{const t=Math.floor(Math.max(0,ms)/1000);return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0")};
+// Text CSV pro Excel (jediná implementace): oddělovač středník, každá hodnota v uvozovkách (uvozovky zdvojené), BOM UTF-8, konce řádků CRLF
+export const csv=rows=>"\ufeff"+rows.map(r=>r.map(v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"').join(";")).join("\r\n");
 // Stažení textového souboru (záloha, zápis, CSV)
 export function downloadFile(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}

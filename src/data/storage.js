@@ -1,12 +1,11 @@
 /* Datová vrstva: Firebase (Firestore + přihlášení přes Google).
-   Rozhraní `db` zůstává stejné jako dřív (collection/doc, set, add, delete, onSnapshot) a přibyl batch() pro atomické zápisy
+   Rozhraní `db`: collection/doc, set, add, delete, onSnapshot a batch() pro atomické zápisy
    (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit), merge pro částečné změny dokumentu
    a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy. Struktura: Importy -> Konstanty a stav
    -> Pomocné funkce -> Náhled role -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy -> Exporty.
-   Náhled role (v18.6): vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
+   Náhled role: vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
    zařízení (sessionStorage), po znovunačtení stránky platí jako role účtu (main.js podle ní poslouchá jen povolená data).
    Výchozí je jen ke čtení – každý zápis (doc.set, add, delete, dávka, členové, obnova zálohy) skončí hláškou „V náhledu se nezapisuje“.
-   Migrace z v16.3 (payments -> charges) a přesun dat pokladny do evcash (v17.2) jsou hotové a z kódu odstraněné (v17.3).
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
    Minimum nastavuje jen trenér (⚙️ → Verze aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
@@ -14,7 +13,7 @@
 
 // ===== Importy =====
 import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.js";
-import {downloadFile, esc, toast} from "../core/utils.js";
+import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
@@ -31,7 +30,7 @@ const VERSION = APP_LABEL;                                              // čís
 const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
-const DEV_EMAILS = ["tomaskre@gmail.com"];                              // účty vývojáře se smí přepnout do náhledu role (v18.6)
+const DEV_EMAILS = ["tomaskre@gmail.com"];                              // účty vývojáře se smí přepnout do náhledu role
 const PV_KEY = "hk-preview";                                            // klíč náhledu v sessionStorage (jen toto zařízení / okno)
 const RO_MSG = "V náhledu se nezapisuje";
 const OLD_MSG = "Starší verze aplikace – zápis je zablokovaný. Načti novou verzi (⚙️ → Načíst novou verzi).";
@@ -45,7 +44,7 @@ const data = {};                       // zrcadlo dat pro export a zálohy
 const subs = {};                       // odběratelé změn podle kolekce
 const first = {};                      // už dorazil první snapshot kolekce?
 const listening = new Set();           // kolekce, které se právě poslouchají
-// Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (v18.7; odvozuje se z předpisů, po obnově se přepočítá)
+// Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (odvozuje se z předpisů, po obnově se přepočítá)
 const EXTRA = [DEBT_COLL];
 [...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
 
@@ -59,7 +58,7 @@ const isCash = () => role === "trener" || cash === true;       // správce pokla
 const configOk = () => !!FIREBASE_CONFIG.apiKey && !/^VLOZ/.test(FIREBASE_CONFIG.apiKey) && !!FIREBASE_CONFIG.projectId && !/^VLOZ/.test(FIREBASE_CONFIG.projectId);
 const splitPath = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slice(i + 1)]; };
 
-// ===== Náhled role (v18.6) =====
+// ===== Náhled role =====
 const isDev = () => !!(user && DEV_EMAILS.includes(user.email.toLowerCase()));
 const pvRead = () => { try { const o = JSON.parse(sessionStorage.getItem(PV_KEY) || "null"); return o && ROLES[o.role] && (o.role !== "hracka" || o.pid) ? o : null; } catch (e) { return null; } };
 const pvWrite = o => { try { if (o) sessionStorage.setItem(PV_KEY, JSON.stringify(o)); else sessionStorage.removeItem(PV_KEY); } catch (e) {} };
@@ -138,7 +137,7 @@ function removeDoc(c, id) {
   if (c === "matches" || c === "events") {
     const cids = Object.entries(data.charges).filter(([, x]) => x.eid === id && !(+x.paid > 0)).map(([cid]) => cid);
     cids.forEach(cid => removeDoc("charges", cid));
-    // Souhrn dlužníků (v18.7): po smazání předpisů se přepočítá pro jejich vlastníky (jen správce pokladny)
+    // Souhrn dlužníků: po smazání předpisů se přepočítá pro jejich vlastníky (jen správce pokladny)
     if (cids.length && isCash()) writeDebtors(debtorPlanFor(chList(), [], cids, isStaffId));
   }
   // Vyúčtování události (evcash) se maže spolu s ní
@@ -399,10 +398,9 @@ function exportJSON() {
   downloadFile("hokej-zaloha-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", version: 1, exported: new Date().toISOString(), data: out}, null, 1), "application/json");
 }
 function exportCSV() {
-  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
   // Koeficient se exportuje v procentech, osvobozená jako ano / prázdné
   const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Skupina plateb", "Osvobozená", "Koeficient (%)", "Poznámka k platbám"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.grp || "monthly", exOf(p) ? "ano" : "", String(Math.round(fxOf(p) * 1000) / 10).replace(".", ","), p.note || ""])];
-  downloadFile("soupiska-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(q).join(";")).join("\r\n"), "text/csv");
+  downloadFile("soupiska-" + stamp() + ".csv", csv(rows), "text/csv");
 }
 // Zápis po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu
 async function commitOps(ops) {
@@ -414,10 +412,10 @@ async function commitOps(ops) {
 }
 // Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a pokladny je nesmaže).
 // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
-// Kolekce payments (staré platby do v16.3) se z dřívějších záloh neobnovuje – už se nepoužívá.
+// Kolekce payments (staré platby) se z dřívějších záloh neobnovuje – už se nepoužívá.
 // Brána verze settings/app se ze zálohy neobnovuje ani nemaže (stará záloha nesmí snížit požadovanou verzi; pravidla mazání nedovolí).
 // Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
-// návrhem a potvrzením (v18.6.1, vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
+// návrhem a potvrzením (vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
 const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
 function keepAcc(d) { const o = clone(d), cur = data.settings.cash || {}; ACC_KEYS.forEach(k => { if (cur[k] != null) o[k] = clone(cur[k]); else delete o[k]; }); return o; }
 async function importData(obj, replace) {
@@ -434,13 +432,13 @@ async function importData(obj, replace) {
   // Předpisy po obnově (pro přepočet souhrnu dlužníků): nahrazení = jen ze zálohy, sloučení = stávající + ze zálohy
   const chSrc = obj.data.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
   await commitOps(ops);
-  // Souhrn dlužníků (v18.7) se ze zálohy neobnovuje, ale přepočítá; chyba (např. nepublikovaná pravidla) obnovu nezruší
+  // Souhrn dlužníků se ze zálohy neobnovuje, ale přepočítá; chyba (např. nepublikovaná pravidla) obnovu nezruší
   if (chNew && isCash()) { try { await rebuildDebtors(chNew); } catch (e) { say("Data obnovena, ale souhrn dlužníků se nepřepočítal: " + errTxt(e)); } }
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
 export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null,
-  // Náhled role (v18.6): preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
+  // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

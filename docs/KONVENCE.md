@@ -13,7 +13,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení |
 | `src/config/` | konstanty bez logiky (`constants.js` – pozice, rozložení, tresty; `firebase-config.js` je v `src/data/`) |
 | `src/core/app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), porovnání verzí, brána verze |
-| `src/core/` | stav `state.js` (`S`), `utils.js` (DOM, formát, čas), `selectors.js` (čtení stavu), `actions.js` (ukládání zápasu), `nav.js` (Zpět), `table-sort.js` |
+| `src/core/` | stav `state.js` (`S`), `utils.js` (DOM, formát, čas, `csv`), `selectors.js` (čtení stavu, jména `pn` / `nm`, `matchesVs`), `actions.js` (ukládání zápasu, `confirm2`), `drag.js` (přetahování `makeDrag`), `nav.js` (Zpět), `table-sort.js` |
 | `src/data/storage.js` | datová vrstva: Firebase, přihlášení a role, strážce zápisu `blocked()`, dávky, kontrola mazání, záloha / obnova, okno ⚙️ |
 | `src/domain/` | **čisté funkce bez DOM** (pravidla hry, pokladna, docházka, dlužníci, účty) – testované v `tests/` |
 | `src/views/` | obrazovky: jen vykreslení a obsluha událostí, výpočty volají z `domain/` |
@@ -33,6 +33,16 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 - Komentáře stručně česky u sekcí a u složitější logiky. Názvy proměnných mohou zůstat krátké (styl projektu), ale každá exportovaná funkce má jednořádkový popis.
 - Každá věc na jednom místě: nový výpočet patří do `domain/`, nové pomocné funkce do `core/`, nepiš druhou kopii existující funkce (nejdřív hledej v `domain/` a `core/`).
 - **Nové soubory nesmí mít stejný název jako existující soubor jinde v projektu** (např. druhé `version.js`) – vyhledávání a importy se pak pletou.
+
+### Společné pomůcky (od v18.9 – nepiš vlastní kopii)
+| Pomůcka | Kde | Použití |
+|---|---|---|
+| `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | Potvrzení druhým klepnutím: 1. klepnutí označí (`S.cf`), 2. do 4 s provede `fn`, jinak se označení zruší. `redraw` = vlastní překreslení (výchozí `render`). Text a barvu tlačítka řídí `armed(key)`. |
+| `pn(id, {staff, fb})`, `nm(id, {staff, fb})` | `core/selectors.js` | Jméno osoby: `pn` s HTML (číslo, jméno, 🤕 / ⛔, u člena týmu 🎓), `nm` čistý text (CSV, časová osa, hlášky). `staff: true` hledá i realizační tým, `fb` = text pro neznámé id (výchozí „?“). Jméno pro zprávu v QR je `payerName` v `domain/cash.js` (bez čísla). |
+| `csv(rows)` | `core/utils.js` | Jediný text CSV pro Excel (středník, uvozovky, BOM, CRLF); částky přes `csvNum` (`domain/cash.js`), stažení `downloadFile`. |
+| `makeDrag(root, items, {target, start, drop, click})` | `core/drag.js` | Přetahování (prst: podržení 320 ms, myš: > 6 px). `start(b)` → `{data, text}` nebo `null`, `drop(data, cíl)`, `click(b)` → obsluha klepnutí nebo `null`. |
+| `matchesVs(name, ex)` / `vsHash(id)` | `core/selectors.js` / `domain/cash.js` | Uzavřené zápasy proti soupeři / variabilní symbol z id předpisu (dva různé významy – nezaměňovat). |
+| `can(akce)`, `src/config/team.js` | (v18.9.1) | Oprávnění na jednom místě a nastavení týmu (název týmu a aplikace, `DEV_EMAILS`) – připravuje D1 část 2. |
 
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` – tam je strážce `blocked()` (náhled role jen ke čtení, starší verze aplikace). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá.
@@ -59,6 +69,8 @@ Při každé verzi se mění vždy všechno:
 - `npm test` (Node 22+, bez instalace balíčků) spustí `tests/**/*.test.js` přes `node:test`. Před každým vydáním musí být vše zelené.
 - `tests/support/setup.mjs` vytvoří zástupce `document`, `window`, `localStorage`, `sessionStorage`; `hooks.mjs` nahradí Firebase SDK (`gstatic.com`) modulem `firebase-stub.mjs`; `fake-db.mjs` zachytává zápisy zápasu.
 - Nová funkce = nový test (hlavně `domain/`). Úklid bez změny chování = stávající testy beze změny zelené.
+- **Srovnávací test úklidu** `tests/d1-baseline.test.js` porovná výstupy se zachycenými hodnotami z v18.8.1 (`tests/fixtures/d1-baseline.json`): statistiky zápasu a souhrnu, CSV (byte po bytu), potvrzení druhým klepnutím, zápasy proti soupeři, VS. Při úklidu se **nemění**; pokud musí, jde o změnu chování (zeptat se). Nové zachycení jen na původním kódu: `D1_CAPTURE=1 npm test`.
+- Zástupce Firebase umí přihlášení a data: test nastaví `globalThis.__fb = {user, members, data}` a pak `await HK.ready()`.
 - Pravidla databáze se testují jen kontrolou textu (`tests/project.test.js`) – bez emulátoru (rozhodnuto: bez Javy a bez placeného tarifu). Skutečné ověření rolí = kontrolní seznam na telefonu + 👁 Náhled role + testovací účet hráčky.
 
 ## 6. Nasazení (postup pro správce)

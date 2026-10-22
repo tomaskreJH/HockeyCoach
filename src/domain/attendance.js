@@ -1,4 +1,4 @@
-// Docházka – výpočet přehledu (v18.7, fáze C1). Čisté funkce bez DOM a bez databáze (použitelné i pro budoucí modul Trénink).
+// Docházka – výpočet přehledu. Čisté funkce bez DOM a bez databáze (použitelné i pro budoucí modul Trénink).
 // Struktura: Konstanty -> Pomocné funkce (datum, sezóna, typ události) -> Výpočet přehledu -> Export.
 // Vstupy:
 //  - tréninky (kolekce events): {id, date "RRRR-MM-DD", time?}
@@ -16,7 +16,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;           // datum "RRRR-MM-DD"
 // ===== Pomocné funkce =====
 const p2 = n => String(n).padStart(2, "0");
 // Datum ve tvaru RRRR-MM-DD podle místního času
-export const dayStr = d => d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate());
+const dayStr = d => d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate());
 export const isDayStr = s => DAY.test(String(s || ""));
 // Zimní sezóna, do které patří den: od 1. 8. do 1. 7. následujícího roku
 export function seasonOf(day) {

@@ -1,14 +1,14 @@
-// Pokladna (trenér a pokladník): zůstatek, ruční vklady a výdaje, součty podle kategorií, seznam pohybů se stornem. Režim „🏦 Pokladna“ v záložce Team (od v17.5).
+// Pokladna (trenér a pokladník): zůstatek, ruční vklady a výdaje, součty podle kategorií, seznam pohybů se stornem. Režim „🏦 Pokladna“ v záložce Team.
 // Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení -> Eventy -> Export.
 // Data: kolekce cash (S.cs) {d, k:"in"|"out", amt, cat, mid?, cid?, eid?, note, vs?, acc?, by}; předpisy v charges (S.ch).
-// v17.7: u každého pohybu je vidět, za co je (zpráva pro příjemce stejná jako v QR), VS a při dvou účtech i účet; zůstatky a filtr po účtech.
+// U každého pohybu je vidět, za co je (zpráva pro příjemce stejná jako v QR), VS a při dvou účtech i účet; zůstatky a filtr po účtech.
 // Starší úhrady bez uložené zprávy a VS si je doplní při zobrazení z předpisu (cid).
 // Storno pohybu s vazbou na předpis (cid) vrací zaplacenou částku na předpisu v téže dávce a zapíše záznam do audit.
-// v18.7: storno úhrady zapíše v téže dávce i souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
+// Storno úhrady zapíše v téže dávce i souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
 
 // ===== Importy =====
-import {strip} from "../core/actions.js";
-import {pl, pn} from "../core/selectors.js";
+import {confirm2, strip} from "../core/actions.js";
+import {pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -25,9 +25,8 @@ let lim = 50;      // počet zobrazených pohybů
 
 // ===== Pomocné funkce =====
 const email = () => { const u = HK.user(); return (u && u.email) || ""; };
-const nameOf = id => { if (!id) return ""; if (pl(id)) return pn(id); const t = S.tr.find(x => x.id === id); return t ? "🎓 " + esc(t.name) : ""; };
 const catOf = x => x.cat || "Bez kategorie";
-// Za co je pohyb: VS a zpráva. Úhrada předpisu bez uložené zprávy (starší než v17.7) ji převezme z předpisu.
+// Za co je pohyb: VS a zpráva. Úhrada předpisu bez uložené zprávy (starší data) ji převezme z předpisu.
 function about(x) {
   const c = x.cid ? S.ch.find(y => y.id === x.cid) : null;
   const vs = x.vs || (c && c.vs) || "";
@@ -98,7 +97,7 @@ ${two ? `<label>Účet</label><div class="chips">${Object.entries(ACC).map(([a, 
   const chipsA = two ? `<div class="chips"><button class="chip ${fa ? "" : "on"}" data-cfl="">Oba účty</button>${Object.entries(ACC).map(([a, t]) => `<button class="chip ${fa === a ? "on" : ""}" data-cfl="${a}">${t}</button>`).join("")}</div>` : "";
   const chipsC = cats.length ? `<div class="chips"><button class="chip ${fc ? "" : "on"}" data-cc="">Všechny kategorie</button>${cats.map(c => `<button class="chip ${fc === c ? "on" : ""}" data-cc="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : "";
   const list = shown.length ? shown.map(x => {
-    const key = "cb" + x.id, nm = nameOf(x.mid), arm = S.cf === key, ab = about(x);
+    const key = "cb" + x.id, nm = pn(x.mid, {staff: true, fb: ""}), arm = S.cf === key, ab = about(x);
     const det = [ab.vs ? "VS " + esc(ab.vs) : "", ab.note ? esc(ab.note) : "", two ? esc(accName(cfg, cashAcc(x, cfg))) : ""].filter(Boolean).join(" · ");
     return `<div class="ev" style="align-items:center"><div class="t">${x.d ? fd(x.d) : "–"}</div><div class="b">${esc(catOf(x))}${nm ? " · " + nm : ""}${det ? `<div class="mu">${det}</div>` : ""}</div><b style="color:${x.k === "in" ? "var(--ok)" : "var(--no)"};white-space:nowrap">${x.k === "in" ? "+" : "−"}${kc(+x.amt || 0)}</b><button class="d" data-cbd="${x.id}" title="Stornovat pohyb" style="padding:8px 10px;${arm ? "background:var(--no);color:#fff" : ""}">${arm ? "Storno?" : "🗑"}</button></div>`;
   }).join("") : '<div class="msg">Žádné pohyby.</div>';
@@ -140,7 +139,6 @@ export function bindCashbook(a) {
     sync();
     const id = b.dataset.cbd, key = "cb" + id, x = S.cs.find(y => y.id === id);
     if (!x) return;
-    if (S.cf === key) { S.cf = null; storno(x); }
-    else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
+    confirm2(key, () => storno(x));
   });
 }

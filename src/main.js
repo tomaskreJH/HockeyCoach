@@ -1,8 +1,8 @@
-// Spuštění aplikace: připojení k úložišti, odběr změn dat, první vykreslení, obsluha tlačítka Zpět (v18.0).
+// Spuštění aplikace: připojení k úložišti, odběr změn dat, první vykreslení, obsluha tlačítka Zpět.
 // Kolekce events, attendance (docházka) a staff (realizační tým) nesmí blokovat zbytek aplikace: při chybě (např. chybějící pravidla) se jen zobrazí hláška v záložce Události.
 // Správci pokladny (trenér a pokladník) poslouchají charges (všechny předpisy), cash, audit a evcash (vyúčtování událostí).
 // Ostatní členové poslouchají jen své předpisy (charges s mid = jejich pid / tid, včetně měsíčních příspěvků); pravidla jiné předpisy nepustí.
-// Nastavení pokladny (settings/cash) čtou všichni členové; otevřené okno nastavení pokladny se po změně překreslí (v18.6.1 – návrh / potvrzení účtu).
+// Nastavení pokladny (settings/cash) čtou všichni členové; otevřené okno nastavení pokladny se po změně překreslí (návrh / potvrzení účtu).
 // Automatické zakládání soupeřů a oprava uzavřených zápasů jsou zápisy do databáze, proto běží jen u trenéra a kustoda (hráčka nemá právo zápisu).
 import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
@@ -20,8 +20,8 @@ if(new URLSearchParams(location.search).has("debug"))installDebug();
 initTableSort();
 // Nápověda: tlačítko ❓ v záhlaví
 initHelp();
-// Tlačítko Zpět na telefonu: zavírá okna a detaily uvnitř aplikace, z domovské stránky se zeptá na ukončení (v18.0);
-// odchod ze živého zápisu zastaví čas zápasu (v18.1, leaveLive z views/live.js)
+// Tlačítko Zpět na telefonu: zavírá okna a detaily uvnitř aplikace, z domovské stránky se zeptá na ukončení;
+// odchod ze živého zápisu zastaví čas zápasu (leaveLive z views/live.js)
 initNav({leaveLive});
 // Okno nastavení pokladny se otevírá z ⚙️
 HK.openCash=openCashSettings;
@@ -36,7 +36,7 @@ db.collection("opponents").onSnapshot(s=>{S.op=s.docs.map(d=>({id:d.id,...d.data
 db.collection("events").onSnapshot(s=>{S.ev=s.docs.map(d=>({id:d.id,...d.data()}));ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{S.at=s.docs.map(d=>({id:d.id,...d.data()}));ok("a");render()},erX("a"));
 db.collection("staff").onSnapshot(s=>{S.tr=s.docs.map(d=>({id:d.id,...d.data()}));render()},erX("t"));
-// Souhrn dlužníků bez částek (v18.7): čtou všichni členové; chyba = nepublikovaná pravidla (Docházka pak ukáže upozornění, zbytek aplikace běží)
+// Souhrn dlužníků bez částek: čtou všichni členové; chyba = nepublikovaná pravidla (Docházka pak ukáže upozornění, zbytek aplikace běží)
 db.collection("debtors").onSnapshot(s=>{S.dt=s.docs.map(d=>({id:d.id,...d.data()}));S.dtErr=null;render()},e=>{S.dtErr=e.code||e.message;render()});
 const ec=e=>{S.payErr=e.code||e.message;render()};
 if(HK.isCash()){

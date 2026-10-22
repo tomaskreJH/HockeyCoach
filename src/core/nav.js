@@ -1,22 +1,22 @@
-// Tlačítko Zpět (v18.0, opravy v18.1 a v18.1.1): systémové Zpět na telefonu (i v prohlížeči) funguje uvnitř aplikace.
+// Tlačítko Zpět: systémové Zpět na telefonu (i v prohlížeči) funguje uvnitř aplikace.
 // Princip: v historii prohlížeče jsou nad základním záznamem až DEPTH „strážních záznamů“. Každé Zpět jeden spotřebuje
 // (událost popstate) a aplikace zavře nejvyšší otevřenou vrstvu. Okna se zavírají klepnutím na jejich vlastní
 // tlačítko Zavřít / Zrušit, takže logika jednotlivých obrazovek se nemění.
 // Pravidlo prohlížeče (Chrome): záznam historie vložený bez aktivace uživatelem se při systémovém Zpět přeskočí.
 // Aktivací je jen skutečné klepnutí (pointerup / touchend / click od uživatele) nebo klávesa; dotyk prstem (pointerdown)
 // ani programové el.click() aktivací nejsou.
-// Oprava v18.1.1:
-//   - strážní záznam se doplní jen při skutečné aktivaci (e.isTrusted) – programové el.click() při zavírání oken už
-//     nevkládá záznamy, které by Chrome přeskočil (příčina zavření aplikace bez dotazu),
+// Doplňování zásoby:
+//   - strážní záznam se doplní jen při skutečné aktivaci (e.isTrusted) – programové el.click() při zavírání oken
+//     nevkládá záznamy, které by Chrome přeskočil (aplikace by se zavřela bez dotazu),
 //   - za jedno klepnutí se doplní jen JEDEN záznam (Chrome aktivaci spotřebuje prvním vložením; další záznamy ze stejného
 //     klepnutí by byly přeskočitelné a jedno Zpět by jich přeskočilo několik najednou),
-//   - záznam se doplní i při klepnutí do dotazu (Ne / Zůstat / mimo okno) – dřív se po „Ne“ zásoba nedoplnila,
+//   - záznam se doplní i při klepnutí do dotazu (Ne / Zůstat / mimo okno),
 //   - když systémové Zpět spotřebuje poslední strážní záznam, aplikace se vždy zeptá „Ukončit aplikaci?“ (další Zpět
 //     už aplikaci opustí, proto nesmí jen potichu zavřít okno),
-//   - zásoba zvýšena na 5 záznamů (víc Zpět po sobě bez klepnutí).
+//   - zásoba je 5 záznamů (víc Zpět po sobě bez klepnutí).
 // Pořadí zavírání (od nejvyšší vrstvy):
 //   1) okna nad vším (nápověda, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
-//   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas – v18.1),
+//   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas),
 //   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
 //   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), jiná záložka → Události, Události → Nadcházející,
 //   5) domovská stránka: dotaz „Ukončit aplikaci?“.
@@ -44,7 +44,7 @@ const DOM_LAYERS = [
   "#rp #rpx",                  // zápis utkání
   "#app #cbc"                  // pokladna: rozpracovaný vklad / výdaj
 ];
-const DEPTH = 5;               // zásoba strážních záznamů nad základním záznamem (v18.1.1: 5, dříve 3)
+const DEPTH = 5;               // zásoba strážních záznamů nad základním záznamem
 const ARM = ["pointerdown", "touchstart", "mousedown", "pointercancel"]; // začátek dotyku připraví jedno doplnění, posun ho zruší
 const USE = ["pointerup", "touchend", "click", "keydown"];        // aktivace uživatelem = doplní jeden záznam
 const EXIT_TITLE = "Ukončit aplikaci?";
@@ -108,7 +108,7 @@ function closeTop() {
   if (ask) { closeAsk(); return true; }
   // 1) okna s tlačítkem zavření
   if (DOM_LAYERS.some(tap)) return true;
-  // 2) živý zápis: při odchodu se zastaví čas (v18.1), nic jiného se nezapisuje
+  // 2) živý zápis: při odchodu se zastaví čas, nic jiného se nezapisuje
   if (S.lv && vis(document.getElementById("lv"))) {
     if (S.qa) { if (!tap('#lv [data-qb="x"]')) { S.qa = null; render(); } return true; }
     if (S.lmenu && S.lsub) { if (!tap('#lv [data-m="back"]')) { S.lsub = null; S.injp = null; render(); } return true; }

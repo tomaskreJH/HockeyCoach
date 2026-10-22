@@ -1,8 +1,8 @@
 // Doména: pokladna – model osob (skupina, koeficient fx), šablony událostí, výpočet předpisů, úhrady, zůstatek, přehled dluhů,
-// měsíční příspěvky, platy realizačního týmu, hospodaření po měsících a CSV (čisté funkce bez DOM).
+// měsíční příspěvky, platy realizačního týmu, hospodaření po měsících a částky pro CSV (čisté funkce bez DOM).
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Pokladna (zůstatek, kategorie, úhrady) -> Nastavení a šablony -> Vyúčtování událostí
-//            -> Účty (v17.7) -> Zpráva pro příjemce -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Měsíční příspěvky (F4) -> Platy (F4)
-//            -> Hospodaření po měsících (F4) -> CSV (F4).
+//            -> Účty -> Zpráva pro příjemce -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Měsíční příspěvky (F4) -> Platy (F4)
+//            -> Hospodaření po měsících (F4) -> Částky pro CSV.
 // Pravidla:
 //  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single),
 //  - koeficient fx = individuální podíl z ceny 0..1 (v aplikaci se zadává v procentech 0–100 %, výchozí 100 %),
@@ -11,17 +11,16 @@
 //  - cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx, zaokrouhleno nahoru na celé Kč,
 //  - do dělitele ceny se každá přihlášená hráčka počítá jako jeden celý kus (bez ohledu na skupinu, osvobození i fx),
 //  - měsíční příspěvek = částka z nastavení × fx, platí ho hráčky ve skupině monthly (ne ukončené, ne brankářky, ne fx 0; osvobozené jen po zahrnutí),
-//  - starší data (v17.3 a dříve) označovala osvobozenou hráčku fx 0 bez pole ex: čte se jako osvobozená s fx 100 % (do první úpravy hráčky),
+//  - starý tvar osvobozené hráčky (fx 0 bez pole ex) se čte jako osvobozená s fx 100 % (legacyEx; do první úpravy hráčky),
 //  - zůstatek pokladny = součet příjmů (cash.k "in") − součet výdajů (cash.k "out"),
-//  - dva účty (v17.7): hlavní (iban, např. příspěvky) a provozní (iban2, např. platby za události). Předpis i pohyb nese pole acc ("main" | "op");
+//  - dva účty: hlavní (iban, např. příspěvky) a provozní (iban2, např. platby za události). Předpis i pohyb nese pole acc ("main" | "op");
 //    starší záznamy bez acc se zařadí podle druhu (příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní).
 //    Souhrnná platba (jeden QR na více předpisů) smí obsahovat jen předpisy se stejným IBAN,
 //  - zpráva pro příjemce (msg) se uloží do předpisu při jeho vzniku; stejný text je v QR, u úhrady v pokladně i v CSV (párování s výpisem).
-//  - QR (v18.6.1): celý text jen ze znaků alfanumerického režimu QR (VELKÁ písmena bez diakritiky, číslice, mezera, $ % + - . / :),
+//  - QR: celý text jen ze znaků alfanumerického režimu QR (VELKÁ písmena bez diakritiky, číslice, mezera, $ % + - . / :),
 //    kvůli přísnějším bankám (mBank); volitelně PT:IP = okamžitá platba (nastavení inst, výchozí zapnuto).
-//  - zabezpečení účtů (v18.6.1): iban / iban2 mění jen potvrzený návrh (ibanPend od trenéra, potvrdí jiný správce pokladny);
+//  - zabezpečení účtů: iban / iban2 mění jen potvrzený návrh (ibanPend od trenéra, potvrdí jiný správce pokladny);
 //    ibanBy = kdo navrhl, ibanOk = kdo potvrdil, ibanAt = kdy (pravidla databáze to vynucují).
-// Migrace z v16.3 a přesun dat do evcash (v17.0–v17.2) jsou hotové a z kódu odstraněné (v17.3).
 
 // ===== Importy =====
 import {isG, pl} from "../core/selectors.js";
@@ -42,8 +41,8 @@ export const CAT_SALARY = "Platy trenérů";
 // Předpona id „události“ měsíčního příspěvku: předpis má eid "c_RRRR-MM" a id "c_RRRR-MM_{pid}"
 export const CPRE = "c_";
 // Předpona id výdaje platu v pokladně: "sal_RRRR-MM_{tid}" (jeden plat za člena a měsíc)
-export const SPRE = "sal_";
-// Účty týmu (v17.7): hlavní a provozní
+const SPRE = "sal_";
+// Účty týmu: hlavní a provozní
 export const ACC = {main: "Hlavní účet", op: "Provozní účet"};
 // Předpona pro osobní variabilní symbol souhrnné platby (hash "vs_" + id osoby)
 const PVS = "vs_";
@@ -59,7 +58,7 @@ export const r2 = n => Math.round((+n || 0) * 100) / 100;
 export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " Kč";
 // Platné datum ve tvaru RRRR-MM-DD
 export const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")) && !isNaN(new Date(s + "T12:00:00"));
-// Starý tvar osvobozené hráčky (do v17.3): fx 0 a žádné pole ex
+// Starý tvar osvobozené hráčky: fx 0 a žádné pole ex
 const legacyEx = p => !!p && p.ex == null && p.fx != null && +p.fx === 0;
 // Osvobozená (zvýhodněná) hráčka
 export const exOf = p => !!p && (p.ex === true || legacyEx(p));
@@ -84,8 +83,8 @@ export function defDue(date, days) {
 }
 export const fmtDue = s => { const d = new Date(s); return isNaN(d) ? "" : d.getDate() + ". " + (d.getMonth() + 1) + ". " + p2(d.getHours()) + ":" + p2(d.getMinutes()); };
 // Variabilní symbol = číselný hash id předpisu (nejvýše 10 číslic)
-export const vsOf = id => { let h = 5381; for (let i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0; return String(h >>> 0); };
-export const chargeId = (eid, mid) => eid + "_" + mid;
+export const vsHash = id => { let h = 5381; for (let i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0; return String(h >>> 0); };
+const chargeId = (eid, mid) => eid + "_" + mid;
 export const restOf = x => Math.max(0, r2((+x.amt || 0) - (+x.paid || 0)));
 export const overdue = x => restOf(x) > 0 && !!x.due && new Date(x.due).getTime() < Date.now();
 // Měsíc: "RRRR-MM", popisek "listopad 2026" a krátký "11/2026", posun o n měsíců
@@ -98,7 +97,7 @@ export function ymAdd(ym, n) { const d = new Date(+ym.slice(0, 4), +ym.slice(5) 
 export const ymLast = ym => ym + "-" + p2(new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate());
 
 // ===== Pokladna: zůstatek, kategorie, úhrady =====
-// Součty příjmů a výdajů a zůstatek z pohybů (cash); s cfg a acc jen pohyby daného účtu (v17.7)
+// Součty příjmů a výdajů a zůstatek z pohybů (cash); s cfg a acc jen pohyby daného účtu
 export function sumCash(cs, cfg, acc) {
   let i = 0, o = 0;
   (cs || []).forEach(x => { if (acc && cashAcc(x, cfg) !== acc) return; const a = +x.amt || 0; if (x.k === "in") i += a; else if (x.k === "out") o += a; });
@@ -141,7 +140,7 @@ export function cashCfg(r) {
   const c = r.cats || {};
   return {
     iban: r.iban || "", iban2: r.iban2 || "", acc: {contrib: accKey(r.acc && r.acc.contrib, "main")}, contrib: +r.contrib || 0,
-    // Zabezpečení účtů a okamžitá platba (v18.6.1): pole se přenesou jen když existují (uložení nesmí přidat prázdné hodnoty)
+    // Zabezpečení účtů a okamžitá platba: pole se přenesou jen když existují (uložení nesmí přidat prázdné hodnoty)
     ...accMeta(r), inst: r.inst !== false,
     due: {ev: r.due && r.due.ev != null ? +r.due.ev : 3, cm: r.due && r.due.cm != null ? +r.due.cm : 1},
     cats: {in: c.in && c.in.length ? cl(c.in) : cl(CATS.in), out: c.out && c.out.length ? cl(c.out) : cl(CATS.out)},
@@ -179,7 +178,7 @@ export function debtOf(ch, ids) {
 }
 // Variabilní symbol unikátní mezi předpisy: při shodě hashe se zvyšuje o 1 (nejvýše 10 číslic)
 export function uniqVs(id, taken) {
-  let n = +vsOf(id);
+  let n = +vsHash(id);
   while (taken.has(String(n))) n = (n + 1) % 4294967296;
   return String(n);
 }
@@ -188,12 +187,11 @@ export const ACC_META = ["ibanBy", "ibanOk", "ibanAt", "ibanPend"];
 export function accMeta(r) { const o = {}; ACC_META.forEach(k => { if (r && r[k] != null && r[k] !== "") o[k] = cl(r[k]); }); return o; }
 // QR platba v českém formátu SPD (zpráva jen ASCII bez znaku *)
 const asciiFull = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "");
-export const asciiMsg = s => asciiFull(s).slice(0, 60).trim();
-// Zpráva pro QR (v18.6.1): bez diakritiky, VELKÁ písmena, jen znaky alfanumerického režimu QR, jednoduché mezery, max. 60 znaků
+// Zpráva pro QR: bez diakritiky, VELKÁ písmena, jen znaky alfanumerického režimu QR, jednoduché mezery, max. 60 znaků
 export const qrMsg = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 $%+\-./:]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60).trim();
 // Text QR platby; inst = požadavek na okamžitou platbu (PT:IP, banka bez podpory ho ignoruje)
 export const spdPay = (iban, amt, vs, msg, inst) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + String(vs).replace(/\D/g, "").slice(0, 10) + (qrMsg(msg) ? "*MSG:" + qrMsg(msg) : "") + (inst ? "*PT:IP" : "");
-// ===== Účty (v17.7) =====
+// ===== Účty =====
 // Platný klíč účtu, jinak výchozí
 const accKey = (v, def) => (v === "main" || v === "op" ? v : def);
 // Tým má dva různé účty (provozní je vyplněný a liší se od hlavního)
@@ -207,13 +205,13 @@ export const accOf = (x, cfg) => accKey(x && x.acc, x && x.kind === "contrib" ? 
 // Účet pohybu v pokladně: uložené acc, u starších podle kategorie
 export const cashAcc = (x, cfg) => accKey(x && x.acc, x && x.cat === CAT_CONTRIB ? cfg.acc.contrib : x && x.cat === CAT_EVENT ? "op" : "main");
 // Osobní variabilní symbol pro souhrnnou platbu více předpisů (stejný pro osobu napříč měsíci)
-export const personVs = mid => vsOf(PVS + mid);
+export const personVs = mid => vsHash(PVS + mid);
 
 // ===== Zpráva pro příjemce =====
-// Zpráva pro příjemce (v17.6): za co se platí, aby pokladník platbu poznal i bez variabilního symbolu.
+// Zpráva pro příjemce: za co se platí, aby pokladník platbu poznal i bez variabilního symbolu.
 // it = {type: "match" | "training" | "contrib", title, date "RRRR-MM-DD", opp, ym "RRRR-MM"}, name = jméno plátce (nepovinné).
 // Tvary: "Zápas 10.10. Sokol - Jana", "Trénink 14.10. - Jana", "Mimořádný trénink 18.10. - Jana", "Příspěvek 10/2026 - Jana".
-// Do QR jde přes qrMsg (bez diakritiky, VELKÁ písmena, nejvýše 60 znaků; v18.6.1), proto je jméno na konci a případné zkrácení postihne jen jeho konec.
+// Do QR jde přes qrMsg (bez diakritiky, VELKÁ písmena, nejvýše 60 znaků), proto je jméno na konci a případné zkrácení postihne jen jeho konec.
 const dayMonth = d => { const [, m, x] = String(d || "").split("-"); return m && x ? +x + "." + +m + "." : ""; };
 export function payMsg(it, name) {
   const t = it || {};
@@ -271,7 +269,7 @@ export function calcCash(c, P) {
 
 // ===== Předpisy (charges) =====
 // have = stávající předpisy události podle mid. Zaplacená částka se zachová; nezaplacené předpisy hráček, které už neplatí, se smažou.
-// ext (v17.7) = {acc, msg: pid -> zpráva}: účet a zpráva pro příjemce. Stávající předpis si zprávu ponechá; účet jen pokud už má úhradu.
+// ext = {acc, msg: pid -> zpráva}: účet a zpráva pro příjemce. Stávající předpis si zprávu ponechá; účet jen pokud už má úhradu.
 export function planCharges(eid, k, due, have, all, ext) {
   const X = ext || {};
   const set = [], del = [], keep = new Set(k.payers.map(x => x.pid));
@@ -327,7 +325,7 @@ export function contribRows(players, cfg, have) {
     .map(p => ({pid: p.id, fx: fxOf(p), ex: exOf(p), amt: ceil(base * fxOf(p)), has: (have || {})[p.id] || null}));
 }
 // Vystavení příspěvků: rows = vybrané řádky {pid, amt}; existující předpisy se nepřepisují (idempotentní). all = všechny předpisy (VS).
-// msgOf (v17.7) = pid -> zpráva pro příjemce; účet = účet příspěvků z nastavení.
+// msgOf = pid -> zpráva pro příjemce; účet = účet příspěvků z nastavení.
 export function contribPlan(ym, rows, cfg, all, msgOf) {
   const eid = contribEid(ym), due = contribDue(ym, cfg.due.cm), set = [];
   const have = new Set((all || []).map(c => c.id));
@@ -392,11 +390,6 @@ export function chargesOfMonth(ch, ym) {
   return r;
 }
 
-// ===== CSV (F4) =====
-// Text CSV pro Excel: oddělovač středník, uvozovky, BOM a konce řádků CRLF
-export function csvText(rows) {
-  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  return "﻿" + rows.map(r => r.map(q).join(";")).join("\r\n");
-}
+// ===== Částky pro CSV (text CSV: csv v core/utils.js) =====
 // Částka pro CSV s desetinnou čárkou (Excel v češtině)
 export const csvNum = n => String(r2(n)).replace(".", ",");

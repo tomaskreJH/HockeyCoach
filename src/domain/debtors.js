@@ -1,4 +1,4 @@
-// Dlužníci – veřejný souhrn bez částek (v18.7, fáze C2). Čisté funkce bez DOM a bez databáze.
+// Dlužníci – veřejný souhrn bez částek. Čisté funkce bez DOM a bez databáze.
 // Struktura: Konstanty -> Pomocné funkce -> Dokument dlužníka -> Plán zápisu (po změně předpisů, celý přepočet) -> Stav pro zobrazení -> Export.
 // Kolekce debtors/{mid} = {mid, since, dues: [{d, x}]} – BEZ částek:
 //  - mid = hráčka (realizační tým se nezapisuje, rozhodnutí 6),
@@ -18,7 +18,7 @@ const DAY_MS = 86400000;
 const ms = s => { const t = new Date(s).getTime(); return isNaN(t) ? null : t; };
 const dataOf = x => { const o = {...x}; delete o.id; return o; };
 // Předpisy po plánované změně: sets = [{id, d}] (nový obsah dokumentu), dels = [id] (smazané)
-export function chAfter(ch, sets, dels) {
+function chAfter(ch, sets, dels) {
   const m = new Map((ch || []).map(x => [x.id, dataOf(x)]));
   (dels || []).forEach(id => m.delete(id));
   (sets || []).forEach(x => m.set(x.id, dataOf(x.d)));

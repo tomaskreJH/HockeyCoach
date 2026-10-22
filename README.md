@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v18.8.1 (22. 10. 2026)** – oprava zakládání zápasu: čas začátku, místo a termín přihlašování už při vytvoření; po vytvoření se otevře událost (přihlášky) a karta zápasu vede postupem přihlášky → nominace → sestava → uzavření. Pravidla databáze beze změny. Dříve v18.8: testy (`npm test`), brána verze, pokladník spravuje jen hráčky, `docs/KONVENCE.md`.
+**Aktuální verze: v18.9 (22. 10. 2026)** – úklid kódu D1, část 1 (bez změny chování a vzhledu): společné pomůcky `confirm2` (potvrzení druhým klepnutím), `pn` / `nm` (jména), `csv` (export), `core/drag.js` (přetahování), přejmenování `matchesVs` / `vsHash`, komentáře bez historie verzí, mrtvý kód pryč; srovnávací testy hlídají stejné statistiky, CSV a VS. Pravidla databáze beze změny. Dříve v18.8.1: zakládání zápasu s časem, místem a termínem přihlašování.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -16,7 +16,7 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlas
 
 ## Spuštění a testy
 - Lokálně: `npm start` (nebo `python3 -m http.server`) a otevřít `http://localhost:3000` (resp. `:8000`). Z `file://` se moduly nenačtou.
-- Testy: `npm test` – Node 22+, nic se neinstaluje. Testují pokladnu, účty a QR, docházku, dlužníky, živý zápis (střídání, rotace, Zpět, tresty) a soulad verze a pravidel databáze.
+- Testy: `npm test` – Node 22+, nic se neinstaluje. Testují pokladnu, účty a QR, docházku, dlužníky, živý zápis (střídání, rotace, Zpět, tresty), soulad verze a pravidel databáze, společné pomůcky (potvrzení, CSV, jména, přetahování) a srovnávací výstupy úklidu (statistiky, CSV, VS – `tests/fixtures/d1-baseline.json`).
 - Aplikace se spouští přímo ze zdrojových modulů (bez sestavování). Firebase SDK se stahuje z `gstatic.com`; po prvním spuštění je v offline cache.
 
 ## Nastavení Firebase (jednorázově)

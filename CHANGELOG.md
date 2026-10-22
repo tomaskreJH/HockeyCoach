@@ -4,6 +4,33 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v18.9 (22. 10. 2026) – Úklid kódu D1, část 1: společné pomůcky (fáze D1 a–e, j, k) – ⚠️ SAHÁ NA PLATBY
+> **Nasazení:** jen nahrát kód (žádný soubor se nemaže). Pravidla databáze beze změny (publikovat netřeba), tvar dat beze změny – 🔒 Vyžadovat verzi není nutné.
+> **⚠️ SAHÁ NA PLATBY – jen přesun a přejmenování, výsledky beze změny (ověřeno srovnávacími testy):** `src/domain/cash.js` (`vsOf` → `vsHash`, `csvText` přesunuto do `core/utils.js` jako `csv`, smazaná nepoužitá `asciiMsg`, `chargeId` / `SPRE` bez `export`, komentáře), `src/domain/bank-account.js` (`RECENT_DAYS` bez `export`, komentář), `src/views/mine.js` (import `vsHash`, komentáře), `src/views/qr-image.js` (komentář), `src/views/cash-settings.js` (komentáře), `src/views/payments.js` (`confirm2`, komentáře), `src/views/money.js` (`confirm2`, `nm`, `csv`), `src/views/cashbook.js` (`confirm2`, `pn`, komentáře). Výpočty předpisů, úhrad, VS, QR (`spdPay`, `qrMsg`) a účty beze změny; `firestore.rules` beze změny.
+> D1 bylo na jedno vlákno příliš velké – rozděleno: **v18.9 = body a–e, j, k**, **v18.9.1 = body f–i** (`playerStats`, `can()`, `config/team.js`, rozdělení `live.js`).
+
+**Přidáno**
+- `src/core/actions.js`: `confirm2(key, fn, redraw)` – jediné potvrzení druhým klepnutím (1. klepnutí označí, 2. do 4 s provede, jinak se označení samo zruší), `armed(key)`, `CONFIRM_MS`.
+- `src/core/selectors.js`: `nm(id, {staff, fb})` – jméno bez HTML; `pn(id, {staff, fb})` – jméno s HTML nově umí i člena realizačního týmu (🎓) a vlastní text pro neznámé id.
+- `src/core/utils.js`: `csv(rows)` – jediný text CSV (středník, uvozovky, BOM, CRLF).
+- `src/core/drag.js` (nový): `makeDrag(root, items, {target, start, drop, click})` – jediné přetahování (podržení prstu 320 ms, myš > 6 px, duch, zvýraznění cíle, 450 ms bez klepnutí po puštění).
+- Testy: `tests/d1-baseline.test.js` + `tests/fixtures/d1-baseline.json` (srovnávací výstupy zachycené na v18.8.1: statistiky zápasu a souhrnu, CSV vývoje, střídání, soupisky a pokladny byte po bytu, potvrzení druhým klepnutím, zápasy proti soupeři, VS), `tests/d1-helpers.test.js` (confirm2, csv, pn / nm, makeDrag). Zástupce Firebase (`tests/support/firebase-stub.mjs`) umí přihlášení a data kolekcí přes `globalThis.__fb`; zástupce prvku DOM má `click()`. Celkem 56 testů.
+
+**Změněno**
+- Potvrzení druhým klepnutím přes `confirm2` ve všech 10 souborech (zápas: uzavřít, znovu otevřít, smazat, základní formace; událost: smazat; soupeř: smazat; hráčka a člen týmu: smazat; editor zápasu a opravy střídání; pokladna: storno, zaplatila vše, znovu otevřít vyúčtování, příspěvky a platy). Ruční vzor `S.cf === … setTimeout` už v kódu není.
+- Jména: `nameOf` (timeline, cashbook) a `plainName` (money) nahradily `nm` / `pn` ze `selectors.js`; `trOf` je vnitřní pomocník `selectors.js`.
+- CSV: 4 implementace (report, money, cash `csvText`, storage `exportCSV`) → `csv` v `core/utils.js`.
+- Přetahování: `lvDrag` (live), `bindLu` a `matchDrag` (lineup-editor), `teamDrag` (team) používají `core/drag.js` – vlastní zůstala jen pravidla puštění.
+- Přejmenováno: `vsOf` v `selectors.js` → `matchesVs` (zápasy proti soupeři), `vsOf` v `cash.js` → `vsHash` (variabilní symbol).
+- Komentáře popisují současný stav – historie verzí („v18.4.2: …“, „(v17.7)“) odstraněna ze všech hlaviček a komentářů v `src/` a ze `styles/main.css` (texty nápovědy „od v18.x“ zůstávají – jsou to texty v aplikaci).
+- `src/views/report.js`: místní pomocník jména v zápisu utkání přejmenován na `who` (nekoliduje s `nm`).
+
+**Odstraněno**
+- `asciiMsg` (`cash.js`, nepoužitá), CSS `.lg.nx-strip` (nepoužitá třída), `export` u funkcí používaných jen ve vlastním souboru: `oppDetail`, `nudgeT`, `lvDrag`, `teamDrag`, `chargeId`, `SPRE`, `RECENT_DAYS`, `dayStr`, `chAfter`, `MIN_SHIFT`, `trOf` (`debtorDoc` zůstává – používají ho testy).
+
+**Beze změny**
+- Vzhled a ovládání aplikace, živý zápis (střídání, rotace, tresty, časomíra, góly – v `live-engine.js` jen komentář), statistiky, docházka, dlužníci, pokladna, QR a účty, pravidla databáze, záloha a obnova.
+
 ## v18.8.1 (22. 10. 2026) – Oprava: postup zakládání zápasu
 > **Nasazení:** jen nahrát kód. Pravidla databáze beze změny (publikovat netřeba), na platby se nesahá. Po otestování může trenér ⚙️ → 🔒 Vyžadovat verzi v18.8.1 (není nutné – tvar dat se nemění, přibyla jen pole `time`, `place`, `dl` u nového zápasu, která už dříve zapisovala úprava v Událostech).
 

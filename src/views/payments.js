@@ -1,13 +1,14 @@
 // Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů, uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem, úhrady předpisů.
 // Struktura: Importy -> Pomocné funkce -> Uzavření vyúčtování (zápis) -> Úhrady -> Vykreslení -> Eventy -> Export.
 // Data: náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
-// V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Přesun ze starého tvaru (v17.2) je hotový, starý tvar se už nečte (v17.3).
+// V dokumentu události / zápasu je jen příznak ss (vyúčtováno).
 // Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
-// v17.7: předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
-// v18.7: každá dávka, která mění předpisy, zapíše i veřejný souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js) – výpočty předpisů se nemění.
+// Předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
+// Každá dávka, která mění předpisy, zapíše i veřejný souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
 // Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js, příspěvky, platy a měsíce ve views/money.js.
 
 // ===== Importy =====
+import {confirm2} from "../core/actions.js";
 import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
@@ -59,7 +60,7 @@ export function settleEvent(ev, raw, force, d) {
   if (c.due) cx.due = c.due;
   const have = {};
   S.ch.filter(x => x.eid === ev.id && x.kind === "event").forEach(x => { have[x.mid] = x; });
-  // Zpráva pro příjemce se sestaví z dat události (raw) a jména hráčky a uloží se do předpisu (v17.7)
+  // Zpráva pro příjemce se sestaví z dat události (raw) a jména hráčky a uloží se do předpisu
   const item = evItem(ev.type, raw), msg = pid => payMsg(item, (pl(pid) || {}).name || "");
   const plan = planCharges(ev.id, k, due, have, S.ch, {acc: c.acc, msg}), b = S.db.batch();
   b.set("evcash/" + ev.id, cx);
@@ -77,7 +78,7 @@ export function settleEvent(ev, raw, force, d) {
 // Zámek proti dvojímu klepnutí (než se změna vrátí přes odběr dat)
 const busy = new Set();
 // Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné dávce.
-// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu (v17.7); extra = doplněk poznámky (např. souhrnná platba).
+// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu; extra = doplněk poznámky (např. souhrnná platba).
 export function payCharge(cid, amt, extra) {
   const x = S.ch.find(c => c.id === cid);
   if (!x || busy.has(cid)) return false;
@@ -212,14 +213,13 @@ export function bindPay(a, ev) {
   const ro = a.querySelector("#cero");
   if (ro) ro.onclick = () => {
     const key = "ro" + ev.id;
-    if (S.cf === key) {
-      S.cf = null;
+    confirm2(key, () => {
       const cx = {...(ev.cx || {})};
       delete cx.settle;
       S.db.batch().set("evcash/" + ev.id, cx).merge(evPath(ev), {ss: "__del"})
         .set("audit/" + uid(), auditDoc(ev.id, "reopen", "ruční znovuotevření vyúčtování")).commit();
       dr = null;
       toast("Vyúčtování znovu otevřeno");
-    } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
+    });
   };
 }

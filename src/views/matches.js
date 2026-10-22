@@ -3,7 +3,7 @@
 // Smazání zápasu: nejdřív kontrola vyúčtování (HK.canDelete), potom se smaže docházka zápasu a zápas (předpisy bez úhrady a evcash maže datová vrstva).
 // Příprava zápasu: událost (zveřejněná při vytvoření) → přihlášky hráček → nominace z přihlášených → sestava → uzavření sestavy → živý zápis; dokud přihlášky nestačí (1 + 5), karta vede do detailu události.
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
-import {save, upd} from "../core/actions.js";
+import {confirm2, save, upd} from "../core/actions.js";
 import {PG, compactRot, goingOf, nomOf, pl, pn, pri, score, shots, skaters, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, Q, clone, dlText, esc, fd, td, toast, uid} from "../core/utils.js";
@@ -63,10 +63,9 @@ a.querySelectorAll("[data-edt]").forEach(b=>b.onclick=()=>{if(m.live&&m.live.run
 a.querySelectorAll("[data-rpt]").forEach(b=>b.onclick=()=>{S.rp=true;renderReport()});bindH2h(a);
 Q("#em").onclick=()=>{S.M={k:"EM",id:m.id,opp:m.opp,date:m.date,home:m.home};modal()};
 Q("#tn").onclick=()=>{S.showNom=!S.showNom;render()};
-const two=(id,f)=>{if(S.cf===id){S.cf=null;f()}else{S.cf=id;render();setTimeout(()=>{if(S.cf===id){S.cf=null;render()}},4000)}};
 // Uzavření zápasu: spolu s ním se vytvoří vyúčtování plateb podle aktuální docházky (u venkovního zápasu bez plateb)
-Q("#cz").onclick=()=>two("c"+m.id,()=>{const n=clone(m);n.closed=true;settleEvent(evOfMatch(n),n);save(n)});
-Q("#ro").onclick=()=>two("o"+m.id,()=>{const n=clone(m);delete n.closed;save(n)});
+Q("#cz").onclick=()=>confirm2("c"+m.id,()=>{const n=clone(m);n.closed=true;settleEvent(evOfMatch(n),n);save(n)});
+Q("#ro").onclick=()=>confirm2("o"+m.id,()=>{const n=clone(m);delete n.closed;save(n)});
 Q("#to").onclick=()=>{S.showOp=!S.showOp;render()};
 Q("#ra").onclick=()=>{const c=$("#rc").value.trim(),nm=$("#rn").value.trim();if(!c&&!nm)return toast("Zadej číslo nebo jméno");const n=clone(m);n.opr=[...(n.opr||[]),{id:uid(),num:c,name:nm,g:0,a:0,pim:0}].sort((x,y)=>(+x.num||999)-(+y.num||999));save(n)};
 a.querySelectorAll("[data-rid]").forEach(i=>i.onchange=()=>{const n=clone(m),r=(n.opr||[]).find(x=>x.id===i.dataset.rid);if(r){r[i.dataset.f]=Math.max(0,+i.value||0);save(n)}});
@@ -80,14 +79,14 @@ a.querySelectorAll("[data-tn]").forEach(b=>b.onclick=()=>{const id=b.dataset.tn;
 const toLu=()=>{if(!Object.keys(m.lineup||{}).length){const n=clone(m);fillDef(n);n.luOk=false;save(n)}S.ph="lu";render();window.scrollTo(0,0)};
 a.querySelectorAll("[data-gols]").forEach(b=>b.onclick=()=>{if(R0.nom.ok)toLu()});
 a.querySelectorAll("[data-ph]").forEach(b=>b.onclick=()=>{if(b.dataset.ph==="lu"){if(R0.nom.ok)toLu()}else{S.ph="nom";render()}});
-a.querySelectorAll("[data-fdef]").forEach(b=>b.onclick=()=>two("f"+m.id,()=>{const n=clone(m);fillDef(n);n.luOk=false;save(n)}));
+a.querySelectorAll("[data-fdef]").forEach(b=>b.onclick=()=>confirm2("f"+m.id,()=>{const n=clone(m);fillDef(n);n.luOk=false;save(n)}));
 a.querySelectorAll("[data-lucl]").forEach(b=>b.onclick=()=>{if(!R0.lu.done)return toast("V 1. pětce chybí hráčky nebo brankářka");const n=clone(m);n.luOk=true;save(n)});
 a.querySelectorAll("[data-luop]").forEach(b=>b.onclick=()=>{const n=clone(m);delete n.luOk;save(n)});
 
 Q("#gu").onclick=()=>{S.M={k:"G",team:"us",per:S.per,time:"",sit:"E",scorer:null,a1:null,a2:null,on:[]};modal()};
 Q("#go").onclick=()=>{S.M={k:"G",team:"opp",per:S.per,time:"",sit:"E",on:[gk].filter(Boolean)};modal()};
 Q("#pe").onclick=()=>{S.M={k:"P",team:"us",per:S.per,time:"",min:2,reason:REA[0],pid:null};modal()};
-Q("#dm").onclick=()=>{if(S.cf===m.id){S.cf=null;if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()}else{S.cf=m.id;render();setTimeout(()=>{if(S.cf===m.id){S.cf=null;render()}},4000)}};
+Q("#dm").onclick=()=>confirm2(m.id,()=>{if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()});
 const add=o=>{const n=clone(m);n.events=[...(n.events||[]),{id:uid(),k:"S",per:S.per,...o}];save(n)};
 const del=f=>{const n=clone(m);const i=n.events.map((e,j)=>e.k==="S"&&f(e)?j:-1).filter(j=>j>=0).pop();if(i===undefined)return;n.events.splice(i,1);save(n)};
 a.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{S.per=+b.dataset.per;render()});

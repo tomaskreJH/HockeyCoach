@@ -1,10 +1,10 @@
 // Kostra aplikace: záložky a hlavní vykreslení.
-// Záložka Události sloučila dřívější Zápasy a Tréninky: je-li otevřený zápas (S.mid), zobrazí se jeho karta, jinak seznam událostí.
-// Přihlášená hráčka (role "hracka") vidí záložky Události, Statistiky, Soupeři (od v17.7, jen ke čtení) a Moje platby; karta zápasu je jen pro trenéra a kustoda.
-// Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.isCash) ho vidí také – formaci a soupisku jen ke čtení, plus Platby / Pokladna / Měsíce (v17.5).
-// Statistiky jsou od v17.3 přístupné všem členům týmu (jen ke čtení).
+// Záložka Události obsahuje zápasy i tréninky: je-li otevřený zápas (S.mid), zobrazí se jeho karta, jinak seznam událostí.
+// Přihlášená hráčka (role "hracka") vidí záložky Události, Statistiky, Soupeři (jen ke čtení) a Moje platby; karta zápasu je jen pro trenéra a kustoda.
+// Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.isCash) ho vidí také – formaci a soupisku jen ke čtení, plus Platby / Pokladna / Měsíce.
+// Statistiky jsou přístupné všem členům týmu (jen ke čtení).
 // Záložka Moje platby je pro každého, kdo má v účtu propojenou hráčku nebo člena týmu (pid / tid).
-// Náhled role (v18.6): při aktivním náhledu je v horní liště nad záložkami stálý pruh „Náhled: … · Ukončit náhled“
+// Náhled role: při aktivním náhledu je v horní liště nad záložkami stálý pruh „Náhled: … · Ukončit náhled“
 // (je součástí lepicí lišty #nav, takže zůstává vidět i při posunu stránky). Záložky se řídí rolí náhledu (HK.role() apod.).
 // Brána verze: je-li tato verze starší než požadované minimum (settings/app.minVer), je v liště stálý pruh s tlačítkem Načíst novou verzi
 // (zápis zastaví strážce v data/storage.js).
@@ -23,7 +23,7 @@ import {formV} from "./team.js";
 
 const onlyPl = () => HK.role() === "hracka";
 const hasMine = () => !!(HK.pid() || HK.tid());
-// Záložky dostupné hráčce (od v17.7 i Soupeři, jen ke čtení); hráčka-pokladník má navíc Team
+// Záložky dostupné hráčce (Soupeři jen ke čtení); hráčka-pokladník má navíc Team
 const plTabs = () => HK.isCash() ? ["ev", "fo", "st", "op", "mk"] : ["ev", "st", "op", "mk"];
 // Pruh náhledu role přes celou šířku lišty (prázdný, když náhled neběží)
 const pvBar = () => { const p = HK.preview && HK.preview(); return p ? `<div style="flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 12px;background:var(--wa);color:#fff;font-size:13px;font-weight:600"><span>👁 Náhled: ${esc(p.label)}</span><button id="pvx" style="flex:none;padding:6px 10px;border:1px solid #fff;border-radius:8px;background:none;color:#fff;font:inherit;font-size:13px;cursor:pointer">Ukončit náhled</button></div>` : ""; };

@@ -1,24 +1,24 @@
 // Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku.
-// v17.5: záložka Události řeší jen události (Nadcházející / Minulé / Kalendář). Výběr „Zapisuji za“ byl odstraněn – správce odklikává docházku v detailu události;
+// Záložka Události řeší jen události (Nadcházející / Minulé / Kalendář / Docházka); správce odklikává docházku v detailu události;
 // rychlá tlačítka na kartě platí za přihlášenou hráčku, nebo za trenéra / kustoda propojeného s realizačním týmem (jinak se na kartě nezobrazí).
-// Režimy Platby, Pokladna a Měsíce se přesunuly do záložky Team (vykresluje je cashPanel() z tohoto souboru, volá ho views/team.js).
+// Režimy Platby, Pokladna a Měsíce jsou v záložce Team (vykresluje je cashPanel() z tohoto souboru, volá ho views/team.js).
 // V detailu události je pokladna (vyúčtování) až na konci stránky, nahoře jsou údaje pro trénink a hokej.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
 // Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo a termín přihlašování jsou v polích time, place, dl zápasu);
 // odpovědi jsou v kolekci "attendance" (id dokumentu = {eventId}_{memberId}), členem je hráčka nebo člen realizačního týmu (kolekce "staff").
 // Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.role() === "hracka") vidí události, mění jen svoji odpověď
-// a jen do termínu přihlašování. Zápasy se nadále zakládají a vedou stejně jako dřív (karta zápasu je jen pro trenéra a kustoda).
+// a jen do termínu přihlašování. Kartu zápasu má jen trenér a kustod.
 // Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se přihlašuje jedním klepnutím přímo na kartě události.
 // Náklady a platby vidí jen správci pokladny (HK.isCash(): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
 // přehled plateb a dluhů: views/finance.js (Team → „💰 Platby“); pohyby pokladny: views/cashbook.js (Team → „🏦 Pokladna“);
 // příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4).
 // Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu).
-// v18.7: přepínač „Docházka“ (S.evm = "att") – přehled docházky pro všechny členy (views/attendance.js, výpočet domain/attendance.js);
+// Přepínač „Docházka“ (S.evm = "att") – přehled docházky pro všechny členy (views/attendance.js, výpočet domain/attendance.js);
 // v detailu události má dlužnice po splatnosti u jména značku ⛓ (výjimka 🔓) podle veřejného souhrnu debtors (bez částek).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
-import {strip, upd} from "../core/actions.js";
+import {confirm2, strip, upd} from "../core/actions.js";
 import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, dlBeforeStart, dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
@@ -180,7 +180,7 @@ function list(a) {
   if (pl_) S.evp = HK.pid();
   else { const me = myTr(); S.evp = me ? me.id : null; }
   if (S.evp && !P.some(p => p.id === S.evp) && !isTr(S.evp)) S.evp = null;
-  // Dřívější režimy pokladny (pay / cash / mon) jsou v záložce Team; tady zůstávají Nadcházející, Minulé, Kalendář a Docházka (v18.7)
+  // Dřívější režimy pokladny (pay / cash / mon) jsou v záložce Team; tady zůstávají Nadcházející, Minulé, Kalendář a Docházka
   const mode = ["up", "past", "cal", "att"].includes(S.evm) ? S.evm : "up";
   const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ["att", "📊 Docházka"]];
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
@@ -278,12 +278,11 @@ ${payHtml(ev)}</div>` + sheetHtml();
   // Smazání tréninku: nejdřív kontrola vyúčtování (HK.canDelete), pak docházka; předpisy bez úhrady maže datová vrstva spolu s událostí
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {
-    if (S.cf === key) {
-      S.cf = null;
+    confirm2(key, () => {
       if (!HK.canDelete("events", ev.id)) { render(); return; }
       S.at.filter(x => x.eid === ev.id).forEach(x => S.db.doc("attendance/" + x.id).delete());
       S.db.doc("events/" + ev.id).delete(); S.evid = null; render();   // evcash dokument maže datová vrstva
-    } else { S.cf = key; render(); setTimeout(() => { if (S.cf === key) { S.cf = null; render(); } }, 4000); }
+    });
   };
   a.querySelectorAll("[data-ln]").forEach(b => b.onclick = () => {
     const [pid, n] = b.dataset.ln.split("|"), l = {...(ev.raw.lines || {})};

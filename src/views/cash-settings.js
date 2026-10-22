@@ -1,11 +1,11 @@
 // Nastavení pokladny (trenér a pokladník): IBAN, příspěvek, splatnosti, kategorie a šablony událostí. Ukládá se do settings/cash.
-// v17.7: dva účty – hlavní (iban) a provozní (iban2, nepovinný); na který účet se platí příspěvky (acc.contrib) a výchozí účet každé šablony (t.acc).
-// v18.6.1: účty se zadávají jako české číslo účtu (nebo IBAN), IBAN se dopočítá a ověří kontrolními součty (mod 11 a mod 97).
+// Dva účty – hlavní (iban) a provozní (iban2, nepovinný); na který účet se platí příspěvky (acc.contrib) a výchozí účet každé šablony (t.acc).
+// Účty se zadávají jako české číslo účtu (nebo IBAN), IBAN se dopočítá a ověří kontrolními součty (mod 11 a mod 97).
 //   Změnu účtu jen navrhuje trenér (ibanPend); platí až po potvrzení JINÝM správcem pokladny (trenér / pokladník) – princip čtyř očí.
 //   Návrh, potvrzení, zamítnutí i zrušení se zapisují do auditu (acc-prop, acc-ok, acc-no, acc-off) a pravidla databáze to vynucují.
 //   Běžné „Uložit nastavení“ účty nikdy nemění (pole účtů se při uložení převezmou z aktuálního stavu v databázi).
 //   Přepínač okamžité platby (inst) přidá do QR PT:IP.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Účty (v18.6.1) -> Vykreslení -> Eventy -> Export.
+// Struktura: Importy -> Stav -> Pomocné funkce -> Účty -> Vykreslení -> Eventy -> Export.
 // Celoobrazovkové okno #cset se vytváří za běhu (stejně jako nápověda), otevírá se z ⚙️ (HK.openCash).
 
 // ===== Importy =====
@@ -34,7 +34,7 @@ function setP(i) {
 const sync = e => e.querySelectorAll("[data-f]").forEach(setP);
 const chip = (on, attr, label) => `<button class="chip ${on ? "on" : ""}" ${attr}>${label}</button>`;
 
-// ===== Účty (v18.6.1) =====
+// ===== Účty =====
 const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
 const fDt = iso => { const d = new Date(iso); return isNaN(d) ? "?" : d.toLocaleString("cs-CZ", {day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"}); };
 // Účet pro zobrazení: české číslo + IBAN po čtveřicích (prázdný = „nenastaven“)
@@ -124,7 +124,7 @@ function bind(e) {
   act("[data-tp]", b => { sel = b.dataset.tp; });
   act("[data-ac]", b => { D.acc.contrib = b.dataset.ac; });
   act("[data-ip]", () => { D.inst = D.inst === false; });
-  // Účty (v18.6.1): průběžná kontrola při psaní, rozpracované hodnoty přežijí překreslení
+  // Účty: průběžná kontrola při psaní, rozpracované hodnoty přežijí překreslení
   const a1 = e.querySelector("#acc1"), a2 = e.querySelector("#acc2");
   const keep = () => { if (a1) accIn = {a1: a1.value, a2: a2.value}; };
   if (a1) { a1.oninput = () => { keep(); e.querySelector("#ack1").innerHTML = chkTxt(a1.value).h; }; a2.oninput = () => { keep(); e.querySelector("#ack2").innerHTML = chkTxt(a2.value).h; }; }

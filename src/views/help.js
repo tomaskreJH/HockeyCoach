@@ -1,12 +1,7 @@
 // Nápověda v aplikaci: tlačítko ❓ v záhlaví otevře celoobrazovkový přehled ovládání.
 // Struktura: Obsah nápovědy -> Pomocné funkce -> Vykreslení -> Eventy (hledání, zavření) -> Export.
-// Nápověda je čistě informační (nesahá do dat ani do stavu aplikace) a funguje i offline. Je jediným návodem k aplikaci
-// (samostatný soubor hockeycoach-navod.html byl v17.3 odstraněn); při změně ovládání se upravuje jen pole SECTIONS.
-// v18.4.2: ikona gólu 🥅, podsvícené góly v průběhu, bílo-modrý mantinel, formace podle počtu hráček při více trestech.
-// v18.6: kapitola 12 – 👁 Náhled role (jen účet vývojáře).
-// v18.6.1: kapitoly 10 a 11 – QR bez diakritiky a okamžitá platba, kontrola a zabezpečení účtů (návrh a potvrzení, varování o změně).
-// v18.7: kapitola 2 – 📊 Docházka (přehled pro všechny, období od–do) a značka ⛓ / 🔓 u dlužnic; kapitola 12 – ⛓ Přepočítat dlužníky.
-// v18.7.1: kapitola 10 – ⬇️ Uložit QR (obrázek do Galerie / bankovní aplikace).
+// Nápověda je čistě informační (nesahá do dat ani do stavu aplikace) a funguje i offline. Je jediným návodem k aplikaci;
+// při změně ovládání se upravuje jen pole SECTIONS (texty „od vNN“ v nápovědě jsou určené uživatelům, nejsou to poznámky kódu).
 
 // ===== Obsah nápovědy =====
 // Každá sekce: t = nadpis, h = HTML obsah (zobrazí se po rozbalení)

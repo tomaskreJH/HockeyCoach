@@ -1,4 +1,4 @@
-// Uložení QR platby do telefonu (v18.7.1): obrázek PNG ve vysokém rozlišení s bílou tichou zónou a popiskem.
+// Uložení QR platby do telefonu: obrázek PNG ve vysokém rozlišení s bílou tichou zónou a popiskem.
 // Struktura: Konstanty -> Pomocné funkce -> Vykreslení obrázku -> Uložení (Sdílet / stažení) -> Export.
 // Obsah QR se nemění: obrázek se kreslí z TÉHOŽ objektu qrcode, který okno QR v mine.js právě zobrazilo
 // (stejný text SPD – účet, částka, VS, zpráva, PT:IP). Volá se jen z okna QR po zobrazení kódu,

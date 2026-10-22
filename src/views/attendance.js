@@ -1,4 +1,4 @@
-// Přehled docházky pro všechny členy (v18.7, fáze C1) a značka dlužníků ⛓ (fáze C2). Jen ke čtení.
+// Přehled docházky pro všechny členy a značka dlužníků ⛓. Jen ke čtení.
 // Zobrazuje se v Událostech přepínačem „Docházka“ (S.evm = "att", vykresluje views/events.js uvnitř #evw).
 // Struktura: Importy -> Konstanty -> Pomocné funkce (volby období, značka dlužníka) -> Vykreslení -> Eventy -> Export.
 // Data: tréninky (S.ev), zápasy (S.ma), odpovědi (S.at), hráčky (S.pl), realizační tým (S.tr), souhrn dlužníků (S.dt, kolekce debtors bez částek).

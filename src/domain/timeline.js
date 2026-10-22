@@ -1,18 +1,17 @@
 // Doména: úplná časová osa zápasu a statistika střídání (bez DOM).
-// v18.4.2: ikona gólu 🥅 (hokejová branka) místo ⚽; položka gólu nese kind "G" a team (podsvícení v živém průběhu).
+// Položka gólu nese kind "G" a team (podsvícení v živém průběhu), ikona gólu 🥅.
 // Struktura: Importy -> Pomocné funkce -> Třetiny a čas -> Střídání (shiftsOf, shiftList, shiftStats) -> Časová osa (timeline) -> Exporty.
-// Společné pravidlo střídání (v18.1) – shiftList(m) používají všechny přehledy (statistiky zápasu, Čas na ledě v živém zápisu,
+// Společné pravidlo střídání – shiftList(m) používají všechny přehledy (statistiky zápasu, Čas na ledě v živém zápisu,
 // Střídání hráček v rozboru, celkové statistiky, vývoj zápasu):
 //   1) záznamy s délkou ≤ 0 se vynechají,
 //   2) navazující záznamy téže hráčky (konec = začátek dalšího) se sloučí do jednoho střídání – hráčka plynule pokračuje
 //      (návrat do řad po PP/OS, „Sestava znovu“, změna jednotky nebo pozice).
 // Uložená data (live.sh) ani editace střídání (shift-edit.js) se nemění – pravidlo platí jen pro výpočty a zobrazení.
 import {COLS, SIT} from "../config/constants.js";
-import {pl} from "../core/selectors.js";
+import {nm} from "../core/selectors.js";
 import {mmss} from "../core/utils.js";
 import {el_} from "./live-engine.js";
 
-const nameOf = id => { const p = pl(id); return p ? (p.num ? "#" + p.num + " " : "") + p.name : "?"; };
 const perLabel = n => (n < 4 ? n + ". tř." : "prodl.");
 
 // Začátek třetiny v ms herního času (u starších zápasů se odhadne z délky třetiny)
@@ -41,7 +40,7 @@ export function shiftsOf(m) {
   return out;
 }
 
-// Společné pravidlo střídání (v18.1): bez nulových záznamů, navazující záznamy téže hráčky sloučené.
+// Společné pravidlo střídání: bez nulových záznamů, navazující záznamy téže hráčky sloučené.
 // Výsledek: {p, c (sloupec na začátku), c2 (sloupec na konci), a, b, open}, seřazeno podle začátku.
 export function shiftList(m) {
   const by = {};
@@ -76,11 +75,11 @@ const evText = (e) => {
   if (e.k === "G") {
     const sit = SIT[e.sit] || SIT.E;
     return e.team === "us"
-      ? `🥅 Gól: ${nameOf(e.scorer)} (asistence: ${[e.a1, e.a2].filter(Boolean).map(nameOf).join(", ") || "bez asistence"}) – ${sit}`
+      ? `🥅 Gól: ${nm(e.scorer)} (asistence: ${[e.a1, e.a2].filter(Boolean).map(nm).join(", ") || "bez asistence"}) – ${sit}`
       : `🥅 Gól soupeře – ${sit}`;
   }
-  if (e.k === "P") return `🚫 Vyloučení: ${e.team === "us" ? nameOf(e.pid) : "soupeř"} – ${e.min} min${e.reason ? ", " + e.reason : ""}`;
-  return e.team === "us" ? `🏒 Střela: ${nameOf(e.shooter)}` : `🏒 Střela soupeře${e.gk ? " (brankářka " + nameOf(e.gk) + ")" : ""}`;
+  if (e.k === "P") return `🚫 Vyloučení: ${e.team === "us" ? nm(e.pid) : "soupeř"} – ${e.min} min${e.reason ? ", " + e.reason : ""}`;
+  return e.team === "us" ? `🏒 Střela: ${nm(e.shooter)}` : `🏒 Střela soupeře${e.gk ? " (brankářka " + nm(e.gk) + ")" : ""}`;
 };
 
 // Časová osa: góly, tresty, střely, střídání, zranění, jednotky, konce třetin, návraty z trestů
@@ -93,21 +92,21 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
   (m.injLog || []).forEach(x => {
     const t = x.at != null ? x.at : estimate(m, x);
     const txt = {tmp: "🩹 Dočasně vyřazena (ošetřování)", perm: "🤕 Trvalé zranění", back: "↩ Vrácena do sestavy"}[x.ty];
-    push(t, 2, {kind: "inj", per: x.per, el: x.time || "", text: `${txt}: ${nameOf(x.id)}`});
+    push(t, 2, {kind: "inj", per: x.per, el: x.time || "", text: `${txt}: ${nm(x.id)}`});
   });
   (m.log || []).forEach(x => {
     const t = x.at != null ? x.at : 0, pa = periodAt(m, t);
     const text = x.ty === "per" ? `⏱ Konec ${x.per < 4 ? x.per + ". třetiny" : "prodloužení"}`
       : x.ty === "unit" ? `⚡ ${x.label}`
-      : x.ty === "gk" ? `🧤 Brankářka v bráně: ${nameOf(x.p)}`
-      : `↩ Návrat z trestu: ${nameOf(x.p)} (${x.cause})`;
+      : x.ty === "gk" ? `🧤 Brankářka v bráně: ${nm(x.p)}`
+      : `↩ Návrat z trestu: ${nm(x.p)} (${x.cause})`;
     push(t, x.ty === "per" ? 9 : 2, {kind: x.ty, per: x.per || pa.per, el: mmss(x.ty === "per" ? t - periodStart(m, x.per) : pa.el), text});
   });
   if (m.end) push(m.end.at, 10, {kind: "end", per: m.end.per, el: mmss(m.end.at - periodStart(m, m.end.per)), text: "🏁 Konec zápasu"});
   if (subs && m.live) {
     // střídání podle společného pravidla: plynulé pokračování hráčky se jako střídání nezobrazí
     const sh = shiftList(m), start = sh.filter(x => x.a === 0);
-    if (start.length) push(0, 0, {kind: "start", per: 1, el: "00:00", text: "▶ Začátek zápasu – na ledě: " + COLS.map(c => { const x = start.find(y => y.c === c); return x ? c + " " + nameOf(x.p) : null; }).filter(Boolean).join(", ")});
+    if (start.length) push(0, 0, {kind: "start", per: 1, el: "00:00", text: "▶ Začátek zápasu – na ledě: " + COLS.map(c => { const x = start.find(y => y.c === c); return x ? c + " " + nm(x.p) : null; }).filter(Boolean).join(", ")});
     const times = new Set();
     sh.forEach(x => { if (!x.open) times.add(x.b); if (x.a > 0) times.add(x.a); });
     [...times].forEach(T => {
@@ -116,9 +115,9 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
       out.forEach(o => {
         const d = o.b - o.a, isLong = d >= limit; if (isLong) long = true;
         const oc = o.c2 || o.c, i = inn.find(y => y.c === oc && !used.has(y)); if (i) used.add(i);
-        parts.push(`${oc}: ↘ ${nameOf(o.p)} (${mmss(d)}${isLong ? " ⚠️ dlouhé" : ""})${i ? " ↗ " + nameOf(i.p) : " – místo prázdné"}`);
+        parts.push(`${oc}: ↘ ${nm(o.p)} (${mmss(d)}${isLong ? " ⚠️ dlouhé" : ""})${i ? " ↗ " + nm(i.p) : " – místo prázdné"}`);
       });
-      inn.filter(y => !used.has(y)).forEach(y => parts.push(`${y.c}: ↗ ${nameOf(y.p)} nastupuje`));
+      inn.filter(y => !used.has(y)).forEach(y => parts.push(`${y.c}: ↗ ${nm(y.p)} nastupuje`));
       const pa = periodAt(m, T);
       push(T, 4, {kind: "sub", per: pa.per, el: mmss(pa.el), long, text: "🔄 Střídání – " + parts.join(" · ")});
     });
@@ -129,4 +128,4 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
   return E;
 }
 
-export {nameOf, perLabel, evText as eventText};
+export {perLabel, evText as eventText};

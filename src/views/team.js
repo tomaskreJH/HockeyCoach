@@ -1,12 +1,13 @@
-// Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování a (od v17.5) správa pokladny.
+// Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování a správa pokladny.
 // Struktura: Importy -> Pomocné funkce -> players (soupiska a realizační tým) -> formV (přepínač režimů, základní formace) -> teamDrag (přetahování).
 // Přepínač nahoře (jen správce pokladny): Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce (stav S.tm); režimy pokladny vykresluje cashPanel() z events.js.
 // Hráčka s příznakem pokladník vidí formaci, náhradnice, soupisku a realizační tým jen ke čtení (bez úprav a přetahování).
-// Role (v17.3): přidávat a mazat hráčky a spravovat realizační tým smí jen trenér; kustod u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
+// Role: přidávat a mazat hráčky a spravovat realizační tým smí jen trenér; kustod u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
 // Tlačítka, na která role nemá právo, se nezobrazují (práva navíc vynucují pravidla databáze).
 import {KIND,POS,ST} from "../config/constants.js";
-import {saveDef} from "../core/actions.js";
+import {confirm2,saveDef} from "../core/actions.js";
 import {PG,isG,pl,pn,pri,stOf} from "../core/selectors.js";
+import {makeDrag} from "../core/drag.js";
 import {S} from "../core/state.js";
 import {$,clone,esc,toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -49,11 +50,11 @@ a.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{S.pf=b.dataset.pf;rend
 // Přidání hráčky: koeficient se zadává v procentech (0–100 %), ukládá se jako 0..1
 Q2("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;const fx=pctToFx($("#pfx").value);if(fx==null)return toast("Zadej koeficient 0–100 %");S.db.collection("players").add({name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act",grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()}).catch(()=>toast("Uložení se nepovedlo"))};
 a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
-a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;if(S.cf===id){S.cf=null;S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))}else{S.cf=id;render();setTimeout(()=>{if(S.cf===id){S.cf=null;render()}},4000)}});
+a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo")))});
 // Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka)
 Q2("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast("Uložení se nepovedlo"))};
 a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:t.kind||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
-a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td,k="t"+id;if(S.cf===k){S.cf=null;S.at.filter(x=>x.pid===id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))}else{S.cf=k;render();setTimeout(()=>{if(S.cf===k){S.cf=null;render()}},4000)}})}
+a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))})})}
 
 // ===== Přepínač režimů, základní formace a náhradnice =====
 export function formV(a){
@@ -70,12 +71,8 @@ if(!r)teamDrag(a);
 players($("#plw"))}
 
 // ===== Přetahování (sestava, náhradnice) =====
-export function teamDrag(root){let D=null,timer=null,blk=false;const SEL='[data-sl^="d:"],[data-bn],[data-bz]';
-const closest=(x,y)=>{const e=document.elementFromPoint(x,y);return e&&e.closest?e.closest(SEL):null};
+function teamDrag(root){const SEL='[data-sl^="d:"],[data-bn],[data-bz]';
 const info=b=>b.dataset.bn?{t:"b",id:b.dataset.bn}:b.dataset.sl?{t:"s",k:b.dataset.sl.slice(2)}:{t:"z"};
-const clr=()=>{if(D&&D.g)D.g.remove();root.querySelectorAll(".ov,.dg").forEach(n=>n.classList.remove("ov","dg"));D=null};
-const mv=(x,y)=>{D.x=x;D.y=y;D.g.style.left=x+"px";D.g.style.top=y+"px";root.querySelectorAll(".ov").forEach(n=>n.classList.remove("ov"));const b=closest(x,y);if(b&&b!==D.el)b.classList.add("ov")};
-const begin=(b,x,y)=>{const s=info(b);if(s.t==="s"&&!(S.def.lu||{})[s.k])return;const g=document.createElement("div");g.className="ghost";g.textContent=b.textContent.replace(/\s+[ÚOB?]$/,"");document.body.appendChild(g);D={s,g,el:b};b.classList.add("dg");mv(x,y);navigator.vibrate&&navigator.vibrate(15)};
 const drop=(s,t)=>{if(!t)return;const lu=clone(S.def.lu||{});let B=benchOrder();
 if(s.t==="s"){const p=lu[s.k];if(!p)return;
  if(t.t==="s"&&t.k!==s.k){const q=lu[t.k];lu[t.k]=p;if(q)lu[s.k]=q;else delete lu[s.k]}
@@ -84,15 +81,7 @@ if(s.t==="s"){const p=lu[s.k];if(!p)return;
 else{if(t.t==="s"){const q=lu[t.k],i=B.indexOf(s.id);lu[t.k]=s.id;if(q)B[i]=q;else B.splice(i,1)}
  else if(t.t==="b"&&t.id!==s.id){const i=B.indexOf(s.id),j=B.indexOf(t.id);[B[i],B[j]]=[B[j],B[i]]}else return}
 S.def={lu,bn:B};saveDef(lu,B)};
-const end=(x,y)=>{if(!D)return;const b=closest(x,y),s=D.s;clr();blk=true;setTimeout(()=>blk=false,450);if(b)drop(s,info(b))};
-root.querySelectorAll('[data-sl^="d:"],[data-bn]').forEach(b=>{
-if(b.dataset.sl)b.onclick=()=>{if(blk)return;S.pickAll=false;S.pick={slot:b.dataset.sl.slice(2),get:()=>clone(S.def.lu||{}),onCh:lu=>saveDef(lu,(S.def||{}).bn||[]),pool:undefined};modal()};
-b.addEventListener("contextmenu",e=>e.preventDefault());
-b.addEventListener("touchstart",e=>{const t=e.touches[0];clearTimeout(timer);b._s={x:t.clientX,y:t.clientY};timer=setTimeout(()=>begin(b,t.clientX,t.clientY),320)},{passive:true});
-b.addEventListener("touchmove",e=>{const t=e.touches[0];if(D){e.preventDefault();mv(t.clientX,t.clientY)}else if(Math.abs(t.clientX-b._s.x)+Math.abs(t.clientY-b._s.y)>10)clearTimeout(timer)},{passive:false});
-b.addEventListener("touchend",e=>{clearTimeout(timer);if(D){e.preventDefault();end(D.x,D.y)}});
-b.addEventListener("touchcancel",()=>{clearTimeout(timer);clr()});
-b.addEventListener("mousedown",e=>{if(e.button!==0)return;const sx=e.clientX,sy=e.clientY;
-const mm=ev=>{if(!D&&Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>6)begin(b,ev.clientX,ev.clientY);if(D)mv(ev.clientX,ev.clientY)};
-const mu=ev=>{document.removeEventListener("mousemove",mm);document.removeEventListener("mouseup",mu);end(ev.clientX,ev.clientY)};
-document.addEventListener("mousemove",mm);document.addEventListener("mouseup",mu)})})}
+makeDrag(root,[...root.querySelectorAll('[data-sl^="d:"],[data-bn]')],{target:SEL,
+start:b=>{const s=info(b);if(s.t==="s"&&!(S.def.lu||{})[s.k])return null;return{data:s,text:b.textContent.replace(/\s+[ÚOB?]$/,"")}},
+drop:(s,b)=>drop(s,info(b)),
+click:b=>b.dataset.sl?()=>{S.pickAll=false;S.pick={slot:b.dataset.sl.slice(2),get:()=>clone(S.def.lu||{}),onCh:lu=>saveDef(lu,(S.def||{}).bn||[]),pool:undefined};modal()}:null})}

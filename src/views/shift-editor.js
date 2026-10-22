@@ -4,14 +4,14 @@
 
 // ===== Importy =====
 import {COLS} from "../config/constants.js";
-import {upd} from "../core/actions.js";
-import {isG, nomOf, pl, pri} from "../core/selectors.js";
+import {confirm2, upd} from "../core/actions.js";
+import {isG, nm, nomOf, pl, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, esc, mmss, toast} from "../core/utils.js";
 import {parseClock, periodEnd} from "../domain/corrections.js";
 import {el_, shiftMax} from "../domain/live-engine.js";
 import {addShift, checkShifts, cleanShifts, deleteShift, editShift, findShift, handoverAt, listShifts, replacePlayer} from "../domain/shift-edit.js";
-import {nameOf, perLabel, periodAt, periodStart} from "../domain/timeline.js";
+import {perLabel, periodAt, periodStart} from "../domain/timeline.js";
 
 // ===== Pomocné funkce =====
 const chip = (k, v, label, on) => `<button class="chip ${on ? "on" : ""}" data-sxc="${k}" data-v="${esc(v)}">${label}</button>`;
@@ -36,10 +36,10 @@ export function shiftsHtml(m) {
   let h = '<div class="mu" style="margin-bottom:8px">Čas se zadává jako třetina + mm:ss herního času. Změna se promítne do času na ledě, počtu střídání a statistik.</div>';
   h += '<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><button class="s" data-sxadd>+ Přidat střídání</button><button class="s" data-sxclean>🧹 Vyčistit prázdná a duplicitní</button></div>';
   if (probs.length) h += `<div class="cd" style="background:#fff3dc;color:#5a3a00"><b>⚠️ Zjištěné nesrovnalosti</b><div style="margin-top:4px">${probs.map(t => esc(t)).join("<br>")}</div></div>`;
-  h += `<div class="chips"><button class="chip ${flt ? "" : "on"}" data-sxf="">Všechny</button>${who.map(id => `<button class="chip ${flt === id ? "on" : ""}" data-sxf="${id}">${esc(nameOf(id))}</button>`).join("")}</div>`;
+  h += `<div class="chips"><button class="chip ${flt ? "" : "on"}" data-sxf="">Všechny</button>${who.map(id => `<button class="chip ${flt === id ? "on" : ""}" data-sxf="${id}">${esc(nm(id))}</button>`).join("")}</div>`;
   h += rows.length ? rows.map(x => {
     const d = x.b - x.a, long = d >= lim, key = "s" + x.ref;
-    return `<div class="ev" style="align-items:center${long ? ";background:#fff3dc;color:#5a3a00;border-radius:8px;padding-left:6px;padding-right:6px" : ""}"><div class="t">${fmt(startPos(m, x.a))}</div><div class="b"><b>${esc(nameOf(x.p))}</b> · ${x.c}<div class="mu">${x.open ? "na ledě (probíhá)" : "do " + fmt(periodAt(m, x.b))} · ${mmss(d)}${long ? " ⚠️" : ""}</div></div><button class="s" data-sxe="${x.ref}" title="Upravit časy" style="padding:10px 12px">✏️</button><button class="s" data-sxs="${x.ref}" title="Výměna / předání hráčky" style="padding:10px 12px">🔁</button>${x.open ? "" : `<button class="d" data-sxd="${x.ref}" style="padding:10px 12px;${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Smazat?" : "🗑"}</button>`}</div>`;
+    return `<div class="ev" style="align-items:center${long ? ";background:#fff3dc;color:#5a3a00;border-radius:8px;padding-left:6px;padding-right:6px" : ""}"><div class="t">${fmt(startPos(m, x.a))}</div><div class="b"><b>${esc(nm(x.p))}</b> · ${x.c}<div class="mu">${x.open ? "na ledě (probíhá)" : "do " + fmt(periodAt(m, x.b))} · ${mmss(d)}${long ? " ⚠️" : ""}</div></div><button class="s" data-sxe="${x.ref}" title="Upravit časy" style="padding:10px 12px">✏️</button><button class="s" data-sxs="${x.ref}" title="Výměna / předání hráčky" style="padding:10px 12px">🔁</button>${x.open ? "" : `<button class="d" data-sxd="${x.ref}" style="padding:10px 12px;${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Smazat?" : "🗑"}</button>`}</div>`;
   }).join("") : '<div class="msg">Žádná střídání.</div>';
   return h;
 }
@@ -48,16 +48,16 @@ export function shiftsHtml(m) {
 export function shiftFormHtml(m, f) {
   const pers = Array.from({length: m.live.per}, (_, i) => i + 1);
   const pc = (k, sel) => `<div class="chips">${pers.map(n => chip(k, n, n < 4 ? n + "." : "Prodl.", sel === n)).join("")}</div>`;
-  const pp = (k, sel, ex) => `<div class="chips">${pool(m, f.p).filter(id => id !== ex).map(id => chip(k, id, esc(nameOf(id)), sel === id)).join("") || '<span class="mu">Nikdo.</span>'}</div>`;
+  const pp = (k, sel, ex) => `<div class="chips">${pool(m, f.p).filter(id => id !== ex).map(id => chip(k, id, esc(nm(id)), sel === id)).join("") || '<span class="mu">Nikdo.</span>'}</div>`;
   const tin = (id, v) => `<input id="${id}" value="${esc(v || "")}" placeholder="02:15" style="max-width:160px">`;
   let h = "";
   if (f.mode === "edit") {
-    h += `<h3>Úprava času střídání: ${esc(nameOf(f.p))} · ${f.c}</h3><label>Začátek – třetina</label>${pc("sp", f.sp)}<label>Začátek (mm:ss v třetině)</label>${tin("sxs_t", f.st)}`;
+    h += `<h3>Úprava času střídání: ${esc(nm(f.p))} · ${f.c}</h3><label>Začátek – třetina</label>${pc("sp", f.sp)}<label>Začátek (mm:ss v třetině)</label>${tin("sxs_t", f.st)}`;
     h += f.open ? '<div class="mu" style="margin-bottom:8px">Střídání právě probíhá, konec se nastaví střídáním v živém zápisu.</div>'
       : `<label>Konec – třetina</label>${pc("ep", f.ep)}<label>Konec (mm:ss v třetině)</label>${tin("sxe_t", f.et)}`;
     h += `<label>Posunout i navazující střídání na stejném místě (předání)</label><div class="chips">${chip("chain", "1", "Ano", f.chain)}${chip("chain", "0", "Ne", !f.chain)}</div>`;
   } else if (f.mode === "swap") {
-    h += `<h3>Výměna / předání: ${esc(nameOf(f.p))} · ${f.c}</h3><label>Způsob</label><div class="chips">${chip("whole", "1", "Celé střídání (oprava chyby)", f.whole)}${chip("whole", "0", "Od času (předání)", !f.whole)}</div>`;
+    h += `<h3>Výměna / předání: ${esc(nm(f.p))} · ${f.c}</h3><label>Způsob</label><div class="chips">${chip("whole", "1", "Celé střídání (oprava chyby)", f.whole)}${chip("whole", "0", "Od času (předání)", !f.whole)}</div>`;
     h += `<div class="mu" style="margin-bottom:8px">${f.whole ? "Nová hráčka převezme celé střídání (oprava omylem zvolené hráčky)." : "Původní hráčka skončí v zadaný čas a nová hráčka pokračuje do konce střídání."}</div>`;
     if (!f.whole) h += `<label>Čas předání – třetina</label>${pc("tp", f.tp)}<label>Čas předání (mm:ss v třetině)</label>${tin("sxt_t", f.tt)}`;
     h += `<label>Nová hráčka</label>${pp("np", f.np, f.p)}`;
@@ -132,8 +132,7 @@ export function bindShifts(e, m, rerender) {
   // Smazání (dvojklik s potvrzením)
   q("[data-sxd]").forEach(b => b.onclick = () => {
     const ref = b.dataset.sxd, key = "s" + ref;
-    if (S.cf === key) { S.cf = null; commit(m, n => deleteShift(n, ref), "Střídání smazáno"); }
-    else { S.cf = key; rerender(); setTimeout(() => { if (S.cf === key) { S.cf = null; rerender(); } }, 4000); }
+    confirm2(key, () => commit(m, n => deleteShift(n, ref), "Střídání smazáno"), rerender);
   });
   // Vyčištění historie
   q("[data-sxclean]").forEach(b => b.onclick = () => {

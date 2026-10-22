@@ -1,4 +1,4 @@
-// Doména: bankovní účty pro QR platby (v18.6.1) – převod českého čísla účtu na IBAN a kontrola obou kontrolních součtů.
+// Doména: bankovní účty pro QR platby – převod českého čísla účtu na IBAN a kontrola obou kontrolních součtů.
 // Čisté funkce bez DOM. Struktura: Konstanty -> Pomocné funkce -> Kontroly (mod 11, mod 97) -> Převody -> Zpracování vstupu -> Zabezpečení změn.
 // Pravidla:
 //  - české číslo účtu: [předčíslí-]číslo/kód banky; předčíslí max. 6 číslic, číslo 2–10 číslic, kód banky 4 číslice,
@@ -12,7 +12,7 @@ const W_NUMBER = [6, 3, 7, 9, 10, 5, 8, 4, 2, 1];       // váhy pro číslo ú�
 const CZ_ACC = /^(?:(\d{1,6})-)?(\d{2,10})\/(\d{4})$/;  // [předčíslí-]číslo/banka
 const CZ_IBAN = /^CZ\d{22}$/;
 // Účet změněný před méně než tolika dny se hráčkám zobrazuje s varováním
-export const RECENT_DAYS = 14;
+const RECENT_DAYS = 14;
 
 // ===== Pomocné funkce =====
 const pad = (s, n) => String(s).padStart(n, "0");

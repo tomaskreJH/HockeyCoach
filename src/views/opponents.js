@@ -1,12 +1,12 @@
 // Soupeři a vzájemné zápasy.
 // Struktura: Importy -> Pomocné funkce -> Vzájemné zápasy (h2h, i pro kartu zápasu) -> Seznam soupeřů -> Detail soupeře -> Eventy.
-// v17.7: záložku Soupeři vidí všichni členové týmu (hráčky jen ke čtení – bez přidávání, přejmenování a mazání).
+// Záložku Soupeři vidí všichni členové týmu (hráčky jen ke čtení – bez přidávání, přejmenování a mazání).
 // Seznam ukazuje rovnou bilanci se soupeřem (V–R–P, skóre, počet zápasů). V detailu je seznam uzavřených zápasů;
 // klepnutím na zápas se otevře zápis utkání s kompletním vývojem zápasu (renderReport s id zápasu v S.rp).
 
 // ===== Importy =====
-import {ensureOp, save} from "../core/actions.js";
-import {pn, score, vsOf} from "../core/selectors.js";
+import {confirm2, ensureOp, save} from "../core/actions.js";
+import {pn, score, matchesVs} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, esc, fd, norm, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -28,7 +28,7 @@ const res = (g, o) => (g > o ? '<span class="tag pp">V</span>' : g < o ? '<span 
 // ===== Vzájemné zápasy (detail soupeře i karta zápasu) =====
 // Řádky „Předchozí zápasy“ mají data-rpm = id zápasu; klepnutí obslouží bindH2h (otevře zápis utkání s vývojem zápasu).
 export function h2h(name, ex, title) {
-  const L = vsOf(name, ex);
+  const L = matchesVs(name, ex);
   if (!L.length) return `<h2>${title}</h2><div class="mu">Zatím žádný uzavřený zápas s tímto soupeřem.</div>`;
   const B = balance(L), sc = {}, op = {};
   L.forEach(x => {
@@ -53,7 +53,7 @@ export function oppsView(a) {
   const add = canEdit() ? `<div class="cd"><h2>Přidat soupeře</h2><div class="row" style="flex-wrap:nowrap"><input id="oi" placeholder="Název soupeře" style="margin:0"><button class="p" id="oa" style="flex:none">Přidat</button></div></div>` : "";
   // Řádek soupeře: název a rovnou bilance (V–R–P, skóre); bez odehraného zápasu jen poznámka
   const row = o => {
-    const B = balance(vsOf(o.name));
+    const B = balance(matchesVs(o.name));
     const info = B.n ? `<span class="mu" style="text-align:right"><b>${B.w}-${B.d}-${B.l}</b> V–R–P · <b>${B.gf}:${B.ga}</b> · ${B.n} ${B.n === 1 ? "zápas" : B.n < 5 ? "zápasy" : "zápasů"}</span>` : '<span class="mu">bez odehraného zápasu</span>';
     return `<div class="it" data-o="${o.id}"><b>${esc(o.name)}</b>${info}</div>`;
   };
@@ -63,7 +63,7 @@ export function oppsView(a) {
 }
 
 // ===== Detail soupeře =====
-export function oppDetail(a, o) {
+function oppDetail(a, o) {
   const n = S.ma.filter(x => norm(x.opp) === norm(o.name)).length;
   const edit = canEdit() ? `<div class="cd"><label>Název soupeře</label><div class="row" style="flex-wrap:nowrap"><input id="rn2" value="${esc(o.name)}" style="margin:0"><button class="s" id="rs" style="flex:none">Přejmenovat</button></div></div>` : `<h2 style="margin:0 0 10px">${esc(o.name)}</h2>`;
   const del = canEdit() ? `<button class="d w" id="od" style="${S.cf === o.id ? "background:var(--no);color:#fff" : ""}">${n ? "Soupeř má zápasy – nelze smazat" : S.cf === o.id ? "Opravdu smazat? Klepni znovu" : "Smazat soupeře"}</button>` : "";
@@ -74,5 +74,5 @@ export function oppDetail(a, o) {
   bindH2h(a);
   if (!canEdit()) return;
   $("#rs").onclick = () => { const nn = $("#rn2").value.trim(); if (!nn) return; const old = o.name; S.db.doc("opponents/" + o.id).set({name: nn}); if (norm(nn) !== norm(old)) S.ma.filter(m => norm(m.opp) === norm(old)).forEach(m => save({...clone(m), opp: nn})); toast("Přejmenováno"); };
-  $("#od").onclick = () => { if (n) return; if (S.cf === o.id) { S.cf = null; S.db.doc("opponents/" + o.id).delete(); S.oid = null; } else { S.cf = o.id; render(); setTimeout(() => { if (S.cf === o.id) { S.cf = null; render(); } }, 4000); } };
+  $("#od").onclick = () => { if (n) return; confirm2(o.id, () => { S.db.doc("opponents/" + o.id).delete(); S.oid = null; }); };
 }

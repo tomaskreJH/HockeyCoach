@@ -1,6 +1,6 @@
-// Akce měnící data: ukládání do databáze, aktualizace zápasu, synchronizace soupeřů, oprava uzavřených zápasů.
-// Struktura: Importy -> Soupeři -> Ukládání (strip, save, upd) -> Oprava uzavřených zápasů.
-// Náhled role (v18.6): v náhledu jen ke čtení save nic neodešle a upd nezmění místní kopii zápasu (hláška „V náhledu se nezapisuje“).
+// Akce měnící data: ukládání do databáze, aktualizace zápasu, synchronizace soupeřů, oprava uzavřených zápasů, potvrzení druhým klepnutím.
+// Struktura: Importy -> Soupeři -> Ukládání (strip, save, upd) -> Oprava uzavřených zápasů -> Potvrzení druhým klepnutím (confirm2).
+// V náhledu role jen ke čtení save nic neodešle a upd nezmění místní kopii zápasu (hláška „V náhledu se nezapisuje“).
 import {HK} from "../data/storage.js";
 import {compactRot} from "./selectors.js";
 import {S} from "./state.js";
@@ -24,3 +24,16 @@ export function upd(n){if(HK.blocked()){render();return}const i=S.ma.findIndex(x
 // ===== Oprava uzavřených zápasů =====
 // Zápasy uzavřené ve starších verzích mohou mít stále běžící hodiny. Hodiny se zastaví na posledním zaznamenaném čase (acc).
 export const fixClosed=()=>S.ma.filter(m=>m.closed&&m.live&&m.live.running).forEach(m=>{const n=clone(m);n.live.running=false;n.live.t0=0;save(n)});
+
+// ===== Potvrzení druhým klepnutím =====
+// Délka označení před automatickým zrušením (ms)
+export const CONFIRM_MS = 4000;
+// Je akce s klíčem označená (čeká na druhé klepnutí)? Pohledy podle toho mění text a barvu tlačítka.
+export const armed = key => S.cf === key;
+// První klepnutí jen označí klíč a překreslí, druhé klepnutí do 4 s provede fn; jinak se označení po 4 s samo zruší.
+// redraw = překreslení (výchozí celá obrazovka; editor zápasu a opravy střídání předají vlastní).
+export function confirm2(key, fn, redraw = render) {
+  if (S.cf === key) { S.cf = null; fn(); return; }
+  S.cf = key; redraw();
+  setTimeout(() => { if (S.cf === key) { S.cf = null; redraw(); } }, CONFIRM_MS);
+}

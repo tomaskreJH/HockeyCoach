@@ -1,5 +1,5 @@
 // Jádro živého zápisu bez DOM: čas, střídání, tresty podle IIHF, jednotky, formace.
-// Stavový model hráček (v15.6):
+// Stavový model hráček:
 //   - NA LEDĚ: L.ice[sloupec]
 //   - VE FRONTĚ: L.q[sloupec] (hráčka připravená ke střídání; na každé místo sestavy nejvýš jedna)
 //   - ZAPARKOVANÁ: partnerka z rotace (k+, k++), která teď není na ledě ani ve frontě
