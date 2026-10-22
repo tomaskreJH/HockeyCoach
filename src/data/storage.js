@@ -2,7 +2,10 @@
    Rozhraní `db` zůstává stejné jako dřív (collection/doc, set, add, delete, onSnapshot) a přibyl batch() pro atomické zápisy
    (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit), merge pro částečné změny dokumentu
    a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy. Struktura: Importy -> Konstanty a stav
-   -> Pomocné funkce -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy -> Exporty.
+   -> Pomocné funkce -> Náhled role -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy -> Exporty.
+   Náhled role (v18.6): vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
+   zařízení (sessionStorage), po znovunačtení stránky platí jako role účtu (main.js podle ní poslouchá jen povolená data).
+   Výchozí je jen ke čtení – každý zápis (doc.set, add, delete, dávka, členové, obnova zálohy) skončí hláškou „V náhledu se nezapisuje“.
    Migrace z v16.3 (payments -> charges) a přesun dat pokladny do evcash (v17.2) jsou hotové a z kódu odstraněné (v17.3). */
 
 // ===== Importy =====
@@ -14,7 +17,7 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v18.4.2 · 22. 10. 2026";
+const VERSION = "v18.6 · 22. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
@@ -22,9 +25,14 @@ const VERSION = "v18.4.2 · 22. 10. 2026";
 const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash"];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
+const DEV_EMAILS = ["tomaskre@gmail.com"];                              // účty vývojáře se smí přepnout do náhledu role (v18.6)
+const PV_KEY = "hk-preview";                                            // klíč náhledu v sessionStorage (jen toto zařízení / okno)
+const RO_MSG = "V náhledu se nezapisuje";
 
 // pid = hráčka propojená s účtem, tid = člen realizačního týmu propojený s účtem, cash = pokladník (příznak navíc k roli)
 let fs = null, auth = null, user = null, role = null, pid = null, tid = null, cash = false, isReady = false, readyP = null;
+// pv = aktivní náhled {role, pid, tid, cash, write}; real = skutečná role účtu vývojáře během náhledu
+let pv = null, real = null, lastRo = 0;
 const data = {};                       // zrcadlo dat pro export a zálohy
 const subs = {};                       // odběratelé změn podle kolekce
 const first = {};                      // už dorazil první snapshot kolekce?
@@ -40,6 +48,29 @@ const isStaff = () => STAFF.includes(role);
 const isCash = () => role === "trener" || cash === true;       // správce pokladny: trenér nebo pokladník
 const configOk = () => !!FIREBASE_CONFIG.apiKey && !/^VLOZ/.test(FIREBASE_CONFIG.apiKey) && !!FIREBASE_CONFIG.projectId && !/^VLOZ/.test(FIREBASE_CONFIG.projectId);
 const splitPath = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slice(i + 1)]; };
+
+// ===== Náhled role (v18.6) =====
+const isDev = () => !!(user && DEV_EMAILS.includes(user.email.toLowerCase()));
+const pvRead = () => { try { const o = JSON.parse(sessionStorage.getItem(PV_KEY) || "null"); return o && ROLES[o.role] && (o.role !== "hracka" || o.pid) ? o : null; } catch (e) { return null; } };
+const pvWrite = o => { try { if (o) sessionStorage.setItem(PV_KEY, JSON.stringify(o)); else sessionStorage.removeItem(PV_KEY); } catch (e) {} };
+// Náhled jen ke čtení?
+const ro = () => !!(pv && !pv.write);
+// Strážce zápisu: v náhledu jen ke čtení vrátí true a ukáže hlášku (nejvýš jednou za 3 s, aby se hlášky nehromadily)
+function blocked() {
+  if (!ro()) return false;
+  const t = Date.now();
+  if (t - lastRo > 3000) { lastRo = t; say(RO_MSG); }
+  return true;
+}
+// Popis náhledu pro pruh nahoře: role · hráčka / člen týmu · pokladník · režim zápisu
+function pvLabel() {
+  if (!pv) return "";
+  const p = pv.pid && data.players[pv.pid], t = pv.tid && data.staff[pv.tid];
+  return [ROLES[pv.role] + (p ? " " + p.name : ""), t ? "🎓 " + (t.name || "?") : "", pv.cash && pv.role !== "trener" ? "💰 pokladník" : "", pv.write ? "✏️ zápis povolen" : "jen ke čtení"].filter(Boolean).join(" · ");
+}
+// Spuštění / ukončení náhledu: uloží volbu a načte aplikaci znovu (poslech dat se nastaví podle role náhledu)
+const startPreview = o => { pvWrite(o); location.reload(); };
+const endPreview = () => { pvWrite(null); location.reload(); };
 
 // ===== Data: poslech změn a zápis =====
 // Jeden poslech na kolekci, změny se rozesílají všem odběratelům (aplikace, doc.onSnapshot)
@@ -74,7 +105,7 @@ function subscribe(c, cb, er) {
   if (first[c]) setTimeout(() => cb(view(c)), 0);
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
-function writeDoc(c, id, d) { setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); }
+function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); }
 // Kontrola mazání události / zápasu s vyúčtováním:
 //  - vyúčtovanou událost smaže jen správce pokladny,
 //  - uzavřené vyúčtování s nezaplacenými předpisy smazat nejde (nejdřív úhrada, nebo „Znovu otevřít“).
@@ -88,7 +119,7 @@ function canDelete(c, id) {
   return true;
 }
 function removeDoc(c, id) {
-  if (!canDelete(c, id)) return;
+  if (blocked() || !canDelete(c, id)) return;
   // S událostí se smažou její předpisy bez úhrady (předpisy se zaplacenou částí zůstávají jako historie)
   if (c === "matches" || c === "events") Object.entries(data.charges).filter(([, x]) => x.eid === id && !(+x.paid > 0)).forEach(([cid]) => removeDoc("charges", cid));
   // Vyúčtování události (evcash) se maže spolu s ní
@@ -102,7 +133,8 @@ function makeBatch() {
     // Částečná změna dokumentu; hodnota "__del" smaže pole
     merge: (p, d) => { const [c, id] = splitPath(p), o = {}; Object.entries(d).forEach(([k, v]) => { o[k] = v === "__del" ? deleteField() : clone({v}).v; }); b.set(fsDoc(fs, c, id), o, {merge: true}); return api; },
     delete: p => { const [c, id] = splitPath(p); b.delete(fsDoc(fs, c, id)); return api; },
-    commit: () => b.commit().catch(e => say("Uložení se nepovedlo: " + errTxt(e)))
+    // V náhledu jen ke čtení se dávka nepotvrdí (nic neodejde)
+    commit: () => blocked() ? Promise.resolve() : b.commit().catch(e => say("Uložení se nepovedlo: " + errTxt(e)))
   };
   return api;
 }
@@ -177,7 +209,13 @@ async function boot() {
     }
     role = r.role; pid = r.pid; tid = r.tid; cash = r.cash;
     // Trenér a kustod vstupují vždy; hráčka jen tehdy, když ji trenér propojil s hráčkou v soupisce
-    if (STAFF.includes(role) || (role === "hracka" && pid)) break;
+    if (STAFF.includes(role) || (role === "hracka" && pid)) {
+      // Náhled role: jen účet vývojáře; role náhledu nahradí roli účtu ještě před poslechem dat (main.js)
+      const o = isDev() ? pvRead() : null;
+      if (o) { real = {role, pid, tid, cash}; pv = {role: o.role, pid: o.pid || null, tid: o.tid || null, cash: o.cash === true, write: o.write === true}; role = pv.role; pid = pv.pid; tid = pv.tid; cash = pv.cash; }
+      else pvWrite(null);
+      break;
+    }
     const msg = role === "hracka" ? "Účet <b>" + esc(user.email) + "</b> zatím není propojen s hráčkou v soupisce. Požádej trenéra, ať ho propojí (⚙️ → Členové týmu)." : "Účet <b>" + esc(user.email) + "</b> nemá přístup. Požádej trenéra, ať ti ho přidá.";
     await screen("Přístup zatím není povolen", msg, [["out", "Odhlásit jiným účtem", "p"]]);
     await signOut(auth); user = null; role = null; pid = null; tid = null; cash = false;
@@ -195,6 +233,24 @@ const playerOpts = () => Object.entries(data.players).filter(([, p]) => (p.st ||
 // Členové realizačního týmu pro výběr při propojení účtu (podle jména)
 const staffOpts = () => Object.entries(data.staff).sort((a, b) => (a[1].name || "").localeCompare(b[1].name || "", "cs"))
   .map(([id, t]) => `<option value="${esc(id)}">${esc((t.name || "?") + (t.kind ? " (" + t.kind + ")" : ""))}</option>`).join("");
+// Sekce náhledu v ⚙️ (jen účet vývojáře): při aktivním náhledu popis a Ukončit, jinak formulář pro spuštění
+function pvSection() {
+  if (!isDev()) return "";
+  if (pv) return `<h3>👁 Náhled role</h3><div class="mu" style="margin-bottom:8px">Právě: <b>${esc(pvLabel())}</b>. Skutečný účet: ${esc(ROLES[real.role] || real.role)}.</div><button class="p w" id="pve">Ukončit náhled</button>`;
+  return `<h3>👁 Náhled role</h3><div class="mu" style="margin-bottom:8px">Zobrazí aplikaci tak, jak ji vidí vybraná role – jen v tomto zařízení, databáze members se nemění. Data, která by role nesměla číst (cizí předpisy, vyúčtování, audit), se nenačtou. Výchozí je jen ke čtení.</div><select id="pvr"><option value="hracka">Hráčka</option><option value="kustod">Kustod</option><option value="trener">Trenér</option></select><select id="pvp"><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="pvt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="pvc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><label style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" id="pvw" style="width:auto;margin:0">Povolit zápis (zapisuje se pod tvým účtem za vybranou roli)</label><button class="p w" id="pvs">👁 Spustit náhled</button>`;
+}
+function bindPv(q) {
+  if (!isDev()) return;
+  if (pv) { q("#pve").onclick = endPreview; return; }
+  // Výběr hráčky jen u role Hráčka; trenér je vždy správce pokladny (volba pokladníka se skryje)
+  const sync = () => { const r = q("#pvr").value; q("#pvp").style.display = r === "hracka" ? "" : "none"; q("#pvc").style.display = r === "trener" ? "none" : ""; };
+  q("#pvr").onchange = sync; sync();
+  q("#pvs").onclick = () => {
+    const r = q("#pvr").value, p = q("#pvp").value;
+    if (r === "hracka" && !p) return say("Vyber hráčku");
+    startPreview({role: r, pid: r === "hracka" ? p : null, tid: q("#pvt").value || null, cash: r !== "trener" && q("#pvc").value === "1", write: q("#pvw").checked});
+  };
+}
 async function renderMembers(el) {
   const box = el.querySelector("#cmb"), coach = role === "trener";
   box.textContent = "Načítám…";
@@ -208,7 +264,7 @@ async function renderMembers(el) {
       return `<div class="it" style="cursor:default"><div><b>${esc(r.email)}</b><div class="mu">${esc(ROLES[r.role] || r.role || "?")}${who}</div></div>${canDel ? `<button class="d" data-md="${esc(r.email)}" style="padding:8px 12px">Odebrat</button>` : ""}</div>`;
     }).join("") || "–";
     box.querySelectorAll("[data-md]").forEach(b => { b.onclick = async () => {
-      if (!confirm("Odebrat přístup: " + b.dataset.md + "?")) return;
+      if (blocked() || !confirm("Odebrat přístup: " + b.dataset.md + "?")) return;
       try { await deleteDoc(fsDoc(fs, "members", b.dataset.md)); renderMembers(el); } catch (e) { say("Nepovedlo se: " + errTxt(e)); }
     }; });
   } catch (e) { box.textContent = "Nelze načíst: " + errTxt(e); }
@@ -217,7 +273,8 @@ function openCfg() {
   const el = document.getElementById("cfg"), coach = role === "trener", cashier = isCash(), staff = isStaff(), q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
   pendingImport = null;
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
- <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
+ <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
+ ${pvSection()}
  ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button>` : ""}
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Členy s rolí Trenér spravuje jen trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option>' : ""}<option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><select id="cmp" style="display:none"><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
@@ -225,7 +282,8 @@ function openCfg() {
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.</div><button class="s w" id="cu2">Načíst novou verzi</button>
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close; q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
-  q("#clo").onclick = async () => { await signOut(auth); location.reload(); };
+  q("#clo").onclick = async () => { pvWrite(null); await signOut(auth); location.reload(); };
+  bindPv(q);
   if (staff) { q("#ce").onclick = exportJSON; q("#cc").onclick = exportCSV; }
   if (!cashier) return;
   // Nastavení pokladny se otevírá z views/cash-settings.js (napojeno v main.js)
@@ -237,6 +295,7 @@ function openCfg() {
     const em = q("#cme").value.trim().toLowerCase(), rl = q("#cmr").value, pp = q("#cmp").value, tt = q("#cmt").value, cc = q("#cmc").value === "1";
     if (!/^\S+@\S+\.\S+$/.test(em)) return say("Zadej platný e-mail");
     if (rl === "hracka" && !pp) return say("Vyber hráčku");
+    if (blocked()) return;
     const d = {role: rl, addedBy: user.email};
     if (rl === "hracka") d.pid = pp;
     if (tt) d.tid = tt;
@@ -301,6 +360,7 @@ async function commitOps(ops) {
 // Kolekce payments (staré platby do v16.3) se z dřívějších záloh neobnovuje – už se nepoužívá.
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace Hokej – zápasy.");
+  if (ro()) throw new Error(RO_MSG);
   const ops = [];
   COLL.forEach(c => {
     if (c === "audit") return;
@@ -312,6 +372,8 @@ async function importData(obj, replace) {
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
-export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null};
+export const HK = {version: VERSION, refresh, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, role: () => role, pid: () => pid, tid: () => tid, isStaff, isCash, user: () => user, openCash: null,
+  // Náhled role (v18.6): preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
+  preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

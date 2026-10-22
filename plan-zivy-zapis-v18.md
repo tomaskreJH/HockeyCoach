@@ -10,9 +10,9 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) – **hotovo** (odezva zůstává, rozložení nahradila v18.3) |
 | v18.3 | B5 + B3 | Rozložení B (jediné) a ovládání rotace – **hotovo**, otestováno (požadavky do v18.4) |
 | v18.4 | B4 | Hřiště, situace v hlavičce, nabídka jednotky a režim PP/OS, Sestava po zranění, upozornění v průběhu – **hotovo** (v18.4.1 otestováno, opravy ve v18.4.2) |
-| v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu – **hotovo**, k testu |
+| v18.4.2 | B4 | Opravy po testu v18.4.1: jednotky OS podle počtu hráček při více trestech, ikona gólu, góly v průběhu, mantinel, čitelnost partnerky v tmavém režimu – **hotovo**, otestováno |
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
-| v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník (nové, návrh) |
+| v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, k testu |
 | v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
@@ -55,7 +55,10 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
   4. **Mantinel bílo-modrý** (jako dřív bílo-žlutý, jen žlutou nahradit modrou).
   5. **Rotující partnerka (`.lrp`) v tmavém režimu nečitelná** – zajistit kontrastní text i pozadí (světlé i tmavé schéma).
 - **v18.4.2 dodáno, k testu (22. 10. 2026).** (1) Více trestů: `unitView` uzná jednotku stejného druhu (PP / OS) i z jiné skupiny, tlačítka a fronty ukazují skupinu platné situace (5 = pětky / PP, 4 = OS1/OS2, 3 = OS3/OS4); nový hlídač `watchSit` v `live.js` po každé změně počtů (konec trestu, gól, ✕, Zpět) při nevyrovnané hře s novou skupinou hned otevře nabídku „uask“, při vyrovnané hře ji zavře. `live-engine.js` beze změny (žádné automatické nasazení). (2) Ikona gólu 🥅 ve všech výskytech. (3) Góly v průběhu podsvícené (náš zeleně, soupeř červeně, obě schémata). (4) Mantinel bílo-modrý. (5) `.lrp` vlastní kontrastní barvy ve světlém i tmavém schématu. Kouřový test jsdom 44 kontrol (scénáře 3→4→5 na 5, PP 5 na 3 → 5 na 4, gól v PP i OS, ✕).
-- **Pokračování:** po v18.4.2 a jejím testu další bod plánu – **v18.6 G (Náhled role)**; před ním rozhodnout otázku 11 (kdo náhled smí, zda zakázat zápis – návrh: jen vybrané e-maily vývojáře, zápis zakázán).
+- **v18.4.2 otestováno** (22. 10. 2026).
+- **Otázka 11 rozhodnuta (22. 10. 2026):** náhled smí jen vybrané e-maily vývojáře (`DEV_EMAILS` v `storage.js`, nyní tomaskre@gmail.com); výchozí jen ke čtení, zápis lze v ⚙️ povolit zaškrtávátkem „Povolit zápis“.
+- **v18.6 (G) dodáno, k testu.** ⚙️ → 👁 Náhled role (role, hráčka `pid`, člen týmu `tid`, pokladník, povolit zápis); volba v `sessionStorage` (`hk-preview`), po spuštění / ukončení se aplikace načte znovu a role náhledu platí od `boot()` – `main.js` tak poslouchá jen data povolená roli (hráčka: jen své předpisy, bez `cash`, `audit`, `evcash`). Pruh „👁 Náhled: … · Ukončit náhled“ v liště `#nav`. Strážce `HK.blocked()` v `writeDoc`, `removeDoc`, `batch().commit()`, členech, obnově zálohy a v `save` / `upd`. `firestore.rules` beze změny. Kouřový test jsdom.
+- **Pokračování:** po testu v18.6 další bod plánu – **v18.7 C (Docházka a dlužníci pro všechny)**; před C2 rozhodnout otázku 6 (rozhodnuto: dlužnice s výjimkou zůstává se značkou 🔓).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -131,13 +134,14 @@ Stav: živý zápis může otevřít víc zařízení zároveň; při souběhu v
 - Pravidla databáze: pravděpodobně beze změny (zápasy zapisuje trenér a kustod), případně kontrola pole `live.dev` – **pak nutné publikovat `firestore.rules`**.
 - Zařadit po fázi D (před modulem Trénink), nebo dřív, pokud budou souběhy v praxi vadit.
 
-## G – v18.6: Náhled role pro vývojáře (návrh, přidáno 22. 10. 2026)
+## G – v18.6: Náhled role pro vývojáře (přidáno 22. 10. 2026, hotovo ve v18.6)
 Stav: vývojář (účet trenéra / správce) vidí aplikaci jen ve své roli – nevidí, jak ji vidí hráčka, kustod nebo pokladník.
 - **Zobrazit jako:** v ⚙️ volba „👁 Náhled role“ – výběr role (Hráčka – konkrétní hráčka ze soupisky, Kustod, Pokladník, Trenér) a u hráčky / člena týmu propojení (`pid` / `tid`). Aplikace se přepne jen v tomto zařízení (stav v paměti, ne v databázi `members`), nahoře je stálý pruh „Náhled: Hráčka Jana · Ukončit náhled“.
 - **Jen ke čtení:** během náhledu se nic nezapisuje (blokace v `save` / `upd` / dávkách s hláškou „V náhledu se nezapisuje“), aby se data nezapsala pod cizí identitou.
 - **Omezení:** databáze dál čte s právy vývojáře – náhled ukazuje, co vykreslí obrazovky pro danou roli, ale data, která skutečné hráčce zakážou pravidla (`charges` ostatních, `evcash`, `audit`), musí náhled skrýt sám (stejné filtry jako obrazovky). Ověření pravidel samotných jen skutečným testovacím účtem (Google účet s rolí Hráčka).
 - Pravidla databáze se nemění (náhled je jen v aplikaci) → `firestore.rules` publikovat nebude nutné.
-- Rozhodnout (otázka 11): kdo náhled smí (jen vybrané e-maily vývojáře, nebo každý trenér), a zda v náhledu povolit zápis (návrh: ne).
+- **Rozhodnuto (otázka 11, 22. 10. 2026):** jen vybrané e-maily vývojáře; výchozí jen ke čtení, s volbou „Povolit zápis“ (zapisuje se pod účtem vývojáře za vybranou roli).
+- **Hotovo ve v18.6** (k testu).
 
 ## C – v18.7: Docházka a dlužníci pro všechny
 
@@ -183,7 +187,7 @@ Postup: každá položka samostatně, bez změny chování; po úklidu ověřit 
 Podrobný modul: plán tréninku, docházka, rozdělení tréninku (stanoviště, pětky, cvičení), dlouhodobý plán, statistiky pokroku hráček. Začne se až po dokončení v18.x. Příprava: docházka v C1 jako čistá doménová funkce (`attendance.js`), aby ji Trénink převzal.
 
 ## Otevřené otázky
-Rozhodnuto 22. 10. 2026: 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – jen rozložení B, A zrušeno (změna po testu v18.2); 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí, kdy byla hráčka aktivní; 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
+Rozhodnuto 22. 10. 2026: 11 – náhled jen pro e-maily vývojáře, výchozí jen ke čtení s volbou Povolit zápis; 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – jen rozložení B, A zrušeno (změna po testu v18.2); 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí, kdy byla hráčka aktivní; 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
 Původní znění:
 1. Zpět ze živého zápisu: jen zavřít panel/menu, nebo i opustit živý zápis (s dotazem)?
 2. Rotace: má malé tlačítko partnerky posílat rovnou na led (bez změny pořadí rotace), nebo jen přehodit pořadí? Jak pak měnit pořadí rotace ručně (podržením)?

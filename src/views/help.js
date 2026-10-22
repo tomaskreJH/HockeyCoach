@@ -3,6 +3,7 @@
 // Nápověda je čistě informační (nesahá do dat ani do stavu aplikace) a funguje i offline. Je jediným návodem k aplikaci
 // (samostatný soubor hockeycoach-navod.html byl v17.3 odstraněn); při změně ovládání se upravuje jen pole SECTIONS.
 // v18.4.2: ikona gólu 🥅, podsvícené góly v průběhu, bílo-modrý mantinel, formace podle počtu hráček při více trestech.
+// v18.6: kapitola 12 – 👁 Náhled role (jen účet vývojáře).
 
 // ===== Obsah nápovědy =====
 // Každá sekce: t = nadpis, h = HTML obsah (zobrazí se po rozbalení)
@@ -138,6 +139,7 @@ const SECTIONS = [
 <li><b>Obnovit ze zálohy</b> (jen trenér): <b>Sloučit s daty</b> přidá/přepíše položky, <b>Nahradit vším</b> nahradí obsah kolekcí ze zálohy (druhé klepnutí potvrdí). Vyžaduje internet.</li>
 <li><b>Členové týmu</b> (trenér a pokladník): e-mail, role, propojení s hráčkou nebo členem realizačního týmu, příznak Pokladník. Vlastní účet nelze odebrat.</li>
 <li><b>Načíst novou verzi:</b> smaže uloženou kopii aplikace, data zůstanou. Číslo verze je vedle názvu nahoře.</li>
+<li><b>👁 Náhled role</b> (od v18.6, jen účet vývojáře): ukáže aplikaci tak, jak ji vidí Hráčka (vybraná ze soupisky), Kustod, Pokladník nebo Trenér – volitelně s propojeným členem realizačního týmu. Platí jen v tomto zařízení (do zavření okna), v databázi se nic nemění. Nahoře je stálý pruh <b>Náhled: … · Ukončit náhled</b>. Načtou se jen data, která by role směla číst (cizí předpisy, vyúčtování a audit ne). Výchozí je jen ke čtení – každý zápis skončí hláškou „V náhledu se nezapisuje“; zaškrtnutím <b>Povolit zápis</b> se zapisuje pod tvým účtem za vybranou roli (např. docházka za hráčku). Odhlášení náhled ukončí.</li>
 </ul>`},
   {t: "13. Rychlá reference", h: `
 <table style="width:100%;border-collapse:collapse">

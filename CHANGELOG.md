@@ -4,6 +4,21 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.6 (22. 10. 2026) – Náhled role pro vývojáře (fáze G)
+**Přidáno**
+- ⚙️ → **👁 Náhled role** (jen účty v `DEV_EMAILS`, nyní tomaskre@gmail.com): výběr role Hráčka (konkrétní hráčka ze soupisky) / Kustod / Trenér, volitelně člen realizačního týmu (`tid`) a příznak Pokladník. Volba je jen v paměti zařízení (`sessionStorage`, klíč `hk-preview`), databáze `members` se nemění; po spuštění se aplikace načte znovu a role náhledu platí od startu.
+- Stálý pruh v horní liště nad záložkami „👁 Náhled: <role / jméno> · … · Ukončit náhled“ (lepí se nahoře spolu se záložkami).
+- Jen ke čtení (výchozí, otázka 11): zápis přes `doc.set` / `add` / `delete`, dávky (`batch().commit()`), členy týmu i obnovu ze zálohy blokuje strážce `HK.blocked()` s hláškou „V náhledu se nezapisuje“; `save` a `upd` v `core/actions.js` zápas nezmění ani místně. Zaškrtávátko **Povolit zápis** zápis povolí (pod účtem vývojáře, za vybranou roli).
+
+**Změněno**
+- `src/data/storage.js`: náhled role (`isDev`, `pvRead` / `pvWrite`, `ro`, `blocked`, `pvLabel`, `startPreview` / `endPreview`), sekce v ⚙️, role náhledu se nastaví v `boot()` před poslechem dat – `main.js` proto u hráčky čte jen její předpisy (`where mid`) a nečte `cash`, `audit`, `evcash` (stejně jako skutečná role). Odhlášení náhled ukončí. Export `HK.preview`, `HK.ro`, `HK.blocked`, `HK.endPreview`.
+- `src/core/actions.js`: `save` a `upd` se strážcem náhledu.
+- `src/views/shell.js`: pruh náhledu v `#nav`, obsluha záložek jen na tlačítkách `data-t`.
+- `src/views/help.js` (kapitola 12), `README.md`, `src/data/storage.js` (verze), `package.json`, `sw.js` (cache hokej-v45), `plan-zivy-zapis-v18.md`.
+
+**Beze změny**
+- Živý zápis, pokladna, statistiky; `firestore.rules` se nemění (publikovat není nutné). Databáze dál čte s právy vývojáře – ověření samotných pravidel jen skutečným testovacím účtem.
+
 ## v18.4.2 (22. 10. 2026) – více trestů, ikona gólu a čitelnost (úprava po testu v18.4.1)
 **Opraveno**
 - Více trestů: po skončení jednoho ze dvou trestů (3 na 5 → 4 na 5) se obrazovka vracela k pětkám, i když hra zůstala v oslabení. Příčina: `unitView` uznal jen jednotku ze skupiny platné situace (OS3 ∉ OS1/OS2) a nabídka jednotky se otevírala jen po zapsání trestu. Nyní se formace řídí počtem našich hráček na ledě (5 = pětky, při přesilovce PP; 4 = OS1/OS2; 3 = OS3/OS4), režim PP/OS trvá s tlačítky a frontami nové skupiny a k pětkám se vrací až při vyrovnané hře.
