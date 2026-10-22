@@ -4,6 +4,7 @@
 // V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Přesun ze starého tvaru (v17.2) je hotový, starý tvar se už nečte (v17.3).
 // Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
 // v17.7: předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
+// v18.7: každá dávka, která mění předpisy, zapíše i veřejný souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js) – výpočty předpisů se nemění.
 // Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js, příspěvky, platy a měsíce ve views/money.js.
 
 // ===== Importy =====
@@ -12,6 +13,7 @@ import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc} from "../domain/cash.js";
+import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -25,6 +27,10 @@ const players = eid => goingOf(eid).map(id => pl(id)).filter(p => p && !isG(p));
 const evPath = ev => (ev.type === "match" ? "matches/" : "events/") + ev.id;
 const auditDoc = (eid, act, note) => ({ts: new Date().toISOString(), by: who(), eid, act, note: note || ""});
 const dueDays = (cfg, tpl) => { const t = cfg.tpls[tpl]; return t && t.dueDays != null ? t.dueDays : cfg.due.ev; };
+// Člen realizačního týmu (do souhrnu dlužníků se nezapisuje)
+const isStaffId = mid => S.tr.some(t => t.id === mid);
+// Souhrn dlužníků po změně předpisů (sets = [{id, d}], dels = [id]) přidaný do téže dávky
+const withDebtors = (b, sets, dels) => applyDebtors(b, debtorPlanFor(S.ch, sets, dels, isStaffId));
 const byName = (a, b) => pri(pl(a.mid)) - pri(pl(b.mid)) || pl(a.mid).name.localeCompare(pl(b.mid).name, "cs");
 // Rozpracovaná úprava (jen v paměti, dokud se neuloží)
 let dr = null;
@@ -60,6 +66,7 @@ export function settleEvent(ev, raw, force, d) {
   b.merge(evPath(ev), {ss: 1});
   plan.set.forEach(x => b.set("charges/" + x.id, x.d));
   plan.del.forEach(id => b.delete("charges/" + id));
+  withDebtors(b, plan.set, plan.del);
   b.set("audit/" + uid(), auditDoc(ev.id, "close", k.payers.length + " předpisů, vybereme " + kc(k.collect) + " z " + kc(k.total)));
   b.commit();
   raw.ss = 1;
@@ -80,9 +87,10 @@ export function payCharge(cid, amt, extra) {
   setTimeout(() => busy.delete(cid), 2000);
   const d = {...chData(x), paid: r2((+x.paid || 0) + a)}, cfg = cashCfg(S.cc);
   const note = [chargeMsg(x, S), a < rest ? "částečná úhrada" : "", extra || ""].filter(Boolean).join(" · ");
-  S.db.batch()
+  const b = S.db.batch()
     .set("cash/" + uid(), {d: td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()})
-    .set("charges/" + cid, d).commit();
+    .set("charges/" + cid, d);
+  withDebtors(b, [{id: cid, d}], []).commit();
   toast(a < rest ? "Částečná úhrada zapsána" : "Úhrada zapsána");
   return true;
 }
@@ -114,7 +122,8 @@ export function toggleExc(cid) {
   setTimeout(() => busy.delete("e" + cid), 1500);
   const d = chData(x), on = !x.exc;
   if (on) d.exc = true; else delete d.exc;
-  S.db.batch().set("charges/" + cid, d).set("audit/" + uid(), auditDoc(x.eid || "", on ? "exc" : "exc-off", pn(x.mid) + (on ? ": výjimka z blokace udělena" : ": výjimka zrušena"))).commit();
+  const b = S.db.batch().set("charges/" + cid, d).set("audit/" + uid(), auditDoc(x.eid || "", on ? "exc" : "exc-off", pn(x.mid) + (on ? ": výjimka z blokace udělena" : ": výjimka zrušena")));
+  withDebtors(b, [{id: cid, d}], []).commit();
   toast(on ? "Výjimka udělena" : "Výjimka zrušena");
 }
 

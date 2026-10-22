@@ -4,6 +4,29 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je v `src/data/storage.js` (`VERSION`), v `package.json` a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři.
 
+## v18.7 (22. 10. 2026) – Docházka a dlužníci pro všechny (fáze C) – ⚠️ SAHÁ NA PLATBY
+> **Pozor – verze sahá na soubory plateb:** `firestore.rules` (nová kolekce `debtors`), `src/views/payments.js`, `src/views/money.js`, `src/views/cashbook.js`, `src/data/storage.js` (zápis souhrnu dlužníků ve stejné dávce jako změny předpisů). `bank-account.js`, `mine.js`, `cash.js` a pravidla `settings/cash` z v18.6.1 se **nemění**. Výpočty předpisů, úhrad, VS, QR a účty beze změny.
+>
+> **Postup nasazení (pořadí je důležité):** 1) **publikovat firestore.rules** (bez nich selže každá dávka s předpisy – úhrada, vyúčtování, příspěvky, storno), 2) nahrát kód, 3) trenér / pokladník: ⚙️ → **⛓ Přepočítat dlužníky** (jednorázové naplnění).
+
+**Přidáno**
+- C1 📊 **Docházka** – v Událostech nový přepínač vedle Nadcházející / Minulé / Kalendář, vidí všichni členové, jen ke čtení. Hráčky a realizační tým zvlášť; typ Vše / Tréninky / Domácí zápasy / Venkovní zápasy; sloupce ✅ účast z počtu událostí, %, ❌ nejdu, ❓ nejistá, bez odpovědi; řazení klepnutím na hlavičku (`table-sort.js`).
+- Období **Od – Do** (výchozí zimní sezóna 1. 8. – 1. 7. dalšího roku, tlačítko „Tato sezóna“). Počítají se jen uplynulé události (s časem od jeho začátku, bez času po skončení dne). Ukončené hráčky ⛔ jen s odpovědí v období. Důvody omluv se nezobrazují.
+- Nová doména `src/domain/attendance.js` (čisté funkce: `seasonOf`, `attEvents`, `pastEvents`, `attSummary`, `hasAnswer`) – použitelná i pro budoucí modul Trénink.
+- C2 ⛓ **Dlužníci** – veřejný souhrn bez částek `debtors/{mid} = {mid, since, dues: [{d, x}]}` (splatnosti nezaplacených předpisů a příznak výjimky). Značka ⛓ (mříže) + počet dní po splatnosti u jména v Docházce a v detailu události, 🔓 = po splatnosti s výjimkou (rozhodnutí 6); realizační tým se nezapisuje. V Docházce navíc karta „⛓ Po splatnosti“ seřazená od nejdelšího.
+- Nová doména `src/domain/debtors.js` (`debtorDoc`, `debtorPlanFor`, `debtorRebuild`, `debtorState`, `applyDebtors`) a pohled `src/views/attendance.js`.
+- ⚙️ → **⛓ Přepočítat dlužníky** (správce pokladny): přepočet souhrnu ze všech předpisů.
+
+**Změněno**
+- `firestore.rules`: `debtors` čtou všichni členové, zapisuje jen správce pokladny (`mid` = id dokumentu, jen pole `mid`, `since`, `dues`) → **publikovat firestore.rules**. Pravidla `settings/cash`, `charges` a ostatní beze změny.
+- `src/views/payments.js` (uzavření vyúčtování, úhrada, výjimka), `src/views/money.js` (vystavení a smazání příspěvku), `src/views/cashbook.js` (storno úhrady): do stejné dávky přibyl zápis `debtors`.
+- `src/data/storage.js`: smazání události s nezaplacenými předpisy přepočítá jejich dlužníky; obnova ze zálohy souhrn dlužníků přepočítá (kolekce `debtors` se nezálohuje); tlačítko přepočtu; verze.
+- `src/views/events.js` (přepínač Docházka, značka v detailu), `src/main.js` (odběr `debtors` pro všechny), `src/core/state.js` (`ao`, `dt`, `dtErr`).
+- `src/views/help.js` (kapitoly 2 a 12), `README.md`, `package.json`, `sw.js` (cache hokej-v47), `plan-zivy-zapis-v18.md`.
+
+**Beze změny**
+- Živý zápis, statistiky, výpočty předpisů a úhrad, QR, účty a jejich zabezpečení (v18.6.1), blokace „Jdu“ (dál podle `debtOf` z vlastních předpisů).
+
 ## v18.6.1 (22. 10. 2026) – bezpečné QR platby (oprava po testu v18.6)
 **Opraveno**
 - mBank hlásil „neplatný QR kód“ (Fio četl správně). QR byl v binárním režimu kvůli malým písmenům a čárkám ve zprávě. Nyní je celý text QR jen ze znaků alfanumerického režimu (VELKÁ písmena bez diakritiky, číslice, mezera, `$ % * + - . / :`), zpráva `qrMsg` bez zdvojených mezer, VS jen číslice, okraj kódu 4 moduly (doporučená tichá zóna).

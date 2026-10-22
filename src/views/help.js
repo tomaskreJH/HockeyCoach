@@ -5,6 +5,7 @@
 // v18.4.2: ikona gólu 🥅, podsvícené góly v průběhu, bílo-modrý mantinel, formace podle počtu hráček při více trestech.
 // v18.6: kapitola 12 – 👁 Náhled role (jen účet vývojáře).
 // v18.6.1: kapitoly 10 a 11 – QR bez diakritiky a okamžitá platba, kontrola a zabezpečení účtů (návrh a potvrzení, varování o změně).
+// v18.7: kapitola 2 – 📊 Docházka (přehled pro všechny, období od–do) a značka ⛓ / 🔓 u dlužnic; kapitola 12 – ⛓ Přepočítat dlužníky.
 
 // ===== Obsah nápovědy =====
 // Každá sekce: t = nadpis, h = HTML obsah (zobrazí se po rozbalení)
@@ -20,7 +21,9 @@ const SECTIONS = [
 </ul>`},
   {t: "2. Události a docházka", h: `
 <ul>
-<li><b>Záložka Události</b> obsahuje tréninky i zápasy: Nadcházející, Minulé a Kalendář (klepnutím na den se seznam zúží).</li>
+<li><b>Záložka Události</b> obsahuje tréninky i zápasy: Nadcházející, Minulé, Kalendář (klepnutím na den se seznam zúží) a 📊 Docházka.</li>
+<li><b>📊 Docházka</b> (od v18.7, vidí všichni, jen ke čtení): účast hráček a realizačního týmu na <b>uplynulých</b> událostech v období <b>Od – Do</b> (výchozí zimní sezóna 1. 8. – 1. 7.; „Tato sezóna“ ji vrátí). Typ: Vše / 🏒 Tréninky / 🏠 Domácí zápasy / 🚌 Venkovní zápasy (v závorce počet událostí). Sloupce: ✅ účast (Jdu) z počtu událostí, %, ❌ nejdu, ❓ nejistá, bez odpovědi – ❓ a bez odpovědi se do účasti nepočítají. Řazení klepnutím na hlavičku. Ukončené hráčky ⛔ jsou vidět jen s odpovědí v období. Důvody omluv se tu nezobrazují.</li>
+<li><b>⛓ Dlužnice</b> (od v18.7): u jména v Docházce a v detailu události značka ⛓ (mříže) a počet dní po splatnosti nejstaršího nezaplaceného předpisu – přihlášení „Jdu“ je zablokováno; 🔓 = po splatnosti, ale s výjimkou od pokladníka. Částky vidí jen dlužnice sama a správci pokladny. Realizační tým značku nemá.</li>
 <li><b>✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý:</b> Jdu se zapíše hned (opakované klepnutí ho zruší), Nejdu vyžaduje důvod, u Nejsem jistý je nepovinný.</li>
 <li><b>Termín přihlašování:</b> po termínu (a po dni události) se tlačítka zamknou 🔒. Trenér a kustod mohou odpovědi měnit i potom.</li>
 <li><b>Trenér a kustod</b> odklikávají docházku hráček i realizačního týmu v detailu události (klepni na událost). Trenér / kustod propojený s realizačním týmem má na kartě události rychlá tlačítka za sebe.</li>
@@ -141,6 +144,7 @@ const SECTIONS = [
 <li><b>Soupiska (CSV):</b> export pro Excel.</li>
 <li><b>Obnovit ze zálohy</b> (jen trenér): <b>Sloučit s daty</b> přidá/přepíše položky, <b>Nahradit vším</b> nahradí obsah kolekcí ze zálohy (druhé klepnutí potvrdí). Vyžaduje internet.</li>
 <li><b>Členové týmu</b> (trenér a pokladník): e-mail, role, propojení s hráčkou nebo členem realizačního týmu, příznak Pokladník. Vlastní účet nelze odebrat.</li>
+<li><b>⛓ Přepočítat dlužníky</b> (trenér a pokladník, od v18.7): naplní veřejný souhrn dlužníků (bez částek) ze všech předpisů. Spusť jednou po nasazení v18.7 a po ruční změně předpisů v databázi; jinak se souhrn zapisuje sám s každou změnou předpisů. Vyžaduje publikovaná pravidla databáze.</li>
 <li><b>Načíst novou verzi:</b> smaže uloženou kopii aplikace, data zůstanou. Číslo verze je vedle názvu nahoře.</li>
 <li><b>👁 Náhled role</b> (od v18.6, jen účet vývojáře): ukáže aplikaci tak, jak ji vidí Hráčka (vybraná ze soupisky), Kustod, Pokladník nebo Trenér – volitelně s propojeným členem realizačního týmu. Platí jen v tomto zařízení (do zavření okna), v databázi se nic nemění. Nahoře je stálý pruh <b>Náhled: … · Ukončit náhled</b>. Načtou se jen data, která by role směla číst (cizí předpisy, vyúčtování a audit ne). Výchozí je jen ke čtení – každý zápis skončí hláškou „V náhledu se nezapisuje“; zaškrtnutím <b>Povolit zápis</b> se zapisuje pod tvým účtem za vybranou roli (např. docházka za hráčku). Odhlášení náhled ukončí.</li>
 </ul>`},

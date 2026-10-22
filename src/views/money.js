@@ -8,7 +8,8 @@
 //    zapisuje se ručně tlačítkem Vyplatit (jeden plat za člena a měsíc); oprava = storno v 🏦 Pokladna a nový zápis,
 //  - každý zápis jde do audit (contrib, contrib-del, plat),
 //  - v17.7: příspěvek nese účet příspěvků z nastavení (acc) a zprávu pro příjemce (msg, např. „Příspěvek 10/2026 - Jana“); plat se vyplácí z hlavního účtu;
-//    CSV pohybů a předpisů obsahuje i účet, VS a zprávu (párování s výpisem z banky).
+//    CSV pohybů a předpisů obsahuje i účet, VS a zprávu (párování s výpisem z banky),
+//  - v18.7: vystavení i smazání příspěvku zapíše v téže dávce souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
 
 // ===== Importy =====
 import {pn} from "../core/selectors.js";
@@ -16,6 +17,7 @@ import {S} from "../core/state.js";
 import {downloadFile, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {CAT_SALARY, STAFF_PAY, accName, accOf, cashAcc, chargeMsg, payMsg, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, csvText, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
+import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
@@ -69,6 +71,8 @@ function plainEvent(eid) {
   return m ? "Zápas – " + (m.opp || "") + " " + (m.date || "") : "(smazaná událost)";
 }
 const stamp = () => td();
+// Souhrn dlužníků po změně předpisů (realizační tým se nezapisuje) přidaný do téže dávky
+const withDebtors = (b, sets, dels) => applyDebtors(b, debtorPlanFor(S.ch, sets, dels, mid => S.tr.some(t => t.id === mid)));
 
 // ===== Zápis: příspěvky =====
 // Vystavení příspěvků za měsíc: jedna dávka (předpisy + audit); existující předpisy se přeskočí
@@ -79,6 +83,7 @@ function issueContrib(rows, cfg) {
   if (!plan.length) { toast("Není co vystavit"); return; }
   const b = S.db.batch(), tot = plan.reduce((s, x) => s + x.d.amt, 0);
   plan.forEach(x => b.set("charges/" + x.id, x.d));
+  withDebtors(b, plan, []);
   b.set("audit/" + uid(), audit(contribEid(ym), "contrib", "Příspěvky " + ymShort(ym) + ": " + plan.length + "×, " + kc(tot)));
   b.commit();
   resetDraft();
@@ -87,7 +92,8 @@ function issueContrib(rows, cfg) {
 // Smazání nezaplaceného příspěvku (předpis + audit v jedné dávce)
 function deleteContrib(x) {
   if (+x.paid > 0) { toast("Předpis má úhradu – nejdřív ji stornuj v 🏦 Pokladna"); return; }
-  S.db.batch().delete("charges/" + x.id).set("audit/" + uid(), audit(x.eid, "contrib-del", plainName(x.mid) + ": " + kc(+x.amt || 0))).commit();
+  const b = S.db.batch().delete("charges/" + x.id).set("audit/" + uid(), audit(x.eid, "contrib-del", plainName(x.mid) + ": " + kc(+x.amt || 0)));
+  withDebtors(b, [], [x.id]).commit();
   toast("Příspěvek smazán");
 }
 

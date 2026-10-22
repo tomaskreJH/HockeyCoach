@@ -15,7 +15,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, otestováno (hráčka) |
 | v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, k testu (čeká na potvrzení účtu druhým trenérem a test QR v mBank) |
 | v18.6.2 | P2 | ⭐ **Důležité:** pevně uložený účet v telefonu hráčky (opsáním), jméno příjemce v QR, „čeká na potvrzení přijetí“ – **odloženo**, zařadit po v18.7 |
-| v18.7 | C | Docházka pro všechny, přehled dlužníků pro všechny |
+| v18.7 | C | Docházka pro všechny (📊 v Událostech, období od–do), značka ⛓ dlužnic v docházce – **hotovo**, k testu (⚠️ nejdřív publikovat `firestore.rules`, pak ⚙️ → Přepočítat dlužníky) |
 | v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
@@ -64,7 +64,9 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **Rozhodnuto 22. 10. 2026 (QR):** účty mění jen trenér; změnu musí potvrdit druhý správce pokladny (4 oči); okamžitá platba přepínačem v nastavení (výchozí ANO).
 - **v18.6.1 (P) dodáno, k testu** – viz sekce P. **Nutné publikovat `firestore.rules`.** Po nasazení u stávajícího účtu chybí záznam o změně (zobrazí se „zatím nezaznamenána“); doporučeno účty jednou znovu navrhnout a potvrdit, aby měly záznam.
 - **Stav 22. 10. 2026 (15:30):** v18.6.1 nahraná, druhý trenér zatím změnu účtu nepotvrdil → QR v mBank zatím neověřeno. Test v18.6.1 proběhne souběžně s v18.7 (nálezy jako v18.6.x). Bezpečnostní rozšíření plateb zapsáno jako **⭐ Důležité kroky** (sekce P2, v18.6.2).
-- **Pokračování:** **v18.7 C (Docházka a dlužníci pro všechny)**; před C2 rozhodnout otázku 6 (rozhodnuto: dlužnice s výjimkou zůstává se značkou 🔓).
+- **Rozhodnuto 22. 10. 2026 (C):** C1 a C2 v jedné verzi v18.7; Docházka jako přepínač v Událostech se všemi sloupci (účast, %, nejdu, nejistá, bez odpovědi); místo „aktivní hráčky“ (data o příchodu ani historie stavu neexistují) **volba období od–do, výchozí zimní sezóna 1. 8. – 1. 7.**; dlužníky ukázat **značkou mříží ⛓ v docházce** (ne samostatný seznam v Moje platby).
+- **v18.7 (C) dodáno, k testu.** `src/domain/attendance.js` (čisté funkce), `src/views/attendance.js` (přehled, značka `debtTag`), `src/domain/debtors.js`; `debtors/{mid} = {mid, since, dues: [{d, x}]}` bez částek – `dues` nese splatnosti a výjimku, aby šly ⛓ / 🔓 a dny po splatnosti dopočítat v zařízení i bez nového zápisu. Zápis ve stejné dávce: `payments.js` (vyúčtování, úhrada, výjimka), `money.js` (vystavení / smazání příspěvku), `cashbook.js` (storno), `storage.js` (smazání události, obnova ze zálohy). **Publikovat `firestore.rules` PŘED nahráním kódu** (jinak selžou dávky s předpisy), pak ⚙️ → ⛓ Přepočítat dlužníky. Kouřový test jsdom 25 kontrol.
+- **Pokračování:** test v18.7 a v18.6.1 (nálezy jako v18.7.x / v18.6.x), pak ⭐ **v18.6.2 P2**, potom v18.8 D.
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -186,7 +188,8 @@ Stav: předpisy (`charges`) čte jen jejich vlastník a správci pokladny – os
 - Seznam pro všechny: jméno a počet dní po splatnosti, seřazeno od nejdelšího. Bez částek (rozšíření později).
 - Pravidla: `debtors` čtou všichni členové, zapisuje jen správce pokladny → **nutné publikovat `firestore.rules`**. Jednorázové naplnění tlačítkem v ⚙️ (přepočet ze všech předpisů).
 - Pozor: předpis, kterému splatnost uplyne bez jakékoli změny, se do `debtors` dostane až při dalším zápisu nebo přepočtu → proto `since` = splatnost nejstaršího *nezaplaceného* předpisu (i před splatností) a seznam ukáže jen ty, kde už `since` uplynulo.
-- Rozhodnout (otázka 6): má výjimka z blokace dlužnici ze seznamu skrýt?
+- Rozhodnuto (otázka 6): dlužnice s výjimkou zůstává se značkou 🔓, realizační tým se nezapisuje.
+- **Dodáno ve v18.7:** místo samostatného seznamu značka ⛓ (mříže) s dny po splatnosti u jména v Docházce a v detailu události, v Docházce karta „⛓ Po splatnosti“ od nejdelšího. Dokument rozšířen o `dues: [{d, x}]` (splatnosti a výjimka, bez částek).
 
 ## D – v18.8: Úklid kódu (bez změn UI)
 
@@ -215,7 +218,7 @@ Postup: každá položka samostatně, bez změny chování; po úklidu ověřit 
 Podrobný modul: plán tréninku, docházka, rozdělení tréninku (stanoviště, pětky, cvičení), dlouhodobý plán, statistiky pokroku hráček. Začne se až po dokončení v18.x. Příprava: docházka v C1 jako čistá doménová funkce (`attendance.js`), aby ji Trénink převzal.
 
 ## Otevřené otázky
-Rozhodnuto 22. 10. 2026: 11 – náhled jen pro e-maily vývojáře, výchozí jen ke čtení s volbou Povolit zápis; 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – jen rozložení B, A zrušeno (změna po testu v18.2); 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí, kdy byla hráčka aktivní; 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
+Rozhodnuto 22. 10. 2026: 11 – náhled jen pro e-maily vývojáře, výchozí jen ke čtení s volbou Povolit zápis; 1 – Zpět ze živého zápisu zavře rychlý zápis / panel / menu, jinak dotaz na odchod a **odchod zastaví čas**; 3 – panel PP/OS po vyloučení vždy (viz Stav a rozhodnutí); ostatní body podle návrhů: 2 – malé tlačítko partnerky pošle rovnou na led, pořadí rotace podržením; 4 – pevný řádek upozornění nad průběhem (hotovo ve v18.1); 5 – jen rozložení B, A zrušeno (změna po testu v18.2); 6 – dlužnice s výjimkou zůstává se značkou 🔓, realizační tým ne; 7 – jen uplynulé události, procenta z událostí ve zvoleném období od–do (výchozí sezóna 1. 8. – 1. 7.; aktivita hráčky se v datech neeviduje); 8 – karta zápasu o krok zpět (hotovo); 9 – +/- brankářkám nepočítat ani v celkových statistikách (změní čísla, ve fázi D); 10 – kontrola pole `ex` v ⚙️ před smazáním `legacyEx`.
 Původní znění:
 1. Zpět ze živého zápisu: jen zavřít panel/menu, nebo i opustit živý zápis (s dotazem)?
 2. Rotace: má malé tlačítko partnerky posílat rovnou na led (bez změny pořadí rotace), nebo jen přehodit pořadí? Jak pak měnit pořadí rotace ručně (podržením)?

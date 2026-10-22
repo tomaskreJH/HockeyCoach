@@ -13,6 +13,8 @@
 // přehled plateb a dluhů: views/finance.js (Team → „💰 Platby“); pohyby pokladny: views/cashbook.js (Team → „🏦 Pokladna“);
 // příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4).
 // Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu).
+// v18.7: přepínač „Docházka“ (S.evm = "att") – přehled docházky pro všechny členy (views/attendance.js, výpočet domain/attendance.js);
+// v detailu události má dlužnice po splatnosti u jména značku ⛓ (výjimka 🔓) podle veřejného souhrnu debtors (bez částek).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -28,6 +30,7 @@ import {modal} from "./modal.js";
 import {bindBanner, mineBanner} from "./mine.js";
 import {bindMoney, moneyHtml} from "./money.js";
 import {bindPay, payHtml} from "./payments.js";
+import {attHtml, bindAtt, debtTag} from "./attendance.js";
 import {matchStatsHtml} from "./report.js";
 import {render} from "./shell.js";
 
@@ -59,6 +62,8 @@ const CSS = `<style>
 #evw .evl{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px;margin:0 2px 4px 0}
 #evw .evln{display:flex;gap:4px}
 #evw .evln .chip{padding:8px 0;min-width:38px;text-align:center}
+#evw .dbt{display:inline-block;padding:1px 6px;border-radius:4px;font-weight:700;font-size:12px;color:#fff;border:1px solid #222;background:repeating-linear-gradient(90deg,#333 0 3px,#777 3px 7px);text-shadow:0 0 2px #000;white-space:nowrap}
+#evw table td,#evw table th{white-space:nowrap}
 </style>`;
 // Režimy pokladny v záložce Team (jen správci pokladny); klíč = hodnota S.tm
 const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "📅 Měsíce"]];
@@ -175,14 +180,15 @@ function list(a) {
   if (pl_) S.evp = HK.pid();
   else { const me = myTr(); S.evp = me ? me.id : null; }
   if (S.evp && !P.some(p => p.id === S.evp) && !isTr(S.evp)) S.evp = null;
-  // Dřívější režimy pokladny (pay / cash / mon) jsou v záložce Team; tady zůstávají jen Nadcházející, Minulé a Kalendář
-  const mode = ["up", "past", "cal"].includes(S.evm) ? S.evm : "up";
-  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"]];
+  // Dřívější režimy pokladny (pay / cash / mon) jsou v záložce Team; tady zůstávají Nadcházející, Minulé, Kalendář a Docházka (v18.7)
+  const mode = ["up", "past", "cal", "att"].includes(S.evm) ? S.evm : "up";
+  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ["att", "📊 Docházka"]];
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
   let shown;
   if (mode === "up") shown = evs.filter(e => e.date >= today).sort(asc);
   else if (mode === "past") shown = evs.filter(e => e.date < today).sort((x, y) => asc(y, x));
+  else if (mode === "att") shown = [];
   else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)).sort(asc); }
   // Hlavička: hráčka bez propojení dostane upozornění; správce tlačítka pro založení události
   const head = pl_
@@ -193,13 +199,14 @@ ${mineBanner()}
 ${head}
 ${chipsH}
 ${mode === "cal" ? calHtml(evs, today) : ""}
-${shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml();
+${mode === "att" ? attHtml() : shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml();
   // Eventy seznamu
   const nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
   if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", place: "", dl: defDl(today), note: "", lines: {}, dlAuto: true, keep: {}}; render(); };
   if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
   a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
   bindBanner(a);
+  if (mode === "att") bindAtt(a);
   a.querySelectorAll("[data-cn]").forEach(b => b.onclick = () => { const c = S.evc; c.m += +b.dataset.cn; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } S.evd = null; render(); });
   a.querySelectorAll("[data-cd]").forEach(b => b.onclick = () => { S.evd = S.evd === b.dataset.cd ? null : b.dataset.cd; render(); });
   a.querySelectorAll("[data-eo]").forEach(c => c.onclick = () => { S.evid = c.dataset.eo; S.evBack = null; render(); window.scrollTo(0, 0); });
@@ -241,7 +248,7 @@ function detail(a, ev) {
     const x = A[p.id], mine = p.id === me, ok = can && (!ownP || mine);   // hráčka mění jen svůj řádek
     const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen trenér a kustod
     return (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") +
-      `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
+      `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
   // Realizační tým: odpovědi mění jen trenér a kustod, hráčka je vidí jen ke čtení (bez důvodů)
   const trRows = T.map((t, i) => {

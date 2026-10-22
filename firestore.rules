@@ -112,6 +112,15 @@ service cloud.firestore {
       allow read: if isCash() || ownsMid(resource.data.mid);
       allow write: if isCash();
     }
+    // Souhrn dlužníků (v18.7): dokument {mid, since, dues: [{d, x}]} BEZ částek (splatnosti nezaplacených předpisů a příznak výjimky).
+    // Čtou všichni členové (značka ⛓ v Docházce), zapisuje jen správce pokladny ve stejné dávce jako změny předpisů; id dokumentu = mid
+    match /debtors/{id} {
+      allow read: if isMember();
+      allow create, update: if isCash() && request.resource.data.mid == id
+        && request.resource.data.keys().hasOnly(['mid', 'since', 'dues'])
+        && request.resource.data.since is string && request.resource.data.dues is list;
+      allow delete: if isCash();
+    }
     match /cash/{id} { allow read, write: if isCash(); }
     // Audit log se jen přidává (nejde měnit ani mazat)
     match /audit/{id} {

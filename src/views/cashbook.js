@@ -4,6 +4,7 @@
 // v17.7: u každého pohybu je vidět, za co je (zpráva pro příjemce stejná jako v QR), VS a při dvou účtech i účet; zůstatky a filtr po účtech.
 // Starší úhrady bez uložené zprávy a VS si je doplní při zobrazení z předpisu (cid).
 // Storno pohybu s vazbou na předpis (cid) vrací zaplacenou částku na předpisu v téže dávce a zapíše záznam do audit.
+// v18.7: storno úhrady zapíše v téže dávce i souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
 
 // ===== Importy =====
 import {strip} from "../core/actions.js";
@@ -12,6 +13,7 @@ import {S} from "../core/state.js";
 import {esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {ACC, accName, cashAcc, cashCfg, catSums, chargeMsg, isDay, kc, r2, sumCash, twoAcc} from "../domain/cash.js";
+import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
@@ -43,7 +45,11 @@ function storno(x) {
   const b = S.db.batch();
   b.delete("cash/" + x.id);
   const c = x.cid && S.ch.find(y => y.id === x.cid);
-  if (c) b.set("charges/" + c.id, {...strip(c), paid: Math.max(0, r2((+c.paid || 0) - (+x.amt || 0)))});
+  if (c) {
+    const d = {...strip(c), paid: Math.max(0, r2((+c.paid || 0) - (+x.amt || 0)))};
+    b.set("charges/" + c.id, d);
+    applyDebtors(b, debtorPlanFor(S.ch, [{id: c.id, d}], [], mid => S.tr.some(t => t.id === mid)));   // vrácená úhrada může znovu vytvořit dluh
+  }
   b.set("audit/" + uid(), {ts: new Date().toISOString(), by: email(), eid: x.eid || "", act: "storno", note: (x.k === "in" ? "příjem " : "výdaj ") + kc(+x.amt || 0) + " · " + catOf(x)});
   b.commit();
   toast("Pohyb stornován");

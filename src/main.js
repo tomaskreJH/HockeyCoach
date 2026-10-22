@@ -36,6 +36,8 @@ db.collection("opponents").onSnapshot(s=>{S.op=s.docs.map(d=>({id:d.id,...d.data
 db.collection("events").onSnapshot(s=>{S.ev=s.docs.map(d=>({id:d.id,...d.data()}));ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{S.at=s.docs.map(d=>({id:d.id,...d.data()}));ok("a");render()},erX("a"));
 db.collection("staff").onSnapshot(s=>{S.tr=s.docs.map(d=>({id:d.id,...d.data()}));render()},erX("t"));
+// Souhrn dlužníků bez částek (v18.7): čtou všichni členové; chyba = nepublikovaná pravidla (Docházka pak ukáže upozornění, zbytek aplikace běží)
+db.collection("debtors").onSnapshot(s=>{S.dt=s.docs.map(d=>({id:d.id,...d.data()}));S.dtErr=null;render()},e=>{S.dtErr=e.code||e.message;render()});
 const ec=e=>{S.payErr=e.code||e.message;render()};
 if(HK.isCash()){
 db.collection("charges").onSnapshot(s=>{S.ch=s.docs.map(d=>({id:d.id,...d.data()}));S.payErr=null;render()},ec);

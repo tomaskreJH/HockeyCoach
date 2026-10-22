@@ -11,13 +11,14 @@
 // ===== Importy =====
 import {downloadFile, esc, toast} from "../core/utils.js";
 import {exOf, fxOf} from "../domain/cash.js";
+import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = "v18.6.1 · 22. 10. 2026";
+const VERSION = "v18.7 · 22. 10. 2026";
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
@@ -37,7 +38,9 @@ const data = {};                       // zrcadlo dat pro export a zálohy
 const subs = {};                       // odběratelé změn podle kolekce
 const first = {};                      // už dorazil první snapshot kolekce?
 const listening = new Set();           // kolekce, které se právě poslouchají
-COLL.forEach(c => { data[c] = {}; subs[c] = []; });
+// Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (v18.7; odvozuje se z předpisů, po obnově se přepočítá)
+const EXTRA = [DEBT_COLL];
+[...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -121,10 +124,31 @@ function canDelete(c, id) {
 function removeDoc(c, id) {
   if (blocked() || !canDelete(c, id)) return;
   // S událostí se smažou její předpisy bez úhrady (předpisy se zaplacenou částí zůstávají jako historie)
-  if (c === "matches" || c === "events") Object.entries(data.charges).filter(([, x]) => x.eid === id && !(+x.paid > 0)).forEach(([cid]) => removeDoc("charges", cid));
+  if (c === "matches" || c === "events") {
+    const cids = Object.entries(data.charges).filter(([, x]) => x.eid === id && !(+x.paid > 0)).map(([cid]) => cid);
+    cids.forEach(cid => removeDoc("charges", cid));
+    // Souhrn dlužníků (v18.7): po smazání předpisů se přepočítá pro jejich vlastníky (jen správce pokladny)
+    if (cids.length && isCash()) writeDebtors(debtorPlanFor(chList(), [], cids, isStaffId));
+  }
   // Vyúčtování události (evcash) se maže spolu s ní
   if ((c === "matches" || c === "events") && isCash() && data.evcash[id]) deleteDoc(fsDoc(fs, "evcash", id)).catch(() => {});
   deleteDoc(fsDoc(fs, c, id)).catch(e => say("Smazání se nepovedlo: " + errTxt(e)));
+}
+// Předpisy jako seznam {id, ...data} a test člena realizačního týmu (pro souhrn dlužníků)
+const chList = () => Object.entries(data.charges).map(([id, d]) => ({id, ...d}));
+const isStaffId = mid => !!data.staff[mid];
+// Zápis plánu dlužníků po jednotlivých dokumentech (mazání předpisů u události také není jedna dávka)
+function writeDebtors(plan) {
+  plan.set.forEach(x => writeDoc(DEBT_COLL, x.id, x.d));
+  plan.del.forEach(id => deleteDoc(fsDoc(fs, DEBT_COLL, id)).catch(e => say("Souhrn dlužníků se nepovedlo uložit: " + errTxt(e))));
+}
+// Celý přepočet souhrnu dlužníků ze všech předpisů (⚙️ → Přepočítat dlužníky, obnova ze zálohy); ch = předpisy, výchozí aktuální
+async function rebuildDebtors(ch) {
+  if (blocked()) return 0;
+  if (!isCash()) throw new Error("Přepočet dlužníků smí jen trenér nebo pokladník");
+  const plan = debtorRebuild(ch || chList(), Object.keys(data[DEBT_COLL]), isStaffId);
+  await commitOps([...plan.set.map(x => ["set", DEBT_COLL, x.id, x.d]), ...plan.del.map(id => ["del", DEBT_COLL, id])]);
+  return plan.set.length;
 }
 // Dávka zápisů (atomicky): b.set("kolekce/id", data).delete("kolekce/id").commit()
 function makeBatch() {
@@ -275,7 +299,7 @@ function openCfg() {
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
  <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
  ${pvSection()}
- ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button>` : ""}
+ ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button>` : ""}
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Členy s rolí Trenér spravuje jen trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option>' : ""}<option value="kustod" selected>Kustod</option><option value="hracka">Hráčka</option></select><select id="cmp" style="display:none"><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
@@ -288,6 +312,10 @@ function openCfg() {
   if (!cashier) return;
   // Nastavení pokladny se otevírá z views/cash-settings.js (napojeno v main.js)
   q("#ccs").onclick = () => { close(); if (HK.openCash) HK.openCash(); };
+  q("#cdb").onclick = async () => {
+    try { const n = await rebuildDebtors(); if (!ro()) say("Dlužníci přepočítáni (" + n + " s nezaplaceným předpisem)"); }
+    catch (e) { say("Přepočet se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
+  };
   renderMembers(el);
   // Výběr hráčky se ukáže jen u role Hráčka; člen týmu je volitelný u každé role (hráčka může být i členem týmu)
   q("#cmr").onchange = () => { q("#cmp").style.display = q("#cmr").value === "hracka" ? "" : "none"; };
@@ -372,7 +400,11 @@ async function importData(obj, replace) {
     if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && id === "cash")) ops.push(["del", c, id]); });
     Object.entries(src).forEach(([id, d]) => ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : d]));
   });
+  // Předpisy po obnově (pro přepočet souhrnu dlužníků): nahrazení = jen ze zálohy, sloučení = stávající + ze zálohy
+  const chSrc = obj.data.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
   await commitOps(ops);
+  // Souhrn dlužníků (v18.7) se ze zálohy neobnovuje, ale přepočítá; chyba (např. nepublikovaná pravidla) obnovu nezruší
+  if (chNew && isCash()) { try { await rebuildDebtors(chNew); } catch (e) { say("Data obnovena, ale souhrn dlužníků se nepřepočítal: " + errTxt(e)); } }
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
