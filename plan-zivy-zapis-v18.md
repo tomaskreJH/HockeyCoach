@@ -1,7 +1,7 @@
-# Plán úprav v18 (Zpět, živý zápis, docházka, úklid)
+# Plán úprav v18 – v20 (Zpět, živý zápis, docházka, úklid, role, více týmů)
 
 Výchozí verze: v17.7 (22. 10. 2026). Cíl: řada verzí v18.x, po každé fázi test na Androidu, teprve pak další fáze.
-Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý zápis).
+Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřazeno podle náročnosti:** nejdřív rychlé úpravy (R), pak úklid (D) a ověření všech modulů (T), teprve potom velké celky (role, rušení událostí, žádosti, notifikace, hosté, více týmů) – viz sekce „Plán v18.8 – v20“.
 
 | Verze | Fáze | Obsah |
 |---|---|---|
@@ -14,11 +14,19 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 | ~~v18.5~~ | ~~B5~~ | ~~Volitelné rozložení~~ – sloučeno do v18.3 (jen rozložení B, bez volby) |
 | v18.6 | G | Náhled role pro vývojáře – zobrazit aplikaci jako hráčka / kustod / pokladník / trenér – **hotovo**, otestováno (hráčka) |
 | v18.6.1 | P | Bezpečné QR platby: QR pro mBank, okamžitá platba, číslo účtu → IBAN s kontrolními součty, změna účtu jen návrh + potvrzení (4 oči), varování hráčce – **hotovo**, otestováno (QR v mBank OK, 22. 10. 2026) |
-| v18.6.2 | P2 | ⭐ **Důležité:** pevně uložený účet v telefonu hráčky (opsáním), jméno příjemce v QR, „čeká na potvrzení přijetí“ – **odloženo**, zařadit po v18.7 |
 | v18.7 | C | Docházka pro všechny (📊 v Událostech, období od–do), značka ⛓ dlužnic v docházce – **hotovo**, otestováno (22. 10. 2026) |
 | v18.7.1 | Q | ⬇️ Uložit QR do telefonu (obrázek pro bankovní aplikaci) – **hotovo**, k testu |
-| v18.8 | D | Úklid kódu – zdvojené výpočty, mrtvý kód, sjednocení pomocných funkcí (bez změn UI) |
-| v18.9 | N | 🔔 Notifikace (blížící se událost, uzávěrka přihlašování, nová událost, nový předpis) – **návrh**, rozhodnout otázky 13–17 |
+| v18.8 | R1 | Rychlé úpravy: kalendář od nejnovějších, zápis utkání v Událostech stejný jako u Soupeřů (i pro hráčky), Moje platby po měsících – **další na řadě** |
+| v18.8.1 | R2 | Realizační tým (trenéři) v pětkách tréninku |
+| v18.9 | D | Úklid kódu s ohledem na další vývoj (bez změn UI) – rozdělit na D1 / D2 |
+| v18.9.x | T | Ověření všech modulů: automatické kouřové testy v repozitáři + ruční kontrolní seznam na Androidu; opravy jako v18.9.x |
+| v19.0 | P2 | ⭐ **Důležité:** pevně uložený účet v telefonu hráčky (opsáním), jméno příjemce v QR, „čeká na potvrzení přijetí“ (dříve číslováno v18.6.2) |
+| v19.1 | O | Role: Hlavní trenér, zástupce, asistent (nahradí kustoda), pokladník; kdo zadává členy – **nutné publikovat firestore.rules + převod rolí** |
+| v19.2 | Z | Zrušení události (škrtnutá, zůstává v historii) a úplné smazání jen pro vývojáře (i předpisy, docházka, statistiky) |
+| v19.3 | W | Žádosti o změnu účasti po uzávěrce (přihlášení, odhlášení, omluvenka) – upozornění pro trenéry jako u změny účtu |
+| v19.4 | N | 🔔 Notifikace – rozšířený návrh: nastavení u události (předstih k uzávěrce, ke srazu / odjezdu), zrušení události, žádosti, hosté – **vyžaduje Firebase Blaze + Cloud Functions** |
+| v19.5 | HG | Hostující hráčky (nejsou členky týmu): přihlášení, vlastní platby, sestava jen po nominaci, jen počet přihlášených |
+| v20 | M | Nasazení pro další týmy – **nejdřív diskuse a rozhodnutí o struktuře** (sekce M), přípravu dělá už D |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
 | později | E | Modul Trénink (zatím neřešit) |
@@ -71,7 +79,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **Test 22. 10. 2026 (16:10):** v18.6.1 – QR v mBank čte správně; v18.7 – testy v pořádku. Obě verze otestované.
 - **Nové požadavky 22. 10. 2026:** ⬇️ uložení QR do telefonu (sekce Q, v18.7.1) a 🔔 notifikace (sekce N, v18.9).
 - **v18.7.1 (Q) dodáno, k testu (22. 10. 2026).** ⬇️ Uložit QR pod zobrazeným QR v `mine.js`, nový `src/views/qr-image.js` (canvas z téhož objektu `qrcode` – obsah QR beze změny, tichá zóna 4 moduly, QR cca 1000 px). Sdílet se souborem všude, kde to prohlížeč umí (`navigator.canShare`), jinak stažení; zrušení sdílení nic nedělá. Pravidla databáze beze změny. Kouřový test jsdom 28 kontrol (varování / chybný účet bez tlačítka, shoda modulů s QR, název souboru, popisek, Sdílet, zrušení, stažení, souhrnná platba).
-- **Pokračování:** **v18.7.1 Q** (uložení QR, k testu) → ⭐ **v18.6.2 P2** → **v18.8 D** (úklid) → **v18.9 N** (notifikace; pořadí D a N lze prohodit).
+- **Nové poznámky 22. 10. 2026 (18:33)** – zapracováno do sekce „Plán v18.8 – v20“: Moje platby po měsících, trenéři v sestavách tréninku, zápis utkání v Událostech stejný jako u Soupeřů, kalendář od nejnovějších, nasazení pro další týmy (plná oddělenost, vlastní administrace), rušení událostí místo mazání (mazat jen vývojář, i související data), nastavitelné notifikace u události (turnaj, cesta na zápas), žádosti o změnu účasti po uzávěrce, nové role (Hlavní trenér, zástupce, asistent místo kustoda, pokladník), hostující hráčky.
+- **Pokračování (nové pořadí podle náročnosti):** **v18.8 R1** → **v18.8.1 R2** → **v18.9 D** (úklid) → **v18.9.x T** (ověření všech modulů) → ⭐ **v19.0 P2** → **v19.1 O** (role) → **v19.2 Z** → **v19.3 W** → **v19.4 N** → **v19.5 HG** → **v20 M**. Diskusi o více týmech (M) začít hned souběžně – rozhodnutí ovlivní úklid (D) a role (O).
   Stále otevřené: povinnost mít PP/OS sestavené před zápasem (`domain/lineup.js`, mimo B4) – nezařazeno.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
@@ -164,10 +173,10 @@ Stav: vývojář (účet trenéra / správce) vidí aplikaci jen ve své roli �
 - **Hráčka:** účet v českém tvaru i IBAN, kdo a kdy změnil, vždy upozornění na kontrolu a vyloučení odpovědnosti; zařízení si pamatuje ověřené účty (`hk-acc-seen`) – nový / nedávno změněný účet (14 dní) nejdřív varování, QR až po potvrzení.
 - **Zbývající riziko (k rozhodnutí):** trenér může přidat člena s příznakem pokladník (např. svůj druhý e-mail) a návrh si potvrdit sám. Brání tomu jen viditelnost (audit, varování hráčkám s e-maily navrhovatele a schvalovatele). Možné rozšíření: audit změn členů týmu a v pravidlech zákaz potvrzení členem přidaným navrhovatelem v posledních N dnech (vyžaduje datum přidání v `members`).
 
-## ⭐ Důležité kroky – P2 v18.6.2: Jistota plateb pro hráčky (přidáno 22. 10. 2026, odloženo)
+## ⭐ Důležité kroky – P2 v19.0 (dříve v18.6.2): Jistota plateb pro hráčky (přidáno 22. 10. 2026, odloženo)
 Cíl: co největší jistota platící, že peníze odešly na správný účet – i kdyby někdo podvrhl data (Firestore, zneužitý účet správce, domluva dvou správců).
 Omezení (vědomě): kontrola v aplikaci nechrání před změnou samotného kódu (napadený GitHub / hosting) – útočník by ji z kódu odstranil. Proti tomu jen ochrana mimo aplikaci (body 5–7).
-**V aplikaci (v18.6.2):**
+**V aplikaci (v19.0):**
 1. **Účet uložený v telefonu hráčky:** hráčka si účet týmu uloží jednou **opsáním** čísla účtu (z papíru / od trenéra osobně), ne klepnutím. Nahradí dnešní „Ověřila jsem účet“ (`seenAccs` / `markSeen` v `bank-account.js`, okno QR v `mine.js`).
 2. **Porovnání při každém QR:** účet z databáze ≠ uložený v telefonu → QR se **nevytvoří**, červené varování „Účet týmu nesouhlasí s účtem uloženým v tvém telefonu – neplať a ozvi se trenérovi“. Změna = znovu opsat nové číslo.
 3. **Jméno příjemce v QR** (`RN:` – název majitele účtu přesně podle banky; banky ho zobrazí, ověřování jména příjemce u CZK plateb se zavádí, povinné do 2027). Rozhodnout: přesný název majitele účtu.
@@ -205,7 +214,7 @@ Cíl: hráčka platí z téhož telefonu – QR na displeji bankovní aplikace n
 - **Rozhodnuto 22. 10. 2026:** (a) popisek ANO, **bez varovného řádku** – název platby, příjemce = **jen název účtu** (Účet týmu / Hlavní / Provozní účet), účet + IBAN, částka, VS, zpráva (jako v QR), okamžitá platba, datum vytvoření; (b) název souboru `QR-platba-RRRR-MM-DD-VS.png`; (c) Sdílet se souborem **všude, kde to prohlížeč umí** (Android i iPhone), jinak stažení.
 - **Hotovo ve v18.7.1** (k testu).
 
-## N – v18.9: Notifikace (přidáno 22. 10. 2026, návrh)
+## N – v19.4: Notifikace (přidáno 22. 10. 2026, návrh; rozšíření v sekci „Plán v18.8 – v20“)
 Cíl: upozornit každého, koho se to týká, i když aplikaci nemá otevřenou.
 **Druhy upozornění:**
 1. **Blíží se událost** – jen přihlášeným („Jdu“), např. 3 h před začátkem (trénink i zápas).
@@ -222,7 +231,7 @@ Cíl: upozornit každého, koho se to týká, i když aplikaci nemá otevřenou.
 - **Alternativa bez serveru (slabší):** jen místní upozornění při otevřené / nedávno otevřené aplikaci (Notification API v `sw.js`) – nespolehlivé, nedoporučeno.
 - **Postup:** nejdřív kostra (povolení, token, testovací upozornění z ⚙️ přes funkci), pak druhy 3 a 4 (spouštěče), nakonec 1 a 2 (plánovaná funkce). Případně rozdělit na v18.9 a v18.9.1.
 
-## D – v18.8: Úklid kódu (bez změn UI)
+## D – v18.9: Úklid kódu (bez změn UI; doplnění s ohledem na další vývoj v sekci „Plán v18.8 – v20“)
 
 Zjištěno při kontrole v17.7 – návrh, co sjednotit, zjednodušit nebo smazat:
 
@@ -244,6 +253,113 @@ Zjištěno při kontrole v17.7 – návrh, co sjednotit, zjednodušit nebo smaza
 13. `live.js` je 25 kB hustého kódu v několika dlouhých řádcích – při B1–B5 rozdělit na `live-view.js` (vykreslení), `live-panels.js` (menu ⋯, sestava, jednotky, zranění) a `live-events.js` (obsluha klepnutí).
 
 Postup: každá položka samostatně, bez změny chování; po úklidu ověřit testovacím zápasem, že statistiky a pokladna dávají stejná čísla jako v17.7.
+
+## Plán v18.8 – v20 (přidáno 22. 10. 2026 večer, seřazeno podle náročnosti)
+
+### Zásady – aplikace musí zůstat vždy funkční a ověřená
+- **Malé verze:** jedna fáze = jedna verze; po každé verzi kouřový test (jsdom) a test na Androidu, teprve pak další. Opravy po testu jako třetí číslo (v18.8.1 …).
+- **Návrat zpět:** každá verze je samostatný zip – při problému se nahraje předchozí. Proto změny dat jen **přidávají** pole / kolekce; stará pole se mažou nejdřív o verzi později, až je nová otestovaná.
+- **Pravidla databáze (`firestore.rules`) zpětně slučitelná:** během převodu povolit starý i nový tvar (např. role `kustod` i `asistent`), zúžit až po převodu dat. U každé verze napsat, zda a kdy **publikovat firestore.rules** (před, nebo po nahrání kódu).
+- **Peníze a zabezpečení** (`mine.js`, `cash.js`, `bank-account.js`, `cash-settings.js`, `payments.js`, `firestore.rules`): každá verze, která na ně sahá, je v CHANGELOG výslovně označena.
+- **Převody dat** (role, hosté, více týmů): tlačítko v ⚙️ s náhledem „co se změní“ a záloha před převodem (stávající Záloha / Obnova).
+- **Testy v repozitáři** (od T): automatické testy se spouští před každým zipem; nové funkce přidávají vlastní testy.
+
+### R1 – v18.8: Rychlé úpravy (malá náročnost, bez změny dat a pravidel)
+1. **Kalendář od nejnovějších:** v Událostech → Kalendář seznam událostí měsíce / dne řadit sestupně (nejnovější nahoře, nejstarší dole). Dnes `events.js` řadí vzestupně (`shown … .sort(asc)` v režimu `cal`). Návrh: stejně i „Minulé“ (už sestupně) – „Nadcházející“ ponechat vzestupně (nejbližší nahoře) → otázka 18.
+2. **Zápis utkání v Událostech stejný jako u Soupeřů:** detail uzavřeného zápasu v Událostech dnes ukazuje jen skóre a `matchStatsHtml`; u Soupeřů se otevře celý **Zápis utkání** (`renderReport` – vývoj zápasu, střely, střídání, čas na ledě). Sjednotit: v detailu uzavřeného zápasu tlačítko „📋 Zápis utkání“ (stejné okno `#rp`, `S.rp = id`) pro **všechny role včetně hráček**; krátký souhrn může zůstat nad tlačítkem → otázka 19. Data hráčky už čtou (`matches`), pravidla beze změny. Zkontrolovat, že `renderReport` nenabízí hráčce úpravy (jen tisk / CSV / HTML).
+3. **Moje platby po měsících:** pod přehledem karta „📅 Po měsících“ – řádek za měsíc: předepsáno (kolik mě měsíc stál), zaplaceno, zbývá; klepnutím rozbalit předpisy měsíce; součet za zvolené období (výchozí sezóna 1. 8. – 1. 7. jako v Docházce, `seasonOf`). Jen z vlastních předpisů (`S.ch`), čistá funkce v `domain/cash.js` (nebo nový `domain/my-months.js`). **Sahá na platby (`mine.js`) → označit v CHANGELOG.** Rozhodnout, podle čeho se měsíc určuje → otázka 20.
+
+### R2 – v18.8.1: Realizační tým v pětkách tréninku (malá až střední náročnost)
+- Dnes `linesHtml` v `events.js` rozděluje do barevných pětek jen přihlášené hráčky (bez brankářek), uložení `events.lines = {pid: číslo pětky}`.
+- Návrh: přihlášení členové realizačního týmu (`S.tr`, docházka `t:<id>`) se dají přiřadit k pětce (např. vede stanoviště / hraje s pětkou); klíč v `lines` s předponou, aby se nepletl s hráčkou (`"t:" + id`). Statistiky ani docházka se nemění. → otázka 21.
+- Navazuje na budoucí modul Trénink (E).
+
+### D – v18.9: Úklid s ohledem na další vývoj (doplnění k sekci D)
+Body 1–13 výše platí. Rozdělit na **D1** (čisté sjednocení bez změny chování: body 2, 4–8, 13) a **D2** (mazání ověřené na datech: 9, 10, 12). Nově – **příprava na další fáze, bez změny UI**:
+14. **Oprávnění na jednom místě:** dnes `isStaff()` / `isCash()` / `HK.role() === …` rozesety po pohledech → funkce `can(akce)` v `storage.js` (např. `sport`, `money`, `members`, `accounts`, `delete`) se stejným výsledkem jako dnes. Fáze O pak změní jen tabulku oprávnění, ne desítky míst.
+15. **Cesty ke kolekcím přes jednu funkci** (`col("events")` místo pevných řetězců `"events/" + id`) – příprava na více týmů (M): pokud se zvolí `teams/{teamId}/…`, změní se jedno místo.
+16. **Nastavení týmu na jednom místě:** název týmu (dnes „HC Střely“ v 7 souborech – bod 11), `DEV_EMAILS`, `firebase-config.js` → `src/config/team.js` / `settings/team`.
+17. **Komentáře s historií verzí** v hlavičkách souborů (např. „v18.4.2: …“) přesunout do CHANGELOG, v souboru nechat popis současného stavu – kratší a přehlednější kód.
+18. **README** (66 kB) zkrátit na současný stav a návod k nasazení; dokončené sekce plánu (A, B, G, P, C, Q) přesunout do `docs/archiv-plan-v18.md`.
+19. **Role „kustod“ zatím nepřejmenovávat** (UI se v D nemění) – přejmenování a nová práva až ve fázi O; v D jen připravit `can()`.
+20. Ponechat: `src/debug.js` (používají ho testy), `src/lib/qrcode.js` (knihovna QR).
+Kontrola po úklidu: stejná čísla statistik, pokladny, docházky a dlužníků jako před úklidem (srovnávací test na kopii dat / záloze).
+
+### T – v18.9.x: Ověření všech modulů (připravenost na další vývoj)
+- **Automatické testy v repozitáři** (`tests/`, spuštění `npm test`, jsdom jako vývojová závislost; do aplikace ani cache `sw.js` se nedostanou): doménové funkce (`cash`, `bank-account`, `attendance`, `debtors`, `timeline`, `live-engine` – scénáře trestů, gólů, rotace, Zpět), vykreslení pohledů pro každou roli (trenér, kustod, pokladník, hráčka) se zástupným úložištěm, QR (shoda obsahu, uložení obrázku). → otázka 22.
+- **Ruční kontrolní seznam pro Android** (do `docs/test-checklist.md`): přihlášení a role, Události (seznam, kalendář, detail, přihlašování, uzávěrka, Docházka), Team (soupiska, pětky, rotace, PP/OS), zápas (nominace, sestava, živý zápis – střely, góly, tresty, zranění, Zpět, Průběh, Zápis utkání, Opravy zápisu), Statistiky, Soupeři, Pokladna (předpisy, úhrady, příspěvky, platy, měsíce, CSV), Moje platby (QR, uložení QR), ⚙️ (členové, nastavení pokladny, účty 4 oči, náhled role, záloha / obnova, přepočet dlužníků), offline a nová verze (cache).
+- Výstup: seznam nálezů → opravy v18.9.x; teprve po „vše zelené“ začíná v19.
+
+### O – v19.1: Role a oprávnění (střední až vysoká náročnost)
+| Role | Práva |
+|---|---|
+| **Hlavní trenér** | vše (sport, peníze, účty, členové, nastavení, mazání) |
+| **Zástupce** | Hlavní trenér ho určí na dobu nepřítomnosti – rozsah práv → otázka 23 |
+| **Asistent** (nahradí kustoda) | vše čte; sportovní činnost: sestavy, nominace, zápasy a živý zápis, tréninky, události, docházka; **žádné peníze** (předpisy, úhrady, vyúčtování, účty) |
+| **Pokladník** (příznak, jako dnes) | může mít hráčka i kdokoli z realizačního týmu; peníze podle dnešních pravidel |
+| **Hráčka** | jako dnes |
+- **Nové členy zadává** Hlavní trenér nebo pokladník (dnes trenér; pokladník nesmí přidat trenéra) → otázka 25.
+- Dnes `members/{email}.role` ∈ `trener`, `kustod`, `hracka`; `isCoach` = trenér, `isStaff` = trenér + kustod, `isCash` = trenér nebo `cash`. Návrh: `role` ∈ `head`, `coach`, `asst`, `hracka` (+ `host` v HG), zástupce = `deputy: {email, od, do}` v nastavení týmu, nebo role `coach` s příznakem. Převod: `trener` → `head` (vývojář) / `coach`, `kustod` → `asst`.
+- **Pozor – 4 oči u účtů (P):** dnes navrhuje trenér a potvrzuje jiný správce pokladny – určit, kdo navrhuje a kdo potvrzuje v nových rolích (souvisí s P2).
+- Pravidla: přepsat `isCoach` / `isStaff` / `isCash` na nové role, během převodu přijímat i staré hodnoty. **Publikovat firestore.rules.** Náhled role (G) doplnit o nové role.
+
+### Z – v19.2: Zrušení a smazání události (střední náročnost)
+- **Zrušit** (běžná cesta): událost zůstane v historii, označená `cancelled: {by, at, reason}`, v seznamu a kalendáři přeškrtnutá „❌ Zrušeno“; přihlašování zamčené; nepočítá se do Docházky (% ani počet událostí); u zápasu nelze živý zápis. Vrácení zrušení → otázka 24.
+- **Předpisy zrušené události:** nevyúčtovaná – žádné předpisy nevzniknou; vyúčtovaná – nabídnout storno předpisů (stávající storno v `cashbook.js` / `payments.js`, dlužníci se přepočtou) → otázka 24.
+- **Notifikace přihlášeným** o zrušení přijde s fází N (do té doby jen značka v aplikaci).
+- **Smazat** jen vývojář (`DEV_EMAILS`, po O „Hlavní trenér + vývojář“) pro testovací data: smaže událost / zápas a **všechno související** – docházku (`attendance`), předpisy (`charges`) i úhrady a zápisy v pokladně (`cash`), `evcash`, `debtors` (přepočet), statistiky (jsou v dokumentu zápasu – zmizí s ním), případně audit. Dnes `removeDoc` v `storage.js` maže jen část (vyúčtovanou událost smaže trenér / pokladník, předpisy přepočítá dlužníky). Před smazáním přehled „co se smaže“ a potvrzení druhým klepnutím. → otázka 26.
+- Pravidla: `cancelled` smí zapsat role se sportovní činností; mazání `cash` / `charges` dnes smí správce pokladny – ověřit, zda stačí. Pravděpodobně **publikovat firestore.rules**.
+
+### W – v19.3: Žádosti o změnu účasti po uzávěrce (střední náročnost)
+- Po uzavření přihlašování (`isLocked`) uvidí hráčka i člen realizačního týmu tlačítko „✋ Požádat o změnu“: přihlásit se / odhlásit se / omluvenka s důvodem (+ nejistá?).
+- Kolekce `requests/{id} = {eid, mid, kind, reason, at, st: "open" | "ok" | "no", by, byAt}`; žadatel zapisuje jen svou žádost, vyřizuje trenér / asistent.
+- Trenérům upozornění nahoře v Událostech (jako „⏳ Čeká na potvrzení změna účtů“): „✋ 3 žádosti o změnu účasti“ → seznam s ✓ Schválit (zapíše docházku jako dnes ruční změna) / ✕ Zamítnout. Žadatel vidí stav své žádosti v detailu události.
+- Dopad na platby: změna účasti u už vyúčtované události → upozornit (předpisy se nepřepočítávají automaticky, jen ručně – stávající pravidlo).
+- Push notifikace trenérovi a odpověď žadateli až s fází N. **Publikovat firestore.rules.** → otázka 27.
+
+### N – v19.4: Notifikace – rozšíření návrhu (vysoká náročnost, Firebase Blaze + Cloud Functions)
+Vše ze sekce N platí; doplnění:
+- **Nastavení u události:** připomínka uzávěrky přihlašování (výchozí např. 1 den a 1 hodina před `dl`) a připomínka **před srazem / odjezdem**, ne před začátkem zápasu – u události nové volitelné pole **„Sraz / odjezd“** (čas a místo); výchozí předstihy v nastavení týmu, u události lze přepsat nebo vypnout.
+- **Turnaj / vícedenní akce:** událost s datem „do“ (nový typ Turnaj později) – připomínka podle srazu prvního dne.
+- **Nové druhy:** 5) událost zrušena (všem přihlášeným, i „nejistá“), 6) nová žádost o změnu účasti (trenérům), 7) žádost vyřízena (žadateli), 8) hostující hráčka vyřazena z nominace (ihned jí).
+- Otázky 13–17 platí, nově 28.
+
+### HG – v19.5: Hostující hráčky (vysoká náročnost – pravidla databáze)
+- Hostující hráčka není členkou týmu: v soupisce `players` s příznakem `guest: true`, účet v `members` s rolí `host` (propojení `pid` jako u hráčky).
+- **Smí:** vidět nadcházející události a přihlásit se; vidět **jen počet přihlášených**, dokud není nominovaná; po nominaci a zařazení do sestavy vidět **sestavu toho zápasu**; vidět své předpisy a platit (Moje platby, QR).
+- **Nesmí:** statistiky, dlužníky / ⛓, sestavy zápasů, kde není nominovaná, Docházku ostatních, Team, Soupeře (návrh) → otázka 29.
+- Trenér ji může **vyřadit z nominace** → notifikace hráčce ihned (fáze N).
+- Technicky: dnes `attendance`, `matches`, `players`, `debtors` čte každý člen (`isMember`). Pravidla neumí „filtrovat“ dotaz – hostovi se musí odepřít čtení celých kolekcí a dát mu jen: vlastní záznamy docházky, **veřejný souhrn počtu přihlášených** (`evcount/{eid}` – zapisuje aplikace při přihlášení, nebo Cloud Function), zápasy s jeho `pid` v poli nominace (`nom` / pravidlo `myPid() in resource.data.nom`), vlastní předpisy (už dnes). Vyžaduje změny v `main.js` (co se poslouchá podle role) a v pravidlech → **publikovat firestore.rules**.
+
+### M – v20: Nasazení pro další týmy (nejvyšší náročnost – nejdřív diskuse)
+Požadavky: týmy o sobě nic nevidí; kdo si aplikaci koupí, řeší veškerou administraci sám (členové, účty, peníze).
+**Možnosti struktury:**
+| | A) Samostatná kopie pro každý tým | B) Jedna aplikace, jedna databáze, data po týmech | C) Jedna aplikace, každý tým vlastní projekt Firebase |
+|---|---|---|---|
+| Popis | tým dostane balíček, vlastní hosting + vlastní projekt Firebase | `teams/{teamId}/…` v jednom projektu, pravidla podle členství v týmu | jedna adresa aplikace (aktualizuješ jednou), po přihlášení / kódu týmu se načte konfigurace Firebase daného týmu |
+| Oddělenost dat | úplná (jiný projekt) | jen pravidly – chyba v pravidlech = únik mezi týmy | úplná (jiný projekt) |
+| Kdo platí Firebase (Blaze, notifikace) | tým | ty (přeúčtovat v ceně) | tým |
+| Aktualizace | každý tým zvlášť (riziko starých verzí) | jedna, pro všechny najednou | kód jednou; pravidla a funkce do každého projektu (skriptem) |
+| Založení týmu | technicky náročné pro kupujícího (projekt, pravidla, přihlášení Google) | jednoduché (formulář, „správce systému“) | střední – průvodce, nebo založení za tým |
+| Právní (GDPR) | tým = správce dat, ty jen dodavatel softwaru | ty = zpracovatel osobních údajů všech týmů (smlouva o zpracování) | tým = správce, ty dodavatel |
+| Zásah do kódu | malý (konfigurace) | velký (cesty všech kolekcí, pravidla, výběr týmu, správa licencí) | střední (výběr konfigurace, dynamická inicializace Firebase) |
+- **Příprava už v D:** cesty kolekcí přes `col()` (bod 15), nastavení týmu na jednom místě (16), oprávnění přes `can()` (14) – hodí se pro všechny tři možnosti.
+- **K diskusi:** otázka 30 (model, licence, kdo zakládá tým, hosting / doména, zálohy a přenos dat při odchodu týmu, podpora, jazyk aplikace, více týmů jednoho trenéra).
+
+### Otevřené otázky k nové části (18–30)
+18. Kalendář: řadit sestupně jen Kalendář, nebo i Nadcházející? (Návrh: Kalendář a Minulé sestupně, Nadcházející vzestupně – nejbližší nahoře.)
+19. Zápis utkání v Událostech: jen tlačítko do stejného okna jako u Soupeřů, nebo okno rovnou místo dnešního souhrnu? (Návrh: souhrn + tlačítko „📋 Zápis utkání“.)
+20. Moje platby po měsících: měsíc podle data události / měsíce příspěvku (návrh), podle splatnosti, nebo podle data úhrady? Ukazovat i souhrnné platby a částečné úhrady zvlášť?
+21. Trenéři v pětkách tréninku: jen přiřazení k pětce (vede / hraje s ní), nebo i samostatná „trenérská“ skupina? Mají se přiřazovat i nepřihlášení trenéři?
+22. Testy v repozitáři: souhlas s přidáním `tests/` a `jsdom` do `devDependencies` v `package.json` (aplikace se nemění)?
+23. Zástupce: plná práva Hlavního trenéra včetně peněz, účtů a členů, nebo bez nich? Časově omezený (od–do), nebo do odvolání? Může být zástupců víc?
+24. Zrušení události: kdo smí rušit (Hlavní trenér, zástupce, asistent)? Lze zrušení vrátit? U vyúčtované události storno předpisů automaticky s potvrzením, nebo ručně?
+25. Pokladník zadává členy: libovolné role, nebo jen hráčky a asistenty (ne Hlavního trenéra / zástupce)?
+26. Smazání: jen vývojář, nebo i Hlavní trenér? Mazat i zaplacené úhrady a zápisy v pokladně (test data), nebo smazání odmítnout, když existují úhrady?
+27. Žádosti o změnu účasti: kdo vyřizuje (Hlavní trenér, zástupce, asistent)? Zápis docházky po schválení automaticky? Lhůta (do začátku události)?
+28. Notifikace: výchozí předstihy (uzávěrka 1 den a 1 h, sraz 2 h?); kdo nastavuje u události (kdo ji zakládá); pole Sraz / odjezd u všech událostí?
+29. Hosté: platí jako hráčky bez příspěvku (podle šablon)? Počítají se do týmových statistik a Docházky? Smí vidět Soupeře / Zápis utkání zápasu, kde hráli?
+30. Více týmů: který model (A / B / C)? Prodej – licence ročně, jednorázově, zdarma? Kdo založí tým a prvního Hlavního trenéra? Vlastní doména? Má mít jeden trenér víc týmů v jednom účtu?
 
 ## E – později: Modul Trénink (zatím neřešit)
 Podrobný modul: plán tréninku, docházka, rozdělení tréninku (stanoviště, pětky, cvičení), dlouhodobý plán, statistiky pokroku hráček. Začne se až po dokončení v18.x. Příprava: docházka v C1 jako čistá doménová funkce (`attendance.js`), aby ji Trénink převzal.
