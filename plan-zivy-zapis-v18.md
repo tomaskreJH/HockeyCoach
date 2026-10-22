@@ -5,7 +5,7 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 
 | Verze | Fáze | Obsah |
 |---|---|---|
-| v18.0 | A | Tlačítko Zpět v aplikaci, dotaz na ukončení z domovské stránky – **hotovo** (opravy ve v18.1) |
+| v18.0 | A | Tlačítko Zpět v aplikaci, dotaz na ukončení z domovské stránky – **hotovo** (opravy ve v18.1 a v18.1.1) |
 | v18.1 | B1 | Společné pravidlo střídání, Průběh se všemi kroky – **hotovo**, k testu |
 | v18.2 | B2 | Pevné rozložení tlačítek, odezva (vibrace) |
 | v18.3 | B3 | Ovládání rotace |
@@ -22,6 +22,8 @@ Pořadí fází je návrh – lze ho změnit (např. docházku dát před živý
 - **v18.0 (A) dodáno.** Test: Zpět zavírá okna a detaily, ale na ukončení se neptalo. Příčina: Chrome přeskakuje záznamy historie vložené bez aktivace uživatelem a dotyk prstem (pointerdown) aktivací není. Oprava ve v18.1: zásoba 3 strážních záznamů doplňovaná při klepnutí (pointerup / touchend / click / klávesa).
 - **Odchod ze živého zápisu zastaví čas** (přání po testu v18.0) – platí pro tlačítko Zpět i ⋯ → ✕ Zavřít živý zápis (`leaveLive` v `live.js`). Pokračování: karta zápasu → ▶ Pokračovat → ▶ Start.
 - **v18.1 (B1) dodáno** spolu s opravami A.
+- **v18.1.1 (oprava A) dodáno, k testu.** Test v18.1: po některých postupech se další Zpět na ukončení nezeptalo a aplikace se zavřela. Příčiny: (1) zavírání oken programovým `el.click()` spouštělo doplnění zásoby bez aktivace – Chrome takové záznamy přeskočí; (2) jedno klepnutí doplnilo až 3 záznamy, ale Chrome aktivaci spotřebuje prvním, další dva byly přeskočitelné a jedno Zpět je přeskočilo všechny; (3) po „Ne“ v dotazu se zásoba nedoplnila. Oprava v `nav.js`: doplnění jen při `e.isTrusted`, jeden záznam za klepnutí (i v dotazu), posun prstem (pointercancel) nic nevkládá, zásoba 5, po vyčerpání zásoby vždy dotaz „Ukončit aplikaci?“. Ověřeno simulací v jsdom s modelem pravidla Chrome (9 scénářů; v18.1 v modelu selhala ve 4).
+- **Další: v18.2 (B2)** – pevné rozložení tlačítek a odezva, až po testu v18.1.1.
 - Odpovědi na otevřené otázky: **3** – po vyloučení otevřít panel PP/OS **vždy**; nesestavená jednotka se doplní podle hráček, které trenér pošle na led. Zvážit povinnost mít PP/OS sestavené před zápasem (podmínka „Zahájit zápas“ v `domain/lineup.js` – zásah mimo B4, potvrdit před v18.4). Ostatní otázky – platí návrhy z kontroly kódu (viz níže u otázek).
 
 ## A – v18.0: Tlačítko Zpět (Všeobecně 1a)
