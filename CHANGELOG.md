@@ -4,6 +4,26 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.6.1 (23. 10. 2026) – ČL: ✋ žádost o přijetí do týmu (⚠️ sahá na přihlašování a správu členů, ne na platby)
+> **Nasazení:** 1) Záloha: ⚙️ → Stáhnout zálohu (JSON) a zip současného repozitáře. 2) **Nejdřív publikovat `firestore.rules`** (nová kolekce `joinreq`; ostatní pravidla beze změny). 3) Nahrát kód (nové soubory `src/domain/join-requests.js`, `src/views/join-view.js`, `tests/join-requests.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6.1 v záhlaví. 5) Test: přihlásit se účtem Google, který není v Členech týmu → vyplnit žádost; trenér ji v 🏠 Domů vyřídí.
+> **🔒 Vyžadovat verzi: ne** (stará verze žádosti jen nevidí – trenér je pak vyřídí v nové verzi). Návrat na v19.6: nahrát předchozí zip a vrátit pravidla z historie v konzoli Firebase (kolekce `joinreq` může zůstat).
+
+**Přidáno**
+- **✋ Žádost o přijetí do týmu** – účet Google bez členství místo hlášky „nemá přístup“ uvidí formulář: e-mail převzatý z přihlášení (nejde přepsat), přezdívka (povinná), číslo dresu 1–99 (nepovinné), hráčka / realizační tým, poznámka → `joinreq/{email}` (`st: "open"`). Pak stav **⏳ Čeká na schválení trenérem** se zrušením (potvrzení druhým klepnutím); po schválení se aplikace sama načte už s rolí. Zamítnutá žádost ukáže důvod, novou lze poslat nejdřív za 24 h.
+- **Vyřízení (jen trenér):** pruh **✋ N žádostí o přijetí** v 🏠 Domů a tlačítko v ⚙️ → Členové týmu otevřou okno žádostí: role Hráčka / Kustod / Trenér; **založit novou hráčku** (jméno = přezdívka, číslo dresu) nebo **přiřadit hráčku bez účtu** (shoda čísla dresu první, obsazené číslo jen upozorní); u trenéra / kustoda nový nebo existující člen realizačního týmu, případně bez propojení. Přijetí = jedna dávka: soupiska / tým + `members/{email}` + žádost (`st: "ok"`, `doneBy`, `doneMs`, `pid` / `tid`) + audit (`join`). **Zamítnutí** jen s důvodem (žádost `st: "no"`, `reply` + audit `join-no`). Potvrzení druhým klepnutím.
+- `src/domain/join-requests.js` (`JOIN_COLL`, `joinCheck`, `joinDoc`, `canResend`, `openJoins`, `defaultRole`, `freePlayers`, `freeStaff`, `numTaken`, `approvePlan`, `rejectPlan`), `src/views/join-view.js` (`joinScreen`, `openJoinWindow`, `refreshJoin`, `joinBanner`), `tests/join-requests.test.js` (9 testů včetně kontroly pravidel).
+- `firestore.rules` – `joinreq/{email}`: založit jen přihlášený účet bez `members` sám za sebe a jen pole formuláře se `st: "open"`; novou žádost po vyřízení nejdřív 24 h po `doneMs`; čte vlastník a trenér; vyřizuje a maže trenér, uchazeč smí zrušit jen otevřenou.
+
+**Změněno**
+- `src/data/storage.js` – účet bez role: obrazovka žádosti (`joinFlow`, zápisy jen do vlastního `joinreq`) místo hlášky „nemá přístup“ (hráčka bez propojení dál vidí původní hlášku); ⚙️ → Členové týmu: tlačítko ✋ žádostí (trenér); `HK.openJoin`, `HK.listMembers`; `joinreq` mezi kolekcemi mimo zálohu; text přihlašovací obrazovky.
+- `src/main.js` – poslech `joinreq` jen trenér (`S.jr`), překreslení okna žádostí po změně žádostí, soupisky a týmu.
+- `src/views/home-view.js` – pruh ✋ žádostí o přijetí pro trenéra (ostatní karty beze změny).
+- `src/views/help.js` (přihlášení, ✋ žádosti o přijetí v ⚙️), `docs/KONVENCE.md` (mapa souborů), `docs/plan-v18.md` (stav, tabulka, ČL dodáno, otázky 61–64 rozhodnuty), `docs/prompt-dalsi-vlakno.md`, `README.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v66`).
+
+**Beze změny**
+- Živý zápis, docházka, pokladna a platby (nová hráčka nemá `plpay` – výchozí hodnoty jako dřív, platby doplní trenér v Team), statistiky, rozpočet; ruční přidání člena v ⚙️ funguje jako dřív; pravidla ostatních kolekcí.
+- Ověřeno: `npm test` (175 – nové testy žádostí, srovnávací test D1 beze změny), kouřový test v jsdom mimo repozitář: nový účet → formulář (e-mail zamčený, prázdná přezdívka neodejde, zápis jen `joinreq/{vlastní e-mail}` s poli formuláře), čekající žádost → ⏳ a zrušení (smaže jen vlastní žádost), zamítnutá → důvod a čekání 24 h bez formuláře; trenér → pruh v 🏠, okno, shoda čísla, upozornění na obsazené číslo, přijetí (members + žádost + audit), zamítnutí bez důvodu zablokováno, s důvodem žádost + audit, tlačítko v ⚙️ s počtem; hráčka a kustod → bez pruhu a bez tlačítka, žádný zápis; start všech rolí bez chyb.
+
 ## v19.6 (23. 10. 2026) – UP: 🏠 Domů – úvodní přehled (jen čtení, bez změny dat a pravidel)
 > **Nasazení:** 1) Záloha: zip současného repozitáře (data se nemění). 2) **firestore.rules beze změny – nepublikovat.** 3) Nahrát kód (nové soubory `src/domain/home-summary.js`, `src/views/home-view.js`, `tests/home-summary.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6 v záhlaví – aplikace se otevře v záložce 🏠.
 > **🔒 Vyžadovat verzi: ne** (nic nového se nezapisuje; starší verze dál funguje, jen nemá 🏠 Domů). Návrat na v19.5.2: nahrát předchozí zip.

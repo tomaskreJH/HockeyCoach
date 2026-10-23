@@ -10,6 +10,7 @@
 // Ceny uzavřených událostí na hlavu (evprice → S.pr) čtou všichni členové (porovnání způsobu placení v Moje platby).
 // Žádosti (requests → S.rq): správci pokladny všechny, ostatní jen své (dotaz mid == pid / tid).
 // Rozpočty sezón (budget → S.bd): jen správci pokladny; chyba (nepublikovaná pravidla) aplikaci nezastaví.
+// Žádosti o přijetí do týmu (joinreq → S.jr): jen trenér; otevřené okno vyřízení se po změně žádostí, soupisky a týmu překreslí.
 
 // ===== Importy =====
 import {HK} from "./data/storage.js";
@@ -20,11 +21,13 @@ import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {BUDGET_COLL} from "./domain/budget.js";
 import {PRICE_COLL} from "./domain/economy.js";
+import {JOIN_COLL} from "./domain/join-requests.js";
 import {REQ_COLL} from "./domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, joinAttNotes, joinPlPay, joinStaffPay} from "./domain/private-data.js";
 import {SERIES_COLL} from "./domain/recurrence.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
 import {initHelp} from "./views/help.js";
+import {openJoinWindow, refreshJoin} from "./views/join-view.js";
 import {leaveLive} from "./views/live-events.js";
 import {liveTick} from "./views/live-view.js";
 import {render} from "./views/shell.js";
@@ -52,6 +55,8 @@ initHelp();
 initNav({leaveLive});
 // Okno nastavení pokladny se otevírá z ⚙️
 HK.openCash=openCashSettings;
+// Okno žádostí o přijetí do týmu (trenér) se otevírá z ⚙️ → Členové týmu
+HK.openJoin=openJoinWindow;
 setInterval(liveTick,500);
 
 // ===== Hlavní logika: poslech dat =====
@@ -61,12 +66,14 @@ const er=e=>{S.err="Chyba databáze: "+e.message;render()};
 const erX=k=>e=>{S.evErr=e.code||e.message;ok(k);render()};
 // Chyba citlivé kolekce: jen záznam do konzole, data zůstanou ze starých polí
 const erP=c=>e=>console.warn("Kolekce "+c+" se nenačetla:",e&&(e.code||e.message));
-db.collection("players").onSnapshot(s=>{R.pl=rows(s);joinPl();ok("p");render()},er);
+db.collection("players").onSnapshot(s=>{R.pl=rows(s);joinPl();ok("p");render();refreshJoin()},er);
 db.collection("matches").onSnapshot(s=>{S.ma=rows(s);ok("m");render();if(S.ready&&HK.can("sport")){syncOps();fixClosed()}},er);
 db.collection("opponents").onSnapshot(s=>{S.op=rows(s);ok("o");render();if(S.ready&&HK.can("sport"))syncOps()},er);
 db.collection("events").onSnapshot(s=>{S.ev=rows(s);ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{R.at=rows(s);joinAt();ok("a");render()},erX("a"));
-db.collection("staff").onSnapshot(s=>{R.tr=rows(s);joinTr();render()},erX("t"));
+db.collection("staff").onSnapshot(s=>{R.tr=rows(s);joinTr();render();refreshJoin()},erX("t"));
+// Žádosti o přijetí do týmu: jen trenér (pruh v 🏠 Domů, okno vyřízení); chyba (nepublikovaná pravidla) aplikaci nezastaví
+if(HK.can("admin"))db.collection(JOIN_COLL).onSnapshot(s=>{S.jr=rows(s);render();refreshJoin()},erP(JOIN_COLL));
 // Definice sérií tréninků: jen trenér / kustod (kvůli záloze a úpravám série); chyba (nepublikovaná pravidla) aplikaci neblokuje
 if(HK.can("sport"))db.collection(SERIES_COLL).onSnapshot(()=>{},erP(SERIES_COLL));
 // Důvody omluv: trenér a kustod celou kolekci, ostatní jen své (dotaz mid == pid / tid; odběratel dostane sjednocení dotazů)

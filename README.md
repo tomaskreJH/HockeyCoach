@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v19.6 (23. 10. 2026)** – 🏠 **Domů – úvodní přehled** (nová první záložka a výchozí obrazovka po spuštění pro všechny členy): běžící zápas (trenér / kustod rovnou do živého zápisu), příští zápas s mou odpovědí a uzávěrkou, události tohoto týdne, stav mých plateb a u trenéra / pokladníka souhrn pokladny týmu, žádosti ✋ a varování cashflow. Jen čte – pravidla databáze beze změny. Další: v19.6.1 – ✋ žádost o přijetí do týmu (ČL). Dříve v19.5.2 – ✅ schválení a 🖨 export rozpočtu, v19.5.1 – 📈 plnění a 💧 cashflow rozpočtu, v19.5 – 📊 rozpočet sezóny, v19.4.1 – ✋ žádost o změnu placení, v19.4 – 💳 Moje platby po měsících, v19.3 – ⚖️ hospodaření události a měsíce, v19.2 – 🔁 opakované události, v19.1 – soukromí v databázi.
+**Aktuální verze: v19.6.1 (23. 10. 2026)** – ✋ **Žádost o přijetí do týmu**: účet Google bez členství po přihlášení pošle trenérovi žádost (e-mail z přihlášení, přezdívka, číslo dresu, hráčka / realizační tým, poznámka) a vidí její stav; trenér ji vyřídí z 🏠 Domů nebo ⚙️ → Členové týmu – založí / přiřadí hráčku nebo člena realizačního týmu a účet jednou dávkou, nebo zamítne s důvodem. Nová kolekce `joinreq` – **publikovat firestore.rules před kódem**. Další: v19.6.2 – 👁 náhled živého zápasu pro členy. Dříve v19.6 – 🏠 Domů, v19.5.2 – ✅ schválení a 🖨 export rozpočtu, v19.5.1 – 📈 plnění a 💧 cashflow rozpočtu, v19.5 – 📊 rozpočet sezóny, v19.4.1 – ✋ žádost o změnu placení, v19.4 – 💳 Moje platby po měsících, v19.3 – ⚖️ hospodaření události a měsíce, v19.2 – 🔁 opakované události, v19.1 – soukromí v databázi.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -40,12 +40,12 @@ Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrá
 ## Role a ochrana dat (stručně)
 | Role (`members/{email}.role`) | Smí |
 |---|---|
-| `trener` | vše (členové, soupiska, zápasy, události, docházka, pokladna, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze) |
+| `trener` | vše (členové a ✋ žádosti o přijetí do týmu, soupiska, zápasy, události, docházka, pokladna, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze) |
 | `kustod` | zápasy a živý zápis, soupeři, formace, události, docházka za kohokoli; u hráčky jen stav |
 | `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; Moje platby jen své předpisy |
 | příznak `cash: true` | pokladník: předpisy, pohyby, vyúčtování, nastavení pokladny; **členy jen s rolí Hráčka a ne vlastní účet** |
 
-Pravidla databáze (`firestore.rules`) jsou skutečná ochrana – skrytí v rozhraní nestačí. Známé mezery (důvody omluv, platy trenérů a platební pole soupisky čitelné všemi členy; uzávěrka přihlašování jen v aplikaci) řeší fáze S a W v plánu.
+Účet bez `members` smí jen založit / zrušit vlastní žádost `joinreq/{email}` (vyřizuje trenér). Pravidla databáze (`firestore.rules`) jsou skutečná ochrana – skrytí v rozhraní nestačí. Známé mezery (důvody omluv, platy trenérů a platební pole soupisky čitelné všemi členy; uzávěrka přihlašování jen v aplikaci) řeší fáze S a W v plánu.
 
 ## Struktura
 Podrobná mapa souborů je v [docs/KONVENCE.md](docs/KONVENCE.md). Ve zkratce: `src/config` (konstanty) → `src/core` (stav, pomůcky, verze) → `src/domain` (čisté výpočty, testované) → `src/views` (obrazovky) → `src/main.js`; datová vrstva `src/data/storage.js`; testy `tests/`; dokumentace `docs/`.

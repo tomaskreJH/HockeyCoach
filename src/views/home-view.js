@@ -1,7 +1,7 @@
 // 🏠 Domů – úvodní přehled (výchozí záložka po spuštění, vidí každý člen): běžící zápas, příští zápas, události tohoto týdne
-// s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow).
-// Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Nic nezapisuje.
-// Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
+// s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow);
+// trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js).
+// Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Nic nezapisuje. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Vykreslení karet -> Eventy -> Export.
 
 // ===== Importy =====
@@ -13,6 +13,7 @@ import {cashflow} from "../domain/budget-track.js";
 import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, weekEvents} from "../domain/home-summary.js";
+import {joinBanner, openJoinWindow} from "./join-view.js";
 import {econData} from "./payments.js";
 import {render} from "./shell.js";
 
@@ -94,6 +95,7 @@ function bind(a, L) {
   a.querySelectorAll("[data-heo]").forEach(b => b.onclick = go(() => { S.tab = "ev"; S.mid = null; S.evf = null; S.evid = b.dataset.heo; S.evBack = "home"; }));
   a.querySelectorAll("[data-hmk]").forEach(b => b.onclick = go(() => { S.tab = "mk"; S.mid = null; S.evid = null; }));
   a.querySelectorAll("[data-hpay]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "pay"; S.mid = null; S.evid = null; }));
+  a.querySelectorAll("[data-hjr]").forEach(b => b.onclick = () => openJoinWindow());
   a.querySelectorAll("[data-hbud]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "bud"; S.mid = null; S.evid = null; }));
   // Trenér / kustod: otevře kartu běžícího zápasu a v ní živý zápis (stejně jako ▶ Pokračovat v živém zápisu)
   a.querySelectorAll("[data-hlv]").forEach(b => b.onclick = () => { if (!L || !HK.can("sport")) return; S.tab = "ev"; S.evid = null; S.mid = L.id; S.step = 3; S.lv = true; render(); });
@@ -107,6 +109,6 @@ export function homeView(a) {
   const next = nm ? {...nm, ans: myAnswer(S.at, nm.id, mid), going: goingCount(S.at, nm.id), locked: regClosed(nm, now, today)} : null;
   const mp = mineIds().length ? myPay(S.ch, mineIds(), now) : null;
   const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";
-  a.innerHTML = CSS + `<div id="hmw">${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${nextHtml(next, !!mid)}${weekHtml(week, !!mid)}${payHtml(mp)}${team}</div>`;
+  a.innerHTML = CSS + `<div id="hmw">${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${nextHtml(next, !!mid)}${weekHtml(week, !!mid)}${payHtml(mp)}${team}</div>`;
   bind(a, L);
 }

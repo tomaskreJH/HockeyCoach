@@ -200,6 +200,26 @@ service cloud.firestore {
       allow delete: if isCash() || (isPlayer() && resource.data.mid == myPid() && resource.data.st == 'open');
     }
 
+    // ===== Žádosti o přijetí do týmu joinreq/{email} (id = e-mail účtu Google malými písmeny) =====
+    // Založit smí jen přihlášený účet BEZ členství a jen sám za sebe, jen pole formuláře se st 'open'. Po vyřízení trenérem
+    // (zamítnutí, odebraný přístup) smí poslat novou žádost nejdřív 24 h po vyřízení (doneMs). Čte vlastník a trenér;
+    // vyřizuje (st, reply, doneBy, doneMs, pid / tid) a maže trenér, uchazeč smí smazat (zrušit) jen otevřenou žádost.
+    function joinForm(email, d) {
+      return d.keys().hasOnly(['email', 'nick', 'num', 'kind', 'note', 'st', 'at'])
+        && d.email == email && d.st == 'open' && d.at is string
+        && d.nick is string && d.nick.size() > 0 && d.nick.size() <= 40
+        && d.num is string && d.num.matches('^([1-9][0-9]?)?$')
+        && d.kind in ['hracka', 'staff'] && d.note is string && d.note.size() <= 300;
+    }
+    function joinOwner(email) { return signedIn() && email == mail() && !isMember(); }
+    match /joinreq/{email} {
+      allow read: if signedIn() && (email == mail() || isCoach());
+      allow create: if joinOwner(email) && joinForm(email, request.resource.data);
+      allow update: if isCoach() || (joinOwner(email) && resource.data.st in ['no', 'ok']
+        && request.time.toMillis() > resource.data.get('doneMs', 0) + 86400000 && joinForm(email, request.resource.data));
+      allow delete: if isCoach() || (signedIn() && email == mail() && resource.data.st == 'open');
+    }
+
     // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====
     // Člen musí předpisy číst dotazem s podmínkou mid == jeho pid / tid (aplikace to dělá)
     match /charges/{id} {

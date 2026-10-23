@@ -10,6 +10,7 @@
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
    Minimum nastavuje jen trenér (⚙️ → Verze aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
+   Účet Google bez členství vidí formulář ✋ žádosti o přijetí (joinreq/{e-mail}, views/join-view.js), trenér ji vyřídí v okně z 🏠 / ⚙️.
    Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze).
    Soukromí: citlivá data jsou v kolekcích attnote (důvody omluv), staffpay (platy týmu) a plpay (platební pole hráček) – jsou v záloze;
    ⚙️ → Kontrola dat je převede ze starých polí (náhled, záloha, idempotentně) a po 🔒 Vyžadovat verzi stará pole smaže
@@ -24,6 +25,7 @@ import {BUDGET_COLL} from "../domain/budget.js";
 import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
+import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
@@ -60,8 +62,9 @@ const first = {};                      // už dorazil první snapshot kolekce?
 const listening = new Set();           // kolekce, které se právě poslouchají
 // Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (odvozuje se z předpisů, po obnově se přepočítá),
 // evprice = ceny uzavřených událostí na hlavu (odvozují se z evcash, po obnově se doplní v ⚙️ → Pokladna),
-// requests = žádosti členů (průběh vyřízení; výsledek schválení je v plpay a v auditu)
-const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL];
+// requests = žádosti členů (průběh vyřízení; výsledek schválení je v plpay a v auditu),
+// joinreq = žádosti o přijetí do týmu (čte jen trenér a uchazeč; výsledek je v members, soupisce a auditu)
+const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL];
 [...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
@@ -291,6 +294,19 @@ async function checkRole() {
   try { const s = await getDoc(fsDoc(fs, "members", user.email.toLowerCase())); const d = s.exists() ? s.data() : {}; return {role: d.role || null, pid: d.pid || null, tid: d.tid || null, cash: d.cash === true}; }
   catch (e) { return {err: e}; }
 }
+// Žádost o přijetí (účet bez members): obrazovka views/join-view.js; zápisy jen do vlastního dokumentu joinreq/{e-mail}
+// (pravidla databáze: založit smí jen účet bez členství, číst vlastník a trenér). Vrací "ok" (schváleno) nebo "out".
+async function joinFlow() {
+  const em = user.email.toLowerCase(), ref = fsDoc(fs, JOIN_COLL, em), app = document.getElementById("app");
+  document.getElementById("nav").style.display = "none";
+  const {joinScreen} = await import("../views/join-view.js");
+  return joinScreen(app, {
+    email: em,
+    watch: (cb, er) => onSnapshot(ref, s => cb(s.exists() ? s.data() : null), er),
+    send: d => setDoc(ref, clone(d)),
+    cancel: () => deleteDoc(ref)
+  });
+}
 // Spuštění: přihlášení -> kontrola role -> teprve potom se vrátí databáze
 async function boot() {
   if (!configOk()) { await screen("Chybí nastavení Firebase", "Vyplň hodnoty v souboru <code>src/data/firebase-config.js</code>.", []); return new Promise(() => {}); }
@@ -299,7 +315,7 @@ async function boot() {
   user = await authUser();
   for (;;) {
     if (!user) {
-      await screen("🏒 " + APP_NAME, "Přihlas se účtem Google, který má trenér zapsaný mezi členy týmu.", [["login", "Přihlásit přes Google", "p"]]);
+      await screen("🏒 " + APP_NAME, "Přihlas se účtem Google. Pokud ještě nejsi členem týmu, po přihlášení můžeš trenéra požádat o přijetí.", [["login", "Přihlásit přes Google", "p"]]);
       user = await doLogin();
       continue;
     }
@@ -318,8 +334,13 @@ async function boot() {
       else pvWrite(null);
       break;
     }
-    const msg = role === "hracka" ? "Účet <b>" + esc(user.email) + "</b> zatím není propojen s hráčkou v soupisce. Požádej trenéra, ať ho propojí (⚙️ → Členové týmu)." : "Účet <b>" + esc(user.email) + "</b> nemá přístup. Požádej trenéra, ať ti ho přidá.";
-    await screen("Přístup zatím není povolen", msg, [["out", "Odhlásit jiným účtem", "p"]]);
+    // Účet bez členství: formulář ✋ žádosti o přijetí; po schválení trenérem se role ověří znovu
+    if (!role) {
+      const g = await joinFlow();
+      if (g === "ok") continue;
+    } else {
+      await screen("Přístup zatím není povolen", "Účet <b>" + esc(user.email) + "</b> zatím není propojen s hráčkou v soupisce. Požádej trenéra, ať ho propojí (⚙️ → Členové týmu).", [["out", "Odhlásit jiným účtem", "p"]]);
+    }
     await signOut(auth); user = null; role = null; pid = null; tid = null; cash = false;
   }
   document.getElementById("nav").style.display = "";
@@ -365,6 +386,11 @@ function bindPv(q) {
     startPreview({role: r, pid: r === "hracka" ? p : null, tid: q("#pvt").value || null, cash: r !== "trener" && q("#pvc").value === "1", write: q("#pvw").checked});
   };
 }
+// ⚙️ → Členové týmu (trenér): tlačítko okna ✋ žádostí o přijetí s počtem otevřených
+function joinCfgBtn() {
+  const n = openJoins(Object.entries(data[JOIN_COLL]).map(([id, d]) => ({id, ...d}))).length;
+  return `<button class="s w" id="cjr" style="margin-top:8px${n ? ";border-color:var(--wa)" : ""}">✋ Žádosti o přijetí do týmu${n ? " (" + n + ")" : " – žádné otevřené"}</button>`;
+}
 async function renderMembers(el) {
   const box = el.querySelector("#cmb"), coach = can("admin");
   box.textContent = "Načítám…";
@@ -391,7 +417,7 @@ function openCfg() {
  <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
  ${pvSection()}
  ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button><div class="mu" style="margin:8px 0">Hráčky v Moje platby porovnávají způsob placení podle ceny uzavřených událostí na hlavu. Pro dříve uzavřené události (nebo po obnově zálohy) ceny doplň – opakování nic nepokazí.</div><button class="s w" id="cpr">💲 Doplnit ceny pro hráčky</button>` : ""}
- ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option><option value="kustod" selected>Kustod</option>' : ""}<option value="hracka"${coach ? "" : " selected"}>Hráčka</option></select><select id="cmp"${coach ? ' style="display:none"' : ""}><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
+ ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option><option value="kustod" selected>Kustod</option>' : ""}<option value="hracka"${coach ? "" : " selected"}>Hráčka</option></select><select id="cmp"${coach ? ' style="display:none"' : ""}><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>${coach ? joinCfgBtn() : ""}` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
  ${coach ? `<h3>Kontrola dat</h3>${exFixHtml()}${privHtml()}` : ""}
@@ -418,6 +444,7 @@ function openCfg() {
     catch (e) { say("Doplnění se nepovedlo: " + errTxt(e) + " – je publikováno firestore.rules?"); }
   };
   renderMembers(el);
+  if (q("#cjr")) q("#cjr").onclick = () => { close(); if (HK.openJoin) HK.openJoin(); };
   // Výběr hráčky se ukáže jen u role Hráčka; člen týmu je volitelný u každé role (hráčka může být i členem týmu)
   q("#cmr").onchange = () => { q("#cmp").style.display = q("#cmr").value === "hracka" ? "" : "none"; };
   q("#cma").onclick = async () => {
@@ -599,7 +626,9 @@ async function importData(obj, replace) {
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };
-export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, can, pid: () => pid, tid: () => tid, user: () => user, openCash: null,
+export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, can, pid: () => pid, tid: () => tid, user: () => user, openCash: null, openJoin: null,
+  // Účty members [{email, role, pid, tid, cash}] – okno žádostí o přijetí (trenér)
+  listMembers: async () => (await getDocs(fsCol(fs, "members"))).docs.map(d => ({email: d.id, ...d.data()})),
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview};
 window.HK = HK;
