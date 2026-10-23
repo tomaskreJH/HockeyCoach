@@ -1,7 +1,7 @@
 // Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku.
 // Záložka Události řeší jen události (Nadcházející / Minulé / Kalendář / Docházka); správce odklikává docházku v detailu události;
 // rychlá tlačítka na kartě platí za přihlášenou hráčku, nebo za trenéra / kustoda propojeného s realizačním týmem (jinak se na kartě nezobrazí).
-// Režimy Platby, Pokladna a Měsíce jsou v záložce Team (vykresluje je cashPanel() z tohoto souboru, volá ho views/team.js).
+// Režimy Platby, Pokladna, Měsíce a Rozpočet jsou v záložce Team (vykresluje je cashPanel() z tohoto souboru, volá ho views/team.js).
 // V detailu události je pokladna (vyúčtování) až na konci stránky, nahoře jsou údaje pro trénink a hokej.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
 // Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo a termín přihlašování jsou v polích time, place, dl zápasu);
@@ -11,7 +11,7 @@
 // Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se přihlašuje jedním klepnutím přímo na kartě události.
 // Náklady a platby vidí jen správci pokladny (HK.can("money"): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
 // přehled plateb a dluhů: views/finance.js (Team → „💰 Platby“); pohyby pokladny: views/cashbook.js (Team → „🏦 Pokladna“);
-// příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4).
+// příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4); rozpočet sezóny: views/budget-view.js (Team → „📊 Rozpočet“).
 // Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu); tlačítko 📋 Zápis utkání
 // otevře celý zápis (views/report.js, okno #rp, S.rp = id zápasu) – stejně jako v záložce Soupeři, jen ke čtení a exportu.
 // Řazení: Nadcházející vzestupně, Minulé a Kalendář sestupně (domain/event-helpers.js). Pětky tréninku: hráčky a přihlášení členové
@@ -41,6 +41,7 @@ import {bindMoney, moneyHtml} from "./money.js";
 import {bindPay, payHtml} from "./payments.js";
 import {bindRep, bindScope, bindSerDel, repHtml, repOn, repSave, repSaveText, scopeHtml, serDelBtn, serEditSave, serLine} from "./event-series.js";
 import {attHtml, bindAtt, debtTag} from "./attendance.js";
+import {bindBudget, budgetHtml} from "./budget-view.js";
 import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
 
@@ -76,7 +77,7 @@ const CSS = `<style>
 #evw table td,#evw table th{white-space:nowrap}
 </style>`;
 // Režimy pokladny v záložce Team (jen správci pokladny); klíč = hodnota S.tm
-const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "📅 Měsíce"]];
+const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "📅 Měsíce"], ["bud", "📊 Rozpočet"]];
 
 // ===== Pomocné funkce =====
 const pad = n => String(n).padStart(2, "0");
@@ -230,14 +231,14 @@ ${mode === "att" ? attHtml() : shown.length ? shown.map(e => card(e, AT, P)).joi
 }
 
 // ===== Vykreslení: režimy pokladny pro záložku Team =====
-// Vykreslí přepínač (předaný jako head) a vybraný režim S.tm: Platby, Pokladna, nebo Měsíce. Jen pro správce pokladny.
+// Vykreslí přepínač (předaný jako head) a vybraný režim S.tm: Platby, Pokladna, Měsíce, nebo Rozpočet (views/budget-view.js). Jen pro správce pokladny.
 // Vrací false, pokud se režim pokladny nevykresluje (pak Team vykreslí formaci a soupisku).
 export function cashPanel(a, head) {
   if (!cashMgr() || !CASH_MODES.some(([k]) => k === S.tm)) return false;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události nebo docházku se nepodařilo načíst (${esc(S.evErr)}).</div>` : "";
-  const body = S.tm === "pay" ? financeHtml(allEvents(), atMap()) : S.tm === "cash" ? cashbookHtml() : moneyHtml();
+  const body = S.tm === "pay" ? financeHtml(allEvents(), atMap()) : S.tm === "cash" ? cashbookHtml() : S.tm === "bud" ? budgetHtml() : moneyHtml();
   a.innerHTML = CSS + `<div id="evw">${errH}${head}${body}</div>`;
-  if (S.tm === "pay") bindFinance(a); else if (S.tm === "cash") bindCashbook(a); else bindMoney(a);
+  if (S.tm === "pay") bindFinance(a); else if (S.tm === "cash") bindCashbook(a); else if (S.tm === "bud") bindBudget(a); else bindMoney(a);
   return true;
 }
 export {CASH_MODES};

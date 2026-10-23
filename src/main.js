@@ -9,6 +9,7 @@
 // Připojí se k záznamům v paměti (S.at, S.pl, S.tr) s náhradou ze starých polí; chyba nových kolekcí (nepublikovaná pravidla) aplikaci nezastaví.
 // Ceny uzavřených událostí na hlavu (evprice → S.pr) čtou všichni členové (porovnání způsobu placení v Moje platby).
 // Žádosti (requests → S.rq): správci pokladny všechny, ostatní jen své (dotaz mid == pid / tid).
+// Rozpočty sezón (budget → S.bd): jen správci pokladny; chyba (nepublikovaná pravidla) aplikaci nezastaví.
 
 // ===== Importy =====
 import {HK} from "./data/storage.js";
@@ -17,6 +18,7 @@ import {fixClosed, syncOps} from "./core/actions.js";
 import {initNav} from "./core/nav.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
+import {BUDGET_COLL} from "./domain/budget.js";
 import {PRICE_COLL} from "./domain/economy.js";
 import {REQ_COLL} from "./domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, joinAttNotes, joinPlPay, joinStaffPay} from "./domain/private-data.js";
@@ -83,7 +85,9 @@ db.collection("evcash").onSnapshot(s=>{S.ec=rows(s);render()},ec);
 db.collection(PPAY_COLL).onSnapshot(s=>{R.pp=mapOf(s);joinPl();render()},erP(PPAY_COLL));
 db.collection(SPAY_COLL).onSnapshot(s=>{R.sp=mapOf(s);joinTr();render()},erP(SPAY_COLL));
 // Žádosti o změnu placení (vyřizuje správce pokladny)
-db.collection(REQ_COLL).onSnapshot(s=>{S.rq=rows(s);render()},erP(REQ_COLL))}
+db.collection(REQ_COLL).onSnapshot(s=>{S.rq=rows(s);render()},erP(REQ_COLL));
+// Rozpočty sezón (Team → 📊 Rozpočet)
+db.collection(BUDGET_COLL).onSnapshot(s=>{S.bd=rows(s);render()},erP(BUDGET_COLL))}
 else{[HK.pid(),HK.tid()].filter(Boolean).forEach(id=>db.collection("charges").where("mid",id).onSnapshot(s=>{S.ch=rows(s);S.payErr=null;render()},ec));   // odběratel dostane sjednocení výsledků všech dotazů
 // Hráčka: jen svůj dokument platebních polí (skupina, koeficient) – připojí se k S.pl
 if(HK.pid())db.collection(PPAY_COLL).one(HK.pid()).onSnapshot(s=>{R.pp=mapOf(s);joinPl();render()},erP(PPAY_COLL));

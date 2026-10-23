@@ -80,6 +80,14 @@ test("pravidla: settings/app (brána verze) zapisuje jen trenér a nejde smazat"
 
 test("pravidla: kolekce, které aplikace čte, mají pravidlo", () => {
   const rules = read("firestore.rules");
-  ["members", "players", "staff", "matches", "opponents", "settings", "events", "evcash", "evprice", "requests", "attendance", "charges", "debtors", "cash", "audit"]
+  ["members", "players", "staff", "matches", "opponents", "settings", "events", "evcash", "evprice", "requests", "budget", "attendance", "charges", "debtors", "cash", "audit"]
     .forEach(c => assert.ok(rules.includes("match /" + c + "/"), "pravidlo pro " + c));
+});
+
+test("pravidla: rozpočet sezóny čte a zapisuje jen správce pokladny, maže jen trenér", () => {
+  const rules = read("firestore.rules"), m = ruleBlock(rules, "match /budget/{id}");
+  assert.match(m, /allow read: if isCash\(\);/);
+  assert.match(m, /allow create, update: if isCash\(\) && id\.matches\('\^\[0-9\]\{4\}-\[0-9\]\{2\}\$'\) && budgetOk\(id, request\.resource\.data\);/);
+  assert.match(m, /allow delete: if isCoach\(\);/);
+  assert.match(rules, /function budgetOk\(id, d\) \{ return d\.keys\(\)\.hasOnly\(\['season', 'par', 'items', 'sal', 'other', 'by', 'at'\]\) && d\.season == id/);
 });

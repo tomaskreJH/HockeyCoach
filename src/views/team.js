@@ -1,6 +1,6 @@
 // Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování a správa pokladny.
 // Struktura: Importy -> Pomocné funkce -> players (soupiska a realizační tým) -> formV (přepínač režimů, základní formace) -> teamDrag (přetahování).
-// Přepínač nahoře (jen správce pokladny): Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce (stav S.tm); režimy pokladny vykresluje cashPanel() z events.js.
+// Přepínač nahoře (jen správce pokladny): Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet (stav S.tm); režimy pokladny vykresluje cashPanel() z events.js.
 // Hráčka s příznakem pokladník vidí formaci a náhradnice jen ke čtení (bez přetahování); u hráček a realizačního týmu mění jen platby
 // (okno Platby / Plat v modal.js – ostatní pole dokumentu zůstanou, pravidla databáze jí víc nedovolí).
 // Role: přidávat a mazat hráčky a spravovat realizační tým smí jen trenér; kustod u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
@@ -66,7 +66,7 @@ a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;
 
 // ===== Přepínač režimů, základní formace a náhradnice =====
 export function formV(a){
-// Režim pokladny (Platby / Pokladna / Měsíce) – vykreslí events.js; jinak formace a soupiska
+// Režim pokladny (Platby / Pokladna / Měsíce / Rozpočet) – vykreslí events.js; jinak formace a soupiska
 if(S.tm!=="team"&&cashPanel(a,modeChips())){bindChips(a);return}
 S.tm="team";
 const lu=S.def.lu||{},B=benchOrder(),r=ro();
