@@ -146,15 +146,17 @@ service cloud.firestore {
     // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, at, by =====
     // Důvod omluvy je v attnote/{eid}_{pid}; pole reason v docházce nejde zapsat, jen smazat (čte ji každý člen).
     // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
+    // Docházka: odpověď st; nos = 🚫 nedorazila bez omluvy – nastavuje a ruší jen trenér / kustod, hráčka značku nezaloží, nezmění ani nesmaže
+    function nosKeep() { return request.resource.data.get('nos', null) == resource.data.get('nos', null); }
     match /attendance/{id} {
       allow read: if isMember();
-      allow create: if noKeys(['reason']) && (isStaff() || (isPlayer()
+      allow create: if noKeys(['reason']) && (isStaff() || (isPlayer() && noKeys(['nos'])
         && request.resource.data.pid == myPid()
         && id == request.resource.data.eid + '_' + myPid()));
-      allow update: if keepOut(['reason']) && (isStaff() || (isPlayer()
+      allow update: if keepOut(['reason']) && (isStaff() || (isPlayer() && nosKeep()
         && request.resource.data.pid == myPid()
         && id == request.resource.data.eid + '_' + myPid()));
-      allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
+      allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid() && !('nos' in resource.data));
     }
 
     // ===== Soukromé kolekce: citlivá data čte jen vlastník a správci =====

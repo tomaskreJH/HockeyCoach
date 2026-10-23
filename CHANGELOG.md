@@ -4,6 +4,25 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.8 (24. 10. 2026) – DO: 🚫 nedorazila bez omluvy (Docházka)
+> **Nasazení:** 1) Záloha: zip současného repozitáře a ⚙️ → Stáhnout zálohu (data se jen doplňují). 2) **Publikovat firestore.rules** (kolekce `attendance`: značku 🚫 smí zapsat a zrušit jen trenér a kustod) – kdykoli, před i po nahrání kódu (stará pravidla zápis trenéra povolují, nová jen brání hráčce značku změnit). 3) Nahrát kód (nový soubor `tests/attendance-nos.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.8 v záhlaví. 5) Test: trenér – detail uplynulého tréninku, u hráčky s ✅ Jdu klepnout 🚫 (značka „🚫 Nedorazila“), znovu 🚫 = zrušit; 📊 Docházka – sloupec 🚫; hráčka – značku vidí, svou odpověď u té události nezmění.
+> **🔒 Vyžadovat verzi: ne** (starší verze značku jen nezobrazí a Docházku počítá po staru). Návrat na v19.7: nahrát předchozí zip, pravidla vrátit z historie (pole `nos` v datech nevadí).
+
+**Přidáno**
+- **🚫 Nedorazila bez omluvy:** v detailu události po jejím začátku má trenér / kustod u hráčky s odpovědí ✅ Jdu tlačítko 🚫 – klepnutí zapíše `attendance.nos = true` (merge jen tohoto pole), další klepnutí značku zruší (pole se smaže). U jména se ukáže „🚫 Nedorazila“, nahoře počet „🚫 Nedorazilo bez omluvy: N“. Jen u odpovědi Jdu (ne ❌ / ❓ / bez odpovědi), před začátkem události tlačítko není. Realizační tým tlačítko nemá.
+- **📊 Docházka – sloupec 🚫:** počet uplynulých událostí, kam hráčka byla přihlášená, ale nedorazila bez omluvy; tyto události se **nepočítají do účasti ani procenta** (procento = účast / počet událostí jako dřív).
+- `src/domain/attendance.js`: `NOS_KEY`, `isNos`, `canNos`, `nosPatch`, `nosCount`, export `startMs`; `attSummary` vrací i `nos`. `tests/attendance-nos.test.js` (5 testů, celkem 192).
+
+**Změněno**
+- `firestore.rules` – `attendance`: nová funkce `nosKeep()`; hráčka pole `nos` nezaloží, nezmění, nesmaže, ani nesmaže dokument se značkou. Trenér a kustod beze změny.
+- `src/views/events.js` – detail události (tlačítko a značka 🚫, počet), hráčka s 🚫 svou odpověď nezmění (hláška); změna odpovědi trenérem značku zruší (zápis odpovědi jako dřív přepíše dokument).
+- `src/views/attendance.js` – sloupec 🚫 a text vysvětlivky.
+- `src/views/help.js`, `docs/KONVENCE.md`, `docs/plan-v18.md`, `docs/prompt-dalsi-vlakno.md`, `README.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v70`).
+
+**Beze změny**
+- Živý zápis (střely, góly, časomíra, tresty), pokladna a platby, statistiky, čas a sraz událostí (v19.7), uzávěrka přihlašování, blokace dlužnic, odpovědi a důvody omluv (`attnote`), 🏠 Domů.
+- Ověřeno: `npm test` (192, srovnávací test D1 beze změny), kouřový test v jsdom mimo repozitář (trenér, hráčka): start bez chyb; trenér – detail uplynulého tréninku má 🚫 jen u dvou hráček s Jdu (ne u Nejdu), u budoucí události žádné; klepnutí zapíše jen `attendance/e1_p2` `{nos: true}` (mergeFields `nos`); hráčka – značku vidí, tlačítka 🚫 nemá, její tlačítka odpovědi u události se značkou jsou zakázaná, žádný zápis; 📊 Docházka – sloupec 🚫, hráčka se značkou má účast 0/1, 0 %, 🚫 1.
+
 ## v19.7 (23. 10. 2026) – UD1 + UD2: 📅 čas od – do, ⏰ sraz a počty odpovědí v tlačítkách (bez změny pravidel)
 > **Nasazení:** 1) Záloha: zip současného repozitáře (data se jen doplňují). 2) **firestore.rules beze změny – nepublikovat** (`events`, `matches` a `series` pole neomezují, `settings/events` zapisuje trenér a kustod podle stávajícího pravidla `settings`). 3) Nahrát kód (nové soubory `src/domain/event-time.js`, `src/views/event-settings.js`, `tests/event-time.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.7 v záhlaví. 5) Případně ⚙️ → ⏰ Nastavení událostí upravit výchozí sraz a délku tréninku.
 > **🔒 Vyžadovat verzi: ne** (starší verze pole `end` a `meet` jen nezobrazí; úprava tréninku starší verzí je přes merge nesmaže). Návrat na v19.6.3: nahrát předchozí zip (nová pole v datech nevadí).
