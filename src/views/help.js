@@ -9,13 +9,23 @@ const SECTIONS = [
   {t: "1. Začátek, přihlášení a role", h: `
 <ul>
 <li><b>Přihlášení:</b> účtem Google, který má trenér zapsaný mezi členy týmu (⚙️ → Členové týmu). Neznámý účet nemá přístup.</li>
-<li><b>Trenér</b> smí vše. <b>Kustod</b> vede zápasy (nominace, sestava, živý zápis, opravy), soupeře, základní formaci, události a docházku; u hráčky mění jen stav. <b>Hráčka</b> vidí Události, Statistiky a Moje platby a zapisuje docházku jen za sebe. <b>Pokladník</b> je příznak navíc k roli: spravuje pokladnu, skupiny plateb a platy.</li>
+<li><b>Trenér</b> smí vše. <b>Kustod</b> vede zápasy (nominace, sestava, živý zápis, opravy), soupeře, základní formaci, události a docházku; u hráčky mění jen stav. <b>Hráčka</b> vidí 🏠 Domů, Události, Statistiky a Moje platby a zapisuje docházku jen za sebe. <b>Pokladník</b> je příznak navíc k roli: spravuje pokladnu, skupiny plateb a platy.</li>
 <li><b>Telefon:</b> v Chrome otevři adresu aplikace → menu ⋮ → Přidat na plochu / Instalovat aplikaci. Přihlášení zůstává uložené.</li>
 <li><b>Bez signálu (hala):</b> aplikace funguje dál, změny se odešlou po připojení. Živý zápis zápasu veď jen z jednoho telefonu (při souběhu vyhrává poslední zápis).</li>
-<li><b>Tlačítko Zpět na telefonu</b> funguje uvnitř aplikace: zavře otevřené okno nebo panel, z detailu se vrátí na seznam, z karty zápasu o krok zpět, z jiné záložky na Události. Na domovské stránce se zeptá „Ukončit aplikaci?“. V živém zápisu nejdřív zavře rychlý zápis nebo menu, jinak se zeptá „Odejít ze živého zápisu?“ – odchod <b>zastaví čas</b>. Zpět hned po spuštění aplikace (před prvním klepnutím) ji může zavřít bez dotazu – tak to vyžaduje prohlížeč. Každé klepnutí do aplikace přidá jeden krok zpět (nejvýš 5); když se při mačkání Zpět po sobě kroky vyčerpají, aplikace se zeptá „Ukončit aplikaci?“ – klepni na <b>Ne</b> a můžeš pokračovat.</li>
+<li><b>Tlačítko Zpět na telefonu</b> funguje uvnitř aplikace: zavře otevřené okno nebo panel, z detailu se vrátí na seznam, z karty zápasu o krok zpět, z Minulých / Kalendáře / Docházky na Nadcházející, z jiné záložky do 🏠 Domů. V Domů se zeptá „Ukončit aplikaci?“. V živém zápisu nejdřív zavře rychlý zápis nebo menu, jinak se zeptá „Odejít ze živého zápisu?“ – odchod <b>zastaví čas</b>. Zpět hned po spuštění aplikace (před prvním klepnutím) ji může zavřít bez dotazu – tak to vyžaduje prohlížeč. Každé klepnutí do aplikace přidá jeden krok zpět (nejvýš 5); když se při mačkání Zpět po sobě kroky vyčerpají, aplikace se zeptá „Ukončit aplikaci?“ – klepni na <b>Ne</b> a můžeš pokračovat.</li>
 <li><b>Stará verze po aktualizaci:</b> ⚙️ → Načíst novou verzi (nebo tlačítko v červeném pruhu ⚠️ Starší verze aplikace – v něm se nic neuloží, dokud verzi nenačteš). Data zůstanou v databázi.</li>
 </ul>`},
-  {t: "2. Události a docházka", h: `
+  {t: "2. 🏠 Domů – úvodní přehled", h: `
+<ul>
+<li><b>🏠 Domů</b> je první záložka (ikona domečku vlevo v liště) a otevře se po spuštění aplikace. Vidí ji každý člen; nic se v ní nezapisuje – klepnutím se dostaneš tam, kde se věc vyřizuje.</li>
+<li><b>🔴 Zápas právě běží:</b> skóre a třetina běžícího zápasu. Trenér a kustod jdou tlačítkem <b>▶ Do živého zápisu</b> rovnou do zápisu; ostatní vidí jen skóre (průběh je v detailu po uzavření zápasu).</li>
+<li><b>🆚 Příští zápas:</b> soupeř, datum a čas, místo, doma / venku, uzávěrka přihlašování, počet ✅ a tvoje odpověď. Klepnutím otevřeš detail zápasu a odpovíš tam (tlačítko ← Domů tě vrátí zpět).</li>
+<li><b>📅 Tento týden</b> (pondělí – neděle): tréninky a zápasy s tvojí odpovědí; <b>❔ Odpověz</b> = odpověď ještě chybí a přihlašování je otevřené. Trenér / kustod bez propojení s realizačním týmem vidí počet přihlášených ✅.</li>
+<li><b>💳 Moje platby:</b> ✅ vše zaplaceno, 💳 k úhradě (s nejbližší splatností), ⛔ po splatnosti (přihlášení „Jdu“ je zablokované, pokud nemáš výjimku). Klepnutím otevřeš Moje platby.</li>
+<li><b>💰 Pokladna týmu</b> (jen trenér a pokladník): nezaplaceno celkem, po splatnosti s počtem dlužníků, otevřené žádosti ✋ (klepnutím Team → 💰 Platby) a varování cashflow z rozpočtu sezóny (klepnutím Team → 📊 Rozpočet).</li>
+<li><b>Zpět</b> z kterékoli jiné záložky vede do 🏠 Domů; v Domů se aplikace zeptá „Ukončit aplikaci?“.</li>
+</ul>`},
+  {t: "3. Události a docházka", h: `
 <ul>
 <li><b>Záložka Události</b> obsahuje tréninky i zápasy: Nadcházející (nejbližší nahoře), Minulé a Kalendář (nejnovější nahoře; klepnutím na den se seznam zúží) a 📊 Docházka.</li>
 <li><b>📊 Docházka</b> (vidí všichni, jen ke čtení): účast hráček a realizačního týmu na <b>uplynulých</b> událostech v období <b>Od – Do</b> (výchozí zimní sezóna 1. 8. – 1. 7.; „Tato sezóna“ ji vrátí). Typ: Vše / 🏒 Tréninky / 🏠 Domácí zápasy / 🚌 Venkovní zápasy (v závorce počet událostí). Sloupce: ✅ účast (Jdu) z počtu událostí, %, ❌ nejdu, ❓ nejistá, bez odpovědi – ❓ a bez odpovědi se do účasti nepočítají. Řazení klepnutím na hlavičku. Ukončené hráčky ⛔ jsou vidět jen s odpovědí v období. Důvody omluv se tu nezobrazují.</li>
@@ -30,7 +40,7 @@ const SECTIONS = [
 <li><b>Uzavřený zápas:</b> v detailu události je výsledek, tlačítko <b>📋 Zápis utkání</b> (celý zápis jako v záložce Soupeři – vývoj zápasu, střely, střídání, čas na ledě, tisk a export) a statistiky zápasu pro všechny členy týmu.</li>
 <li><b>Dluh po splatnosti</b> blokuje vlastní přihlášení „Jdu“, dokud ho nezaplatíš (nebo pokladník neudělí výjimku). Červený banner vede do Moje platby.</li>
 </ul>`},
-  {t: "3. Záložka Team – příprava týmu", h: `
+  {t: "4. Záložka Team – příprava týmu", h: `
 <ul>
 <li><b>Základní formace:</b> klepnutím vybereš hráčku na místo, podržením a přetažením ji přesuneš (obsazené místo se prohodí). Formace se kopíruje do každého nového zápasu a slouží k rozdělení do pětek na tréninku.</li>
 <li><b>Náhradnice:</b> všechny nezařazené aktivní hráčky. Přetažením je dáš do sestavy, prohodíš mezi sebou nebo vrátíš mezi náhradnice. Pořadí se pamatuje.</li>
@@ -40,7 +50,7 @@ const SECTIONS = [
 <li><b>Správa pokladny:</b> trenér a pokladník mají nahoře v Teamu přepínač <b>Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet</b>. Hráčka-pokladník vidí formaci jen ke čtení; u hráček a realizačního týmu mění jen platby (skupina, osvobozená, koeficient, poznámka, plat).</li>
 <li><b>Rotace dvou hráček na jednom místě:</b> pod každou pětkou je řádek <b>⇄ rotace</b>. Hlavní hráčka nastupuje první, pořadí změníš přetažením. V živém zápisu je partnerka malé tlačítko <b>⇄ číslo jméno</b> pod hráčkou ve frontě – viz kapitola 5.</li>
 </ul>`},
-  {t: "4. Nový zápas (3 kroky)", h: `
+  {t: "5. Nový zápas (3 kroky)", h: `
 <p><b>Zápas → Sestava → Zápas živě.</b> Nahoře je vždy přehled: soupeř, datum, doma/venku, délka třetiny a stav ✅/⛔ Nominace a Sestava.</p>
 <ul>
 <li><b>Postup:</b> 1) vytvořit zápas (= zveřejněná událost), 2) hráčky se přihlásí (✅ Jdu), 3) nominace z přihlášených, 4) sestava, 5) ✔ Uzavřít sestavu, 6) Zahájit zápas. Dokud přihlášky nestačí na nominaci (1 brankářka + 5 bruslařek), karta zápasu ukazuje ⏳ Přihlášky, uzávěrku a tlačítko 📅 Přihlášky – detail události.</li>
@@ -51,7 +61,7 @@ const SECTIONS = [
 <li><b>Krok 3 – Zápas živě:</b> průběh, jmenné statistiky, zápis utkání, opravy a uzavření zápasu (u trenéra a pokladníka vznikne vyúčtování plateb).</li>
 <li>Živý zápis jde spustit až po uzavření sestavy a splnění nominace. Po zahájení je zamčená nominace, soupeř, datum a doma/venku.</li>
 </ul>`},
-  {t: "5. Živý zápis", h: `
+  {t: "6. Živý zápis", h: `
 <ul>
 <li><b>Horní lišta:</b> v řádku třetiny aktuální situace (5 na 5, přesilovka, oslabení) a malé štítky trestů, pod ním čas s posunem ◀ ▶ o 5 s, vpravo skóre se střelami.</li>
 <li><b>Rozložení</b> shora dolů: horní lišta → <b>hřiště</b> (světlý obdélník jako led: nahoře <b>STŘELA NA NAŠI BRÁNU</b>, uprostřed tlustá červená středová čára, pod ní <b>hráčky na ledě</b>) → <b>mantinel</b> (bílo-modrý pruh) → tlačítka pětek → pod každým místem sloupec čekajících (nahoře ta <b>na řadě</b> – větší, zeleně orámovaná, pod ní rotující partnerka, dole partnerky hráček na ledě). Dole průběh.</li>
@@ -69,7 +79,7 @@ const SECTIONS = [
 <li><b>↩ Zpět</b> vrací poslední akci (střídání, střelu, gól, trest, jednotku…).</li>
 <li>Za živého zápisu živá obrazovka překrývá záhlaví s ❓ – nápovědu otevři před zápasem nebo po ✕ Zavřít živý zápis (čas se zastaví).</li>
 </ul>`},
-  {t: "6. Tresty, přesilovky a oslabení", h: `
+  {t: "7. Tresty, přesilovky a oslabení", h: `
 <ul>
 <li><b>🚫 Trest</b> (po přerušení): hráčka nebo soupeř → délka (2 min, 2+2, 5 min, 10 osobní, do konce) → důvod. Hráčka sejde z ledu a nahoře běží odpočet. <b>Zrušit</b> u trestu opraví omyl.</li>
 <li><b>Návrat:</b> po vypršení se hráčka vrátí na svou pozici, na jiné volné místo, nebo do fronty. Po osobním trestu jde do fronty, po „do konce“ se nevrací.</li>
@@ -81,7 +91,7 @@ const SECTIONS = [
 <li><b>Úprava jednotek za zápasu:</b> ⋯ → Jednotky PP/OS.</li>
 <li>Nemodelováno: odložený trest, trestné střílení a zvláštní pravidla pro tresty brankářky.</li>
 </ul>`},
-  {t: "7. Menu ⋯ a zranění", h: `
+  {t: "8. Menu ⋯ a zranění", h: `
 <ul>
 <li><b>👥 Sestava:</b> změna sestavy za zápasu klepnutím nebo přetažením, promítne se do front.</li>
 <li><b>Po zranění</b> se hned otevře <b>Sestava</b> s červeně vyznačeným místem zraněné hráčky (u trvalého zranění prázdné místo) – doplníš ho klepnutím nebo přetažením náhradnice.</li>
@@ -93,7 +103,7 @@ const SECTIONS = [
 <li><b>⚙️ Nastavení:</b> limit dlouhého střídání a vibrace při zápisu (odezva). Obojí se pamatuje v každém zařízení zvlášť.</li>
 <li><b>Konec třetiny / Konec zápasu:</b> po 3. třetině se prodlužuje jen při nerozhodném stavu a povoleném prodloužení, jinak tlačítko znamená Konec zápasu. Konec jde vrátit (↩ Zpět nebo „Zrušit konec zápasu“).</li>
 </ul>`},
-  {t: "8. Zápis utkání a opravy", h: `
+  {t: "9. Zápis utkání a opravy", h: `
 <ul>
 <li><b>Zápis utkání</b> (krok 3; uzavřený zápas i z Událostí → detail zápasu → 📋 Zápis utkání a ze Soupeřů): výsledek po třetinách, góly a asistence, sestava, průběh, statistiky a <b>Podrobný rozbor</b> (kompletní vývoj zápasu, střídání hráček s průměrem a nejdelším střídáním, dlouhá střídání označena ⚠️).</li>
 <li><b>Export:</b> 🖨 Tisk / PDF, 💾 HTML, ⬇️ CSV vývoj, ⬇️ CSV střídání. Přepínače Střely / Střídání ve vývoji zkracují přehled.</li>
@@ -107,7 +117,7 @@ const SECTIONS = [
 <li><b>Uzavření zápasu:</b> po uzavření je zápas zamčený (do statistik se počítají jen uzavřené). Opravy po <b>Znovu otevřít</b>.</li>
 <li><b>Smazání zápasu</b> smaže i jeho docházku. Vyúčtovaný zápas smaže jen trenér nebo pokladník a jen bez nezaplacených předpisů.</li>
 </ul>`},
-  {t: "9. Statistiky, soupeři a řazení tabulek", h: `
+  {t: "10. Statistiky, soupeři a řazení tabulek", h: `
 <ul>
 <li><b>Záložka Statistiky</b> je přístupná všem členům týmu, včetně hráček (jen ke čtení).</li>
 <li><b>Statistiky hráčů</b> (jen uzavřené zápasy): Z, <b>Ø stř.</b> (průměrná délka střídání), střely, góly, %, asistence, body, +/-, TM, góly v PP, body doma a venku. +/- se nepočítá u gólů v přesilovce.</li>
@@ -115,7 +125,7 @@ const SECTIONS = [
 <li><b>Tým</b> a <b>Brankáři</b> (střely, góly, zákroky, úspěšnost). <b>Soupeři</b> (všichni členové týmu; přidat, přejmenovat a smazat jen trenér a kustod): u každého soupeře rovnou bilance V–R–P a skóre, po rozkliknutí jednotlivé zápasy – klepnutím na zápas se otevře zápis utkání s kompletním vývojem zápasu.</li>
 <li><b>Řazení:</b> klepnutím na hlavičku sloupce. První klepnutí řadí čísla a časy sestupně, text vzestupně, další přepíná ▲/▼. Prázdné hodnoty jsou vždy na konci.</li>
 </ul>`},
-  {t: "10. Moje platby", h: `
+  {t: "11. Moje platby", h: `
 <ul>
 <li><b>Moje platby</b> vidí každý, kdo má účet propojený s hráčkou nebo členem týmu: dluh, částka po splatnosti a seznam předpisů (události i měsíční příspěvky).</li>
 <li><b>📱 Zaplatit (QR):</b> QR platba pro bankovní aplikaci (účet, částka, variabilní symbol a zpráva pro příjemce bez diakritiky velkými písmeny, např. „ZAPAS 10.10. SOKOL - JANA“ nebo „TRENINK 14.10. - JANA“; i požadavek na okamžitou platbu, pokud ho tým zapnul a banka podporuje). Při ruční platbě opiš účet, VS a zprávu z okna platby. Zaplacení se v aplikaci objeví, až ho pokladník zapíše.</li>
@@ -128,7 +138,7 @@ const SECTIONS = [
 <li><b>⚖️ Kdybych platila jinak</b> (hráčka): porovnání se druhým způsobem placení po měsících a za sezónu. S příspěvkem uvidíš, kolik bys zaplatila za uzavřené události, na kterých jsi byla přihlášená (cena na hlavu × tvůj koeficient); při placení za události, kolik by stál příspěvek (dnešní výše × koeficient). Neuzavřené události se nepočítají. Je to jen informace. V sezóně se změnou se každý měsíc porovnává s druhým způsobem toho měsíce.</li>
 <li><b>✋ Požádat o změnu placení</b> (hráčka, v pohledu 📅 Po měsících): vyber měsíc, od kterého chceš platit druhým způsobem (Příspěvek ↔ Za událost; nejdřív od příštího měsíce, nejvýše 6 měsíců dopředu), a případně poznámku. Najednou můžeš mít jen jednu otevřenou žádost; dokud není vyřízená, můžeš ji zrušit. Stav (čeká / ✅ schváleno / ❌ zamítnuto, s odpovědí pokladníka) vidíš nahoře v Moje platby. O osvobození nebo jiný koeficient se žádá osobně.</li>
 </ul>`},
-  {t: "11. Pokladna (trenér a pokladník)", h: `
+  {t: "12. Pokladna (trenér a pokladník)", h: `
 <ul>
 <li><b>Kdo platí:</b> každá skupina (s příspěvkem, za událost, osvobozené) má vlastní volbu Platí ANO / NE a Výpočet / Pevná částka – v šablonách i u každé události. Cena se dělí všemi přihlášenými hráčkami (každá jako jeden celý kus) a násobí koeficientem hráčky v %.</li>
 <li><b>Vyúčtování události</b> (detail události → 💰 Pokladna na konci stránky): šablona, náklady, kdo platí (výpočet / pevná částka), náhled „vybereme X z Y“ a <b>Uzavřít vyúčtování</b> → vzniknou předpisy. Po uzavření se nic samo nepřepočítává; úprava jen přes ↩ Znovu otevřít.</li>
@@ -148,7 +158,7 @@ const SECTIONS = [
 <li><b>🏦 Účty pro QR platby</b> (⚙️ → Nastavení pokladny): účet se zadává jako české číslo účtu (např. 19-2000145399/0800) nebo IBAN; aplikace hned při psaní ověří kontrolní součty a dopočítá IBAN. <b>Změnu navrhuje jen trenér</b> (📝 Navrhnout změnu účtů) a <b>platí až po potvrzení jiným trenérem nebo pokladníkem</b> (✓ Potvrdit / ✕ Zamítnout) – do té doby QR vede na dosavadní účet. Před potvrzením ověř číslo s navrhovatelem telefonem nebo osobně. Čekající návrh ukáže správcům pokladny upozornění v Událostech. Návrh, potvrzení, zamítnutí i zrušení se zapisují do auditu (Historie změn účtů) a pravidla databáze jiný postup nedovolí. Hráčkám se nový účet zobrazí s varováním.</li>
 <li><b>⚙️ → Nastavení pokladny:</b> okamžitá platba v QR (ANO / NE), na který účet se platí příspěvky, u šablony účet pro platby za událost (u konkrétní události lze účet změnit), výše příspěvku a den splatnosti, splatnost událostí, kategorie a šablony událostí.</li>
 </ul>`},
-  {t: "12. Záloha a nastavení účtu (⚙️)", h: `
+  {t: "13. Záloha a nastavení účtu (⚙️)", h: `
 <ul>
 <li><b>Stáhnout zálohu (JSON):</b> záloha všech načtených dat (trenér a kustod) včetně důvodů omluv, platů a plateb hráček, pokud je účet smí číst (trenér vše). Dělej ji pravidelně.</li>
 <li><b>Soupiska (CSV):</b> export pro Excel.</li>
@@ -162,9 +172,10 @@ const SECTIONS = [
 <li><b>🔒 Vyžadovat verzi</b> (jen trenér, potvrzení druhým klepnutím do 4 s): po nahrání nové verze nastaví minimální verzi aplikace. Zařízení se starší verzí pak nic nezapisuje (nesmaže tak nová data) a nahoře ukáže červený pruh <b>⚠️ Starší verze aplikace</b> s tlačítkem Načíst novou verzi. Minimum jde jen zvýšit a ze zálohy se neobnovuje.</li>
 <li><b>👁 Náhled role</b> (jen účet vývojáře): ukáže aplikaci tak, jak ji vidí Hráčka (vybraná ze soupisky), Kustod, Pokladník nebo Trenér – volitelně s propojeným členem realizačního týmu. Platí jen v tomto zařízení (do zavření okna), v databázi se nic nemění. Nahoře je stálý pruh <b>Náhled: … · Ukončit náhled</b>. Načtou se jen data, která by role směla číst (cizí předpisy, vyúčtování a audit ne). Výchozí je jen ke čtení – každý zápis skončí hláškou „V náhledu se nezapisuje“; zaškrtnutím <b>Povolit zápis</b> se zapisuje pod tvým účtem za vybranou roli (např. docházka za hráčku). Odhlášení náhled ukončí.</li>
 </ul>`},
-  {t: "13. Rychlá reference", h: `
+  {t: "14. Rychlá reference", h: `
 <table style="width:100%;border-collapse:collapse">
 <tr><th style="text-align:left">Úkol</th><th style="text-align:left">Kde</th></tr>
+<tr><td>Co mě čeká, příští zápas, stav plateb</td><td>🏠 Domů</td></tr>
 <tr><td>Přihlásit se na trénink</td><td>Události → ✅ Jdu</td></tr>
 <tr><td>Založit trénink / zápas</td><td>Události → + Trénink / + Zápas</td></tr>
 <tr><td>Série tréninků</td><td>Události → + Trénink → 🔁 Opakovat</td></tr>

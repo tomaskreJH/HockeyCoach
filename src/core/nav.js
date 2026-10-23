@@ -18,8 +18,9 @@
 //   1) okna nad vším (nápověda, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
 //   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas),
 //   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
-//   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), jiná záložka → Události, Události → Nadcházející,
-//   5) domovská stránka: dotaz „Ukončit aplikaci?“.
+//   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), Události (Minulé / Kalendář / Docházka) → Nadcházející,
+//      jiná záložka → 🏠 Domů,
+//   5) domovská stránka (🏠 Domů): dotaz „Ukončit aplikaci?“.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Potvrzovací okno -> Ukončení aplikace -> Zavření nejvyšší vrstvy -> Eventy -> Export.
 
 // ===== Importy =====
@@ -123,8 +124,8 @@ function closeTop() {
   if (S.mid) { if ((S.step || 1) > 1) S.step = (S.step || 1) - 1; else S.mid = null; render(); top0(); return true; }
   // 4) režimy a záložky
   if (S.tab === "fo" && S.tm && S.tm !== "team") { S.tm = "team"; render(); top0(); return true; }
-  if (S.tab !== "ev") { S.tab = "ev"; S.oid = null; S.evid = null; S.evf = null; S.evr = null; S.evBack = null; render(); top0(); return true; }
-  if (S.evm && S.evm !== "up") { S.evm = "up"; S.evd = null; render(); top0(); return true; }
+  if (S.tab === "ev" && S.evm && S.evm !== "up") { S.evm = "up"; S.evd = null; render(); top0(); return true; }
+  if (S.tab !== "home") { S.tab = "home"; S.oid = null; S.evid = null; S.evf = null; S.evr = null; S.evBack = null; render(); top0(); return true; }
   // 5) domovská stránka
   return false;
 }

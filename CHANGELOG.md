@@ -4,6 +4,30 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.6 (23. 10. 2026) – UP: 🏠 Domů – úvodní přehled (jen čtení, bez změny dat a pravidel)
+> **Nasazení:** 1) Záloha: zip současného repozitáře (data se nemění). 2) **firestore.rules beze změny – nepublikovat.** 3) Nahrát kód (nové soubory `src/domain/home-summary.js`, `src/views/home-view.js`, `tests/home-summary.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6 v záhlaví – aplikace se otevře v záložce 🏠.
+> **🔒 Vyžadovat verzi: ne** (nic nového se nezapisuje; starší verze dál funguje, jen nemá 🏠 Domů). Návrat na v19.5.2: nahrát předchozí zip.
+
+**Přidáno**
+- **🏠 Domů** – nová první záložka (v liště ikona 🏠) a výchozí obrazovka po spuštění pro všechny role:
+  - **🔴 Zápas právě běží** (zahájený, neuzavřený zápas): skóre, třetina, ▶ / ⏸; trenér a kustod tlačítkem **▶ Do živého zápisu** rovnou do zápisu, ostatní jen skóre (náhled průběhu pro členy přijde ve v19.6.2).
+  - **🆚 Příští zápas**: soupeř, doma / venku, datum a čas, místo, uzávěrka přihlašování, počet ✅ a moje odpověď; klepnutí otevře detail (tlačítko **← Domů**).
+  - **📅 Tento týden** (Po – Ne): tréninky a zápasy s mojí odpovědí, **❔ Odpověz** u otevřených bez odpovědi (počet v záhlaví karty); trenér / kustod bez propojení s realizačním týmem vidí počet ✅.
+  - **💳 Moje platby**: ✅ vše zaplaceno / 💳 k úhradě s nejbližší splatností / ⛔ po splatnosti (blokace „Jdu“, nebo výjimka) → Moje platby.
+  - **💰 Pokladna týmu** (jen trenér a pokladník): nezaplaceno celkem, po splatnosti a počet dlužníků, otevřené žádosti ✋ (→ Team → 💰 Platby), varování cashflow z uloženého rozpočtu běžící sezóny (→ Team → 📊 Rozpočet).
+- `src/domain/home-summary.js` (čisté funkce `weekRange`, `homeItems`, `regClosed`, `myAnswer`, `goingCount`, `nextMatch`, `weekEvents`, `unanswered`, `myPay`, `teamPay`, `flowWarn`, `liveMatch`, `PER_LABEL`), `src/views/home-view.js`, `tests/home-summary.test.js` (7 testů).
+
+**Změněno**
+- `src/views/shell.js` – záložka 🏠 jako první (i pro hráčku), výchozí a záložní záložka je 🏠 místo Událostí.
+- `src/core/state.js` – výchozí `S.tab = "home"`; `S.evBack = "home"` vrací z detailu události do Domů.
+- `src/core/nav.js` – Zpět: Události (Minulé / Kalendář / Docházka) → Nadcházející, jiná záložka → 🏠 Domů, v Domů dotaz „Ukončit aplikaci?“ (dříve z Událostí).
+- `src/views/events.js` – jen popisek tlačítka zpět v detailu události („← Domů“ při otevření z přehledu).
+- `src/views/help.js` – nová sekce 2. 🏠 Domů (ostatní sekce posunuty o jedno číslo), Zpět a rychlá reference; `docs/KONVENCE.md` (mapa souborů); `docs/plan-v18.md` (stav, tabulka, **nová fáze ČL – ✋ žádost o přijetí do týmu jako v19.6.1**, náhled živého zápasu UP2 → v19.6.2, otázky 61–64); `docs/prompt-dalsi-vlakno.md`; `README.md`; verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v65`).
+
+**Beze změny**
+- Živý zápis (střely, góly, časomíra, tresty), přihlašování a docházka (odpovídá se v detailu události jako dřív), pokladna, Moje platby, statistiky, rozpočet, pravidla databáze – přehled jen čte a odkazuje.
+- Ověřeno: `npm test` (166 – nové testy přehledu, srovnávací test D1 beze změny), kouřový test v jsdom mimo repozitář pro trenéra, kustoda, hráčku a hráčku-pokladníka: start bez chyb v 🏠, správné karty podle role (pokladna týmu jen trenér / pokladník, ▶ Do živého zápisu jen trenér / kustod), příští zápas → detail → ← Domů, 💳 → Moje platby, pokladna → Team → Platby, cashflow → Team → Rozpočet, ▶ Do živého zápisu otevře živý zápis; **žádný zápis do databáze** ve všech rolích.
+
 ## v19.5.2 (23. 10. 2026) – RP část 3: ✅ schválení rozpočtu, úpravy s důvodem a 🖨 export pro valnou hromadu (nová finanční data – jen čtení pokladny)
 > **Nasazení:** 1) Záloha: ⚙️ → Stáhnout zálohu (JSON) a zip současného repozitáře. 2) **Publikovat firestore.rules PŘED kódem** (rozpočet smí nést `approved` a `rev`; bez publikace selže ✅ Schválit). 3) Nahrát kód (nové soubory `src/domain/budget-review.js`, `src/views/budget-print.js`, `tests/budget-review.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.5.2 v záhlaví. 5) Trenér / pokladník: Team → 📊 Rozpočet → ✅ Schválit rozpočet (dvě klepnutí), pak zkusit úpravu s důvodem a 🖨 Export.
 > **🔒 Vyžadovat verzi v19.5.2: ano, až budou trenér i pokladník na nové verzi – nejlépe PŘED schválením** (starší v19.5.x by uložila změnu schváleného rozpočtu bez záznamu úpravy a důvodu; schválenou kopii ale nezmění – hlídají pravidla). Ostatní role se to netýká.
