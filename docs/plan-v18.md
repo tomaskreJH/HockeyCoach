@@ -4,6 +4,7 @@
 
 Výchozí verze: v17.7 (22. 10. 2026). Cíl: řada verzí v18.x, po každé fázi test na Androidu, teprve pak další fáze.
 Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřazeno podle náročnosti:** nejdřív rychlé úpravy (R), pak úklid (D) a ověření všech modulů (T), teprve potom velké celky (role, rušení událostí, žádosti, notifikace, hosté, více týmů) – viz sekce „Plán v18.8 – v20“.
+**Doplněno 23. 10. 2026 (8:52, po v19.0):** nová fáze **OU – opakované události** (v19.2) před Pokladnou II; upřesnění EK a RP od uživatele; pořadí od v19.2 posunuto o jednu verzi; samostatná sekce fáze S.
 **Doplněno 23. 10. 2026 (výchozí kód v18.9.3):** nový celek **Pokladna II** (sekce „Pokladna II – hospodaření událostí, Moje platby, žádosti o změnu placení, rozpočet“) – fáze EK, PM, RP; „Moje platby po měsících“ přesunuty z R do PM, společná kolekce žádostí `requests` pro PM i W, pořadí fází posunuto (P2 → v19.5 … HG → v20.0).
 **Kontrola plánu proti kódu v18.7.1 (22. 10. 2026, 19:00) – rozhodnuto 19:10 (sekce „Rozhodnutý postup“):** testy (T1) před úklidem, rozhodnutí o více týmech před pravidly a notifikacemi, nová fáze S (soukromí v databázi), P2 rozdělena (bod 8 do O), brána verze v D2 – podrobnosti v sekci „Kontrola plánu“ na konci plánu, otázky 31–40.
 
@@ -26,16 +27,17 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 | v18.9.2 | oprava | Pokladník nastavuje platby hráček a plat (nález z testu v18.9.1); ⚙️ → Kontrola dat – doplnění pole `ex` – **hotovo, otestováno** (22. 10. 2026) |
 | v18.9.3 | D3 | Úklid – mazání: `legacyEx`, `payments`, `coach`, mrtvý kód D21–D30; zápisy nových polí přes `merge`; sjednotit zbývající potvrzení na `confirm2`; odstranit „(od v18.x)“ z nápovědy – **hotovo, částečně otestováno** (23. 10. 2026) |
 | v19.0 | R | Rychlé úpravy na čistém kódu: kalendář od nejnovějších, Zápis utkání v Událostech pro všechny, trenéři v pětkách tréninku (dříve R1 + R2; Moje platby po měsících přesunuty do PM) – **hotovo, k testu** (23. 10. 2026) |
-| v19.1 | S | **další na řadě:** Soukromí v databázi: důvody omluv, platy trenérů, platební pole soupisky jen pro oprávněné – **publikovat firestore.rules + převod** |
-| v19.2 | EK | 💰 **Hospodaření události a měsíce** (Pokladna II): místo „schodku“ u událostí hrazených příspěvkem podíl příspěvků, výsledek události a měsíce (led se vyplatil / ztráta), návrh poplatku výpočtem nebo paušálem – bez změny pravidel |
-| v19.3 | PM | 💳 **Moje platby po měsících, porovnání způsobu placení, žádost o změnu placení** (Pokladna II) – společná kolekce `requests`, veřejná cena na hlavu `evprice` – **publikovat firestore.rules** |
-| v19.4 | RP | 📊 **Rozpočet sezóny** (Pokladna II, jen trenér a pokladník): pravidelné a mimořádné tréninky, domácí zápasy, částka na událost, příjmy; plnění plánu a upozornění na odchylku – **publikovat firestore.rules** |
-| v19.5 | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR (pod 4 očima), „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
-| v19.6 | O | Role: Hlavní trenér, zástupce, asistent (místo kustoda), pokladník; audit členů – **publikovat firestore.rules + převod rolí** |
-| v19.7 | Z | Zrušení události (zůstává v historii), úplné smazání jen vývojář |
-| v19.8 | W | Žádosti o změnu účasti po uzávěrce (vynucené i pravidly; stejná kolekce `requests` jako PM) – **publikovat firestore.rules** |
-| v19.9 | N | 🔔 Upozornění **v aplikaci** (zdarma: přehled novinek při otevření – nová událost, uzávěrka, předpis, žádosti, zrušení); push při zavřené aplikaci jen po souhlasu s Blaze (otázka K1) |
-| v20.0 | HG | Hostující hráčky – vlastní úzké dokumenty (`evpub`, `matchpub`), bez Cloud Functions – **publikovat firestore.rules** |
+| v19.1 | S | **další na řadě:** Soukromí v databázi: důvody omluv, platy trenérů, platební pole soupisky jen pro oprávněné (sekce „S – v19.1“) – **publikovat firestore.rules + převod** |
+| v19.2 | OU | 🔁 **Opakované události**: série tréninků (např. každou středu), založení najednou, úprava / smazání „jen tato“ nebo „tato a další“; pravidlo opakování v `domain/recurrence.js` použije i Rozpočet – bez změny pravidel |
+| v19.3 | EK | 💰 **Hospodaření události a měsíce** (Pokladna II): místo „schodku“ u událostí hrazených příspěvkem podíl příspěvků, výsledek události a měsíce (led se vyplatil / ztráta), návrh poplatku výpočtem nebo paušálem – bez změny pravidel |
+| v19.4 | PM | 💳 **Moje platby po měsících, porovnání způsobu placení, žádost o změnu placení** (Pokladna II) – společná kolekce `requests`, veřejná cena na hlavu `evprice` – **publikovat firestore.rules** |
+| v19.5 | RP | 📊 **Rozpočet sezóny** (Pokladna II, jen trenér a pokladník): parametry sezóny, série událostí, částka na událost, příjmy, odhad příspěvku; schválený rozpočet (závazný) + průběžné úpravy; cashflow, export pro valnou hromadu – **publikovat firestore.rules** |
+| v19.6 | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR (pod 4 očima), „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
+| v19.7 | O | Role: Hlavní trenér, zástupce, asistent (místo kustoda), pokladník; audit členů – **publikovat firestore.rules + převod rolí** |
+| v19.8 | Z | Zrušení události (zůstává v historii), úplné smazání jen vývojář |
+| v19.9 | W | Žádosti o změnu účasti po uzávěrce (vynucené i pravidly; stejná kolekce `requests` jako PM) – **publikovat firestore.rules** |
+| v20.0 | N | 🔔 Upozornění **v aplikaci** (zdarma: přehled novinek při otevření – nová událost, uzávěrka, předpis, žádosti, zrušení); push při zavřené aplikaci jen po souhlasu s Blaze (otázka K1) |
+| v20.1 | HG | Hostující hráčky – vlastní úzké dokumenty (`evpub`, `matchpub`), bez Cloud Functions – **publikovat firestore.rules** |
 | později | M | Další tým = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
@@ -56,13 +58,36 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 - **v18.9.3 (D3) dodáno, k testu.** `legacyEx` smazán (osvobozená jen `ex: true`; převod zůstává v ⚙️ → Kontrola dat a zapisuje jen `ex` / `fx`), pravidlo `coach` a poznámky o `payments` smazány, komentáře pravidel bez verzí, nepoužité proměnné v `matches.js` (ESLint: jinde nic). Nové `S.db.doc(cesta).merge(pole)` (`mergeFields`) – přes něj úprava hráčky / Platby, člena týmu / Plat, trvalé zranění (`st`), pětky (`lines`), úprava tréninku, nastavení pokladny, Kontrola dat. Potvrzení ⚙️ (Nahradit vším, Vyžadovat verzi, Doplnit pole ex) a smazání šablony přes `confirm2`. Nápověda bez čísel verzí. `debug.js` popsán a doplněn (D27). D22 `trOf` ponechán (používá ho `pn` / `nm`), D30 ponecháno (značka zálohy). 78 testů zelených.
 - **D je hotové** (D1–D3). **Podmínka nasazení v18.9.3:** na v18.9.2 Kontrola dat ✅. **Další: R (v19.0)** – kalendář od nejnovějších, Zápis utkání v Událostech, trenéři v pětkách tréninku.
 - **v19.0 (R) dodáno, k testu (23. 10. 2026):** Kalendář sestupně (Minulé sestupně, Nadcházející vzestupně), 📋 Zápis utkání v detailu uzavřeného zápasu pro všechny role (okno `#rp`, `S.rp = id`), realizační tým v pětkách tréninku (klíč `t:` + id, ↻ Podle základní formace ho zachová). Nový `src/domain/event-helpers.js`, test `tests/r-quick.test.js` (86 testů). Pravidla beze změny. **Další: S (v19.1).**
+- **Nasazení v19.0 (23. 10. 2026):** aplikace se po nahrání načítala výrazně déle, pak se rozjela (kód beze změny dat; v jsdom start bez chyb pro trenéra i hráčku). Pravděpodobně zpoždění zveřejnění na GitHub Pages + nový service worker (první načtení po verzi bere vše ze sítě). Sledovat při dalších verzích; pokud se zopakuje i bez nové verze → bod T / nález 9 (poslech celých kolekcí). Zvážit malý ukazatel „Načítám data… (x / 6)“ s diagnostikou a tlačítkem Vyčistit mezipaměť po 20 s (jen `index.html` / `shell.js`) – zařadit do S jako drobnost, pokud se pomalý start opakuje.
 - **23. 10. 2026:** v18.9.3 částečně otestována (úklid D3). Plán doplněn o celek **Pokladna II** (EK, PM, RP – viz níže); Moje platby po měsících přesunuty z R do PM, pořadí od S dál posunuto.
+
+## S – v19.1: Soukromí v databázi (další na řadě; podrobně 23. 10. 2026)
+Cíl: citlivá data nečte z databáze každý člen, jen ten, komu patří, a správci. Dnes je skrývá jen aplikace (nálezy 2, 3, 5 z kontroly v18.7.1).
+1. **Důvody omluv** („Nemoc“, „Zranění“ = zdravotní údaje): z `attendance/{eid}_{mid}.reason` do nové kolekce **`attnote/{eid}_{mid}` = {eid, mid, reason}**; čte vlastník (`mid == myPid()` / `myTid()`) a sportovní správa (`isStaff()`), zapisuje vlastník a sportovní správa. Odpověď (`st`) zůstává v `attendance` (Docházka ji potřebuje pro všechny). Zápis odpovědi + důvodu v jedné dávce.
+2. **Platy realizačního týmu** (`staff.pay`): do **`staffpay/{tid}` = {m, amt}**; čte a zapisuje jen `isCash()` (plat člena týmu vidí i on sám – návrh). `salaryRows` dostane platy ze `staffpay`.
+3. **Platební pole soupisky** (`players.grp`, `fx`, `ex`, `note`): do **`plpay/{pid}` = {grp, fx, ex, note}**; čte `isCash()` a vlastní hráčka (koeficient a způsob placení pro Moje platby / PM), zapisuje `isCash()`. V aplikaci se pro správce pokladny `plpay` **připojí k hráčce v paměti** (`S.pl` dostane pole jako dnes) → `domain/cash.js` (`calcCash`, `contribRows`, `exOf`, `fxOf`) se nemění. Později sem PM přidá `grpH`.
+4. **Převod (⚙️ → Kontrola dat, jen trenér):** náhled „co se přesune“, záloha, idempotentní kopie do nových kolekcí; staré pole zůstávají a aplikace čte **nové místo, s náhradou ze starého** (dokud převod neproběhne). Smazání starých polí a zúžení pravidel `players` / `staff` / `attendance` až v další verzi (v19.1.1) po otestování a 🔒 Vyžadovat verzi.
+5. **Drobnost z nálezu 6:** kontrola dluhu při „Jdu“ za jiného člena (kustod nevidí cizí předpisy) přes veřejný souhrn `debtors` místo `S.ch`.
+- Pravidla: **publikovat firestore.rules před nahráním kódu** (nové kolekce); zúžení starých až ve v19.1.1. Brána verze: po převodu doporučeno 🔒 Vyžadovat verzi (starší klient by zapisoval důvody a platby do starých polí).
+- Soubory (odhad): `firestore.rules`, `src/data/storage.js` (poslech podle role, převod, záloha – doplnit nové kolekce), `src/main.js`, `src/views/events.js` (důvod), `src/views/attendance.js`, `src/views/modal.js` / `team.js` (Platby, Plat), `src/views/money.js` (platy), `src/domain/cash.js` jen pokud nutné, `help.js`, testy (`tests/privacy.test.js`: připojení `plpay`, náhrada ze starých polí, plán převodu, text pravidel). **⚠️ Sahá na platby** (pravidla, platy, platební pole).
+
+## OU – v19.2: Opakované události (přidáno 23. 10. 2026)
+Dříve „opakující se tréninky – zatím neřešit“; nyní zařazeno hned po S, protože pravidlo opakování potřebuje i Rozpočet (RP) – jedno místo pro výpočet termínů.
+- **Založení série:** u + Trénink volba „🔁 Opakovat“ – den(y) v týdnu, každý / každý 2. týden, od–do (výchozí do konce sezóny 30. 6.), vynechat dny (prázdniny, svátky – ruční výběr v náhledu), čas, místo, šablona pokladny (pravidelný / mimořádný trénink), termín přihlašování relativně (např. den předem v 18:00). Náhled seznamu termínů → **Vytvořit N tréninků** (dávky po ≤ 400 zápisech).
+- **Data:** každá událost série má `ser = {id, i}`; definice série `series/{id}` = {pravidlo, údaje, by, at} (kvůli úpravám „tato a další“). Nové pole jen přidává (merge), stará data beze změny.
+- **Úpravy:** v detailu události ze série volba **jen tato / tato a další** (čas, místo, termín přihlašování); smazání **jen tato / tato a další budoucí** – jen události bez odpovědí v docházce a bez vyúčtování, ostatní se vynechají s upozorněním (rušení zůstává fáze Z).
+- **Kód:** nová čistá funkce `src/domain/recurrence.js` (`datesOf(pravidlo, od, do, vynechat)`) + testy; `events.js` (formulář, detail – volby série), `help.js`. Pravidla: `series` zapisuje `isStaff()` → **publikovat firestore.rules** (jen nová kolekce; události samotné beze změny).
+- Otázky (návrh platí): 51 série jen pro tréninky (zápasy ne – jiný soupeř a místo); 52 nejdelší série do konce sezóny; 53 úprava „tato a další“ přepíše i ručně upravené události série? (návrh: ne – ručně změněné se vynechají a ukážou).
 
 ## Pokladna II – hospodaření událostí, Moje platby, žádosti o změnu placení, rozpočet (přidáno 23. 10. 2026)
 Zadání (23. 10. 2026): 1) hráčka vidí v Moje platby, kolik zaplatila za měsíc, a porovná způsob placení; 2) hráčka požádá pokladníka o změnu způsobu placení (příspěvek ↔ za událost), pokladník jen schválí / zamítne a vše se nastaví samo; 3) u události je matoucí „schodek“, když hráčky platí příspěvky – pro nastavení platby je potřeba vědět, kolik je předepsáno a zaplaceno na příspěvcích, kolik je událostí v měsíci, a z toho spočítat, zda se led vyplatil, nebo je ve ztrátě; podle toho upravit poplatek výpočtem nebo paušálem; 4) nový modul **Rozpočet** pro pokladníka a trenéra: plán podle počtu tréninků (např. každou středu pravidelný, v sobotu mimořádný) a předpokládaného počtu domácích zápasů, u každé události předpokládaná částka; v průběhu vidět, jak se plán plní a co je potřeba upravit.
-**Upřesnění uživatele (23. 10. 2026, 8:17) – platí přednostně:**
+**Upřesnění uživatele (23. 10. 2026, 8:17):**
 - **Model plateb se nemění:** příspěvek = pravidelná měsíční platba hráček (hradí z něj pravidelné tréninky a domácí zápasy), výši lze v průběhu času měnit; poplatek za akci = jednorázový poplatek pro hráčky, které příspěvek neplatí. Šablony a volby „Za událost“ v nastavení pokladny fungují správně – **nic se na nich nemění**. EK proto jen **zobrazuje** hospodaření (podíl příspěvků, výsledek události a měsíce) a návrh poplatku jen předvyplní hodnotu u konkrétní události (otázka 43 = jen u události, nikdy do šablony).
 - **Rozpočet je živý:** základ vznikne na začátku sezóny, ale není konečný – během sezóny se upravuje. Účel modulu: **hlídat cashflow týmu**, aby šlo včas reagovat na finanční náročnost (viz RP – odhad zůstatku po měsících).
+**Upřesnění uživatele (23. 10. 2026, 8:52) – platí přednostně:**
+- **EK** = zkratka fáze „**E**konomika (hospodaření) události a měsíce“.
+- **Podíl příspěvků na událost:** sečtou se **všechny příspěvky měsíce – zaplacené i jen předepsané** (k úhradě). Hráčka s příspěvkem má nárok jít na led „v ceně“; **když nepřijde, její část příspěvku propadá ve prospěch zúčastněných** – podíl příspěvků se tedy u události počítá vždy celý, nezávisle na účasti (odpovídá návrhu „předepsané“; otázka 41 rozhodnuta, zbývá jen rozdělení mezi události měsíce – výchozí podle nákladů).
+- **Rozpočet:** vidí jen trenér a pokladník (K2 rozhodnuto, otázka 48 – žádná samostatná správa přístupů); **export pro valnou hromadu**; **prvotní (schválený) rozpočet je závazný dokument pro vedení klubu**; hlídání hospodaření je na pokladníkovi a trenérovi; modul pomáhá **odhadnout výši příspěvku**; každá sezóna má jiné parametry (počet hráček s příspěvkem, počet hráček celkem, realizační tým, platy …).
 Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; žádosti o změnu účasti (W) a o změnu placení (PM) mají **jednu kolekci `requests`** a jednu obrazovku žádostí; výpočet hospodaření měsíce (EK) je stejná funkce, kterou Rozpočet (RP) používá pro „skutečnost“. Pořadí uvnitř celku: EK → PM → RP (od nejjednoduššího; RP staví na EK).
 
 ### Dnešní stav (kontrola kódu v18.9.3)
@@ -71,7 +96,7 @@ Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; ž
 - Způsob placení hráčky je jen aktuální pole `players.grp` (`monthly` | `single`) – bez historie; změna platí okamžitě pro příspěvky i dosud neuzavřená vyúčtování.
 - Moje platby (`mine.js`): seznam vlastních předpisů, dluh, QR – bez měsíců a bez porovnání. Hráčka nevidí `evcash` (cenu události), jen své předpisy; `settings/cash` (částka příspěvku) číst smí.
 
-### EK – v19.2: Hospodaření události a měsíce (střední náročnost, bez změny pravidel)
+### EK – v19.3: Hospodaření události a měsíce (střední náročnost, bez změny pravidel)
 1. **Podíl příspěvků na události měsíce.** Událost „krytá příspěvkem“ = šablona, kde skupina Příspěvek neplatí, a událost má náklady (dnes pravidelný trénink a domácí zápas; venkovní zápas bez nákladů ne). Příspěvky měsíce (předpisy `c_RRRR-MM`) se rozdělí mezi kryté události téhož měsíce – **všechny v kalendáři**, i budoucí (u nevyúčtovaných náklady ze šablony / uloženého nastavení `evcash`). Způsob dělení → otázka 41 (návrh: podle nákladů – dražší led nese větší díl).
 2. **Vyúčtování události – nový souhrn místo „schodku“:** Náklady · Vybereme za událost · Podíl příspěvků (předepsáno, z toho zaplaceno) · **Výsledek** (✅ kryto / přebytek, ⚠️ ztráta). Text „schodek“ zůstane jen tam, kde ztrátu nekryje ani podíl příspěvků. Řádek „Měsíc: N událostí kryjí příspěvky X Kč (Y hráček), na událost Z Kč“.
 3. **Návrh poplatku (jen u události, šablony a nastavení se nemění):** tlačítko „💡 Navrhnout“ u skupiny „Za událost“ (a Osvobozené, pokud platí): a) **výpočet** – ponechat dělení, ukázat výsledek; b) **paušál** – pevná částka na hráčku, aby výsledek vyšel na nulu: `(náklady − podíl příspěvků − platby ostatních skupin) ÷ součet koeficientů platících`, nahoru na celé Kč. Návrh se jen předvyplní, uloží pokladník (stávající „Uložit nastavení“ / „Uzavřít vyúčtování“). Do šablony se návrh nikdy neukládá (rozhodnutí uživatele 23. 10. 2026).
@@ -80,7 +105,7 @@ Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; ž
 - Kód: nové čisté funkce v novém `src/domain/economy.js` (`coveredBy(tpl)`, `monthEconomy(ym, D)`, `eventResult(ev, D)`, `suggestFlat(...)`) + testy `tests/economy.test.js`; `payments.js` (souhrn, návrh), `money.js` (karta měsíce), `help.js`. `calcCash` a předpisy se **nemění**.
 - Data: jen nová pole v `evcash.settle` (merge). Pravidla beze změny (`evcash`, `charges`, `events`, `matches` správce pokladny čte už dnes). **⚠️ Sahá na platby** (`payments.js`, `money.js`) → označit v CHANGELOG.
 
-### PM – v19.3: Moje platby po měsících, porovnání způsobu placení, žádost o změnu (střední až vysoká náročnost)
+### PM – v19.4: Moje platby po měsících, porovnání způsobu placení, žádost o změnu (střední až vysoká náročnost)
 1. **Po měsících** (dříve R1.3): karta „📅 Po měsících“ – řádek za měsíc: předepsáno (kolik mě měsíc stál, zvlášť příspěvek a události), zaplaceno, zbývá; klepnutím rozbalit předpisy; součet za sezónu (`seasonOf`, 1. 8. – 1. 7.). Měsíc podle data události / měsíce příspěvku, částečné úhrady jako zaplaceno v měsíci předpisu (rozhodnutí 20). Čistá funkce `myMonths(ch, D)` v `domain/economy.js`.
 2. **Porovnání způsobu placení** („Kdybych platila jinak“): za každý měsíc skutečnost vs. druhý způsob – hráčka s příspěvkem: kolik by zaplatila za události, kterých se účastnila (cena na hlavu × její koeficient, jen události, kde skupina „Za událost“ platí); hráčka za událost: příspěvek × koeficient. Dělitel ceny se změnou skupiny nemění (každá hráčka = jeden kus) → porovnání je přesné pro uzavřené události, u neuzavřených orientační. Součet za sezónu a věta „Výhodnější by byl …“ (jen informace).
    - Hráčka dnes cenu události nevidí (`evcash` jen správce pokladny) → nová kolekce **`evprice/{eid}` = {ym, date, tpl, head: {monthly, single, exempt}}** (cena na hlavu před koeficientem pro každou skupinu, 0 = neplatí), zapisuje se v téže dávce jako uzavření / znovuotevření vyúčtování; čte každý člen, zapisuje správce pokladny. Celkové náklady ani komu se platí se nezveřejňují → otázka 45.
@@ -93,8 +118,12 @@ Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; ž
 - **Publikovat firestore.rules před nahráním kódu** (nové kolekce `requests`, `evprice`). Doplnění `evprice` pro už uzavřené události: tlačítko v ⚙️ → Kontrola dat (idempotentní, ze snapshotů `evcash.settle`). **⚠️ Sahá na platby** (`mine.js`, `cash.js`, `payments.js`, `money.js`, `firestore.rules`).
 - Souvislost se S (v19.1): pokud se platební pole hráček přesunou do `plpay/{pid}`, musí je číst i sama hráčka (vlastní koeficient pro porovnání) a `grpH` patří tam.
 
-### RP – v19.4: Rozpočet sezóny (vysoká náročnost, nový modul)
+### RP – v19.5: Rozpočet sezóny (vysoká náročnost, nový modul)
 - **Kde:** Team → přepínač **📊 Rozpočet** vedle 💰 Platby / 🏦 Pokladna / 📅 Měsíce; vidí a upravuje jen trenér a pokladník (`can("money")`, v O „Hlavní trenér, zástupce, pokladník“). Hráčky ani asistent rozpočet nevidí → otázka 48.
+- **Parametry sezóny** (každá sezóna jiná, výchozí hodnoty z minulé sezóny a ze soupisky): počet hráček celkem, z toho s příspěvkem / za událost / osvobozené, počet členů realizačního týmu a jejich platy, výše příspěvku (může se měnit od měsíce X), předpokládaná účast na událost.
+- **Odhad příspěvku:** z plánovaných nákladů, plateb za události a ostatních příjmů spočítat potřebný příspěvek na hráčku a měsíc (pro saldo 0 nebo pro zvolenou rezervu); ukázat i dopad změny počtu hráček s příspěvkem.
+- **Schválený rozpočet (závazný):** po sestavení tlačítko **„✅ Schválit rozpočet“** (trenér nebo pokladník, potvrzení druhým klepnutím) uloží neměnnou kopii `approved = {data, by, at}`; další změny jsou **úpravy** (`rev` s datem, kdo, důvod) a porovnávají se se schváleným. Schválenou verzi nelze přepsat ani smazat (pravidla).
+- **Export pro valnou hromadu:** 🖨 Tisk / PDF (schválený rozpočet, aktuální úprava, plnění plánu a cashflow po měsících, komentář) a ⬇️ CSV (Excel) – stejné pomůcky jako Zápis utkání (`csv`, `downloadFile`, tisk).
 - **Plán (dokument `budget/{sezóna}`, např. `2026-27`, období 1. 8. – 30. 6.):**
   - **Položky událostí:** šablona (pravidelný / mimořádný trénink, domácí zápas …), **pravidlo opakování** – den v týdnu a četnost (každou středu, každou druhou sobotu), období od–do, vynechané dny (prázdniny, svátky) – nebo **počet za sezónu / za měsíc** (např. 10 domácích zápasů); **předpokládaná částka nákladů na jednu událost** (led, rozhodčí …), předpokládaný počet hráček a předpokládaný příjem na událost (výchozí odvozený ze šablony: kdo platí × paušál / výpočet).
   - **Příjmy:** příspěvky (částka × počet platících × měsíce – výchozí z nastavení a soupisky), další příjmy (dary, sponzoři); **výdaje mimo události:** platy trenérů (z `staff.pay`), vybavení, turnaje.
@@ -104,19 +133,19 @@ Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; ž
 - **Živý plán:** rozpočet se v průběhu sezóny upravuje (počet tréninků, cena ledu, výše příspěvku od měsíce X); každá úprava platí od zvoleného měsíce, uplynulé měsíce zůstávají jako skutečnost.
 - **Upozornění:** odchylka nad hranici (návrh 10 %) → ⚠️ u měsíce a položky s návrhem, co upravit: zvýšit / snížit příspěvek o X Kč, paušál za událost o Y Kč, nebo počet událostí. Nic se nemění samo – jen návrh.
 - **Verze plánu:** úprava rozpočtu v průběhu sezóny ukládá i původní plán (`orig` + `rev`, kdo a kdy upravil, audit), aby šlo porovnat „plán na začátku“ a „upravený plán“.
-- **Generování událostí z pravidel opakování:** dnes „opakující se tréninky – zatím neřešit“ → RP je jen plán, události v kalendáři nevytváří. Volitelně později tlačítko „Vytvořit tréninky z rozpočtu“ → otázka 47.
+- **Série událostí (OU):** položka rozpočtu může odkazovat na sérii z OU (počet událostí a dny se převezmou) nebo mít vlastní pravidlo opakování (stejná funkce `domain/recurrence.js`); události v kalendáři zakládá jen OU, rozpočet jen plánuje (otázka 47 rozhodnuta).
 - Soubory: nový `src/views/budget-view.js`, `src/domain/budget.js` (názvy souborů jedinečné – pravidlo z KONVENCE) (opakování, plán po měsících, plnění, odhad, návrhy – čisté funkce + `tests/budget.test.js`), `team.js` (přepínač), `storage.js` (poslech `budget` jen pro `can("money")`, akce `can("budget")`), `firestore.rules` (`match /budget/{id} { allow read, write: if isCash(); }` + audit), `help.js`, záloha (`exportJSON` doplnit `budget`).
 - **Publikovat firestore.rules před nahráním kódu.** Pokladna ani předpisy se nemění (RP jen čte) – přesto označit v CHANGELOG (nová finanční data).
 
 ### Otevřené otázky Pokladny II (41–50) – návrh vývojáře, platí, pokud uživatel nerozhodne jinak
-41. Podíl příspěvků na událost: **podle nákladů** (návrh) nebo rovným dílem? Počítat z předepsaných příspěvků (návrh, „hotovost“ = zaplacené se ukáže zvlášť) nebo jen ze zaplacených?
+41. ✅ Počítají se všechny příspěvky měsíce (zaplacené i předepsané), část nepřítomné hráčky propadá ve prospěch zúčastněných (uživatel). Zbývá: rozdělení mezi události měsíce **podle nákladů** (návrh) nebo rovným dílem? Počítat z předepsaných příspěvků (návrh, „hotovost“ = zaplacené se ukáže zvlášť) nebo jen ze zaplacených?
 42. Kryté události = šablony, kde skupina Příspěvek neplatí a událost má náklady (pravidelný trénink, domácí zápas). Mimořádný trénink, kde platí všechny, krytý není. Souhlas? (návrh ano)
 43. ✅ Rozhodnuto uživatelem: návrh poplatku jen u jedné události, šablony a nastavení se nemění.
 44. Změna placení: platí **od příštího měsíce** (návrh; běžný měsíc jen ručně pokladníkem), jedna otevřená žádost, žádost lze podat kdykoli. Smí hráčka žádat i o osvobození / snížení koeficientu? (návrh: ne – jen Příspěvek ↔ Za událost, ostatní osobně)
 45. Porovnání v Moje platby: hráčky uvidí **cenu na hlavu** každé uzavřené události (`evprice`), ne celkové náklady ani dodavatele. Vadí? (návrh: nevadí)
 46. Rozpočet: období = sezóna 1. 8. – 30. 6. (jako Docházka); jeden rozpočet na sezónu, průběžně upravovaný (původní plán se uchová pro porovnání). ✅ „Živý“ rozpočet potvrdil uživatel; rezerva pro varování cashflow – výchozí 0 Kč, nastavitelná.
-47. Rozpočet: vytvářet z pravidel opakování i události v kalendáři? (návrh: zatím ne – „opakující se tréninky“ bylo odloženo; případně až po RP jako samostatná verze)
-48. „Modul přístupy pro pokladníka a trenéra“ – výklad v plánu: Rozpočet (a hospodaření měsíce) vidí jen trenér a pokladník. Pokud jde o **samostatnou obrazovku správy přístupů** (kdo je pokladník, trenér, asistent), patří do fáze O (role) – tam se doplní přehled „kdo co smí“.
+47. ✅ Události v kalendáři zakládá fáze OU (v19.2), rozpočet je jen plánuje a může převzít sérii.
+48. ✅ Rozhodnuto uživatelem (rozpočet jen trenér a pokladník). Původně: „Modul přístupy pro pokladníka a trenéra“ – výklad v plánu: Rozpočet (a hospodaření měsíce) vidí jen trenér a pokladník. Pokud jde o **samostatnou obrazovku správy přístupů** (kdo je pokladník, trenér, asistent), patří do fáze O (role) – tam se doplní přehled „kdo co smí“.
 49. Více položek rozpočtu se stejnou šablonou (např. dva různé pravidelné tréninky): rozlišit podle dne v týdnu (návrh), nebo vlastní volbou položky u události?
 50. Hranice upozornění na odchylku 10 %; platy trenérů a ostatní výdaje (vybavení, turnaje) v rozpočtu ano. (návrh ano)
 
@@ -147,10 +176,10 @@ Stav: živý zápis může otevřít víc zařízení zároveň; při souběhu v
 - Pravidla databáze: pravděpodobně beze změny (zápasy zapisuje trenér a kustod), případně kontrola pole `live.dev` – **pak nutné publikovat `firestore.rules`**.
 - Zařadit po fázi D (před modulem Trénink), nebo dřív, pokud budou souběhy v praxi vadit.
 
-## ⭐ Důležité kroky – P2 v19.5 (dříve v19.0, v18.6.2): Jistota plateb pro hráčky (přidáno 22. 10. 2026, odloženo)
+## ⭐ Důležité kroky – P2 v19.6 (dříve v19.0, v18.6.2): Jistota plateb pro hráčky (přidáno 22. 10. 2026, odloženo)
 Cíl: co největší jistota platící, že peníze odešly na správný účet – i kdyby někdo podvrhl data (Firestore, zneužitý účet správce, domluva dvou správců).
 Omezení (vědomě): kontrola v aplikaci nechrání před změnou samotného kódu (napadený GitHub / hosting) – útočník by ji z kódu odstranil. Proti tomu jen ochrana mimo aplikaci (body 5–7).
-**V aplikaci (v19.0):**
+**V aplikaci (v19.6):**
 1. **Účet uložený v telefonu hráčky:** hráčka si účet týmu uloží jednou **opsáním** čísla účtu (z papíru / od trenéra osobně), ne klepnutím. Nahradí dnešní „Ověřila jsem účet“ (`seenAccs` / `markSeen` v `bank-account.js`, okno QR v `mine.js`).
 2. **Porovnání při každém QR:** účet z databáze ≠ uložený v telefonu → QR se **nevytvoří**, červené varování „Účet týmu nesouhlasí s účtem uloženým v tvém telefonu – neplať a ozvi se trenérovi“. Změna = znovu opsat nové číslo.
 3. **Jméno příjemce v QR** (`RN:` – název majitele účtu přesně podle banky; banky ho zobrazí, ověřování jména příjemce u CZK plateb se zavádí, povinné do 2027). Rozhodnout: přesný název majitele účtu.
@@ -160,9 +189,9 @@ Omezení (vědomě): kontrola v aplikaci nechrání před změnou samotného kó
 6. **Jediný zdroj pravdy mimo aplikaci:** číslo účtu na papíře v šatně / na webu klubu; změnu účtu oznamovat osobně na tréninku, nikdy jen zprávou.
 7. **Zabezpečení přístupů:** GitHub i Google/Firebase jen s dvoufázovým ověřením (passkey / bezpečnostní klíč), minimum lidí s právem zápisu a vlastníků projektu Firebase, ochrana hlavní větve na GitHubu, upozornění na změny ve Firebase. Každá verze, která sahá na platby, je v CHANGELOG výslovně označena (`bank-account.js`, `mine.js`, `cash.js`, `firestore.rules`) – zkontrolovat před nahráním.
 8. Navazuje zbývající riziko z P (trenér přidá vlastní druhý e-mail jako pokladníka): audit změn členů týmu a zákaz potvrzení čerstvě přidaným členem.
-**Upřesnění po kontrole (22. 10. 2026):** body 1–4 = **P2a** (v19.0.1). Bod 3 potřebuje nové pole se jménem majitele účtu v `settings/cash` – musí být **pod stejnou ochranou 4 očí** jako `iban` (doplnit do `accSame()` a potvrzení v `firestore.rules` a do `ACC_KEYS` v `storage.js`), jinak by šlo jméno měnit bez potvrzení. Bod 4 potřebuje zápis hráčky („odesláno“) – dnes `charges` zapisuje jen správce pokladny → nové pole s úzkým pravidlem, nebo kolekce `chsent/{cid}` → **publikovat firestore.rules** (P2 tedy není „jen v aplikaci“). Bod 8 vyžaduje `addedAt` v `members` vynucené pravidly (`request.time`) a audit změn členů – patří do **O** (tam se pravidla `members` přepisují).
+**Upřesnění po kontrole (22. 10. 2026):** body 1–4 = **P2a** (v19.6). Bod 3 potřebuje nové pole se jménem majitele účtu v `settings/cash` – musí být **pod stejnou ochranou 4 očí** jako `iban` (doplnit do `accSame()` a potvrzení v `firestore.rules` a do `ACC_KEYS` v `storage.js`), jinak by šlo jméno měnit bez potvrzení. Bod 4 potřebuje zápis hráčky („odesláno“) – dnes `charges` zapisuje jen správce pokladny → nové pole s úzkým pravidlem, nebo kolekce `chsent/{cid}` → **publikovat firestore.rules** (P2 tedy není „jen v aplikaci“). Bod 8 vyžaduje `addedAt` v `members` vynucené pravidly (`request.time`) a audit změn členů – patří do **O** (tam se pravidla `members` přepisují).
 
-## N – v19.9: Notifikace (přidáno 22. 10. 2026, návrh; rozšíření v sekci „Plán v18.8 – v20“)
+## N – v20.0: Notifikace (přidáno 22. 10. 2026, návrh; rozšíření v sekci „Plán v18.8 – v20“)
 Cíl: upozornit každého, koho se to týká, i když aplikaci nemá otevřenou.
 **Druhy upozornění:**
 1. **Blíží se událost** – jen přihlášeným („Jdu“), např. 3 h před začátkem (trénink i zápas).
@@ -217,7 +246,7 @@ Postup: každá položka samostatně, bez změny chování; po úklidu ověřit 
 ### R1 – v18.8: Rychlé úpravy (malá náročnost, bez změny dat a pravidel)
 1. **Kalendář od nejnovějších:** v Událostech → Kalendář seznam událostí měsíce / dne řadit sestupně (nejnovější nahoře, nejstarší dole). Dnes `events.js` řadí vzestupně (`shown … .sort(asc)` v režimu `cal`). Návrh: stejně i „Minulé“ (už sestupně) – „Nadcházející“ ponechat vzestupně (nejbližší nahoře) → otázka 18.
 2. **Zápis utkání v Událostech stejný jako u Soupeřů:** detail uzavřeného zápasu v Událostech dnes ukazuje jen skóre a `matchStatsHtml`; u Soupeřů se otevře celý **Zápis utkání** (`renderReport` – vývoj zápasu, střely, střídání, čas na ledě). Sjednotit: v detailu uzavřeného zápasu tlačítko „📋 Zápis utkání“ (stejné okno `#rp`, `S.rp = id`) pro **všechny role včetně hráček**; krátký souhrn může zůstat nad tlačítkem → otázka 19. Data hráčky už čtou (`matches`), pravidla beze změny. Zkontrolovat, že `renderReport` nenabízí hráčce úpravy (jen tisk / CSV / HTML).
-3. ➡️ **Přesunuto do PM (v19.3, Pokladna II)** – spolu s porovnáním způsobu placení a žádostí o změnu. Původní znění: **Moje platby po měsících:** pod přehledem karta „📅 Po měsících“ – řádek za měsíc: předepsáno (kolik mě měsíc stál), zaplaceno, zbývá; klepnutím rozbalit předpisy měsíce; součet za zvolené období (výchozí sezóna 1. 8. – 1. 7. jako v Docházce, `seasonOf`). Jen z vlastních předpisů (`S.ch`), čistá funkce v `domain/cash.js` (nebo nový `domain/my-months.js`). **Sahá na platby (`mine.js`) → označit v CHANGELOG.** Rozhodnout, podle čeho se měsíc určuje → otázka 20.
+3. ➡️ **Přesunuto do PM (v19.4, Pokladna II)** – spolu s porovnáním způsobu placení a žádostí o změnu. Původní znění: **Moje platby po měsících:** pod přehledem karta „📅 Po měsících“ – řádek za měsíc: předepsáno (kolik mě měsíc stál), zaplaceno, zbývá; klepnutím rozbalit předpisy měsíce; součet za zvolené období (výchozí sezóna 1. 8. – 1. 7. jako v Docházce, `seasonOf`). Jen z vlastních předpisů (`S.ch`), čistá funkce v `domain/cash.js` (nebo nový `domain/my-months.js`). **Sahá na platby (`mine.js`) → označit v CHANGELOG.** Rozhodnout, podle čeho se měsíc určuje → otázka 20.
 
 ### R2 – v18.8.1: Realizační tým v pětkách tréninku (malá až střední náročnost)
 - Dnes `linesHtml` v `events.js` rozděluje do barevných pětek jen přihlášené hráčky (bez brankářek), uložení `events.lines = {pid: číslo pětky}`.
@@ -242,7 +271,7 @@ Kontrola po úklidu: stejná čísla statistik, pokladny, docházky a dlužník�
 - **Ruční kontrolní seznam pro Android** (do `docs/test-checklist.md`): přihlášení a role, Události (seznam, kalendář, detail, přihlašování, uzávěrka, Docházka), Team (soupiska, pětky, rotace, PP/OS), zápas (nominace, sestava, živý zápis – střely, góly, tresty, zranění, Zpět, Průběh, Zápis utkání, Opravy zápisu), Statistiky, Soupeři, Pokladna (předpisy, úhrady, příspěvky, platy, měsíce, CSV), Moje platby (QR, uložení QR), ⚙️ (členové, nastavení pokladny, účty 4 oči, náhled role, záloha / obnova, přepočet dlužníků), offline a nová verze (cache).
 - Výstup: seznam nálezů → opravy v18.9.x; teprve po „vše zelené“ začíná v19.
 
-### O – v19.6: Role a oprávnění (střední až vysoká náročnost)
+### O – v19.7: Role a oprávnění (střední až vysoká náročnost)
 | Role | Práva |
 |---|---|
 | **Hlavní trenér** | vše (sport, peníze, účty, členové, nastavení, mazání) |
@@ -257,28 +286,28 @@ Kontrola po úklidu: stejná čísla statistik, pokladny, docházky a dlužník�
 - Pravidla: přepsat `isCoach` / `isStaff` / `isCash` na nové role, během převodu přijímat i staré hodnoty. **Publikovat firestore.rules.** Náhled role (G) doplnit o nové role.
 - **Přehled přístupů** (souvisí s otázkou 48): v ⚙️ → Členové tabulka „kdo co smí“ (sport, peníze, rozpočet, žádosti, účty, členové) generovaná z tabulky `CAN` – jedno místo pravdy pro UI i nápovědu.
 
-### Z – v19.7: Zrušení a smazání události (střední náročnost)
+### Z – v19.8: Zrušení a smazání události (střední náročnost)
 - **Zrušit** (běžná cesta): událost zůstane v historii, označená `cancelled: {by, at, reason}`, v seznamu a kalendáři přeškrtnutá „❌ Zrušeno“; přihlašování zamčené; nepočítá se do Docházky (% ani počet událostí); u zápasu nelze živý zápis. Vrácení zrušení → otázka 24.
 - **Předpisy zrušené události:** nevyúčtovaná – žádné předpisy nevzniknou; vyúčtovaná – nabídnout storno předpisů (stávající storno v `cashbook.js` / `payments.js`, dlužníci se přepočtou) → otázka 24.
 - **Notifikace přihlášeným** o zrušení přijde s fází N (do té doby jen značka v aplikaci).
 - **Smazat** jen vývojář (`DEV_EMAILS`, po O „Hlavní trenér + vývojář“) pro testovací data: smaže událost / zápas a **všechno související** – docházku (`attendance`), předpisy (`charges`) i úhrady a zápisy v pokladně (`cash`), `evcash`, `debtors` (přepočet), statistiky (jsou v dokumentu zápasu – zmizí s ním), případně audit. Dnes `removeDoc` v `storage.js` maže jen část (vyúčtovanou událost smaže trenér / pokladník, předpisy přepočítá dlužníky). Před smazáním přehled „co se smaže“ a potvrzení druhým klepnutím. → otázka 26.
 - Pravidla: `cancelled` smí zapsat role se sportovní činností; mazání `cash` / `charges` dnes smí správce pokladny – ověřit, zda stačí. Pravděpodobně **publikovat firestore.rules**.
 
-### W – v19.8: Žádosti o změnu účasti po uzávěrce (střední náročnost)
+### W – v19.9: Žádosti o změnu účasti po uzávěrce (střední náročnost)
 - Po uzavření přihlašování (`isLocked`) uvidí hráčka i člen realizačního týmu tlačítko „✋ Požádat o změnu“: přihlásit se / odhlásit se / omluvenka s důvodem (+ nejistá?).
-- Kolekce `requests/{id}` – **už ji založí PM** (v19.3) pro žádosti o změnu placení; W přidá druh `kind: "att"` = `{eid, mid, want, reason, at, st: "open" | "ok" | "no", doneBy, doneAt}` a použije stejný pohled `views/request-list.js`; žadatel zapisuje jen svou žádost, vyřizuje trenér / asistent (žádosti o placení dál pokladník).
+- Kolekce `requests/{id}` – **už ji založí PM** (v19.4) pro žádosti o změnu placení; W přidá druh `kind: "att"` = `{eid, mid, want, reason, at, st: "open" | "ok" | "no", doneBy, doneAt}` a použije stejný pohled `views/request-list.js`; žadatel zapisuje jen svou žádost, vyřizuje trenér / asistent (žádosti o placení dál pokladník).
 - Trenérům upozornění nahoře v Událostech (jako „⏳ Čeká na potvrzení změna účtů“): „✋ 3 žádosti o změnu účasti“ → seznam s ✓ Schválit (zapíše docházku jako dnes ruční změna) / ✕ Zamítnout. Žadatel vidí stav své žádosti v detailu události.
 - Dopad na platby: změna účasti u už vyúčtované události → upozornit (předpisy se nepřepočítávají automaticky, jen ručně – stávající pravidlo).
 - Push notifikace trenérovi a odpověď žadateli až s fází N. **Publikovat firestore.rules.** → otázka 27.
 
-### N – v19.9: Notifikace – rozšíření návrhu (vysoká náročnost, Firebase Blaze + Cloud Functions)
+### N – v20.0: Notifikace – rozšíření návrhu (vysoká náročnost, Firebase Blaze + Cloud Functions)
 Vše ze sekce N platí; doplnění:
 - **Nastavení u události:** připomínka uzávěrky přihlašování (výchozí např. 1 den a 1 hodina před `dl`) a připomínka **před srazem / odjezdem**, ne před začátkem zápasu – u události nové volitelné pole **„Sraz / odjezd“** (čas a místo); výchozí předstihy v nastavení týmu, u události lze přepsat nebo vypnout.
 - **Turnaj / vícedenní akce:** událost s datem „do“ (nový typ Turnaj později) – připomínka podle srazu prvního dne.
 - **Nové druhy:** 5) událost zrušena (všem přihlášeným, i „nejistá“), 6) nová žádost o změnu účasti (trenérům), 7) žádost vyřízena (žadateli), 8) hostující hráčka vyřazena z nominace (ihned jí), 9) nová žádost o změnu placení (pokladníkovi a trenérovi – PM), 10) rozpočet: měsíc ve ztrátě nebo odchylka nad hranici (trenérovi a pokladníkovi – RP).
 - Otázky 13–17 platí, nově 28.
 
-### HG – v20.0: Hostující hráčky (vysoká náročnost – pravidla databáze)
+### HG – v20.1: Hostující hráčky (vysoká náročnost – pravidla databáze)
 - Hostující hráčka není členkou týmu: v soupisce `players` s příznakem `guest: true`, účet v `members` s rolí `host` (propojení `pid` jako u hráčky).
 - **Smí:** vidět nadcházející události a přihlásit se; vidět **jen počet přihlášených**, dokud není nominovaná; po nominaci a zařazení do sestavy vidět **sestavu toho zápasu**; vidět své předpisy a platit (Moje platby, QR).
 - **Nesmí:** statistiky, dlužníky / ⛓, sestavy zápasů, kde není nominovaná, Docházku ostatních, Team, Soupeře (návrh) → otázka 29.
@@ -318,7 +347,7 @@ Požadavky: týmy o sobě nic nevidí; kdo si aplikaci koupí, řeší veškerou
 ## Rozhodnutý postup (22. 10. 2026, 19:10) – platí místo pořadí výše
 Zadání: postup volí vývojář; zdarma nebo s minimálními náklady (Firebase i limity Claude); úklid a programovací řád co nejdřív; žádná duplicita, snadné budoucí úpravy; další tým až úplně nakonec (případně jiný GitHub i Firebase), jen struktura má odpovídat.
 
-**Pořadí (aktualizováno 23. 10. 2026):** K (v18.8) → D1 (v18.9, v18.9.1) → oprava (v18.9.2) → D3 (v18.9.3) → R (v19.0) → S (v19.1) → **EK (v19.2) → PM (v19.3) → RP (v19.4)** → P2 (v19.5) → O (v19.6) → Z (v19.7) → W (v19.8) → N (v19.9) → HG (v20.0) → později M, H, F, E. Jedna verze = jedno vlákno s Claude.
+**Pořadí (aktualizováno 23. 10. 2026, 8:52):** K (v18.8) → D1 (v18.9, v18.9.1) → oprava (v18.9.2) → D3 (v18.9.3) → R (v19.0) → S (v19.1) → **OU (v19.2) → EK (v19.3) → PM (v19.4) → RP (v19.5)** → P2 (v19.6) → O (v19.7) → Z (v19.8) → W (v19.9) → N (v20.0) → HG (v20.1) → později M, H, F, E. Jedna verze = jedno vlákno s Claude.
 Důvod zařazení Pokladny II před P2 a O: EK nemění pravidla (rychlý přínos – odstraní matoucí „schodek“), PM a RP potřebují jen stávající `isCash()`; S (soukromí platebních polí) jde před PM, aby se nová pole (`grpH`) zakládala rovnou na správném místě.
 
 **Zásady řádu (podrobně v `docs/KONVENCE.md`, vznikne v K):**
@@ -335,17 +364,17 @@ Důvod zařazení Pokladny II před P2 a O: EK nemění pravidla (rychlý přín
 18 Kalendář a Minulé sestupně, Nadcházející vzestupně. 19 souhrn + tlačítko 📋 Zápis utkání. 20 měsíc podle data události / měsíce příspěvku, částečné úhrady jako „zaplaceno“ v měsíci předpisu. 21 jen přiřazení přihlášených trenérů k pětce. 22 ano (`tests/`, `jsdom` v devDependencies). 23 zástupce = práva Hlavního trenéra kromě účtů a členů s rolí trenér, s datem od–do, jeden. 24 ruší Hlavní trenér, zástupce, asistent; zrušení lze vrátit; u vyúčtované události storno předpisů nabídnout s potvrzením. 25 pokladník zadává jen hráčky (zároveň oprava nálezu 1). 26 mazat jen vývojář; s úhradami smazání odmítnout. 27 vyřizuje kdo má sportovní práva; schválení zapíše docházku; žádat do začátku události. 28 výchozí upozornění v aplikaci: uzávěrka 1 den, sraz 2 h; pole Sraz / odjezd volitelné u všech událostí. 29 hosté platí podle šablon jako hráčky, ve statistikách zápasů ano, v Docházce ne, Zápis utkání svého zápasu ano, Soupeři ne. 30 / 33 další tým = možnost A (samostatný GitHub a Firebase), `col()` se nedělá. 31 pořadí viz výše. 32 S po úklidu a rychlých úpravách. 34 „obnovit formace“ ponechat. 35 účty navrhuje jen Hlavní trenér, potvrzuje jiný správce pokladny; zástupce nenavrhuje. 36 brána verze ano. 37 pravidlo `coach` smazat (Trénink si ho případně vrátí). 38 ne. 39 ne. 40 až při zpomalení.
 
 **Kritické otázky pro uživatele (jen tyto):**
-- **K1 – Push notifikace při zavřené aplikaci:** vyžadují tarif Blaze (platební karta, rozpočtový limit; při velikosti týmu v praxi 0 Kč, ale účet je zpoplatnitelný). Výchozí rozhodnutí: **ne** – N bude jen v aplikaci. Odpověď stačí před v19.9.
-- **K2 – výklad „Modul přístupy pro pokladníka a trenéra“ (otázka 48):** plán počítá s tím, že jde o přístup k Rozpočtu (jen trenér a pokladník). Pokud jde o samostatnou správu přístupů, doplní se do O.
-- **K3 – podíl příspěvků na událost (otázka 41):** podle nákladů, nebo rovným dílem? Ovlivní čísla v EK i RP.
+- **K1 – Push notifikace při zavřené aplikaci:** vyžadují tarif Blaze (platební karta, rozpočtový limit; při velikosti týmu v praxi 0 Kč, ale účet je zpoplatnitelný). Výchozí rozhodnutí: **ne** – N bude jen v aplikaci. Odpověď stačí před v20.0.
+- **K2 – ✅ rozhodnuto:** rozpočet vidí jen trenér a pokladník.
+- **K3 – podíl příspěvků (otázka 41):** ✅ všechny příspěvky měsíce, nepřítomné propadají; zbývá rozdělení mezi události měsíce – výchozí **podle nákladů**, rovným dílem jen na pokyn uživatele.
 
 **Co dělá uživatel a kdy:**
 1. Teď: záloha (⚙️ → Záloha JSON + zip současného repozitáře).
 2. v18.8 (K): nejdřív **publikovat `firestore.rules`**, pak nahrát kód; zkontrolovat přihlášení trenéra, hráčky a pokladníka.
 3. Před v18.9.2 (D3): ⚙️ → kontrola pole `ex` (tlačítko přidá D1); v konzoli Firebase smazat kolekci `payments`.
 4. Každá další verze: postup nasazení je vždy nahoře v CHANGELOG (pravidla před / po kódu); po testu napsat „otestováno“ nebo nález.
-5. Před v19.9 (N): odpovědět na K1.
-6. Před v19.2 (EK): případně změnit návrhy u otázek 41–43; před v19.3 (PM) 44–45; před v19.4 (RP) 46–50 – jinak platí návrh vývojáře.
+5. Před v20.0 (N): odpovědět na K1.
+6. Před v19.2 (OU): otázky 51–53; před v19.3 (EK) 41 (rozdělení mezi události) a 42; před v19.4 (PM) 44–45; před v19.5 (RP) 49–50 – jinak platí návrh vývojáře.
 
 ## Kontrola plánu proti kódu v18.7.1 (22. 10. 2026, 19:00)
 Kontrola bez změny kódu: `firestore.rules`, `src/data/storage.js`, `src/main.js`, `src/views/events.js`, `report.js`, `matches.js`, `team.js`, `modal.js`, domény. Stav plánu = stav repozitáře (dokument projektu `claude/plan-zivy-zapis-v18.md` byl totožný s `plan-zivy-zapis-v18.md` v kořeni repozitáře).
@@ -388,6 +417,7 @@ Kontrola bez změny kódu: `firestore.rules`, `src/data/storage.js`, `src/main.j
 | W | `events.js`, nová doména `requests`, upozornění v Událostech, `firestore.rules` | `requests/{id}`; pro vynucení uzávěrky `dlTs` (časové razítko) u události | **před kódem** | bez `dlTs` jde uzávěrku obejít přímým zápisem do `attendance` | M |
 | N | nové `functions/`, `firebase.json`, `sw.js` (push), `storage.js` / ⚙️ (token), `events.js` (Sraz / odjezd) | `pushTokens`, `pushLog`, pole srazu | **před kódem** (`pushTokens`); funkce nasadit před zapnutím v aplikaci | Blaze (karta, rozpočtový alarm), iPhone jen PWA na ploše, VAPID klíč | XL |
 | HG | `firestore.rules` (oddělit `host`), `main.js` (poslech podle role), `events.js`, `matches.js`, `team.js`, `attendance.js`, `stats.js` (filtry), funkce v `functions/` | `evpub`, `matchpub` (viz níže), `players.guest` | **před kódem** (nové kolekce + role `host`), zúžit `isMember` → `isTeam` ve stejné verzi | počty a sestavy pro hosta musí udržovat Cloud Function (klient by je mohl podvrhnout) | XL |
+| OU | nový `domain/recurrence.js`, `events.js` (formulář série, volby jen tato / tato a další), `help.js`, testy | `series/{id}`, `events.ser` (merge) | **před kódem** (`series`) | hromadné založení v dávkách; úprava série nesmí přepsat ručně změněné události | M |
 | EK | nový `domain/economy.js`, `payments.js` (souhrn, návrh), `money.js` (karta měsíce), `help.js`, testy | `evcash.settle.share`, `ym` (merge) | beze změny | plánované náklady budoucích událostí jen ze šablon (odhad); ⚠️ platby | M |
 | PM | `mine.js`, `finance.js`, `payments.js` (`evprice` v dávce), `money.js`, `domain/cash.js` (`grpAt`), nové `views/request-list.js`, `domain/requests.js`, `storage.js`, `help.js` | `requests`, `evprice`, `players.grpH` | **před kódem** | `grpAt` mění vstup výpočtu předpisů → srovnávací testy; doplnění `evprice` zpětně; souvislost se S (`plpay`) | M–L |
 | RP | nové `views/budget-view.js`, `domain/budget.js`, `team.js`, `storage.js` (poslech, záloha), `help.js` | `budget/{sezóna}` | **před kódem** | přiřazení událostí k položkám plánu; opakování s vynechanými dny | L |
