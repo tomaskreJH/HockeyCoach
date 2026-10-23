@@ -6,26 +6,26 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 
 ## 1. Start (šetři limit – čti cíleně)
 1. Stáhni aktuální repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
-2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v19.5.
-3. Přečti jen: docs/KONVENCE.md (celý – programovací řád); z docs/plan-v18.md jen tabulku nahoře, sekci „Stav“ a sekci „RP – v19.5“ (v celku Pokladna II, včetně otázek 46–50; část 1 hotová ve v19.5); z CHANGELOG.md jen nejnovější záznam. Další soubory otevírej až podle potřeby, cíleně (grep -n, výřezy řádků). Velké soubory (storage.js 45 kB, events.js 33 kB, plán 108 kB) nečti celé a nic nečti dvakrát.
-4. Spusť npm test (Node 22, bez instalace balíčků). Testy musí projít už před prací (149 testů); pokud ne, nejdřív to ohlas.
+2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v19.5.1.
+3. Přečti jen: docs/KONVENCE.md (celý – programovací řád); z docs/plan-v18.md jen tabulku nahoře, sekci „Stav“ a sekci „RP – v19.5“ (v celku Pokladna II, včetně otázek 46–50; části 1–2 hotové ve v19.5 a v19.5.1), sekce „UP“ a „NP“ jen nadpisy a otázky 54–60; z CHANGELOG.md jen nejnovější záznam. Další soubory otevírej až podle potřeby, cíleně (grep -n, výřezy řádků). Velké soubory (storage.js 45 kB, events.js 33 kB, plán 108 kB) nečti celé a nic nečti dvakrát.
+4. Spusť npm test (Node 22, bez instalace balíčků). Testy musí projít už před prací (154 testů); pokud ne, nejdřív to ohlas.
 
 ## 2. Kde projekt stojí (23. 10. 2026)
-- v19.4.1 (PM část 2 – žádost o změnu placení, historie plpay.grpH) nasazena a otestována („vidím to tam“), 🔒 Vyžadovat verzi v19.4.1.
-- v19.5 (RP část 1) je dodaná k testu: Team → 📊 Rozpočet (jen trenér a pokladník, režim `bud` v `CASH_MODES` v views/events.js). Dokument budget/{sezóna} („2026-27“, 1. 8. – 30. 6.) = {season, par: {n: {monthly, single, exempt}, att, contrib, cH: [{ym, amt}], cm, goal}, items: [{id, name, tpl, mode: rule | count | ser, rule: {days, every}, n, per, from, to, skip, ser, cost, inc, att}], sal: [{name, m, amt}], other: [{name, k, amt, rep, ym}], by, at}; ukládá tlačítko 💾 (merge + audit „budget“). Doména src/domain/budget.js (budgetPlan po měsících, suggestContrib / contribVariants, itemCounts přes recurrence.datesOf, seriesIn, copyBudget, normBudget), pohled src/views/budget-view.js, S.bd (poslech jen can("money")), budget v záloze. Pravidla: budget čte a zapisuje isCash(), jen pole plánu (hasOnly) a season == id, mazat jen trenér – ve v19.5.2 rozšířit o approved / rev / orig. 🔒 Vyžadovat verzi u v19.5 není nutné.
-- Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v19.5 (pokud ho nenapíšu sám). Nález z testu = oprava jako v19.5.x PŘED další částí. Bez nálezu pokračuj na v19.5.1.
-- Čísla v19.4, v19.4.1 a v19.5 se už znovu nepoužívají. Každá další změna má nové číslo verze.
+- v19.5 (RP část 1 – parametry, položky, plán po měsících, odhad příspěvku) nasazena, uživatel: „část rozpočet vidím“ – bez nálezu.
+- v19.5.1 (RP část 2) je dodaná k testu: 📊 Rozpočet má přepínač 📝 Plán / 📈 Plnění / 💧 Cashflow a varování v hlavičce. Doména src/domain/budget-track.js (itemOfEvent – šablona, období, série → den v týdnu → počet; budgetTrack – skutečnost z monthEconomy po měsících a položkách, odhad sezóny = skutečnost uplynulých měsíců + plán od běžícího; cashflow – sumCash + (plán − předepsané) + nezaplacené předpisy měsíce − plán výdajů, staré dluhy zvlášť; trackAdvice – příspěvek / platba za událost / méně událostí; DEV_LIMIT 10 %). Nový parametr budget.par.res (rezerva, výchozí 0), pravidla beze změny. 🔒 Vyžadovat verzi v19.5.1 doporučeno, až budou trenér i pokladník na nové verzi.
+- Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v19.5.1 a na potvrzení pořadí nových fází UP / NP (otázka 54), pokud to nenapíšu sám. Nález z testu = oprava jako v19.5.x PŘED další částí. Bez nálezu pokračuj na v19.5.2.
+- Čísla v19.4, v19.4.1, v19.5 a v19.5.1 se už znovu nepoužívají. Každá další změna má nové číslo verze.
 
 ## 3. Odložené drobnosti
 1. Fáze Z: smazání zápasu maže docházku, ale ne důvody v attnote. Osiřelé důvody čte jen vlastník a trenér / kustod. Teď neřešit.
 2. Smazání hráčky ponechá její žádosti v requests (osiřelé, čte jen správce pokladny) – doplnit při Z.
 3. Po každé verzi aktualizuj tento prompt (docs/prompt-dalsi-vlakno.md) na nový stav.
 
-## 4. Další fáze: RP – zbytek Rozpočtu sezóny (podrobně v plánu, celek Pokladna II)
-- Rozdělení potvrzené uživatelem: v19.5 = parametry, položky, plán po měsících, odhad příspěvku (✅ hotovo); **v19.5.1 = plnění (plán vs. skutečnost) a cashflow s varováním**; v19.5.2 = schválení (approved – závazný, neměnný), úpravy (rev, orig) a export pro valnou hromadu (tisk / PDF, CSV).
-- v19.5.1: plnění = skutečnost z monthEconomy (domain/economy.js, data econData() v views/payments.js) po měsících – počet událostí (plán / proběhlo / v kalendáři), náklady, příjmy (předepsáno / zaplaceno), saldo, kumulativně, odhad do konce sezóny (skutečnost + zbývající plán); přiřazení událostí k položkám podle šablony (evcash.tpl / tplFor), dvě položky se stejnou šablonou podle dne v týdnu (otázka 49 – návrh). Cashflow = zůstatek dnes (sumCash, hlavní a provozní účet) + očekávané příjmy (nezaplacené předpisy podle splatnosti, plán) − očekávané výdaje; varování pod nulou / pod rezervou (nový parametr par.res, výchozí 0 – pravidla hasOnly se nemění, par je map) a odchylka nad 10 % s návrhem úpravy (otázka 50). Nic se nemění samo.
-- Otázky 46, 49–50 platí podle návrhu v plánu, pokud nerozhodnu jinak.
-- Pořadí dál: P2, O, Z, W (použije requests a request-list.js), N, HG podle tabulky v plánu.
+## 4. Další fáze: RP – v19.5.2 schválení, úpravy a export (podrobně v plánu, celek Pokladna II)
+- ✅ Schválit rozpočet (trenér nebo pokladník, potvrzení druhým klepnutím) = neměnná kopie approved = {data, by, at}; další změny jsou úpravy rev (datum, kdo, důvod) s původním plánem orig a porovnáním se schváleným; schválenou verzi nelze přepsat ani smazat (pravidla – budgetOk rozšířit o approved / rev / orig; approved jen vytvořit, ne změnit) → **publikovat firestore.rules před kódem**.
+- Export pro valnou hromadu: 🖨 Tisk / PDF (schválený rozpočet, aktuální úprava, plnění a cashflow po měsících, komentář) a ⬇️ CSV (csv, downloadFile, tisk jako Zápis utkání). Plnění a cashflow vezmi z budgetTrack / cashflow (domain/budget-track.js).
+- Nové navržené fáze z požadavků uživatele (23. 10. 2026) jsou v plánu: **UP – 🏠 úvodní přehled** (návrh v19.6: příští zápas, týden, platby, běžící zápas – trenér / kustod do zápisu, ostatní náhled jen ke čtení; veřejný náhled pro diváky s HG) a **NP – 🏖 nepřítomnost od–do** (omluvy v otevřených událostech, u uzavřených žádost `requests` kind att – spolu s W). Otázky 54–60 platí podle návrhu, pokud nerozhodnu jinak; po potvrzení UP jako v19.6 se P2 … HG posunou o jednu verzi.
+- Pořadí dál: (UP), P2, O, Z, W + NP (použije requests a request-list.js), N, HG podle tabulky v plánu.
 
 ## 5. Pravidla práce (povinná)
 1. Výstup = vždy JEDEN ZIP se všemi změněnými a novými soubory ve struktuře repozitáře (rozbalit přímo do kořene HockeyCoach). Jednotlivé soubory zvlášť neposílej. Soubory musí být celé od prvního do posledního řádku – žádné zkracování („… zbytek kódu …“), žádné úpravy typu NAJDI / NAHRAĎ.
@@ -36,7 +36,7 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 6. Vydání verze – vždy vše najednou:
    - src/core/app-version.js (APP_VERSION, APP_DATE),
    - package.json (version),
-   - sw.js (hokej-vNN +1; teď je v62, další v63),
+   - sw.js (hokej-vNN +1; teď je v63, další v64),
    - CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny),
    - README.md (řádek „Aktuální verze“),
    - src/views/help.js (při změně ovládání),
@@ -54,4 +54,4 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 - Odpověď na konci: načtená verze, nová verze, zip, postup nasazení v několika bodech, výsledek testů. Bez dlouhého vysvětlování.
 
 ## 7. Úkol
-Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v19.5 (pokud není uveden) a pak pokračuj další verzí v pořadí (RP – v19.5.1 plnění a cashflow).
+Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v19.5.1 a potvrzení pořadí UP / NP (pokud není uvedeno) a pak pokračuj další verzí v pořadí (RP – v19.5.2 schválení, úpravy a export).

@@ -1,8 +1,8 @@
-// Rozpočet sezóny (Team → 📊 Rozpočet, jen správci pokladny – trenér a pokladník): parametry sezóny, položky událostí (opakování, počet,
-// série z kalendáře), platy a ostatní příjmy / výdaje, plán po měsících a doporučený příspěvek. Výpočty jsou v domain/budget.js.
-// Úpravy se drží v paměti (rozpracovaný rozpočet) a ukládají tlačítkem 💾 do dokumentu budget/{sezóna} (merge) v jedné dávce s auditem.
-// Rozpočet jen plánuje: pokladna, předpisy, šablony ani události v kalendáři se tu nemění.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis -> Vykreslení (sezóna, parametry, položky, platy a ostatní, plán, odhad) -> Eventy -> Export.
+// Rozpočet sezóny (Team → 📊 Rozpočet, jen správci pokladny – trenér a pokladník) ve třech částech: 📝 Plán (parametry, položky událostí,
+// platy a ostatní, plán po měsících, odhad příspěvku), 📈 Plnění (plán vs. skutečnost po měsících a položkách, odhad sezóny) a
+// 💧 Cashflow (odhad zůstatku pokladny, varování pod rezervou). Výpočty: domain/budget.js a domain/budget-track.js.
+// Úpravy se drží v paměti a ukládají tlačítkem 💾 do budget/{sezóna} (merge) s auditem. Pokladna, předpisy ani kalendář se tu nemění.
+// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis -> Vykreslení (sezóna, plán, plnění, cashflow) -> Eventy -> Export.
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -10,15 +10,19 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {budgetTrack, cashflow, trackAdvice} from "../domain/budget-track.js";
 import {BUDGET_COLL, BUDGET_DAYS, ITEM_MODE, OTHER_REP, PER, SAL_M, SEASON_MONTHS, budgetDoc, budgetError, budgetPlan, contribVariants, copyBudget,
   defaultSal, newBudget, newItem, normBudget, rosterCounts, sameBudget, seasonAdd, seasonFrom, seasonKeyOf, seasonLabel, seasonYms, seriesIn, suggestContrib} from "../domain/budget.js";
-import {cashCfg, kc, ymLabel, ymShort} from "../domain/cash.js";
+import {cashCfg, kc, twoAcc, ymLabel, ymShort} from "../domain/cash.js";
+import {econData} from "./payments.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
 let key = null;      // vybraná sezóna "RRRR-RR"
 let dr = null;       // rozpracovaný rozpočet {key, b (normalizovaný nebo null = zatím nezaložený), dirty}
 let open = null;     // id rozbalené položky událostí
+let tab = "plan";    // část obrazovky: "plan" | "track" | "flow"
+const TABS = [["plan", "📝 Plán"], ["track", "📈 Plnění"], ["flow", "💧 Cashflow"]];
 
 // ===== Pomocné funkce =====
 const DN = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];                 // zkratky dnů podle Date.getDay()
@@ -55,6 +59,14 @@ function change(fn) {
   render();
 }
 const itemOf = (b, id) => b.items.find(x => x.id === id);
+// Procento odchylky pro text („+12 %“)
+const pct = d => (d > 0 ? "+" : d < 0 ? "−" : "") + Math.round(Math.abs(d) * 100) + " %";
+// Plnění, cashflow a návrh pro rozpracovaný rozpočet (data pokladny a kalendáře z econData)
+function trackAll(b, pl) {
+  const D = econData(), today = td(), cfg = cfgNow();
+  const t = budgetTrack(b, pl, D, today), f = cashflow(b, pl, D, today, cfg);
+  return {t, f, adv: trackAdvice(b, pl, t, f.months.length ? f : null), cfg};
+}
 // Popis pravidla položky (pro sbalený řádek)
 function modeText(it, ser) {
   const span = fdS(it.from) + " – " + fdS(it.to);
@@ -79,7 +91,7 @@ function save() {
 }
 
 // ===== Vykreslení: sezóna a stav =====
-function headHtml(d) {
+function headHtml(d, all) {
   const sv = saved(key), cur = key === seasonKeyOf(td());
   const st = !d.b ? '<span class="mu">Rozpočet sezóny zatím není založený.</span>'
     : d.dirty ? '<b style="color:var(--wa)">✏️ Neuložené změny</b>'
@@ -89,7 +101,17 @@ function headHtml(d) {
   return `<div class="cd"><div class="evh"><button class="s" data-bsn="-1">◀</button><b style="font-size:17px">📊 Rozpočet ${esc(seasonLabel(key))}</b><button class="s" data-bsn="1">▶</button></div>
 ${cur ? "" : '<button class="s w" data-bsnow style="margin-top:8px">Tato sezóna</button>'}
 <div style="margin-top:6px">${st}</div>${err && d.dirty ? `<div class="mu" style="color:var(--no)">⚠️ ${esc(err)}</div>` : ""}${btns}
-<div class="mu" style="margin-top:6px">Sezóna 1. 8. – 30. 6. Rozpočet jen plánuje – pokladnu, předpisy, šablony ani kalendář nemění. Vidí ho jen trenér a pokladník.</div></div>`;
+${warnHtml(all)}
+<div class="mu" style="margin-top:6px">Sezóna 1. 8. – 30. 6. Rozpočet jen plánuje – pokladnu, předpisy, šablony ani kalendář nemění. Vidí ho jen trenér a pokladník.</div></div>
+${d.b ? `<div class="chips" style="margin-bottom:10px">${TABS.map(([k, l]) => `<button class="chip ${tab === k ? "on" : ""}" data-btab="${k}">${l}</button>`).join("")}</div>` : ""}`;
+}
+// Varování v hlavičce (všechny části): odhad zůstatku pod rezervou / pod nulou, měsíce s odchylkou nad 10 %
+function warnHtml(all) {
+  if (!all) return "";
+  const {t, f} = all, out = [], late = t.months.filter(m => m.warn);
+  if (f.first) out.push(`<button class="s w" data-btab="flow" style="margin-top:8px;text-align:left;border-color:var(--no)">⚠️ ${esc(ymLabel(f.first.ym))}: odhad zůstatku ${kc(f.first.bal)} – ${f.first.bal < 0 ? "pod nulou" : "pod rezervou " + kc(f.res)}</button>`);
+  if (late.length) out.push(`<button class="s w" data-btab="track" style="margin-top:6px;text-align:left;border-color:var(--wa)">⚠️ Odchylka nad 10 %: ${late.map(m => esc(ymLabel(m.ym))).join(", ")}</button>`);
+  return out.join("");
 }
 // Založení rozpočtu: z dnešního stavu (soupiska, nastavení pokladny, platy), nebo převzetím minulé sezóny
 function createHtml() {
@@ -108,7 +130,7 @@ function parHtml(b) {
 <h3>Hráčky (celkem ${tot})</h3>
 <div class="row"><div><label>S příspěvkem</label>${numIn('data-bn="monthly"', p.n.monthly, 80)}</div><div><label>Za událost</label>${numIn('data-bn="single"', p.n.single, 80)}</div><div><label>Osvobozené</label>${numIn('data-bn="exempt"', p.n.exempt, 80)}</div></div>
 <button class="s w" data-bros style="margin-top:6px">↻ Podle soupisky (${ros.monthly} / ${ros.single} / ${ros.exempt})</button>
-<div class="row" style="margin-top:8px"><div><label>Předpokládaná účast na událost (hráček)</label>${numIn('data-bp="att"', p.att, 80)}</div><div><label>Cílový přebytek na konci sezóny (Kč)</label><input data-bp="goal" type="number" inputmode="numeric" value="${esc(p.goal)}" style="margin:0;width:110px"></div></div>
+<div class="row" style="margin-top:8px"><div><label>Předpokládaná účast na událost (hráček)</label>${numIn('data-bp="att"', p.att, 80)}</div><div><label>Cílový přebytek na konci sezóny (Kč)</label><input data-bp="goal" type="number" inputmode="numeric" value="${esc(p.goal)}" style="margin:0;width:110px"></div><div><label>Rezerva pokladny – varování cashflow (Kč)</label>${numIn('data-bp="res"', p.res, 110)}</div></div>
 <h3>Příspěvek</h3>
 <div class="row" style="align-items:center;flex-wrap:nowrap"><span class="mu" style="flex:none">od začátku sezóny</span>${numIn('data-bp="contrib"', p.contrib)}<span class="mu" style="flex:none">Kč / měsíc</span></div>${ch}
 <button class="s w" data-bchadd style="margin-top:6px">+ Změna příspěvku od měsíce</button>
@@ -178,7 +200,7 @@ function planHtml(pl) {
 <div class="grid3"><div class="stat"><b>${kc(t.inc)}</b>příjmy</div><div class="stat"><b>${kc(t.out)}</b>výdaje</div><div class="stat"><b style="color:${t.saldo < 0 ? "var(--no)" : "var(--ok)"}">${t.saldo > 0 ? "+" : ""}${kc(t.saldo)}</b>saldo sezóny</div></div>
 <div class="tw"><table><tr><th>Měsíc</th><th>Událostí</th><th>Náklady</th><th>Za události</th><th>Příspěvky</th><th>Platy</th><th>Ostatní ±</th><th>Saldo</th><th>Kumulativně</th></tr>${rows}
 <tr><td><b>Sezóna</b></td><td><b>${t.n}</b></td><td><b>${cell(t.evCost)}</b></td><td><b>${cell(t.evInc)}</b></td><td><b>${cell(t.contrib)}</b></td><td><b>${cell(t.sal)}</b></td><td><b>${cell(t.oin - t.oout)}</b></td><td>${signed(t.saldo)}</td><td></td></tr></table></div>
-<div class="mu" style="margin-top:6px">Příspěvky = výše v měsíci × hráčky s příspěvkem. Kumulativně = saldo od začátku sezóny (bez zůstatku pokladny – cashflow a plnění přibudou v další verzi).</div></div>`;
+<div class="mu" style="margin-top:6px">Příspěvky = výše v měsíci × hráčky s příspěvkem. Kumulativně = saldo od začátku sezóny bez zůstatku pokladny (zůstatek viz 💧 Cashflow, skutečnost viz 📈 Plnění).</div></div>`;
 }
 
 // ===== Vykreslení: odhad příspěvku =====
@@ -199,13 +221,66 @@ ${diff !== 0 ? `<button class="s w" data-buse style="margin-top:8px;${armStyle(k
 <div class="mu" style="margin-top:6px">Jen návrh pro rozpočet – výši příspěvku v nastavení pokladny ani vystavené příspěvky nemění. „Použít“ nastaví příspěvek od začátku sezóny a zruší změny od měsíce.</div></div>`;
 }
 
+// ===== Vykreslení: plnění =====
+// Návrh úpravy při odhadu sezóny pod cílem nebo při varování cashflow (jen text – nic se nemění samo)
+function adviceHtml(adv) {
+  if (!adv) return "";
+  const o = [];
+  if (adv.contrib) o.push(`zvýšit příspěvek od příštího měsíce o <b>${kc(adv.contrib.per)}</b> (${adv.contrib.payers} hráček × ${adv.contrib.months} měsíců)`);
+  if (adv.fee) o.push(`zvýšit platbu za událost o <b>${kc(adv.fee.per)}</b> na událost (${adv.fee.n} zbývajících plánovaných událostí)`);
+  if (adv.fewer) o.push(`vynechat <b>${adv.fewer.n}</b> plánovaných událostí`);
+  return `<div class="cd" style="border-left:4px solid var(--wa)"><h2>💡 Návrh úpravy</h2><div>Do cíle sezóny / rezervy chybí <b>${kc(adv.gap)}</b>. Možnosti (stačí jedna):</div>
+${o.length ? `<ul style="margin:6px 0 0 18px">${o.map(x => `<li>${x}</li>`).join("")}</ul>` : '<div class="mu">Zbývající plán neumožňuje návrh – uprav položky nebo příspěvek v 📝 Plán.</div>'}
+<div class="mu" style="margin-top:6px">Jen návrh – rozpočet, příspěvky ani šablony pokladny se samy nemění.</div></div>`;
+}
+// Dvojice „plán / skutečnost“ v buňce (skutečnost tučně, nad 10 % barevně)
+const pair = (p, a, bad) => `<span class="mu">${kc(p)}</span><br><b style="${bad ? "color:var(--no)" : ""}">${a == null ? "–" : kc(a)}</b>`;
+function trackHtml(b, all) {
+  const {t, adv} = all, today = td(), A = t.tot.act, F = t.tot.fc, P = t.tot.plan;
+  if (!t.months.some(m => m.st !== "fut")) return `<div class="cd"><h2>📈 Plnění</h2><div class="msg">Sezóna ${esc(seasonLabel(key))} ještě nezačala – plnění bude vidět od 1. 8.</div></div>` + adviceHtml(adv);
+  const rows = t.months.map(m => {
+    const fut = m.st === "fut", sty = fut ? "opacity:.6" : m.st === "cur" ? "background:var(--a2)" : "";
+    const w = m.warn ? [m.dev.out != null && m.dev.out > 0.1 ? "výdaje " + pct(m.dev.out) : "", m.dev.inc != null && m.dev.inc < -0.1 ? "příjmy " + pct(m.dev.inc) : ""].filter(Boolean).join(", ") : "";
+    return `<tr style="${sty}"><td><b>${esc(ymLabel(m.ym))}</b>${m.st === "cur" ? '<div class="mu">běží</div>' : ""}${w ? `<div style="color:var(--no)">⚠️ ${esc(w)}</div>` : ""}</td>
+<td>${m.plan.n} / <b>${fut ? "–" : m.done}</b> / ${m.cal}</td><td>${pair(m.plan.out, fut ? null : m.out, m.warn && m.dev.out > 0.1)}</td>
+<td>${pair(m.plan.inc, fut ? null : m.inc, m.warn && m.dev.inc < -0.1)}${fut ? "" : `<div class="mu">${m.cEst && m.contrib ? "příspěvky odhad" : "zapl. " + kc(m.evPaid + m.cPaid)}</div>`}</td>
+<td>${pair(m.plan.saldo, fut ? null : m.saldo)}</td><td>${m.cum == null ? "–" : signed(m.cum)}</td><td>${signed(m.fcCum)}</td></tr>`;
+  }).join("");
+  const its = t.items.map(x => `<tr><td><b>${esc(x.name || "?")}</b>${x.warn ? '<div style="color:var(--no)">⚠️ odchylka</div>' : ""}</td><td>${x.plan}</td><td>${x.planToDate}</td><td><b>${x.done}</b></td><td>${x.cal}</td>
+<td>${kc(x.cost1)} / <b>${x.cost1Act == null ? "–" : kc(x.cost1Act)}</b>${x.dev != null && Math.abs(x.dev) > 0.1 ? ` <span style="color:var(--no)">${pct(x.dev)}</span>` : ""}</td></tr>`).join("");
+  return `<div class="cd"><h2>📈 Plnění k ${esc(fd(today))}</h2>
+<div class="grid3"><div class="stat">${signed(A.saldo)}skutečnost</div><div class="stat">${signed(A.planSaldo)}plán za totéž období</div><div class="stat">${signed(F.saldo)}odhad sezóny (plán ${P.saldo > 0 ? "+" : ""}${kc(P.saldo)})</div></div>
+<div class="mu" style="margin-top:6px">Skutečnost = uplynulé a běžící měsíce z hospodaření měsíce (náklady vyúčtovaných událostí, u ostatních podle šablony; příjmy předepsané a odhad z přihlášených; příspěvky předepsané, nevystavené odhad ze soupisky; vyplacené platy; ostatní pohyby pokladny mimo led, rozhodčí a dopravu). Odhad sezóny = skutečnost uplynulých měsíců + plán od běžícího měsíce.${dr.dirty ? " <b>Počítá s neuloženými změnami.</b>" : ""}</div></div>
+${adviceHtml(adv)}
+<div class="cd"><h2>📅 Po měsících</h2><div class="tw"><table><tr><th>Měsíc</th><th>Události plán / proběhlo / v kalendáři</th><th>Výdaje plán / skut.</th><th>Příjmy plán / skut.</th><th>Saldo plán / skut.</th><th>Kumulativně</th><th>Odhad kumul.</th></tr>${rows}</table></div>
+<div class="mu" style="margin-top:6px">⚠️ = uplynulý měsíc s výdaji o víc než 10 % nad plánem nebo příjmy o víc než 10 % pod plánem.</div></div>
+<div class="cd"><h2>🧾 Položky</h2>${t.items.length ? `<div class="tw"><table><tr><th>Položka</th><th>Plán sezóny</th><th>Plán do dneška</th><th>Proběhlo</th><th>V kalendáři</th><th>Náklady / událost plán / skut.</th></tr>${its}</table></div>` : '<div class="mu">Rozpočet nemá položky událostí.</div>'}
+${t.free.n ? `<div class="it" style="cursor:default;margin-top:6px"><span>Mimo rozpočet (šablona bez položky nebo mimo období položky)</span><b>${t.free.n} · ${kc(t.free.cost)}</b></div>` : ""}
+<div class="mu" style="margin-top:6px">Události se přiřazují podle šablony pokladny; u více položek se stejnou šablonou podle série a dne v týdnu.</div></div>`;
+}
+
+// ===== Vykreslení: cashflow =====
+function flowHtml(all) {
+  const {f, adv, cfg} = all, T = f.today;
+  const acc = twoAcc(cfg) ? `<div class="mu">Hlavní účet ${kc(T.main)} · Provozní účet ${kc(T.op)}</div>` : "";
+  const head = `<div class="cd"><h2>💧 Cashflow</h2><div class="it" style="cursor:default"><span>Zůstatek pokladny dnes</span>${signed(T.bal)}</div>${acc}
+<div class="it" style="cursor:default"><span>Rezerva (varování pod)</span><b>${kc(f.res)}</b></div>
+${f.debt > 0 ? `<div class="it" style="cursor:default"><span>Nezaplacené předpisy z dřívějších měsíců (do odhadu se nepočítají)</span><b style="color:var(--wa)">${kc(f.debt)}</b></div>` : ""}</div>`;
+  if (!f.months.length) return head + `<div class="cd"><div class="msg">Sezóna ${esc(seasonLabel(key))} skončila – cashflow se počítá jen pro běžící a budoucí měsíce.</div></div>`;
+  const rows = f.months.map(m => `<tr style="${m.low === "neg" ? "background:rgba(220,0,0,.12)" : m.low === "res" ? "background:rgba(230,150,0,.14)" : ""}"><td><b>${esc(ymLabel(m.ym))}</b></td><td>${kc(m.in)}</td><td>${kc(m.out)}</td><td>${signed(m.bal)}</td><td>${m.low === "neg" ? "⛔ pod nulou" : m.low === "res" ? "⚠️ pod rezervou" : "✅"}</td></tr>`).join("");
+  return head + adviceHtml(adv) + `<div class="cd"><h2>📅 Odhad zůstatku po měsících</h2><div class="tw"><table><tr><th>Měsíc</th><th>Očekávané příjmy</th><th>Očekávané výdaje</th><th>Zůstatek na konci</th><th></th></tr>${rows}</table></div>
+<div class="mu" style="margin-top:6px">Příjmy = plán měsíce bez už předepsaných částek + nezaplacené předpisy měsíce. Výdaje = plán (nebo dražší události v kalendáři), u běžícího měsíce bez už vydaného. ${seasonFrom(key) > td() ? "Sezóna ještě nezačala – odhad začíná dnešním zůstatkem. " : ""}${dr.dirty ? "<b>Počítá s neuloženými změnami.</b>" : ""}</div></div>`;
+}
+
 // ===== Vykreslení: celá obrazovka =====
 // HTML režimu 📊 Rozpočet (volá cashPanel v events.js)
 export function budgetHtml() {
   const d = draft(), cfg = cfgNow();
-  if (!d.b) return headHtml(d) + createHtml();
-  const pl = budgetPlan(d.b, cfg, S.ev);
-  return headHtml(d) + suggestHtml(d.b, pl) + planHtml(pl) + parHtml(d.b) + itemsHtml(d.b, pl, cfg) + salHtml(d.b);
+  if (!d.b) return headHtml(d, null) + createHtml();
+  const pl = budgetPlan(d.b, cfg, S.ev), all = trackAll(d.b, pl);
+  if (tab === "track") return headHtml(d, all) + trackHtml(d.b, all);
+  if (tab === "flow") return headHtml(d, all) + flowHtml(all);
+  return headHtml(d, all) + suggestHtml(d.b, pl) + planHtml(pl) + parHtml(d.b) + itemsHtml(d.b, pl, cfg) + salHtml(d.b);
 }
 
 // ===== Eventy =====
@@ -216,6 +291,7 @@ export function bindBudget(a) {
   q("[data-bsn]").forEach(b => b.onclick = () => { key = seasonAdd(key, +b.dataset.bsn); open = null; render(); });
   q("[data-bsnow]").forEach(b => b.onclick = () => { key = seasonKeyOf(td()); open = null; render(); });
   q("[data-bsave]").forEach(b => b.onclick = save);
+  q("[data-btab]").forEach(b => b.onclick = () => { tab = b.dataset.btab; render(); });
   q("[data-bundo]").forEach(b => b.onclick = () => confirm2("bundo" + key, () => { dr = null; open = null; render(); }));
   q("[data-bnew]").forEach(b => b.onclick = () => { dr = {key, b: normBudget(newBudget(key, S.pl, cfg, S.tr, avgAtt()), key), dirty: true}; render(); });
   q("[data-bcopy]").forEach(b => b.onclick = () => { const p = saved(seasonAdd(key, -1)); if (p) { dr = {key, b: copyBudget(p, key), dirty: true}; render(); } });

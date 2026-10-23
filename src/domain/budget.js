@@ -58,10 +58,11 @@ export function rosterCounts(pl) {
   const ex = P.filter(p => exOf(p) || fxOf(p) === 0).length, mon = P.filter(p => !exOf(p) && fxOf(p) > 0 && grpOf(p) === "monthly").length;
   return {monthly: mon, single: P.length - ex - mon, exempt: ex};
 }
-// Výchozí parametry: počty ze soupisky, příspěvek z nastavení pokladny, účast att (např. průměr minulých tréninků), příspěvek všech 11 měsíců
+// Výchozí parametry: počty ze soupisky, příspěvek z nastavení pokladny, účast att (např. průměr minulých tréninků), příspěvek všech 11 měsíců,
+// cíl a rezerva pokladny 0 Kč
 export function defaultPar(pl, cfg, att) {
   const n = rosterCounts(pl), all = n.monthly + n.single + n.exempt;
-  return {n, att: int0(att != null ? att : all), contrib: nn((cfg || {}).contrib), cH: [], cm: [...SEASON_MONTHS], goal: 0};
+  return {n, att: int0(att != null ? att : all), contrib: nn((cfg || {}).contrib), cH: [], cm: [...SEASON_MONTHS], goal: 0, res: 0};
 }
 // Platy realizačního týmu z nastavení platu (staff.pay = {m: "month" | "event", amt})
 export const defaultSal = tr => (tr || []).filter(t => t.pay && (t.pay.m === "month" || t.pay.m === "event"))
@@ -91,7 +92,7 @@ export function normBudget(r, key) {
   const yms = new Set(seasonYms(k));
   const par = {
     n: {monthly: int0(n.monthly), single: int0(n.single), exempt: int0(n.exempt)},
-    att: int0(p.att), contrib: nn(p.contrib), goal: num(p.goal),
+    att: int0(p.att), contrib: nn(p.contrib), goal: num(p.goal), res: nn(p.res),      // res = rezerva pokladny pro varování cashflow
     cH: (p.cH || []).filter(c => c && ymOk(c.ym)).map(c => ({ym: c.ym, amt: nn(c.amt)})).sort((a, b) => a.ym.localeCompare(b.ym)),
     cm: Array.isArray(p.cm) ? SEASON_MONTHS.filter(m => p.cm.map(Number).includes(m)) : [...SEASON_MONTHS]
   };
