@@ -128,13 +128,19 @@ service cloud.firestore {
       allow delete: if isCash();
     }
 
-    // ===== Rozpočet sezóny budget/{sezóna} (id "RRRR-RR", období 1. 8. – 30. 6.): čte a zapisuje jen správce pokladny, smazat smí jen trenér =====
-    // Jen pole plánu (parametry, položky, platy, ostatní) a kdo / kdy uložil; sezóna v dokumentu musí odpovídat id.
-    function budgetOk(id, d) { return d.keys().hasOnly(['season', 'par', 'items', 'sal', 'other', 'by', 'at']) && d.season == id && d.par is map && d.items is list && d.sal is list && d.other is list; }
+    // ===== Rozpočet sezóny budget/{sezóna} (id "RRRR-RR", období 1. 8. – 30. 6.): čte a zapisuje jen správce pokladny =====
+    // Pole plánu (parametry, položky, platy, ostatní), kdo / kdy uložil, schválení approved = {data, sum, by, at} a úpravy rev (seznam);
+    // sezóna v dokumentu musí odpovídat id. Schválenou verzi nejde změnit ani odebrat, úpravy jen přidávat; smazat jde jen neschválený (trenér).
+    function budgetOk(id, d) { return d.keys().hasOnly(['season', 'par', 'items', 'sal', 'other', 'by', 'at', 'approved', 'rev']) && d.season == id && d.par is map && d.items is list && d.sal is list && d.other is list
+      && (!('approved' in d) || (d.approved is map && d.approved.keys().hasOnly(['data', 'sum', 'by', 'at']) && d.approved.data is map))
+      && (!('rev' in d) || d.rev is list); }
+    function budgetKeep(o, d) { return (!('approved' in o) || (('approved' in d) && d.approved == o.approved))
+      && (!('rev' in o) || (('rev' in d) && d.rev.size() >= o.rev.size())); }
     match /budget/{id} {
       allow read: if isCash();
-      allow create, update: if isCash() && id.matches('^[0-9]{4}-[0-9]{2}$') && budgetOk(id, request.resource.data);
-      allow delete: if isCoach();
+      allow create: if isCash() && id.matches('^[0-9]{4}-[0-9]{2}$') && budgetOk(id, request.resource.data);
+      allow update: if isCash() && id.matches('^[0-9]{4}-[0-9]{2}$') && budgetOk(id, request.resource.data) && budgetKeep(resource.data, request.resource.data);
+      allow delete: if isCoach() && !('approved' in resource.data);
     }
 
     // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, at, by =====

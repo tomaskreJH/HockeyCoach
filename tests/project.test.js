@@ -84,10 +84,14 @@ test("pravidla: kolekce, které aplikace čte, mají pravidlo", () => {
     .forEach(c => assert.ok(rules.includes("match /" + c + "/"), "pravidlo pro " + c));
 });
 
-test("pravidla: rozpočet sezóny čte a zapisuje jen správce pokladny, maže jen trenér", () => {
+test("pravidla: rozpočet sezóny čte a zapisuje jen správce pokladny, schválený nejde změnit ani smazat", () => {
   const rules = read("firestore.rules"), m = ruleBlock(rules, "match /budget/{id}");
   assert.match(m, /allow read: if isCash\(\);/);
-  assert.match(m, /allow create, update: if isCash\(\) && id\.matches\('\^\[0-9\]\{4\}-\[0-9\]\{2\}\$'\) && budgetOk\(id, request\.resource\.data\);/);
-  assert.match(m, /allow delete: if isCoach\(\);/);
-  assert.match(rules, /function budgetOk\(id, d\) \{ return d\.keys\(\)\.hasOnly\(\['season', 'par', 'items', 'sal', 'other', 'by', 'at'\]\) && d\.season == id/);
+  assert.match(m, /allow create: if isCash\(\) && id\.matches\('\^\[0-9\]\{4\}-\[0-9\]\{2\}\$'\) && budgetOk\(id, request\.resource\.data\);/);
+  assert.match(m, /allow update: if isCash\(\) && id\.matches\('\^\[0-9\]\{4\}-\[0-9\]\{2\}\$'\) && budgetOk\(id, request\.resource\.data\) && budgetKeep\(resource\.data, request\.resource\.data\);/);
+  assert.match(m, /allow delete: if isCoach\(\) && !\('approved' in resource\.data\);/);
+  assert.match(rules, /function budgetOk\(id, d\) \{ return d\.keys\(\)\.hasOnly\(\['season', 'par', 'items', 'sal', 'other', 'by', 'at', 'approved', 'rev'\]\) && d\.season == id/);
+  // Schválená verze se nemění ani neodebírá, úpravy se jen přidávají
+  assert.match(rules, /function budgetKeep\(o, d\) \{ return \(!\('approved' in o\) \|\| \(\('approved' in d\) && d\.approved == o\.approved\)\)/);
+  assert.match(rules, /d\.rev\.size\(\) >= o\.rev\.size\(\)/);
 });

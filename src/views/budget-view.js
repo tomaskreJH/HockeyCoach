@@ -1,8 +1,9 @@
 // Rozpočet sezóny (Team → 📊 Rozpočet, jen správci pokladny – trenér a pokladník) ve třech částech: 📝 Plán (parametry, položky událostí,
 // platy a ostatní, plán po měsících, odhad příspěvku), 📈 Plnění (plán vs. skutečnost po měsících a položkách, odhad sezóny) a
-// 💧 Cashflow (odhad zůstatku pokladny, varování pod rezervou). Výpočty: domain/budget.js a domain/budget-track.js.
-// Úpravy se drží v paměti a ukládají tlačítkem 💾 do budget/{sezóna} (merge) s auditem. Pokladna, předpisy ani kalendář se tu nemění.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis -> Vykreslení (sezóna, plán, plnění, cashflow) -> Eventy -> Export.
+// 💧 Cashflow (odhad zůstatku pokladny, varování pod rezervou). Výpočty: domain/budget.js, domain/budget-track.js, domain/budget-review.js.
+// Úpravy se drží v paměti a ukládají tlačítkem 💾 do budget/{sezóna} (merge) s auditem; ✅ Schválit uloží neměnnou kopii (approved),
+// každé další uložení je úprava s povinným důvodem (rev). 🖨 Export pro valnou hromadu (views/budget-print.js). Pokladnu ani kalendář nemění.
+// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis -> Vykreslení (sezóna, schválení, plán, plnění, cashflow) -> Eventy -> Export.
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -10,10 +11,12 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {REV_NOTE_MAX, addRev, approveBlock, approveDoc, approvedOf, compareApproved, dmy, revList, revNote} from "../domain/budget-review.js";
 import {budgetTrack, cashflow, trackAdvice} from "../domain/budget-track.js";
 import {BUDGET_COLL, BUDGET_DAYS, ITEM_MODE, OTHER_REP, PER, SAL_M, SEASON_MONTHS, budgetDoc, budgetError, budgetPlan, contribVariants, copyBudget,
   defaultSal, newBudget, newItem, normBudget, rosterCounts, sameBudget, seasonAdd, seasonFrom, seasonKeyOf, seasonLabel, seasonYms, seriesIn, suggestContrib} from "../domain/budget.js";
 import {cashCfg, kc, twoAcc, ymLabel, ymShort} from "../domain/cash.js";
+import {openBudgetPrint} from "./budget-print.js";
 import {econData} from "./payments.js";
 import {render} from "./shell.js";
 
@@ -22,6 +25,7 @@ let key = null;      // vybraná sezóna "RRRR-RR"
 let dr = null;       // rozpracovaný rozpočet {key, b (normalizovaný nebo null = zatím nezaložený), dirty}
 let open = null;     // id rozbalené položky událostí
 let tab = "plan";    // část obrazovky: "plan" | "track" | "flow"
+let reason = "";     // rozepsaný důvod úpravy schváleného rozpočtu (povinný před uložením)
 const TABS = [["plan", "📝 Plán"], ["track", "📈 Plnění"], ["flow", "💧 Cashflow"]];
 
 // ===== Pomocné funkce =====
@@ -77,17 +81,41 @@ function modeText(it, ser) {
 
 // ===== Zápis =====
 // Uložení rozpočtu: dokument budget/{sezóna} (merge – pole, která tato verze nezná, zůstanou) + audit v jedné dávce
+// U schváleného rozpočtu je uložení úprava: povinný důvod, záznam se přidá do rev (schválená kopie approved se nemění)
 function save() {
-  const b = dr.b, err = budgetError(b);
+  const b = dr.b, err = budgetError(b), sv = saved(key), at = new Date().toISOString();
   if (err) return toast(err);
-  const pl = budgetPlan(b, cfgNow(), S.ev);
+  const pl = budgetPlan(b, cfgNow(), S.ev), appr = approvedOf(sv);
+  const rev = appr ? addRev(sv, pl, email(), at, reason) : null;
+  if (appr && !rev) return toast("Napiš důvod úpravy schváleného rozpočtu");
   S.db.batch()
-    .merge(BUDGET_COLL + "/" + key, {...budgetDoc(b), by: email(), at: new Date().toISOString()})
-    .set("audit/" + uid(), {ts: new Date().toISOString(), by: email(), eid: "", act: "budget", note: "Rozpočet " + seasonLabel(key) + ": " + b.items.length + " položek, saldo sezóny " + kc(pl.tot.saldo)})
+    .merge(BUDGET_COLL + "/" + key, {...budgetDoc(b), ...(rev ? {rev} : {}), by: email(), at})
+    .set("audit/" + uid(), {ts: at, by: email(), eid: "", act: "budget", note: "Rozpočet " + seasonLabel(key) + (rev ? " – úprava (" + revNote(reason) + ")" : "") + ": " + b.items.length + " položek, saldo sezóny " + kc(pl.tot.saldo)})
     .commit();
   dr.dirty = false;
-  toast("Rozpočet uložen");
+  reason = "";
+  toast(rev ? "Úprava rozpočtu uložena" : "Rozpočet uložen");
   render();
+}
+// Schválení uloženého rozpočtu: neměnná kopie plánu a jeho čísel (approved) + audit; jde jen jednou za sezónu
+function approve() {
+  const sv = saved(key), b = dr && dr.b, block = approveBlock(sv, dr && dr.dirty, b ? budgetError(b) : "");
+  if (block) return toast(block);
+  const at = new Date().toISOString(), pl = budgetPlan(b, cfgNow(), S.ev);
+  S.db.batch()
+    .merge(BUDGET_COLL + "/" + key, approveDoc(b, pl, email(), at))
+    .set("audit/" + uid(), {ts: at, by: email(), eid: "", act: "budget", note: "Rozpočet " + seasonLabel(key) + " schválen: saldo sezóny " + kc(pl.tot.saldo)})
+    .commit();
+  toast("Rozpočet schválen");
+  render();
+}
+// Export pro valnou hromadu z uloženého rozpočtu (plán, plnění a cashflow uloženého stavu)
+function exportOpen() {
+  const sv = saved(key);
+  if (!sv) return toast("Rozpočet nejdřív ulož");
+  if (dr && dr.dirty) return toast("Nejdřív ulož nebo zahoď změny – export je z uloženého rozpočtu");
+  const b = normBudget(sv, key), pl = budgetPlan(b, cfgNow(), S.ev), all = trackAll(b, pl);
+  openBudgetPrint({key, sv, pl, track: all.t, flow: all.f.months.length ? all.f : null, by: email()});
 }
 
 // ===== Vykreslení: sezóna a stav =====
@@ -96,11 +124,17 @@ function headHtml(d, all) {
   const st = !d.b ? '<span class="mu">Rozpočet sezóny zatím není založený.</span>'
     : d.dirty ? '<b style="color:var(--wa)">✏️ Neuložené změny</b>'
     : `<span class="mu">Uloženo ${sv && sv.at ? esc(fd(sv.at.slice(0, 10))) : ""}${sv && sv.by ? " · " + esc(sv.by) : ""}</span>`;
-  const err = d.b ? budgetError(d.b) : "";
-  const btns = d.b && d.dirty ? `<div class="row" style="margin-top:8px"><button class="p" data-bsave style="flex:2;min-height:48px">💾 Uložit rozpočet</button><button class="s" data-bundo style="${armStyle("bundo" + key)}">${armed("bundo" + key) ? "Zahodit?" : "↺ Zahodit změny"}</button></div>` : "";
+  const err = d.b ? budgetError(d.b) : "", appr = approvedOf(sv), nRev = revList(sv).length;
+  const ast = !sv ? "" : appr ? `<div style="margin-top:4px"><b style="color:var(--ok)">✅ Schváleno ${esc(dmy(appr.at))}</b> <span class="mu">· ${esc(appr.by)}${nRev ? " · úprav: " + nRev : ""}</span></div>`
+    : '<div class="mu" style="margin-top:4px">📝 Návrh – zatím neschválený</div>';
+  // Důvod úpravy: jen u schváleného rozpočtu s neuloženými změnami (bez překreslení při psaní)
+  const why = appr && d.dirty ? `<label style="margin-top:8px">Důvod úpravy schváleného rozpočtu (povinný)</label><input data-breason maxlength="${REV_NOTE_MAX}" value="${esc(reason)}" placeholder="Např. dražší led od ledna" style="margin:0">` : "";
+  const btns = d.b && d.dirty ? `${why}<div class="row" style="margin-top:8px"><button class="p" data-bsave style="flex:2;min-height:48px">💾 ${appr ? "Uložit úpravu" : "Uložit rozpočet"}</button><button class="s" data-bundo style="${armStyle("bundo" + key)}">${armed("bundo" + key) ? "Zahodit?" : "↺ Zahodit změny"}</button></div>` : "";
+  const ak = "bappr" + key, canAppr = !approveBlock(sv, d.dirty, err);
+  const act = sv && !d.dirty ? `<div class="row" style="margin-top:8px">${canAppr ? `<button class="p" data-bappr style="${armStyle(ak)}">${armed(ak) ? "Schválit natrvalo? Klepni znovu" : "✅ Schválit rozpočet"}</button>` : ""}<button class="s" data-bexp>🖨 Export pro valnou hromadu</button></div>` : "";
   return `<div class="cd"><div class="evh"><button class="s" data-bsn="-1">◀</button><b style="font-size:17px">📊 Rozpočet ${esc(seasonLabel(key))}</b><button class="s" data-bsn="1">▶</button></div>
 ${cur ? "" : '<button class="s w" data-bsnow style="margin-top:8px">Tato sezóna</button>'}
-<div style="margin-top:6px">${st}</div>${err && d.dirty ? `<div class="mu" style="color:var(--no)">⚠️ ${esc(err)}</div>` : ""}${btns}
+<div style="margin-top:6px">${st}</div>${ast}${err && d.dirty ? `<div class="mu" style="color:var(--no)">⚠️ ${esc(err)}</div>` : ""}${btns}${act}
 ${warnHtml(all)}
 <div class="mu" style="margin-top:6px">Sezóna 1. 8. – 30. 6. Rozpočet jen plánuje – pokladnu, předpisy, šablony ani kalendář nemění. Vidí ho jen trenér a pokladník.</div></div>
 ${d.b ? `<div class="chips" style="margin-bottom:10px">${TABS.map(([k, l]) => `<button class="chip ${tab === k ? "on" : ""}" data-btab="${k}">${l}</button>`).join("")}</div>` : ""}`;
@@ -119,6 +153,22 @@ function createHtml() {
   return `<div class="cd"><h2>🆕 Založit rozpočet ${esc(seasonLabel(key))}</h2><div class="mu" style="margin-bottom:8px">Parametry se předvyplní ze soupisky (počty hráček podle skupiny plateb), z nastavení pokladny (výše příspěvku) a z platů realizačního týmu; předpokládaná účast z posledních tréninků. Vše jde upravit, uloží se až tlačítkem 💾.</div>
 <button class="p w" data-bnew style="min-height:48px">🆕 Založit ze soupisky a nastavení</button>
 ${prev ? `<button class="s w" data-bcopy style="margin-top:8px">📋 Převzít rozpočet ${esc(seasonLabel(prev.id))} (data posunutá o rok)</button>` : ""}</div>`;
+}
+
+// ===== Vykreslení: schválený rozpočet a úpravy =====
+// Porovnání schváleného (zmrazená čísla) a aktuálního plánu + historie úprav; bez schválení nápověda ke schválení
+function approvedHtml(sv, pl) {
+  const appr = approvedOf(sv);
+  if (!appr) return sv ? `<div class="cd"><h2>✅ Schválení</h2><div class="mu">Hotový rozpočet schvaluje trenér nebo pokladník tlačítkem ✅ Schválit rozpočet nahoře (dvě klepnutí). Schválená verze je závazná a nejde přepsat ani smazat – další změny se ukládají jako úpravy s důvodem a porovnávají se se schválenou.</div></div>` : "";
+  const c = compareApproved(appr, pl), revs = revList(sv);
+  const val = (k, v) => (k === "n" ? String(v) : kc(v)), dv = (k, v) => (k === "n" ? `<b>${v > 0 ? "+" : ""}${v}</b>` : signed(v));
+  const rows = c.rows.map(r => `<tr><td><b>${esc(r.label)}</b></td><td>${val(r.k, r.a)}</td><td>${val(r.k, r.c)}</td><td>${r.d ? dv(r.k, r.d) : "–"}</td></tr>`).join("");
+  const mon = c.months.filter(m => m.d).map(m => `<tr><td>${esc(ymLabel(m.ym))}</td><td>${signed(m.a)}</td><td>${signed(m.c)}</td><td>${signed(m.d)}</td></tr>`).join("");
+  const hist = revs.length ? `<h3>Úpravy po schválení</h3>${revs.slice().reverse().map(r => `<div class="it" style="cursor:default"><span>${esc(dmy(r.at))} · ${esc(r.by)}<br><span class="mu">${esc(r.note)}</span></span>${signed(r.saldo)}</div>`).join("")}` : '<div class="mu" style="margin-top:6px">Bez úprav po schválení.</div>';
+  return `<div class="cd"><h2>✅ Schválený rozpočet a aktuální plán</h2><div class="mu" style="margin-bottom:6px">Schváleno ${esc(dmy(appr.at))} (${esc(appr.by)}). Čísla schválené verze jsou zmrazená v okamžiku schválení.${dr.dirty ? " <b>Aktuální plán počítá s neuloženými změnami.</b>" : ""}</div>
+<div class="tw"><table style="min-width:0"><tr><th></th><th>Schválený</th><th>Aktuální</th><th>Rozdíl</th></tr>${rows}</table></div>
+${mon ? `<h3>Měsíce se změnou salda</h3><div class="tw"><table style="min-width:0"><tr><th>Měsíc</th><th>Schválený</th><th>Aktuální</th><th>Rozdíl</th></tr>${mon}</table></div>` : '<div class="mu" style="margin-top:6px">Saldo po měsících beze změny proti schválenému.</div>'}
+${hist}</div>`;
 }
 
 // ===== Vykreslení: parametry =====
@@ -280,7 +330,7 @@ export function budgetHtml() {
   const pl = budgetPlan(d.b, cfg, S.ev), all = trackAll(d.b, pl);
   if (tab === "track") return headHtml(d, all) + trackHtml(d.b, all);
   if (tab === "flow") return headHtml(d, all) + flowHtml(all);
-  return headHtml(d, all) + suggestHtml(d.b, pl) + planHtml(pl) + parHtml(d.b) + itemsHtml(d.b, pl, cfg) + salHtml(d.b);
+  return headHtml(d, all) + approvedHtml(saved(key), pl) + suggestHtml(d.b, pl) + planHtml(pl) + parHtml(d.b) + itemsHtml(d.b, pl, cfg) + salHtml(d.b);
 }
 
 // ===== Eventy =====
@@ -288,11 +338,15 @@ export function bindBudget(a) {
   const q = s => a.querySelectorAll(s), two = v => String(v).split("|");
   const cfg = cfgNow();
   // Sezóna a stav
-  q("[data-bsn]").forEach(b => b.onclick = () => { key = seasonAdd(key, +b.dataset.bsn); open = null; render(); });
-  q("[data-bsnow]").forEach(b => b.onclick = () => { key = seasonKeyOf(td()); open = null; render(); });
+  q("[data-bsn]").forEach(b => b.onclick = () => { key = seasonAdd(key, +b.dataset.bsn); open = null; reason = ""; render(); });
+  q("[data-bsnow]").forEach(b => b.onclick = () => { key = seasonKeyOf(td()); open = null; reason = ""; render(); });
   q("[data-bsave]").forEach(b => b.onclick = save);
   q("[data-btab]").forEach(b => b.onclick = () => { tab = b.dataset.btab; render(); });
-  q("[data-bundo]").forEach(b => b.onclick = () => confirm2("bundo" + key, () => { dr = null; open = null; render(); }));
+  q("[data-bundo]").forEach(b => b.onclick = () => confirm2("bundo" + key, () => { dr = null; open = null; reason = ""; render(); }));
+  // Schválení, důvod úpravy (bez překreslení – pole zůstane rozepsané) a export
+  q("[data-bappr]").forEach(b => b.onclick = () => confirm2("bappr" + key, approve));
+  q("[data-breason]").forEach(i => i.oninput = () => { reason = i.value; });
+  q("[data-bexp]").forEach(b => b.onclick = exportOpen);
   q("[data-bnew]").forEach(b => b.onclick = () => { dr = {key, b: normBudget(newBudget(key, S.pl, cfg, S.tr, avgAtt()), key), dirty: true}; render(); });
   q("[data-bcopy]").forEach(b => b.onclick = () => { const p = saved(seasonAdd(key, -1)); if (p) { dr = {key, b: copyBudget(p, key), dirty: true}; render(); } });
   // Parametry
