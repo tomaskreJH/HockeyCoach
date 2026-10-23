@@ -12,7 +12,10 @@
 // Náklady a platby vidí jen správci pokladny (HK.can("money"): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
 // přehled plateb a dluhů: views/finance.js (Team → „💰 Platby“); pohyby pokladny: views/cashbook.js (Team → „🏦 Pokladna“);
 // příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4).
-// Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu).
+// Statistiky uzavřeného zápasu vidí v detailu události každý člen (i hráčka, která nemá přístup ke kartě zápasu); tlačítko 📋 Zápis utkání
+// otevře celý zápis (views/report.js, okno #rp, S.rp = id zápasu) – stejně jako v záložce Soupeři, jen ke čtení a exportu.
+// Řazení: Nadcházející vzestupně, Minulé a Kalendář sestupně (domain/event-helpers.js). Pětky tréninku: hráčky a přihlášení členové
+// realizačního týmu (klíč "t:" + id v events.lines).
 // Přepínač „Docházka“ (S.evm = "att") – přehled docházky pro všechny členy (views/attendance.js, výpočet domain/attendance.js);
 // v detailu události má dlužnice po splatnosti u jména značku ⛓ (výjimka 🔓) podle veřejného souhrnu debtors (bez částek).
 
@@ -24,6 +27,7 @@ import {S} from "../core/state.js";
 import {clone, dlBeforeStart, dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {costTotal, cxOf, debtOf, kc} from "../domain/cash.js";
+import {LINE_NOS, baseLines, lineCounts, setLine, sortEvents, trKey} from "../domain/event-helpers.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
@@ -31,7 +35,7 @@ import {bindBanner, mineBanner} from "./mine.js";
 import {bindMoney, moneyHtml} from "./money.js";
 import {bindPay, payHtml} from "./payments.js";
 import {attHtml, bindAtt, debtTag} from "./attendance.js";
-import {matchStatsHtml} from "./report.js";
+import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -81,7 +85,6 @@ const dlMs = dl => { const t = dl ? new Date(dl).getTime() : NaN; return isNaN(t
 const isLocked = ev => { const t = dlMs(ev.dl); return (t != null && Date.now() > t) || ev.date < td(); };
 // Výchozí termín: den před událostí v 18:00 (core/utils.js – stejný i pro nový zápas v modal.js)
 const defDl = dlDefault;
-const asc = (x, y) => x.date.localeCompare(y.date) || (x.time || "99").localeCompare(y.time || "99");
 const activePl = () => S.pl.filter(p => stOf(p) !== "end").sort((x, y) => pri(x) - pri(y) || x.name.localeCompare(y.name, "cs"));
 // Členové realizačního týmu (trenéři, kustodi…) seřazení podle jména; zapisují se do docházky, neplatí a nenominují se
 const trs = () => [...S.tr].sort((x, y) => (x.name || "").localeCompare(y.name || "", "cs"));
@@ -142,14 +145,8 @@ function answer(eid, pid, st) {
   S.evr = {eid, pid, st, reason: cur && cur.st === st ? (cur.reason || "") : "", had: !!cur};
   render();
 }
-// Uložení rozdělení do pětek u tréninku (pětky jsou v poli lines: {hráčka: číslo pětky}); merge zapíše jen pole lines
+// Uložení rozdělení do pětek u tréninku (pole lines: {hráčka: číslo pětky, "t:" + člen týmu: číslo pětky}); merge zapíše jen pole lines
 function saveLines(ev, lines) { S.db.doc("events/" + ev.id).merge({lines}); }
-// Rozdělení podle základní formace (jen hráčky, které jdou); partnerky z rotace ("1C+") patří do téže pětky
-function baseLines(going) {
-  const lu = (S.def || {}).lu || {}, r = {};
-  Object.entries(lu).forEach(([k, id]) => { const n = +k[0]; if (n >= 1 && n <= 4 && going.includes(id)) r[id] = n; });
-  return r;
-}
 
 // ===== Vykreslení: kalendář a seznam =====
 function calHtml(evs, today) {
@@ -186,10 +183,11 @@ function list(a) {
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
   let shown;
-  if (mode === "up") shown = evs.filter(e => e.date >= today).sort(asc);
-  else if (mode === "past") shown = evs.filter(e => e.date < today).sort((x, y) => asc(y, x));
+  // Nadcházející vzestupně (nejbližší nahoře), Minulé a Kalendář sestupně (nejnovější nahoře)
+  if (mode === "up") shown = sortEvents(evs.filter(e => e.date >= today), "up");
+  else if (mode === "past") shown = sortEvents(evs.filter(e => e.date < today), "past");
   else if (mode === "att") shown = [];
-  else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)).sort(asc); }
+  else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = sortEvents(evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)), "cal"); }
   // Hlavička: hráčka bez propojení dostane upozornění; správce tlačítka pro založení události
   const head = pl_
     ? (S.evp ? "" : '<div class="cd" style="color:var(--no)">Tvůj účet není propojen s aktivní hráčkou. Požádej trenéra.</div>')
@@ -229,17 +227,20 @@ export {CASH_MODES};
 
 // ===== Vykreslení: detail události =====
 // Pořadí: hlavička → docházka → výsledek a statistiky zápasu → rozdělení do pětek → pokladna (jen správci, na konci stránky)
-// Rozdělení do pětek (jen trénink): hráčky, které jdou, a barevné volby 1.–4. pětky; hráčka vidí rozdělení jen ke čtení
-function linesHtml(ev, A, P, ro) {
-  const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)), L = ev.raw.lines || {};
-  const cnt = n => going.filter(p => L[p.id] === n).length, free = going.filter(p => !L[p.id]).length;
-  const row = p => ro
-    ? `<div class="pr"><div>${pn(p.id)}</div><div>${L[p.id] ? `<span class="evl L${L[p.id]}">${L[p.id]}. pětka</span>` : '<span class="mu">–</span>'}</div></div>`
-    : `<div class="pr"><div>${pn(p.id)}</div><div class="evln">${[0, 1, 2, 3, 4].map(n => `<button class="chip ${(L[p.id] || 0) === n ? (n ? "L" + n : "on") : ""}" data-ln="${p.id}|${n}">${n || "–"}</button>`).join("")}</div></div>`;
-  return `<div class="cd"><h2>Rozdělení do pětek</h2><div class="mu" style="margin-bottom:8px">Z hráček, které jdou (bez brankářek). Barvy jako v živém zápisu.</div>
-<div style="margin-bottom:10px">${[1, 2, 3, 4].map(n => `<span class="evl L${n}">${n}. pětka: ${cnt(n)}</span>`).join("")}<span class="evl L0">bez pětky: ${free}</span></div>
+// Rozdělení do pětek (jen trénink): přihlášené hráčky (bez brankářek) a přihlášení členové realizačního týmu, barevné volby 1.–4. pětky;
+// hráčka vidí rozdělení jen ke čtení. Člen týmu má v lines klíč "t:" + id (vede stanoviště / jde s pětkou).
+function linesHtml(ev, A, P, T, ro) {
+  const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)), goT = T.filter(t => A[t.id] && A[t.id].st === "yes"), L = ev.raw.lines || {};
+  const c = lineCounts(L, going.map(p => p.id), goT.map(t => t.id));
+  // Řádek: key = klíč v lines, label = jméno (HTML)
+  const row = (key, label) => ro
+    ? `<div class="pr"><div>${label}</div><div>${L[key] ? `<span class="evl L${L[key]}">${L[key]}. pětka</span>` : '<span class="mu">–</span>'}</div></div>`
+    : `<div class="pr"><div>${label}</div><div class="evln">${[0, ...LINE_NOS].map(n => `<button class="chip ${(L[key] || 0) === n ? (n ? "L" + n : "on") : ""}" data-ln="${key}|${n}">${n || "–"}</button>`).join("")}</div></div>`;
+  const trH = goT.length ? '<div class="lnl">Realizační tým</div>' + goT.map(t => row(trKey(t.id), "🎓 " + esc(t.name) + (t.kind ? ` <span class="mu">${esc(t.kind)}</span>` : ""))).join("") : "";
+  return `<div class="cd"><h2>Rozdělení do pětek</h2><div class="mu" style="margin-bottom:8px">Z hráček, které jdou (bez brankářek), a přihlášeného realizačního týmu. Barvy jako v živém zápisu.</div>
+<div style="margin-bottom:10px">${LINE_NOS.map(n => `<span class="evl L${n}">${n}. pětka: ${c.pl[n]}${c.tr[n] ? " + 🎓" + c.tr[n] : ""}</span>`).join("")}<span class="evl L0">bez pětky: ${c.free}</span></div>
 ${ro ? "" : '<div class="row" style="margin-bottom:8px"><button class="s" id="evlb">↻ Podle základní formace</button><button class="s" id="evlc">Vymazat</button></div>'}
-${going.length ? going.map(row).join("") : '<div class="msg">Zatím se nikdo nepřihlásil.</div>'}</div>`;
+${going.length || goT.length ? going.map(p => row(p.id, pn(p.id))).join("") + trH : '<div class="msg">Zatím se nikdo nepřihlásil.</div>'}</div>`;
 }
 function detail(a, ev) {
   const P = activePl(), AT = atMap(), A = AT[ev.id] || {}, c = counts(ev, AT, P), lk = isLocked(ev), mt = ev.type === "match", ownP = isPl(), me = HK.pid();
@@ -262,13 +263,16 @@ function detail(a, ev) {
 <div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
 <div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}<div class="mu" style="margin-top:6px">Přihlášeno: ${rosterLine(roster(ev, AT))}</div>${btns}</div>
 <div class="cd"><h2>Docházka</h2>${lk ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." : "Přihlašování je uzavřeno."}</div>` : ""}${ownP ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div>
-${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${matchStatsHtml(ev.raw)}</div>` : ""}
-${mt ? "" : linesHtml(ev, A, P, ownP)}
+${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div><button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>${matchStatsHtml(ev.raw)}</div>` : ""}
+${mt ? "" : linesHtml(ev, A, P, T, ownP)}
 ${payHtml(ev)}</div>` + sheetHtml();
   // Eventy detailu
   // Zpět: do Teamu (otevřeno z přehledu plateb), jinak do seznamu událostí
   a.querySelector("#evb").onclick = () => { S.evid = null; if (S.evBack) { S.tab = S.evBack; S.evBack = null; } render(); window.scrollTo(0, 0); };
   a.querySelectorAll("[data-pa]").forEach(b => b.onclick = () => { const [pid, st] = b.dataset.pa.split("|"); answer(ev.id, pid, st); });
+  // Zápis utkání uzavřeného zápasu: stejné okno jako v záložce Soupeři (pro všechny role, jen čtení a export)
+  const rp = a.querySelector("#evrp");
+  if (rp) rp.onclick = () => { S.rp = ev.id; renderReport(); };
   bindSheet(a);
   bindPay(a, ev);
   if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
@@ -284,13 +288,14 @@ ${payHtml(ev)}</div>` + sheetHtml();
       S.db.doc("events/" + ev.id).delete(); S.evid = null; render();   // evcash dokument maže datová vrstva
     });
   };
+  // Pětky: klíč je id hráčky, nebo "t:" + id člena realizačního týmu
   a.querySelectorAll("[data-ln]").forEach(b => b.onclick = () => {
-    const [pid, n] = b.dataset.ln.split("|"), l = {...(ev.raw.lines || {})};
-    if (+n) l[pid] = +n; else delete l[pid];
-    saveLines(ev, l);
+    const [key, n] = b.dataset.ln.split("|");
+    saveLines(ev, setLine(ev.raw.lines, key, n));
   });
   const lb = a.querySelector("#evlb"), lc = a.querySelector("#evlc");
-  if (lb) lb.onclick = () => saveLines(ev, baseLines(P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)).map(p => p.id)));
+  // Podle základní formace přepíše jen hráčky; přiřazení realizačního týmu zůstane
+  if (lb) lb.onclick = () => saveLines(ev, baseLines((S.def || {}).lu, P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)).map(p => p.id), ev.raw.lines));
   if (lc) lc.onclick = () => saveLines(ev, {});
 }
 

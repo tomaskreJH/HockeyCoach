@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v18.9.3 (22. 10. 2026)** – úklid D3: starý tvar osvobozené hráčky (`fx` 0 bez `ex`) se už nečte (převod zůstává v ⚙️ → Kontrola dat), pravidla bez kolekce `coach` a poznámek o `payments`, úpravy hráček, členů týmu, tréninků a nastavení pokladny zapisují jen svá pole (`merge`), potvrzení v ⚙️ a smazání šablony přes `confirm2`, nápověda bez čísel verzí. **Publikovat firestore.rules** (po nahrání kódu). Dříve v18.9.2: pokladník nastavuje platby hráček, ⚙️ → Kontrola dat.
+**Aktuální verze: v19.0 (23. 10. 2026)** – rychlé úpravy R: Kalendář od nejnovějších, 📋 Zápis utkání v detailu uzavřeného zápasu v Událostech pro všechny členy, realizační tým v rozdělení do pětek tréninku. Pravidla databáze beze změny. Dříve v18.9.3: úklid D3 (mazání starého kódu, zápisy přes `merge`, jednotné potvrzení).
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.

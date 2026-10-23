@@ -17,7 +17,7 @@ const SECTIONS = [
 </ul>`},
   {t: "2. Události a docházka", h: `
 <ul>
-<li><b>Záložka Události</b> obsahuje tréninky i zápasy: Nadcházející, Minulé, Kalendář (klepnutím na den se seznam zúží) a 📊 Docházka.</li>
+<li><b>Záložka Události</b> obsahuje tréninky i zápasy: Nadcházející (nejbližší nahoře), Minulé a Kalendář (nejnovější nahoře; klepnutím na den se seznam zúží) a 📊 Docházka.</li>
 <li><b>📊 Docházka</b> (vidí všichni, jen ke čtení): účast hráček a realizačního týmu na <b>uplynulých</b> událostech v období <b>Od – Do</b> (výchozí zimní sezóna 1. 8. – 1. 7.; „Tato sezóna“ ji vrátí). Typ: Vše / 🏒 Tréninky / 🏠 Domácí zápasy / 🚌 Venkovní zápasy (v závorce počet událostí). Sloupce: ✅ účast (Jdu) z počtu událostí, %, ❌ nejdu, ❓ nejistá, bez odpovědi – ❓ a bez odpovědi se do účasti nepočítají. Řazení klepnutím na hlavičku. Ukončené hráčky ⛔ jsou vidět jen s odpovědí v období. Důvody omluv se tu nezobrazují.</li>
 <li><b>⛓ Dlužnice</b>: u jména v Docházce a v detailu události značka ⛓ (mříže) a počet dní po splatnosti nejstaršího nezaplaceného předpisu – přihlášení „Jdu“ je zablokováno; 🔓 = po splatnosti, ale s výjimkou od pokladníka. Částky vidí jen dlužnice sama a správci pokladny. Realizační tým značku nemá.</li>
 <li><b>✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý:</b> Jdu se zapíše hned (opakované klepnutí ho zruší), Nejdu vyžaduje důvod, u Nejsem jistý je nepovinný.</li>
@@ -25,8 +25,8 @@ const SECTIONS = [
 <li><b>Trenér a kustod</b> odklikávají docházku hráček i realizačního týmu v detailu události (klepni na událost). Trenér / kustod propojený s realizačním týmem má na kartě události rychlá tlačítka za sebe.</li>
 <li><b>Detail události:</b> nahoře docházka, výsledek zápasu a rozdělení do pětek; pokladna (vyúčtování) je až na konci stránky.</li>
 <li><b>+ Trénink / + Zápas:</b> založení události. U zápasu se zadává i čas začátku, místo a konečný termín přihlašování (výchozí den předem v 18:00); po vytvoření se otevře detail události a hráčky se mohou přihlašovat. Zápas se otevře klepnutím na něj → 🏒 Otevřít zápas.</li>
-<li><b>Rozdělení do pětek</b> (detail tréninku): 1.–4. pětka nebo „–“, ↻ Podle základní formace. Hráčka vidí rozdělení jen ke čtení.</li>
-<li><b>Uzavřený zápas:</b> v detailu události je výsledek a statistiky zápasu pro všechny členy týmu.</li>
+<li><b>Rozdělení do pětek</b> (detail tréninku): 1.–4. pětka nebo „–“ u přihlášených hráček i u přihlášeného <b>realizačního týmu</b> 🎓 (kdo vede stanoviště nebo jde s pětkou; v souhrnu „+ 🎓1“). ↻ Podle základní formace rozdělí jen hráčky, přiřazení trenérů zůstane. Hráčka vidí rozdělení jen ke čtení.</li>
+<li><b>Uzavřený zápas:</b> v detailu události je výsledek, tlačítko <b>📋 Zápis utkání</b> (celý zápis jako v záložce Soupeři – vývoj zápasu, střely, střídání, čas na ledě, tisk a export) a statistiky zápasu pro všechny členy týmu.</li>
 <li><b>Dluh po splatnosti</b> blokuje vlastní přihlášení „Jdu“, dokud ho nezaplatíš (nebo pokladník neudělí výjimku). Červený banner vede do Moje platby.</li>
 </ul>`},
   {t: "3. Záložka Team – příprava týmu", h: `
@@ -93,7 +93,7 @@ const SECTIONS = [
 </ul>`},
   {t: "8. Zápis utkání a opravy", h: `
 <ul>
-<li><b>Zápis utkání</b> (krok 3): výsledek po třetinách, góly a asistence, sestava, průběh, statistiky a <b>Podrobný rozbor</b> (kompletní vývoj zápasu, střídání hráček s průměrem a nejdelším střídáním, dlouhá střídání označena ⚠️).</li>
+<li><b>Zápis utkání</b> (krok 3; uzavřený zápas i z Událostí → detail zápasu → 📋 Zápis utkání a ze Soupeřů): výsledek po třetinách, góly a asistence, sestava, průběh, statistiky a <b>Podrobný rozbor</b> (kompletní vývoj zápasu, střídání hráček s průměrem a nejdelším střídáním, dlouhá střídání označena ⚠️).</li>
 <li><b>Export:</b> 🖨 Tisk / PDF, 💾 HTML, ⬇️ CSV vývoj, ⬇️ CSV střídání. Přepínače Střely / Střídání ve vývoji zkracují přehled.</li>
 <li><b>✏️ Opravit zápis</b> (hodiny musí stát, zápas nesmí být uzavřený) má čtyři záložky:
  <ul>

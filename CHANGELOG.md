@@ -4,6 +4,23 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.0 (23. 10. 2026) – Rychlé úpravy R: kalendář od nejnovějších, Zápis utkání v Událostech, realizační tým v pětkách tréninku
+> **Nasazení:** jen nahrát kód (nic se nemaže, nový soubor `src/domain/event-helpers.js`). Pravidla databáze beze změny (publikovat netřeba). 🔒 Vyžadovat verzi doporučeno, až budou všechna zařízení na v19.0 – starší verze by při ↻ Podle základní formace smazala přiřazení realizačního týmu v pětkách (nové klíče `t:` v `events.lines`).
+> Pokladna, platby, QR, živý zápis, statistiky a docházka se nemění (žádný soubor z „⚠️ SAHÁ NA PLATBY“).
+
+**Přidáno**
+- **📋 Zápis utkání v Událostech:** detail uzavřeného zápasu má pod výsledkem tlačítko, které otevře celý Zápis utkání (stejné okno jako v záložce Soupeři: vývoj zápasu, střely, střídání, čas na ledě, tisk / HTML / CSV) – pro všechny role včetně hráček; souhrn statistik zůstává pod tlačítkem. Okno nenabízí úpravy.
+- **Realizační tým v pětkách tréninku:** v Rozdělení do pětek je pod hráčkami sekce „Realizační tým“ – přihlášení („Jdu“) členové týmu dostanou 1.–4. pětku nebo „–“ (vede stanoviště / jde s pětkou). Klíč v `events.lines` je `"t:" + id` (nezamění se s hráčkou), souhrn ukazuje „2. pětka: 5 + 🎓1“. ↻ Podle základní formace přepíše jen hráčky, přiřazení realizačního týmu zůstane. Hráčka vidí rozdělení jen ke čtení. Statistiky ani docházka se nemění.
+- `src/domain/event-helpers.js`: `sortEvents`, `evAsc`, `baseLines` (přesunuto z `events.js`, nově zachová realizační tým), `setLine`, `lineCounts`, `trKey` / `isTrKey`. Test `tests/r-quick.test.js` (8 testů, celkem 86).
+
+**Změněno**
+- **Kalendář od nejnovějších:** Události → Kalendář řadí sestupně (nejnovější nahoře) stejně jako Minulé; Nadcházející zůstávají vzestupně (nejbližší nahoře).
+- `src/views/events.js` (řazení přes `sortEvents`, pětky, tlačítko Zápis utkání, hlavička souboru), `src/views/help.js` (kapitoly 2 a 8).
+- Plán `docs/plan-v18.md`: fáze R hotová; upřesnění Pokladny II od uživatele (model příspěvek / za událost a nastavení šablon se nemění, rozpočet = průběžně upravovaný hlídač cashflow).
+
+**Beze změny**
+- Pokladna, předpisy, QR, živý zápis, statistiky, docházka, pravidla databáze. Ověřeno: `npm test` (86), kouřový test v jsdom mimo repozitář (trenér a hráčka: pořadí Kalendáře, pětky s realizačním týmem – zápis `merge` jen pole `lines`, Podle základní formace zachová `t:` klíče, Zápis utkání se otevře a nemá úpravy).
+
 ## v18.9.3 (22. 10. 2026) – Úklid D3: mazání starého kódu, zápisy přes merge, jednotné potvrzení – ⚠️ SAHÁ NA PLATBY
 > **Nasazení:** 1) **Ještě na v18.9.2:** trenér ⚙️ → Kontrola dat musí ukázat ✅ (jinak nejdřív **Doplnit pole ex**). Hráčka se starými daty (koeficient 0 % bez pole `ex`) se od v18.9.3 nepočítá jako osvobozená – tlačítko Kontrola dat ale zůstává i ve v18.9.3, kdyby se nějaká objevila. 2) Nahrát kód (nic se nemaže). 3) **Publikovat firestore.rules** (po nahrání kódu; jen smazané pravidlo `coach` a komentáře – na pořadí nezáleží). 4) Pokud v konzoli Firebase existuje kolekce `coach`, lze ji smazat (aplikace ji nepoužívá). 🔒 Vyžadovat verzi není nutné (tvar dat se nemění).
 > **⚠️ SAHÁ NA PLATBY:** `src/domain/cash.js` (`exOf` / `fxOf` bez starého tvaru, `exFixPlan` beze změny výsledku), `src/views/cash-settings.js` (uložení nastavení přes `merge`, potvrzení smazání šablony přes `confirm2`), `firestore.rules` (smazané pravidlo `coach`, komentáře). Výpočty předpisů, QR, účty a pravidla pokladny beze změny.
