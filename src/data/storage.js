@@ -9,7 +9,9 @@
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
    Minimum nastavuje jen trenér (⚙️ → Verze aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
-   Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze). */
+   Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze).
+   Soukromí: citlivá data jsou v kolekcích attnote (důvody omluv), staffpay (platy týmu) a plpay (platební pole hráček) – jsou v záloze;
+   ⚙️ → Kontrola dat je převede ze starých polí (náhled, záloha, idempotentně; domain/private-data.js). */
 
 // ===== Importy =====
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
@@ -17,6 +19,7 @@ import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
+import {NOTE_COLL, PPAY_COLL, SPAY_COLL, legacyLeft, privacyPlan, withPlPay} from "../domain/private-data.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -27,8 +30,9 @@ const VERSION = APP_LABEL;                                              // čís
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
-// výjimkách, stornech, příspěvcích a platech, evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události je jen příznak ss))
-const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash"];
+// výjimkách, stornech, příspěvcích a platech, evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události je jen příznak ss),
+// attnote = důvody omluv, staffpay = platy realizačního týmu, plpay = platební pole hráček (soukromé kolekce, jsou v záloze)
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash", NOTE_COLL, SPAY_COLL, PPAY_COLL];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
 const PV_KEY = "hk-preview";                                            // klíč náhledu v sessionStorage (jen toto zařízení / okno)
@@ -170,6 +174,8 @@ function removeDoc(c, id) {
 // Předpisy jako seznam {id, ...data} a test člena realizačního týmu (pro souhrn dlužníků)
 const chList = () => Object.entries(data.charges).map(([id, d]) => ({id, ...d}));
 const isStaffId = mid => !!data.staff[mid];
+// Hráčky s připojenými platebními poli z plpay (nové místo má přednost, jinak staré pole v players) – Kontrola dat a CSV soupisky
+const plMerged = () => Object.fromEntries(Object.entries(data.players).map(([id, p]) => [id, withPlPay(p, data[PPAY_COLL][id])]));
 // Zápis plánu dlužníků po jednotlivých dokumentech (mazání předpisů u události také není jedna dávka)
 function writeDebtors(plan) {
   plan.set.forEach(x => writeDoc(DEBT_COLL, x.id, x.d));
@@ -201,7 +207,9 @@ const db = {
   collection: c => ({
     onSnapshot: (cb, er) => subscribe(c, cb, er),
     where: (f, v) => ({onSnapshot: (cb, er) => listenWhere(c, f, v, cb, er)}),
-    add: async d => { const id = fsDoc(fsCol(fs, c)).id; writeDoc(c, id, d); return {id}; }
+    add: async d => { const id = fsDoc(fsCol(fs, c)).id; writeDoc(c, id, d); return {id}; },
+    // Nové id dokumentu (bez zápisu) – pro založení hráčky a jejích platebních polí v jedné dávce
+    newId: () => fsDoc(fsCol(fs, c)).id
   }),
   doc: p => {
     const [c, id] = splitPath(p);
@@ -349,12 +357,13 @@ function openCfg() {
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option><option value="kustod" selected>Kustod</option>' : ""}<option value="hracka"${coach ? "" : " selected"}>Hráčka</option></select><select id="cmp"${coach ? ' style="display:none"' : ""}><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
- ${coach ? exFixHtml() : ""}
+ ${coach ? `<h3>Kontrola dat</h3>${exFixHtml()}${privHtml()}` : ""}
  <h3>Verze aplikace</h3><div class="mu" style="margin-bottom:8px">Používáš: <b>${VERSION}</b>. Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem níže.${verInfo()}</div><button class="s w" id="cu2">Načíst novou verzi</button>${coach && canRaise(APP_VERSION, minVer()) ? `<button class="s w" id="cmv" style="margin-top:8px">🔒 Vyžadovat verzi v${APP_VERSION}</button>` : ""}
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   q("#cu2").onclick = refresh; q("#cz").onclick = close;
   if (q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => raiseMinVer(close));
   if (q("#cex")) q("#cex").onclick = () => arm2(q("#cex"), "exfix", "Opravdu doplnit? Nejdřív se stáhne záloha – klepni znovu", () => runExFix(close));
+  if (q("#cpv")) q("#cpv").onclick = () => arm2(q("#cpv"), "privfix", "Opravdu převést? Nejdřív se stáhne záloha – klepni znovu", () => runPrivFix(close));
   q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#clo").onclick = async () => { pvWrite(null); await signOut(auth); location.reload(); };
   bindPv(q);
@@ -411,22 +420,44 @@ function verInfo() {
   return "<br>Minimální verze: <b>v" + esc(m) + "</b>" + (a.minAt ? " (" + esc(String(a.minAt).slice(0, 10)) + (a.minBy ? ", " + esc(a.minBy) : "") + ")" : "") + (outdated() ? " – <b>tato verze je starší, zápis je zablokovaný.</b>" : ".");
 }
 // ===== Kontrola dat: pole ex u hráček =====
-// Náhled převodu (kolik hráček nemá pole ex a co dostanou); bez nálezu jen potvrzení, že je vše v pořádku
+// Náhled převodu (kolik hráček nemá pole ex a co dostanou); bez nálezu jen potvrzení, že je vše v pořádku.
+// Hráčky se berou s připojenými poli z plpay (pole ex může být v novém i ve starém místě).
 function exFixHtml() {
-  const plan = exFixPlan(data.players);
-  if (!plan.length) return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">✅ Všechny hráčky mají pole <b>ex</b> (osvobozená ano / ne).</div>`;
+  const plan = exFixPlan(plMerged());
+  if (!plan.length) return `<div class="mu" style="margin-bottom:8px">✅ Všechny hráčky mají pole <b>ex</b> (osvobozená ano / ne).</div>`;
   const list = plan.map(x => esc(x.name) + " → " + (x.ex ? "osvobozená, koeficient 100 %" : "neosvobozená")).join("<br>");
-  return `<h3>Kontrola dat</h3><div class="mu" style="margin-bottom:8px">⚠️ Pole <b>ex</b> chybí u ${plan.length} hráček. Bez doplnění se hráčka s koeficientem 0 % nepočítá jako osvobozená (starý tvar dat se už nečte). Doplnění vrátí význam, jaký data měla:<br>${list}</div><button class="s w" id="cex">Doplnit pole ex (${plan.length})</button>`;
+  return `<div class="mu" style="margin-bottom:8px">⚠️ Pole <b>ex</b> chybí u ${plan.length} hráček. Bez doplnění se hráčka s koeficientem 0 % nepočítá jako osvobozená (starý tvar dat se už nečte). Doplnění vrátí význam, jaký data měla:<br>${list}</div><button class="s w" id="cex" style="margin-bottom:8px">Doplnit pole ex (${plan.length})</button>`;
 }
-// Doplnění pole ex (jen trenér, po potvrzení druhým klepnutím): před zápisem se stáhne záloha; lze spustit znovu (doplní jen chybějící)
+// Doplnění pole ex (jen trenér, po potvrzení druhým klepnutím): před zápisem se stáhne záloha; lze spustit znovu (doplní jen chybějící).
+// Zapisuje se do nového místa plpay (jen pole ex a fx u starého tvaru osvobozené) – ostatní platební pole zůstanou.
 async function runExFix(close) {
   if (blocked()) return;
-  const plan = exFixPlan(data.players);
+  const plan = exFixPlan(plMerged());
   if (!plan.length) { say("Není co doplnit"); close(); return; }
   exportJSON();
-  // Zapíšou se jen pole ex (a fx u starého tvaru osvobozené) – ostatní pole hráčky zůstanou
-  try { await commitOps(plan.map(x => ["merge", "players", x.id, x.ex ? {ex: true, fx: 1} : {ex: false}])); say("Pole ex doplněno u " + plan.length + " hráček"); close(); }
-  catch (e) { say("Doplnění se nepovedlo: " + errTxt(e)); }
+  try { await commitOps(plan.map(x => ["merge", PPAY_COLL, x.id, x.ex ? {ex: true, fx: 1} : {ex: false}])); say("Pole ex doplněno u " + plan.length + " hráček"); close(); }
+  catch (e) { say("Doplnění se nepovedlo: " + errTxt(e) + " – je publikováno firestore.rules?"); }
+}
+// ===== Kontrola dat: soukromí (převod citlivých dat do samostatných kolekcí) =====
+// Zdroj plánu: aktuální data v zařízení (trenér poslouchá všechny dotčené kolekce)
+const privSrc = () => ({players: data.players, plpay: data[PPAY_COLL], staff: data.staff, staffpay: data[SPAY_COLL], attendance: data.attendance, attnote: data[NOTE_COLL]});
+// Náhled: co se zkopíruje do attnote / staffpay / plpay; bez načtených nových kolekcí (nepublikovaná pravidla) se převod nenabídne
+function privHtml() {
+  if (![NOTE_COLL, SPAY_COLL, PPAY_COLL].every(c => first[c])) return `<div class="mu" style="margin-bottom:8px">⚠️ Soukromé kolekce (důvody omluv, platy, platby hráček) se zatím nenačetly. Je publikováno <b>firestore.rules</b>? Zkus ⚙️ otevřít znovu.</div>`;
+  const plan = privacyPlan(privSrc()), left = legacyLeft(privSrc()), n = plan.ops.length;
+  const skip = plan.skip.length ? `<br>⚠️ ${plan.skip.length} odpovědí má jiný tvar id – důvod se nepřevede (zůstane ve starém poli).` : "";
+  const old = `<br>Ve starých polích zatím zůstává: platby ${left.pp} hráček, plat ${left.sp} členů týmu, ${left.an} důvodů – smažou se až v další verzi aplikace po otestování.`;
+  if (!n) return `<div class="mu" style="margin-bottom:8px">✅ Citlivá data jsou v samostatných kolekcích (čte je jen vlastník a správci).${skip}${old}</div>`;
+  return `<div class="mu" style="margin-bottom:8px">🔒 <b>Soukromí:</b> převod zkopíruje citlivá data do kolekcí, které čte jen vlastník a správci:<br>· platební pole (skupina, osvobozená, koeficient, poznámka): <b>${plan.pp.length}</b> hráček → plpay<br>· plat: <b>${plan.sp.length}</b> členů realizačního týmu → staffpay<br>· důvody omluv: <b>${plan.an.length}</b> → attnote${skip}<br>Kopírují se jen chybějící hodnoty (nové se nepřepíšou); převod lze spustit znovu.${old}</div><button class="s w" id="cpv" style="margin-bottom:8px">🔒 Převést citlivá data (${n})</button>`;
+}
+// Převod (jen trenér, po potvrzení druhým klepnutím): záloha, pak zápis po dávkách. Stará pole zůstávají (smažou se v další verzi).
+async function runPrivFix(close) {
+  if (blocked()) return;
+  const plan = privacyPlan(privSrc());
+  if (!plan.ops.length) { say("Není co převést"); close(); return; }
+  exportJSON();
+  try { await commitOps(plan.ops); say("Převedeno: platby " + plan.pp.length + ", platy " + plan.sp.length + ", důvody " + plan.an.length); close(); }
+  catch (e) { say("Převod se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
 }
 // Trenér zvýší minimální verzi na tuto (po potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
 async function raiseMinVer(close) {
@@ -445,15 +476,16 @@ async function refresh() {
 }
 
 // ===== Zálohy =====
-// Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (kustod tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo)
+// Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (kustod tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo);
+// soukromé kolekce attnote, staffpay a plpay jsou v ní, pokud je role smí číst (trenér všechny)
 function exportJSON() {
   const out = {};
   COLL.forEach(c => { if (first[c]) out[c] = data[c]; });
   downloadFile("hokej-zaloha-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", version: 1, exported: new Date().toISOString(), data: out}, null, 1), "application/json");
 }
 function exportCSV() {
-  // Koeficient se exportuje v procentech, osvobozená jako ano / prázdné
-  const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Skupina plateb", "Osvobozená", "Koeficient (%)", "Poznámka k platbám"], ...Object.values(data.players).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.grp || "monthly", exOf(p) ? "ano" : "", String(Math.round(fxOf(p) * 1000) / 10).replace(".", ","), p.note || ""])];
+  // Koeficient se exportuje v procentech, osvobozená jako ano / prázdné; platební pole z plpay (náhrada ze starých polí v players)
+  const rows = [["Přezdívka", "Číslo", "Pozice", "Alternativní pozice", "Stav", "Skupina plateb", "Osvobozená", "Koeficient (%)", "Poznámka k platbám"], ...Object.values(plMerged()).map(p => [p.name, p.num, p.pos, p.alt, p.st || "act", p.grp || "monthly", exOf(p) ? "ano" : "", String(Math.round(fxOf(p) * 1000) / 10).replace(".", ","), p.note || ""])];
   downloadFile("soupiska-" + stamp() + ".csv", csv(rows), "text/csv");
 }
 // Zápis po dávkách (limit Firestore je 500 operací); vyžaduje připojení k internetu. Operace: ["set" | "merge" | "del", kolekce, id, data]

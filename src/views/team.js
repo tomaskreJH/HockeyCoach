@@ -5,6 +5,8 @@
 // (okno Platby / Plat v modal.js – ostatní pole dokumentu zůstanou, pravidla databáze jí víc nedovolí).
 // Role: přidávat a mazat hráčky a spravovat realizační tým smí jen trenér; kustod u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
 // Tlačítka, na která role nemá právo, se nezobrazují (práva navíc vynucují pravidla databáze).
+// Soukromí: platební pole hráčky jsou v plpay/{pid} a plat člena týmu ve staffpay/{tid} (čtou jen správci pokladny) – štítek plateb
+// u hráčky vidí jen správce pokladny; nová hráčka se zakládá v jedné dávce s dokumentem plpay, se smazáním zmizí i plpay / staffpay.
 import {KIND,POS,ST} from "../config/constants.js";
 import {confirm2,saveDef} from "../core/actions.js";
 import {PG,isG,pl,pn,pri,stOf} from "../core/selectors.js";
@@ -14,6 +16,7 @@ import {$,clone,esc,toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {benchOrder} from "../domain/lineup.js";
 import {GRP,exOf,fxOf,fxPct,grpOf,pctToFx} from "../domain/cash.js";
+import {NOTE_COLL,PPAY_COLL,SPAY_COLL,plPayDoc} from "../domain/private-data.js";
 import {luEditor} from "./lineup-editor.js";
 import {modal} from "./modal.js";
 import {CASH_MODES,cashPanel} from "./events.js";
@@ -41,7 +44,7 @@ a.innerHTML=`${coach?`<div class="cd"><h2>Přidat hráče</h2><div class="row"><
 <div class="cd"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">Soupiska (${l.length})</h2><button class="s" id="ft" style="flex:none">Filtry ${S.fo?"▴":"▾"}</button></div>
 <div class="mu" style="margin:6px 0 4px">${({act:"Aktivní",inj:"Zranění",end:"Ukončili",all:"Všichni"})[S.pf]} · ${S.pq==="all"?"všechny pozice":S.pq===""?"Neurčeno":S.pq}</div>
 ${S.fo?`<h3>Pozice</h3><div class="chips">${[["all","Všechny"],...POS.map(x=>[x,x+" ("+S.pl.filter(p=>p.pos===x&&(S.pf==="all"||stOf(p)===S.pf)).length+")"]),["","Neurčeno"]].map(([k,t])=>`<button class="chip ${S.pq===k?"on":""}" data-pq="${k}">${t}</button>`).join("")}</div><h3>Stav</h3><div class="chips">${[["act","Aktivní ("+cnt("act")+")"],["inj","Zranění ("+cnt("inj")+")"],["end","Ukončili ("+cnt("end")+")"],["all","Všichni ("+S.pl.length+")"]].map(([k,t])=>`<button class="chip ${S.pf===k?"on":""}" data-pf="${k}">${t}</button>`).join("")}</div>`:""}
-${l.length?l.map((p,i)=>(S.pq==="all"&&(i===0||pri(l[i-1])!==pri(p))?`<h3>${PG[pri(p)]}</h3>`:"")+`<div class="it"><div><b>${pn(p.id)}</b><div class="mu">${esc(p.pos||"")}${p.alt?" / "+esc(p.alt):""}${isG(p)?"":` · <span class="tag">${GRP[grpOf(p)]}${exOf(p)?" · osvobozená":""}${fxOf(p)!==1?" · "+fxPct(fxOf(p)):""}</span>`}${stOf(p)!=="act"?` · <span class="tag ${stOf(p)==="inj"?"sh":"red"}">${ST[stOf(p)]}</span>`:""}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${edit?`<button class="s" data-e="${p.id}" style="padding:8px 12px">Upravit</button>`:""}${coach?`<button class="d" data-d="${p.id}" style="padding:8px 12px;${S.cf===p.id?"background:var(--no);color:#fff":""}">${S.cf===p.id?"Opravdu smazat?":"Smazat"}</button>`:""}</div></div>`).join(""):'<div class="msg">V tomto výběru nikdo není.</div>'}</div>
+${l.length?l.map((p,i)=>(S.pq==="all"&&(i===0||pri(l[i-1])!==pri(p))?`<h3>${PG[pri(p)]}</h3>`:"")+`<div class="it"><div><b>${pn(p.id)}</b><div class="mu">${esc(p.pos||"")}${p.alt?" / "+esc(p.alt):""}${isG(p)||!cashier?"":` · <span class="tag">${GRP[grpOf(p)]}${exOf(p)?" · osvobozená":""}${fxOf(p)!==1?" · "+fxPct(fxOf(p)):""}</span>`}${stOf(p)!=="act"?` · <span class="tag ${stOf(p)==="inj"?"sh":"red"}">${ST[stOf(p)]}</span>`:""}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${edit?`<button class="s" data-e="${p.id}" style="padding:8px 12px">Upravit</button>`:""}${coach?`<button class="d" data-d="${p.id}" style="padding:8px 12px;${S.cf===p.id?"background:var(--no);color:#fff":""}">${S.cf===p.id?"Opravdu smazat?":"Smazat"}</button>`:""}</div></div>`).join(""):'<div class="msg">V tomto výběru nikdo není.</div>'}</div>
 <div class="cd"><h2>Realizační tým (${T.length})</h2><div class="mu" style="margin-bottom:8px">Trenéři a další členové týmu se zapisují do docházky na události. Neplatí a nenominují se do zápasu. Spravuje trenér.</div>
 ${T.length?T.map(t=>`<div class="it"><div><b>${esc(t.name)}</b><div class="mu">${esc(t.kind||"")}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${coach||cashier?`<button class="s" data-te="${t.id}" style="padding:8px 12px">Upravit</button>`:""}${coach?`<button class="d" data-td="${t.id}" style="padding:8px 12px;${S.cf==="t"+t.id?"background:var(--no);color:#fff":""}">${S.cf==="t"+t.id?"Opravdu smazat?":"Smazat"}</button>`:""}</div></div>`).join(""):'<div class="msg">Zatím nikdo.</div>'}
 ${coach?`<div class="row" style="margin-top:10px"><div style="flex:3"><label>Jméno</label><input id="stn"></div><div><label>Funkce</label><select id="stk">${KIND.map(k=>`<option>${k}</option>`).join("")}</select></div></div>
@@ -49,14 +52,17 @@ ${coach?`<div class="row" style="margin-top:10px"><div style="flex:3"><label>Jm�
 $("#ft").onclick=()=>{S.fo=!S.fo;render()};
 a.querySelectorAll("[data-pq]").forEach(b=>b.onclick=()=>{S.pq=b.dataset.pq;render()});
 a.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{S.pf=b.dataset.pf;render()});
-// Přidání hráčky: koeficient se zadává v procentech (0–100 %), ukládá se jako 0..1
-Q2("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;const fx=pctToFx($("#pfx").value);if(fx==null)return toast("Zadej koeficient 0–100 %");S.db.collection("players").add({name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act",grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()}).catch(()=>toast("Uložení se nepovedlo"))};
+// Přidání hráčky: koeficient se zadává v procentech (0–100 %), ukládá se jako 0..1; soupiska do players, platební pole do plpay (jedna dávka)
+Q2("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;const fx=pctToFx($("#pfx").value);if(fx==null)return toast("Zadej koeficient 0–100 %");
+const id=S.db.collection("players").newId();
+S.db.batch().set("players/"+id,{name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act"}).set(PPAY_COLL+"/"+id,plPayDoc({grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()})).commit()};
 a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
-a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo")))});
-// Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka)
+// Smazání hráčky (jen trenér): s ní i její platební pole v plpay
+a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"));S.db.doc(PPAY_COLL+"/"+id).delete()})});
+// Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka, důvody a plat ve staffpay)
 Q2("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast("Uložení se nepovedlo"))};
 a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:t.kind||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
-a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))})})}
+a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>{S.db.doc("attendance/"+x.id).delete();if(S.an[x.id])S.db.doc(NOTE_COLL+"/"+x.id).delete()});S.db.doc(SPAY_COLL+"/"+id).delete();S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))})})}
 
 // ===== Přepínač režimů, základní formace a náhradnice =====
 export function formV(a){

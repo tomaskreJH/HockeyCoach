@@ -1,5 +1,6 @@
 // Dlužníci – veřejný souhrn bez částek. Čisté funkce bez DOM a bez databáze.
-// Struktura: Konstanty -> Pomocné funkce -> Dokument dlužníka -> Plán zápisu (po změně předpisů, celý přepočet) -> Stav pro zobrazení -> Export.
+// Struktura: Konstanty -> Pomocné funkce -> Dokument dlužníka -> Plán zápisu (po změně předpisů, celý přepočet) -> Stav pro zobrazení
+// -> Blokace „Jdu“ (vlastní předpisy nebo veřejný souhrn) -> Export.
 // Kolekce debtors/{mid} = {mid, since, dues: [{d, x}]} – BEZ částek:
 //  - mid = hráčka (realizační tým se nezapisuje, rozhodnutí 6),
 //  - dues = splatnosti všech nezaplacených předpisů se splatností (d = due předpisu, x = výjimka z blokace), seřazeno od nejstarší,
@@ -8,7 +9,7 @@
 // „Dní po splatnosti“ a blokace (⛓ / 🔓) se dopočítají v zařízení podle aktuálního času (debtorState) – stejné pravidlo jako debtOf v cash.js.
 
 // ===== Importy =====
-import {restOf} from "./cash.js";
+import {debtOf, restOf} from "./cash.js";
 
 // ===== Konstanty =====
 export const DEBT_COLL = "debtors";
@@ -72,4 +73,13 @@ export function debtorState(doc, now) {
   if (!over.length) return null;
   const first = Math.min(...over.map(x => ms(x.d)));
   return {days: Math.max(0, Math.floor((n - first) / DAY_MS)), blocked: over.some(x => !x.x)};
+}
+
+// ===== Blokace „Jdu“ =====
+// Má člen zablokované přihlášení „Jdu“? Vlastní předpisy v zařízení (ch – hráčka a správce pokladny je vidí) NEBO veřejný souhrn
+// debtors (dt = seznam dokumentů {id, dues}) – trenér / kustod bez práv pokladny cizí předpisy nevidí, souhrn ano. Stejné pravidlo jako debtOf.
+export function memberBlocked(ch, dt, mid, now) {
+  if (debtOf(ch, [mid]).blocked) return true;
+  const st = debtorState((dt || []).find(x => x.id === mid), now);
+  return !!(st && st.blocked);
 }

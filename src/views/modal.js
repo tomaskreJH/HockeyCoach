@@ -1,4 +1,5 @@
 // Modální okna (gól, vyloučení, nový zápas, úprava hráčky, úprava člena realizačního týmu).
+// Platební pole hráčky se ukládají do plpay/{pid}, plat člena týmu do staffpay/{tid} (soukromé kolekce, domain/private-data.js).
 // Struktura: Importy -> Pomocné funkce (chips, opts) -> modal() (výběr hráčky, nový zápas, hráčka, člen týmu, gól/vyloučení) -> bindV.
 // Nový zápas = nová událost: soupeř, datum, čas začátku, místo, termín přihlašování (výchozí den předem v 18:00), doma / venku,
 // délka třetiny a prodloužení. Po vytvoření se otevře detail události v Událostech – postup: přihlášky → nominace → sestava → uzavření sestavy.
@@ -11,6 +12,7 @@ import {$,clone,dlBeforeStart,dlDefault,esc,norm,td,toast,uid} from "../core/uti
 import {addPen,el_,fitLayout,goalPen,logEv,migrate,procExp} from "../domain/live-engine.js";
 import {HK} from "../data/storage.js";
 import {FX_QUICK,GRP,STAFF_PAY,fxPct,pctToFx} from "../domain/cash.js";
+import {PPAY_COLL,SPAY_COLL,plPayDoc,staffPayDoc} from "../domain/private-data.js";
 import {pickModal} from "./lineup-editor.js";
 import {render} from "./shell.js";
 
@@ -52,13 +54,17 @@ el.querySelectorAll("[data-ey]").forEach(b=>b.onclick=()=>{rd();M.grp=b.dataset.
 el.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{rd();M.pct=b.dataset.ex;modal()});
 el.querySelectorAll("[data-eo]").forEach(b=>b.onclick=()=>{rd();M.ex=b.dataset.eo==="1";modal()});
 // Uložení přes merge: zapíšou se jen pole z okna, ostatní pole dokumentu (i ta, která tato verze nezná) zůstanou.
-// Pole plateb (grp, fx, ex, note) zapisuje jen správce pokladny; ostatní je vůbec neposílají (pravidla by změnu odmítla).
-// Jen pole plateb (pokladník bez práva na soupisku): pravidla mu povolí jen grp, fx, ex, note.
-$("#ok").onclick=()=>{rd();if(payOnly){const fx=pctToFx(M.pct);if(fx==null)return toast("Zadej koeficient 0–100 %");if(!S.pl.some(p=>p.id===M.id))return;
-S.db.doc("players/"+M.id).merge({grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"));return}
+// Pole plateb (grp, fx, ex, note) zapisuje jen správce pokladny a jen do plpay/{pid}; ostatní je vůbec neposílají (pravidla by zápis odmítla).
+const payDoc=()=>{const fx=pctToFx(M.pct);return fx==null?null:plPayDoc({grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()})};
+const done=()=>{S.M=null;modal()};
+$("#ok").onclick=()=>{rd();
+// Jen pole plateb (pokladník bez práva na soupisku)
+if(payOnly){const pd=payDoc();if(!pd)return toast("Zadej koeficient 0–100 %");if(!S.pl.some(p=>p.id===M.id))return;
+S.db.batch().merge(PPAY_COLL+"/"+M.id,pd).commit().then(done);return}
 const n=M.name.trim();if(!n)return toast("Zadej jméno");const d={name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st};
-if(HK.can("money")){const fx=pctToFx(M.pct);if(fx==null)return toast("Zadej koeficient 0–100 %");Object.assign(d,{grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()})}
-S.db.doc("players/"+M.id).merge(d).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
+// Trenér: soupiska i platební pole v jedné dávce; kustod jen soupiska (pravidla mu povolí jen stav)
+if(HK.can("money")){const pd=payDoc();if(!pd)return toast("Zadej koeficient 0–100 %");S.db.batch().merge("players/"+M.id,d).merge(PPAY_COLL+"/"+M.id,pd).commit().then(done);return}
+S.db.doc("players/"+M.id).merge(d).then(done).catch(()=>toast("Uložení se nepovedlo"))};return}
 
 // --- Člen realizačního týmu (kolekce staff): jméno, funkce, plat ---
 // Jméno a funkci mění jen trenér; správce pokladny (pokladník) jen plat
@@ -67,9 +73,10 @@ $("#cl").onclick=()=>{S.M=null;modal()};$("#bg").onclick=e=>{if(e.target.id==="b
 const rs=()=>{if($("#sn"))M.name=$("#sn").value;M.pay=M.pay||{m:"none",amt:0};M.pay.amt=+$("#sa").value||0};
 el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{rs();M.kind=b.dataset.sk;modal()});
 el.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{rs();M.pay.m=b.dataset.sm;modal()});
-// Uložení přes merge: jen pole z okna (pokladník jen plat), ostatní pole dokumentu zůstanou
-$("#ok").onclick=()=>{rs();if(payOnly){if(!S.tr.some(t=>t.id===M.id))return;S.db.doc("staff/"+M.id).merge({pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"));return}
-const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.doc("staff/"+M.id).merge({name:n,kind:M.kind||KIND[0],pay:M.pay||{m:"none",amt:0}}).then(()=>{S.M=null;modal()}).catch(()=>toast("Uložení se nepovedlo"))};return}
+// Uložení: plat do staffpay/{tid} (pokladník jen plat), jméno a funkce přes merge do staff (ostatní pole dokumentu zůstanou)
+$("#ok").onclick=()=>{rs();const sp=staffPayDoc(M.pay),close=()=>{S.M=null;modal()};
+if(payOnly){if(!S.tr.some(t=>t.id===M.id))return;S.db.batch().set(SPAY_COLL+"/"+M.id,sp).commit().then(close);return}
+const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.batch().merge("staff/"+M.id,{name:n,kind:M.kind||KIND[0]}).set(SPAY_COLL+"/"+M.id,sp).commit().then(close)};return}
 
 // --- Gól / vyloučení (ruční zadání do zápasu) ---
 const m=S.ma.find(x=>x.id===S.mid);if(!m){S.M=null;el.innerHTML="";return}

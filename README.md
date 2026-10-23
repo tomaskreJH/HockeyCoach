@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v19.0 (23. 10. 2026)** – rychlé úpravy R: Kalendář od nejnovějších, 📋 Zápis utkání v detailu uzavřeného zápasu v Událostech pro všechny členy, realizační tým v rozdělení do pětek tréninku. Pravidla databáze beze změny. Dříve v18.9.3: úklid D3 (mazání starého kódu, zápisy přes `merge`, jednotné potvrzení).
+**Aktuální verze: v19.1 (23. 10. 2026)** – soukromí v databázi S: důvody omluv (`attnote`), platy realizačního týmu (`staffpay`) a platební údaje hráček (`plpay`) v samostatných kolekcích, které čte jen vlastník a správci; převod v ⚙️ → Kontrola dat; kontrola dluhu při „Jdu“ za jiného člena přes souhrn dlužníků. **Před nahráním kódu publikovat `firestore.rules`**, po převodu 🔒 Vyžadovat verzi (postup v CHANGELOG). Dříve v19.0: rychlé úpravy R (Kalendář od nejnovějších, Zápis utkání v Událostech, realizační tým v pětkách tréninku).
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -16,7 +16,7 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlas
 
 ## Spuštění a testy
 - Lokálně: `npm start` (nebo `python3 -m http.server`) a otevřít `http://localhost:3000` (resp. `:8000`). Z `file://` se moduly nenačtou.
-- Testy: `npm test` – Node 22+, nic se neinstaluje. Testují pokladnu, účty a QR, docházku, dlužníky, živý zápis (střídání, rotace, Zpět, tresty), soulad verze a pravidel databáze, společné pomůcky (potvrzení, CSV, jména, přetahování), statistiky `playerStats`, oprávnění všech rolí, strukturu kódu a srovnávací výstupy úklidu (statistiky, CSV, VS – `tests/fixtures/d1-baseline.json`).
+- Testy: `npm test` – Node 22+, nic se neinstaluje. Testují pokladnu, účty a QR, docházku, dlužníky, živý zápis (střídání, rotace, Zpět, tresty), soulad verze a pravidel databáze, společné pomůcky (potvrzení, CSV, jména, přetahování), statistiky `playerStats`, oprávnění všech rolí, soukromí v databázi (připojení `attnote` / `staffpay` / `plpay`, převod, záloha), strukturu kódu a srovnávací výstupy úklidu (statistiky, CSV, VS – `tests/fixtures/d1-baseline.json`).
 - Aplikace se spouští přímo ze zdrojových modulů (bez sestavování). Firebase SDK se stahuje z `gstatic.com`; po prvním spuštění je v offline cache.
 
 ## Nastavení Firebase (jednorázově)

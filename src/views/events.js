@@ -18,6 +18,8 @@
 // realizačního týmu (klíč "t:" + id v events.lines).
 // Přepínač „Docházka“ (S.evm = "att") – přehled docházky pro všechny členy (views/attendance.js, výpočet domain/attendance.js);
 // v detailu události má dlužnice po splatnosti u jména značku ⛓ (výjimka 🔓) podle veřejného souhrnu debtors (bez částek).
+// Důvod omluvy je v samostatné kolekci attnote/{eid}_{mid} (čte vlastník a trenér / kustod) – zapisuje se v jedné dávce s odpovědí;
+// S.at má důvod už připojený (main.js). Blokace „Jdu“ za jiného člena se ověřuje i podle souhrnu debtors (cizí předpisy nejsou v zařízení).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -26,8 +28,10 @@ import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, dlBeforeStart, dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {costTotal, cxOf, debtOf, kc} from "../domain/cash.js";
+import {costTotal, cxOf, kc} from "../domain/cash.js";
+import {memberBlocked} from "../domain/debtors.js";
 import {LINE_NOS, baseLines, lineCounts, setLine, sortEvents, trKey} from "../domain/event-helpers.js";
+import {NOTE_COLL, attDoc, noteDoc, noteId} from "../domain/private-data.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
@@ -124,12 +128,18 @@ const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl
 const whenLine = e => fDay(e.date) + (e.time ? " · " + esc(e.time) : "") + (e.place ? " · " + esc(e.place) : "");
 
 // ===== Zápis dat =====
+// Odpověď a důvod v jedné dávce: attendance bez důvodu (set celého dokumentu smaže i starý attendance.reason), důvod do attnote;
+// prázdný důvod = existující dokument attnote se smaže (nový se nezakládá)
 function setAt(eid, pid, st, reason) {
-  const u = HK.user();
-  S.db.doc("attendance/" + eid + "_" + pid).set({eid, pid, st, reason: reason || "", at: new Date().toISOString(), by: (u && u.email) || ""})
-    .catch(() => toast("Uložení se nepovedlo"));
+  const u = HK.user(), id = noteId(eid, pid), n = noteDoc(eid, pid, reason), b = S.db.batch();
+  b.set("attendance/" + id, attDoc(eid, pid, st, new Date().toISOString(), (u && u.email) || ""));
+  if (n) b.set(NOTE_COLL + "/" + id, n); else if (S.an[id]) b.delete(NOTE_COLL + "/" + id);
+  b.commit();
 }
-const clearAt = (eid, pid) => S.db.doc("attendance/" + eid + "_" + pid).delete().catch(() => toast("Smazání se nepovedlo"));
+// Smazání důvodu do dávky, jen když dokument existuje (smazání neexistujícího by pravidla hráčce odmítla)
+const delNote = (b, id) => { if (S.an[id]) b.delete(NOTE_COLL + "/" + id); return b; };
+// Zrušení odpovědi: odpověď i důvod v jedné dávce
+const clearAt = (eid, pid) => { const id = noteId(eid, pid); delNote(S.db.batch().delete("attendance/" + id), id).commit(); };
 // Změna odpovědi: „Jdu“ se zapíše hned (opakované klepnutí ji zruší), „Nejdu“ a „Nejsem jistý“ otevřou okno s důvodem.
 // Hráčka smí měnit jen svoji odpověď a jen do termínu; trenér a kustod kdykoli a za kohokoli (i za člena realizačního týmu).
 function answer(eid, pid, st) {
@@ -139,8 +149,13 @@ function answer(eid, pid, st) {
   if (isPl() && pid !== HK.pid()) return toast("Můžeš měnit jen svoji odpověď");
   if (isLocked(ev) && !staff()) return toast("Přihlašování je uzavřeno");
   const cur = (atMap()[eid] || {})[pid];
-  // Blokace „Jdu“: neuhrazený předpis po splatnosti bez výjimky (správce pokladny smí zapisovat vždy a výjimky uděluje)
-  if (st === "yes" && !(cur && cur.st === "yes") && !cashMgr() && debtOf(S.ch, [pid]).blocked) return toast("Máš neuhrazený předpis po splatnosti – přihlášení je zablokováno. Zaplať (Moje platby), nebo požádej pokladníka o výjimku.");
+  // Blokace „Jdu“: neuhrazený předpis po splatnosti bez výjimky (správce pokladny smí zapisovat vždy a výjimky uděluje).
+  // Vlastní předpisy jsou v zařízení (S.ch); za jiného člena rozhoduje veřejný souhrn debtors (S.dt) – kustod cizí předpisy nevidí.
+  if (st === "yes" && !(cur && cur.st === "yes") && !cashMgr() && memberBlocked(S.ch, S.dt, pid, Date.now())) {
+    const own = pid === HK.pid() || pid === HK.tid();
+    return toast(own ? "Máš neuhrazený předpis po splatnosti – přihlášení je zablokováno. Zaplať (Moje platby), nebo požádej pokladníka o výjimku."
+      : "Člen má neuhrazený předpis po splatnosti – přihlášení „Jdu“ je zablokováno. Výjimku udělí trenér nebo pokladník.");
+  }
   if (st === "yes") { if (cur && cur.st === "yes") clearAt(eid, pid); else setAt(eid, pid, "yes", ""); return; }
   S.evr = {eid, pid, st, reason: cur && cur.st === st ? (cur.reason || "") : "", had: !!cur};
   render();
@@ -284,7 +299,9 @@ ${payHtml(ev)}</div>` + sheetHtml();
   if (ed) ed.onclick = () => {
     confirm2(key, () => {
       if (!HK.canDelete("events", ev.id)) { render(); return; }
-      S.at.filter(x => x.eid === ev.id).forEach(x => S.db.doc("attendance/" + x.id).delete());
+      // Docházka a důvody události po dávkách (limit dávky 500 operací)
+      const ids = S.at.filter(x => x.eid === ev.id).map(x => x.id);
+      for (let i = 0; i < ids.length; i += 200) { const b = S.db.batch(); ids.slice(i, i + 200).forEach(id => delNote(b.delete("attendance/" + id), id)); b.commit(); }
       S.db.doc("events/" + ev.id).delete(); S.evid = null; render();   // evcash dokument maže datová vrstva
     });
   };

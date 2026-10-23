@@ -65,6 +65,8 @@ service cloud.firestore {
     }
 
     // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st), pokladník jen pole plateb (grp, fx = koeficient 0..1, ex = osvobozená, note) =====
+    // Přechodné období: platební pole se přesouvají do plpay/{pid}; staré pole zůstávají povolená pro starší verze aplikace
+    // a zúží se až v další verzi (po převodu v ⚙️ → Kontrola dat a 🔒 Vyžadovat verzi).
     match /players/{id} {
       allow read: if isMember();
       allow create, delete: if isCoach();
@@ -74,6 +76,7 @@ service cloud.firestore {
     }
 
     // ===== Realizační tým: čtou všichni členové, spravuje trenér; pokladník smí měnit jen plat (pay) =====
+    // Přechodné období: plat se přesouvá do staffpay/{tid}; pole pay se zúží až v další verzi.
     match /staff/{id} {
       allow read: if isMember();
       allow create, delete: if isCoach();
@@ -108,6 +111,7 @@ service cloud.firestore {
     match /evcash/{id} { allow read, write: if isCash(); }
 
     // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, reason, at, by =====
+    // Přechodné období: důvod (reason) se přesouvá do attnote/{eid}_{pid}; pole reason se zúží až v další verzi.
     // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
     match /attendance/{id} {
       allow read: if isMember();
@@ -115,6 +119,28 @@ service cloud.firestore {
         && request.resource.data.pid == myPid()
         && id == request.resource.data.eid + '_' + myPid());
       allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
+    }
+
+    // ===== Soukromé kolekce: citlivá data čte jen vlastník a správci =====
+    // Důvod omluvy attnote/{eid}_{mid} = {eid, mid, reason} (zdravotní údaje): čte vlastník (mid = jeho pid / tid) a trenér / kustod.
+    // Zapisuje trenér a kustod za kohokoli, hráčka jen svůj (mid z jejího členství); id = eid_mid, jen tato tři pole.
+    function noteOk(id, d) { return d.keys().hasOnly(['eid', 'mid', 'reason']) && d.reason is string && id == d.eid + '_' + d.mid; }
+    match /attnote/{id} {
+      allow read: if isStaff() || ownsMid(resource.data.mid);
+      allow create, update: if noteOk(id, request.resource.data) && (isStaff() || (isPlayer() && request.resource.data.mid == myPid()));
+      allow delete: if isStaff() || (isPlayer() && resource.data.mid == myPid());
+    }
+    // Plat člena realizačního týmu staffpay/{tid} = {m, amt}: čte a zapisuje správce pokladny, číst smí i člen sám (tid z členství)
+    match /staffpay/{id} {
+      allow read: if isCash() || ownsMid(id);
+      allow create, update: if isCash() && request.resource.data.keys().hasOnly(['m', 'amt']);
+      allow delete: if isCash();
+    }
+    // Platební pole hráčky plpay/{pid} = {grp, fx, ex, note}: čte a zapisuje správce pokladny, číst smí i hráčka sama (pid z členství)
+    match /plpay/{id} {
+      allow read: if isCash() || (isPlayer() && id == myPid());
+      allow create, update: if isCash() && request.resource.data.keys().hasOnly(['grp', 'fx', 'ex', 'note']);
+      allow delete: if isCash();
     }
 
     // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====
