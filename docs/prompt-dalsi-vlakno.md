@@ -6,24 +6,27 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 
 ## 1. Start (šetři limit – čti cíleně)
 1. Stáhni aktuální repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
-2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v19.2.
-3. Přečti jen: docs/KONVENCE.md (celý – programovací řád); z docs/plan-v18.md jen tabulku nahoře, sekci „Stav“ a sekci „EK – v19.3“ (v celku Pokladna II); z CHANGELOG.md jen nejnovější záznam. Další soubory otevírej až podle potřeby, cíleně (grep -n, výřezy řádků). Velké soubory (storage.js 45 kB, events.js 33 kB, plán 105 kB) nečti celé a nic nečti dvakrát.
-4. Spusť npm test (Node 22, bez instalace balíčků). Testy musí projít už před prací (115 testů); pokud ne, nejdřív to ohlas.
+2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v19.3.
+3. Přečti jen: docs/KONVENCE.md (celý – programovací řád); z docs/plan-v18.md jen tabulku nahoře, sekci „Stav“ a sekci „PM – v19.4“ (v celku Pokladna II, včetně otázek 44–45); z CHANGELOG.md jen nejnovější záznam. Další soubory otevírej až podle potřeby, cíleně (grep -n, výřezy řádků). Velké soubory (storage.js 45 kB, events.js 33 kB, plán 108 kB) nečti celé a nic nečti dvakrát.
+4. Spusť npm test (Node 22, bez instalace balíčků). Testy musí projít už před prací (125 testů); pokud ne, nejdřív to ohlas.
 
 ## 2. Kde projekt stojí (23. 10. 2026)
-- v19.2 (OU – opakované události) je dodaná k testu: Události → + Trénink → 🔁 Opakovat (dny v týdnu, každý / každý 2. týden, do konce sezóny, vynechané dny, relativní termín přihlašování, šablona pokladny, náhled → Vytvořit N tréninků); detail tréninku ze série: úprava a smazání „jen tato / tato a další“. Nová kolekce series (pravidla publikovat před kódem), události mají ser = {id, i, x?}. Čisté funkce v src/domain/recurrence.js, obrazovka v src/views/event-series.js.
-- Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v19.2 (pokud ho nenapíšu sám). Nález z testu = oprava jako v19.2.1 PŘED další fází. Bez nálezu pokračuj na v19.3.
-- Číslo v19.2 se už znovu nepoužívá. Každá další změna má nové číslo verze.
+- v19.2 (OU – opakované události) nasazena a otestována bez nálezu.
+- v19.3 (EK – hospodaření události a měsíce) je dodaná k testu: u události kryté příspěvkem (skupina Příspěvek neplatí, událost má náklady) řádek náklady · vybereme · podíl příspěvků · výsledek místo „schodku“, 💡 Navrhnout poplatek (výpočet / paušál, jen předvyplní u události), Team → 📅 Měsíce → ⚖️ Hospodaření měsíce (led se vyplatil / ztráta). Příspěvky měsíce se dělí mezi kryté události podle nákladů; uzavření ukládá evcash.settle.share a ym. Čisté funkce v src/domain/economy.js (monthEconomy použije i RP). Pravidla beze změny, cash.js beze změny.
+- Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v19.3 (pokud ho nenapíšu sám). Nález z testu = oprava jako v19.3.1 PŘED další fází. Bez nálezu pokračuj na v19.4.
+- Číslo v19.3 se už znovu nepoužívá. Každá další změna má nové číslo verze.
 
 ## 3. Odložené drobnosti
 1. Fáze Z: smazání zápasu maže docházku, ale ne důvody v attnote. Osiřelé důvody čte jen vlastník a trenér / kustod. Teď neřešit.
-2. Po EK aktualizuj tento prompt (docs/prompt-dalsi-vlakno.md) na nový stav.
+2. Po PM aktualizuj tento prompt (docs/prompt-dalsi-vlakno.md) na nový stav.
 
-## 4. Další fáze: EK – v19.3 Hospodaření události a měsíce (podrobně v plánu, celek Pokladna II)
-- Podle sekce „EK – v19.3“ v docs/plan-v18.md: místo „schodku“ u událostí hrazených příspěvkem podíl příspěvků, výsledek události a měsíce (led se vyplatil / ztráta), návrh poplatku výpočtem nebo paušálem – bez změny pravidel.
-- Výpočty jako čisté funkce v src/domain/ s testy; sahá na pokladnu → v CHANGELOG označit „⚠️ SAHÁ NA PLATBY“, src/domain/cash.js měnit jen nezbytně a ověřit srovnávacími testy.
-- Otázky 41–50 (Pokladna II) platí podle návrhu v plánu, pokud nerozhodnu jinak.
-- Pořadí dál: PM (v19.4) → RP (v19.5, použije domain/recurrence.js) → P2, O, Z, W, N, HG podle tabulky v plánu.
+## 4. Další fáze: PM – v19.4 Moje platby po měsících, porovnání způsobu placení, žádost o změnu (podrobně v plánu, celek Pokladna II)
+- Podle sekce „PM – v19.4“ v docs/plan-v18.md: karta 📅 Po měsících v Moje platby (myMonths v domain/economy.js), porovnání „Kdybych platila jinak“ (nová kolekce evprice, zápis v dávce uzavření / znovuotevření), žádost o změnu placení (kolekce requests, pohled src/views/request-list.js, doména src/domain/requests.js), schválení pokladníkem nastaví vše samo (historie grpH v plpay, grpAt v calcCash a contribRows).
+- Nové kolekce → publikovat firestore.rules PŘED kódem. Sahá na výpočet předpisů (grpAt) → v CHANGELOG „⚠️ SAHÁ NA PLATBY“; srovnávací testy pokladny musí zůstat zelené pro hráčky bez grpH.
+- Pozor na S (v19.1): platební pole hráček jsou v plpay/{pid} – hráčka musí číst svůj dokument (vlastní koeficient), grpH patří tam. Hráčka zatím plpay / staffpay sama neposlouchá.
+- Otázky 41–50 (Pokladna II) platí podle návrhu v plánu, pokud nerozhodnu jinak (41–42 už použity v EK).
+- PM je velká – pokud se nevejde do jednoho vlákna, rozdělit: v19.4 = po měsících + porovnání (evprice), v19.4.1 nebo v19.5 = žádosti (requests) – zeptat se.
+- Pořadí dál: RP (rozpočet, použije domain/recurrence.js a monthEconomy) → P2, O, Z, W, N, HG podle tabulky v plánu.
 
 ## 5. Pravidla práce (povinná)
 1. Výstup = vždy JEDEN ZIP se všemi změněnými a novými soubory ve struktuře repozitáře (rozbalit přímo do kořene HockeyCoach). Jednotlivé soubory zvlášť neposílej. Soubory musí být celé od prvního do posledního řádku – žádné zkracování („… zbytek kódu …“), žádné úpravy typu NAJDI / NAHRAĎ.
@@ -34,7 +37,7 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 6. Vydání verze – vždy vše najednou:
    - src/core/app-version.js (APP_VERSION, APP_DATE),
    - package.json (version),
-   - sw.js (hokej-vNN +1; teď je v58, další v59),
+   - sw.js (hokej-vNN +1; teď je v59, další v60),
    - CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny),
    - README.md (řádek „Aktuální verze“),
    - src/views/help.js (při změně ovládání),
@@ -52,4 +55,4 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 - Odpověď na konci: načtená verze, nová verze, zip, postup nasazení v několika bodech, výsledek testů. Bez dlouhého vysvětlování.
 
 ## 7. Úkol
-Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v19.2 (pokud není uveden) a pak pokračuj další verzí v pořadí (EK – v19.3).
+Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v19.3 (pokud není uveden) a pak pokračuj další verzí v pořadí (PM – v19.4).

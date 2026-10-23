@@ -1,7 +1,8 @@
-// Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů, uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem, úhrady předpisů.
+// Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů (podíl příspěvků, výsledek, návrh poplatku – domain/economy.js),
+// uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem, úhrady předpisů.
 // Struktura: Importy -> Pomocné funkce -> Uzavření vyúčtování (zápis) -> Úhrady -> Vykreslení -> Eventy -> Export.
 // Data: náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
-// V dokumentu události / zápasu je jen příznak ss (vyúčtováno).
+// V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Snapshot nese i podíl příspěvků (share) a měsíc (ym) v okamžiku uzavření.
 // Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
 // Předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
 // Každá dávka, která mění předpisy, zapíše i veřejný souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
@@ -13,8 +14,9 @@ import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc} from "../domain/cash.js";
+import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
+import {coveredBy, eventResult, suggestFlat} from "../domain/economy.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -33,8 +35,12 @@ const isStaffId = mid => S.tr.some(t => t.id === mid);
 // Souhrn dlužníků po změně předpisů (sets = [{id, d}], dels = [id]) přidaný do téže dávky
 const withDebtors = (b, sets, dels) => applyDebtors(b, debtorPlanFor(S.ch, sets, dels, isStaffId));
 const byName = (a, b) => pri(pl(a.mid)) - pri(pl(b.mid)) || pl(a.mid).name.localeCompare(pl(b.mid).name, "cs");
+// Data pro hospodaření události a měsíce (domain/economy.js)
+export const econData = () => ({ev: S.ev, ma: S.ma, ec: S.ec, ch: S.ch, cs: S.cs, pl: S.pl, cfg: cashCfg(S.cc), players});
 // Rozpracovaná úprava (jen v paměti, dokud se neuloží)
 let dr = null;
+// Id události s otevřeným návrhem poplatku (💡 Navrhnout)
+let sug = null;
 function draft(ev, cfg) {
   if (!dr || dr.eid !== ev.id) dr = {eid: ev.id, ...evCash(ev, cfg)};
   return dr;
@@ -55,7 +61,10 @@ export function settleEvent(ev, raw, force, d) {
   const k = calcCash(c, players(ev.id));
   if (!force && !k.payers.length) return null;
   const due = c.due || defDue(raw.date, dueDays(cfg, c.tpl));
-  const settle = {at: new Date().toISOString(), by: who(), tpl: c.tpl, cost: c.cost, who: c.who, due, n: k.N, total: k.total, collect: k.collect, lines: k.payers};
+  // Podíl příspěvků a měsíc v okamžiku uzavření (historie se později nemění)
+  const er = eventResult({id: ev.id, date: raw.date}, econData(), {id: ev.id, c, collect: k.collect});
+  const settle = {at: new Date().toISOString(), by: who(), tpl: c.tpl, cost: c.cost, who: c.who, due, n: k.N, total: k.total, collect: k.collect, lines: k.payers,
+    share: er && er.covered ? er.share : 0, ym: String(raw.date || "").slice(0, 7)};
   const cx = {tpl: c.tpl, cost: c.cost, who: c.who, acc: c.acc, settle};
   if (c.due) cx.due = c.due;
   const have = {};
@@ -137,8 +146,34 @@ function closedHtml(ev, st, err) {
   const logs = S.au.filter(x => x.eid === ev.id).sort((a, b) => (b.ts || "").localeCompare(a.ts || "")).slice(0, 5)
     .map(x => `<div class="mu">${new Date(x.ts).toLocaleString("cs-CZ")} · ${esc(x.act === "close" ? "uzavřeno" : x.act === "reopen" ? "znovu otevřeno" : x.act === "exc" ? "výjimka udělena" : x.act === "exc-off" ? "výjimka zrušena" : x.act)} · ${esc(x.by || "")}${x.note ? " · " + esc(x.note) : ""}</div>`).join("");
   return `<div class="cd"><h2>💰 Pokladna – uzavřeno</h2>${err}<div class="mu" style="margin-bottom:6px">Uzavřeno ${st.at ? new Date(st.at).toLocaleString("cs-CZ") : "–"} (${esc(st.by || "")}). Náklady ${kc(+st.total || 0)}, předepsáno ${kc(+st.collect || 0)}, hráček v poli ${+st.n || 0}. Nic se samo nepřepočítává.</div>
-<div class="mu" style="margin:6px 0"><b>Zaplaceno ${kc(got)} z ${kc(tot)}</b></div>${rows || '<div class="mu">Nikdo neplatí.</div>'}
+${closedEcon(ev, st)}<div class="mu" style="margin:6px 0"><b>Zaplaceno ${kc(got)} z ${kc(tot)}</b></div>${rows || '<div class="mu">Nikdo neplatí.</div>'}
 <button class="${S.cf === "ro" + ev.id ? "d" : "s"} w" id="cero" style="margin-top:10px;min-height:48px;${S.cf === "ro" + ev.id ? "background:var(--no);color:#fff" : ""}">${S.cf === "ro" + ev.id ? "Opravdu znovu otevřít? Klepni znovu" : "↩ Znovu otevřít (úprava vyúčtování)"}</button>${logs ? `<h3>Záznamy</h3>${logs}` : ""}</div>`;
+}
+// Výsledek události: přebytek / kryto / schodek (schodek jen když ztrátu nekryje ani podíl příspěvků)
+function resTag(res, cov) {
+  if (res < 0) return `<b style="color:var(--no)">⚠️ schodek ${kc(-res)}${cov ? " i po podílu příspěvků" : ""}</b>`;
+  return `<b style="color:var(--ok)">✅ ${res >= 1 ? "přebytek " + kc(res) : "kryto"}</b>`;
+}
+// Řádek měsíce: kolik krytých událostí a jak velké příspěvky je kryjí
+function monthLine(m) {
+  if (!m || !m.n) return "";
+  return `<div class="mu" style="margin-bottom:6px">Měsíc ${esc(ymLabel(m.ym))}: ${m.n} ${m.n === 1 ? "událost kryjí" : m.n < 5 ? "události kryjí" : "událostí kryjí"} příspěvky ${kc(m.contrib.amt)} (${m.contrib.n} hráček${m.contrib.est ? ", odhad – příspěvky ještě nejsou vystavené" : ""}), na událost průměrně ${kc(m.per)}. Podíl události se počítá podle jejích nákladů; příspěvek nepřítomné hráčky propadá ve prospěch události.</div>`;
+}
+// Souhrn hospodaření u uzavřené události (podíl z okamžiku uzavření; starší uzavření bez uloženého podílu = dnešní odhad)
+function closedEcon(ev, st) {
+  const total = +st.total || 0;
+  if (!coveredBy(st.who) || !(total > 0)) return "";
+  const live = st.share == null ? eventResult(ev, econData()) : null, share = st.share != null ? +st.share || 0 : live ? live.share : 0;
+  return `<div class="it" style="cursor:default"><span>Podíl příspěvků ${kc(share)}${st.share == null ? " (dnešní odhad)" : " (při uzavření)"}</span>${resTag(Math.round(((+st.collect || 0) + share - total) * 100) / 100, true)}</div>`;
+}
+// Panel návrhu poplatku (jen předvyplní hodnoty u této události, šablona se nemění)
+function suggestHtml(s, share) {
+  if (!s) return "";
+  const names = s.groups.map(g => (g === "exempt" ? "Osvobozené" : GRP[g])).join(" a ");
+  const row = (t, o, key) => `<div class="pr"><div>${t}<div class="mu">vybereme ${kc(o.collect)} · výsledek ${o.res < 0 ? "−" + kc(-o.res) : kc(o.res)}</div></div><button class="s" data-sgu="${key}" style="min-width:90px">Použít</button></div>`;
+  const body = s.n ? row("a) Výpočet – náklady ÷ hráčky v poli", s.calc, "calc") + row(`b) Paušál <b>${kc(s.flat)}</b> na hráčku (před koeficientem)`, s.flatOpt, "flat")
+    : '<div class="mu">Z platících skupin není nikdo přihlášený.</div>';
+  return `<div class="cd" style="padding:10px;margin-bottom:8px"><b>💡 Návrh poplatku – ${esc(names)}</b>${body}<div class="mu" style="margin-top:6px">Paušál = (náklady − podíl příspěvků ${kc(share)} − platby ostatních skupin) ÷ součet koeficientů platících (${String(s.fxs).replace(".", ",")}), nahoru na celé Kč. Návrh se jen předvyplní; uložíš ho tlačítkem Uložit nastavení nebo Uzavřít vyúčtování. Šablony se nemění.</div></div>`;
 }
 function editHtml(ev, cfg, err) {
   const d = draft(ev, cfg), P = players(ev.id), k = calcCash(d, P), cnt = g => P.filter(p => grpKey(p) === g).length;
@@ -152,9 +187,14 @@ function editHtml(ev, cfg, err) {
     return `<div class="cd" style="padding:10px;margin-bottom:8px"><b>${WHO[g]}</b> <span class="mu">(${cnt(g)} v poli)</span><div class="chips" style="margin-top:6px"><button class="chip ${w.pays ? "on" : ""}" data-wp="${g}">${w.pays ? "Platí: ANO" : "Platí: NE"}</button><button class="chip ${w.mode !== "flat" ? "on" : ""}" data-wm="${g}|calc">Výpočet</button><button class="chip ${w.mode === "flat" ? "on" : ""}" data-wm="${g}|flat">Pevná částka</button></div>${w.mode === "flat" ? `<input data-f="who.${g}.flat" data-n="1" type="number" min="0" value="${w.flat || ""}" placeholder="Kč na osobu (před koeficientem)" style="max-width:200px;margin:0">` : ""}</div>`;
   }).join("");
   const def = defDue(ev.raw.date, dueDays(cfg, d.tpl)).replace("T", " ");
-  const diff = k.collect - k.total;
+  // Hospodaření: podíl příspěvků (u událostí krytých příspěvkem) a výsledek události s rozpracovanou úpravou
+  const er = eventResult(ev, econData(), {id: ev.id, c: d, collect: k.collect}), cov = !!(er && er.covered), share = cov ? er.share : 0;
+  const res = Math.round((k.collect + share - k.total) * 100) / 100;
+  const sg = sug === ev.id ? suggestFlat(d, P, share) : null, canSg = !!suggestFlat(d, P, share) && k.total > 0;
+  const econ = k.total ? `<div class="it" style="cursor:default"><span>Náklady ${kc(k.total)} · vybereme za událost ${kc(k.collect)}${cov ? ` · podíl příspěvků ${kc(share)}${er.sharePaid < share ? " (z toho zaplaceno " + kc(er.sharePaid) + ")" : ""}` : ""}</span>${resTag(res, cov)}</div>${cov ? monthLine(er.month) : ""}` : "";
   const preview = `<div class="grid3"><div class="stat"><b>${k.N}</b>hráček v poli</div><div class="stat"><b>${kc(k.total)}</b>náklady</div><div class="stat"><b>${kc(k.collect)}</b>vybereme</div></div>
-<div class="mu" style="margin-bottom:6px"><b>Vybereme ${kc(k.collect)} z ${kc(k.total)}</b>${k.total ? " (" + Math.round(100 * k.collect / k.total) + " %)" : ""}${k.total && diff < 0 ? " · schodek " + kc(-diff) : diff > 0 && k.total ? " · přebytek " + kc(diff) : ""}. Dělí se všemi ${k.N} přihlášenými hráčkami, každá se počítá jako jeden celý kus (bez brankářek a realizačního týmu; osvobozené i hráčky se sníženým koeficientem se počítají celé). Výsledný podíl se násobí koeficientem hráčky.</div>
+${econ}${canSg ? `<button class="s w" data-sg style="margin:4px 0 8px">${sug === ev.id ? "✕ Zavřít návrh" : "💡 Navrhnout poplatek"}</button>` : ""}${suggestHtml(sg, share)}
+<div class="mu" style="margin-bottom:6px"><b>Vybereme ${kc(k.collect)} z ${kc(k.total)}</b>${k.total ? " (" + Math.round(100 * k.collect / k.total) + " %)" : ""}. Dělí se všemi ${k.N} přihlášenými hráčkami, každá se počítá jako jeden celý kus (bez brankářek a realizačního týmu; osvobozené i hráčky se sníženým koeficientem se počítají celé). Výsledný podíl se násobí koeficientem hráčky.</div>
 ${k.payers.length ? k.payers.map(l => `<div class="pr"><div>${pn(l.pid)}<div class="mu">${l.g === "exempt" ? "Osvobozená" : GRP[l.g]}${l.fx !== 1 ? " · koeficient " + fxPct(l.fx) : ""}</div></div><b>${kc(l.amt)}</b></div>`).join("") : '<div class="mu">Nikdo neplatí (např. venkovní zápas – náklady nese soupeř).</div>'}`;
   return `<div class="cd" id="cew"><h2>💰 Pokladna – vyúčtování</h2>${err}<div class="mu" style="margin-bottom:6px">Dosud neuzavřeno. Po uzavření vzniknou předpisy a vyúčtování se už samo nemění.</div>
 <label>Šablona</label><div class="chips">${tplChips}</div><h3>Náklady</h3>${cost || '<div class="mu" style="margin-bottom:6px">Žádné náklady.</div>'}<button class="s" data-ca style="margin-bottom:10px">+ Nákladová položka</button>
@@ -192,6 +232,15 @@ export function bindPay(a, ev) {
   act("[data-cr]", b => { dr.cost.splice(+b.dataset.cr, 1); });
   act("[data-wp]", b => { const w = dr.who[b.dataset.wp]; w.pays = !w.pays; });
   act("[data-wm]", b => { const [g, m] = b.dataset.wm.split("|"); dr.who[g].mode = m; });
+  // Návrh poplatku: otevřít / zavřít panel, použít výpočet nebo paušál (jen do rozpracované úpravy)
+  act("[data-sg]", () => { sug = sug === ev.id ? null : ev.id; });
+  act("[data-sgu]", b => {
+    const er = eventResult(ev, econData(), {id: ev.id, c: dr, collect: calcCash(dr, players(ev.id)).collect});
+    const s = suggestFlat(dr, players(ev.id), er && er.covered ? er.share : 0);
+    if (s) dr.who = clone(b.dataset.sgu === "flat" ? s.flatOpt.who : s.calc.who);
+    sug = null;
+    toast("Návrh předvyplněn – ulož ho");
+  });
   // Uložení nastavení bez uzavření (jen dokument evcash)
   const es = a.querySelector("#ces");
   if (es) es.onclick = () => {

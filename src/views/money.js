@@ -1,6 +1,6 @@
-// Pokladna – měsíce (F4, trenér a pokladník): měsíční příspěvky, platy realizačního týmu, hospodaření po měsících a CSV export.
-// Režim „📅 Měsíce“ v záložce Team.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis (příspěvky, platy) -> Vykreslení (měsíc, příspěvky, platy, hospodaření, CSV) -> Eventy -> Export.
+// Pokladna – měsíce (F4, trenér a pokladník): měsíční příspěvky, platy realizačního týmu, hospodaření měsíce (kryté události, výsledek),
+// hospodaření po měsících a CSV export. Režim „📅 Měsíce“ v záložce Team.
+// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis (příspěvky, platy) -> Vykreslení (měsíc, příspěvky, platy, hospodaření měsíce, po měsících, CSV) -> Eventy -> Export.
 // Data:
 //  - příspěvek = předpis charges/{c_RRRR-MM_pid} {eid:"c_RRRR-MM", mid, amt, paid, due, kind:"contrib", vs}; vystavuje se ručně za vybraný měsíc,
 //    už vystavené předpisy se nepřepisují, nezaplacený jde smazat; úhrada stejně jako u událostí (💰 Platby, příjem kategorie Příspěvky),
@@ -19,6 +19,8 @@ import {csv, downloadFile, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {CAT_SALARY, STAFF_PAY, accName, accOf, cashAcc, chargeMsg, payMsg, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
+import {monthEconomy} from "../domain/economy.js";
+import {econData} from "./payments.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
@@ -140,6 +142,26 @@ ${list}
 ${open.length > 1 ? `<button class="p w" data-msall style="margin-top:10px;min-height:52px;${armStyle(keyA)}">${armed(keyA) ? "Opravdu vyplatit vše? Klepni znovu" : "💸 Vyplatit vše (" + open.length + "×, " + kc(open.reduce((s, o) => s + o.amt, 0)) + ")"}</button>` : ""}</div>`;
 }
 
+// ===== Vykreslení: hospodaření měsíce (podle data události a měsíce příspěvku) =====
+// Částka se znaménkem a barvou (výsledek)
+const signed = n => `<b style="color:${n < 0 ? "var(--no)" : "var(--ok)"}">${n > 0 ? "+" : n < 0 ? "−" : ""}${kc(Math.abs(n))}</b>`;
+function econHtml() {
+  const me = monthEconomy(ym, econData()), c = me.contrib, list = me.events.filter(e => e.cost > 0 || e.collect > 0), idle = me.events.length - list.length;
+  const it = (t, v) => `<div class="it" style="cursor:default"><span>${t}</span><span>${v}</span></div>`;
+  const ice = me.cov.n ? (me.cov.res >= 0 ? `<b style="color:var(--ok)">✅ led se vyplatil (${signed(me.cov.res)})</b>` : `<b style="color:var(--no)">⚠️ ztráta ${kc(-me.cov.res)}</b>`) : '<span class="mu">žádné kryté události</span>';
+  const rows = list.length ? list.map(e => `<div class="pr"><div>${esc(fd(e.date))} · ${esc(e.title)} <span class="tag ${e.settled ? "pp" : "sh"}">${e.settled ? "uzavřeno" : "neuzavřeno"}</span><div class="mu">náklady ${kc(e.cost)} · vybereme ${kc(e.collect)}${e.covered ? " · podíl příspěvků " + kc(e.share) + (e.fixed ? " (při uzavření)" : "") : ""}</div></div>${signed(e.res)}</div>`).join("") : '<div class="mu">V měsíci nejsou události s náklady.</div>';
+  return `<div class="cd"><h2>⚖️ Hospodaření měsíce – ${esc(ymLabel(ym))}</h2><div class="mu" style="margin-bottom:6px">Podle data události a měsíce příspěvku (ne splatnosti). Kryté události = šablona, kde skupina Příspěvek neplatí, a událost má náklady. Příspěvky měsíce (předepsané i zaplacené) se mezi ně dělí podle nákladů; uzavřená událost si podíl z okamžiku uzavření ponechá. U neuzavřených událostí jsou náklady ze šablony / uloženého nastavení a platby odhadem z přihlášených.</div>
+<div class="grid3"><div class="stat"><b>${kc(c.amt)}</b>příspěvky</div><div class="stat"><b>${kc(r2(me.evc.amt + me.evc.est))}</b>za události</div><div class="stat"><b>${kc(me.cost.total)}</b>náklady</div></div>
+${it(`Příspěvky (${c.n} hráček${c.est ? ", odhad – nevystavené" : ""})`, `předepsáno <b>${kc(c.amt)}</b> · zaplaceno ${kc(c.paid)}`)}
+${it("Platby za události", `předepsáno <b>${kc(me.evc.amt)}</b> · zaplaceno ${kc(me.evc.paid)}${me.evc.est ? " · neuzavřené odhadem " + kc(me.evc.est) : ""}`)}
+${it("Náklady událostí", `<b>${kc(me.cost.total)}</b> (vyúčtované ${kc(me.cost.settled)} · plánované ${kc(me.cost.planned)})`)}
+${it("Platy (vyplacené)", kc(me.salary))}
+${it("<b>Výsledek měsíce</b>", signed(me.result))}
+${it(`Led – kryté události (${me.cov.n}): příspěvky ${kc(c.amt)} + vybrané ${kc(me.cov.collect)} − náklady ${kc(me.cov.cost)}`, ice)}
+${me.cov.n && me.left > 0.5 ? `<div class="mu">Nerozdělené příspěvky ${kc(me.left)} (podíly uzavřených událostí jsou z doby uzavření).</div>` : ""}
+<h3>Události měsíce</h3>${rows}${idle ? `<div class="mu" style="margin-top:6px">+ ${idle} bez nákladů a plateb (např. venkovní zápas).</div>` : ""}</div>`;
+}
+
 // ===== Vykreslení: hospodaření po měsících =====
 function overviewHtml() {
   const all = monthRows(S.cs), years = [...new Set([...all.map(r => r.ym.slice(0, 4)), ymNow().slice(0, 4), ym.slice(0, 4)])].sort();
@@ -187,7 +209,7 @@ export function moneyHtml() {
   if (!ym || !ymOk(ym)) { ym = ymNow(); resetDraft(); }
   const cfg = cashCfg(S.cc);
   const err = S.payErr ? `<div class="cd" style="color:var(--no)">Pokladnu se nepodařilo načíst (${esc(S.payErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
-  return err + monthNav() + contribHtml(cfg) + salaryHtml() + overviewHtml() + csvHtml();
+  return err + monthNav() + contribHtml(cfg) + salaryHtml() + econHtml() + overviewHtml() + csvHtml();
 }
 
 // ===== Eventy =====
