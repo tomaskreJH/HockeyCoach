@@ -7,7 +7,7 @@
 
 // ===== Importy =====
 import {seasonOf} from "./attendance.js";
-import {CAT_SALARY, calcCash, chargeItem, contribEid, contribRows, costTotal, cxOf, evCash, exOf, fxOf, grpKey, grpOf, isContrib, r2, ymOk} from "./cash.js";
+import {CAT_SALARY, calcCash, chargeItem, contribEid, contribRows, costTotal, cxOf, evCash, exOf, fxOf, grpAt, grpKey, grpOf, isContrib, r2, ymOk} from "./cash.js";
 
 // ===== Konstanty =====
 // Skupiny, kterým se navrhuje poplatek (Za událost, Osvobozené) – jen pokud v události platí
@@ -44,7 +44,7 @@ export function monthEvents(ym, D) {
 export function contribOf(ym, D) {
   const xs = (D.ch || []).filter(x => x.eid === contribEid(ym));
   if (xs.length || !D.cfg || !D.pl) return {...owed(xs), est: false};
-  const rows = contribRows(D.pl, D.cfg, {}).filter(r => !r.ex && r.amt > 0);
+  const rows = contribRows(D.pl, D.cfg, {}, ym).filter(r => !r.ex && r.amt > 0);
   return {amt: r2(sum(rows, r => r.amt)), paid: 0, n: rows.length, est: true};
 }
 
@@ -188,28 +188,30 @@ export function myMonths(ch, D, day) {
 // me = hráčka (s platebními poli z plpay), mm = výsledek myMonths, prices = evprice [{id, ym, date, head}], went = eid -> byla přihlášená,
 // contrib = výše příspěvku z nastavení pokladny, now = dnešní měsíc „RRRR-MM“ (budoucí měsíce se nepočítají).
 // Skutečnost = předepsáno v měsíci; druhý způsob = (příspěvek × koeficient, pokud by platila příspěvek) + cena na hlavu × koeficient
-// za uzavřené události, kde byla přihlášená a druhá skupina platí. Osvobozená hráčka nebo koeficient 0 → {skip}.
-// Vrací {grp, alt, fx, rows: [{ym, act, alt, n}] od nejnovějšího, total: {act, alt}, better: grp | alt | null (rozdíl pod 1 Kč)}.
+// za uzavřené události, kde byla přihlášená a druhá skupina platí. Skupina měsíce podle historie grpH (grpAt). Osvobozená / koeficient 0 → {skip}.
+// Vrací {grp, alt (dnes), fx, rows: [{ym, grp, act, alt, n}] od nejnovějšího, mixed (sezóna s oběma způsoby), total: {act, alt},
+// better: grp | alt | null (rozdíl pod 1 Kč)}.
 export function compareMonths(me, mm, prices, went, contrib, now) {
   if (!me) return null;
   if (exOf(me)) return {skip: "exempt"};
   const fx = fxOf(me);
   if (!(fx > 0)) return {skip: "fx0"};
-  const grp = grpOf(me), alt = grp === "monthly" ? "single" : "monthly", from = (mm || {}).season ? mm.season.from : "";
+  const other = g => (g === "monthly" ? "single" : "monthly");
+  const grp = grpOf(me), alt = other(grp), from = (mm || {}).season ? mm.season.from : "";
   const act = {};
   ((mm || {}).months || []).forEach(m => { act[m.ym] = m.amt; });
   // Uzavřené události sezóny, kde byla přihlášená (do dnešního měsíce)
   const mine = (prices || []).filter(p => ymOk(p.ym) && p.ym <= now && (!from || seasonKey(p.ym) === from) && went(p.id));
   const yms = [...new Set([...Object.keys(act), ...mine.map(p => p.ym)])].filter(ym => ym <= now).sort().reverse();
   const rows = yms.map(ym => {
-    const evs = mine.filter(p => p.ym === ym);
-    const base = alt === "monthly" ? ceil((+contrib || 0) * fx) : 0;
-    const a = base + sum(evs, p => ceil((+(p.head || {})[alt] || 0) * fx));
-    return {ym, act: r2(act[ym] || 0), alt: r2(a), n: evs.length};
+    const g = grpAt(me, ym), o = other(g), evs = mine.filter(p => p.ym === ym);
+    const base = o === "monthly" ? ceil((+contrib || 0) * fx) : 0;
+    const a = base + sum(evs, p => ceil((+(p.head || {})[o] || 0) * fx));
+    return {ym, grp: g, act: r2(act[ym] || 0), alt: r2(a), n: evs.length};
   });
   const total = {act: r2(sum(rows, r => r.act)), alt: r2(sum(rows, r => r.alt))};
   const d = total.alt - total.act;
-  return {grp, alt, fx, rows, total, better: Math.abs(d) < 1 ? null : d < 0 ? alt : grp};
+  return {grp, alt, fx, rows, mixed: rows.some(r => r.grp !== grp), total, better: Math.abs(d) < 1 ? null : d < 0 ? alt : grp};
 }
 
 // ===== Exporty =====

@@ -23,6 +23,7 @@ import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
+import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
@@ -56,8 +57,9 @@ const subs = {};                       // odběratelé změn podle kolekce
 const first = {};                      // už dorazil první snapshot kolekce?
 const listening = new Set();           // kolekce, které se právě poslouchají
 // Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (odvozuje se z předpisů, po obnově se přepočítá),
-// evprice = ceny uzavřených událostí na hlavu (odvozují se z evcash, po obnově se doplní v ⚙️ → Pokladna)
-const EXTRA = [DEBT_COLL, PRICE_COLL];
+// evprice = ceny uzavřených událostí na hlavu (odvozují se z evcash, po obnově se doplní v ⚙️ → Pokladna),
+// requests = žádosti členů (průběh vyřízení; výsledek schválení je v plpay a v auditu)
+const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL];
 [...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====

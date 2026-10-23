@@ -4,7 +4,9 @@
 //            -> Účty -> Zpráva pro příjemce -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Měsíční příspěvky (F4) -> Platy (F4)
 //            -> Hospodaření po měsících (F4) -> Částky pro CSV.
 // Pravidla:
-//  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single),
+//  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single); s historií změn
+//    grpH = [{ym, grp}] (od měsíce ym platí grp, ym "" = stav před první změnou) platí skupina podle měsíce (grpAt) –
+//    příspěvky podle měsíce příspěvku, vyúčtování podle data události (asOf), dnešní stav grpOf,
 //  - koeficient fx = individuální podíl z ceny 0..1 (v aplikaci se zadává v procentech 0–100 %, výchozí 100 %),
 //  - osvobozená (ex: true) = zvýhodněná hráčka: v událostech tvoří vlastní skupinu „Osvobozené“ s vlastním nastavením (platí / neplatí,
 //    výpočet / pevná částka) stejně jako ostatní skupiny; u příspěvků je ve výchozím stavu vynechaná (lze ji pro měsíc zahrnout),
@@ -53,6 +55,10 @@ const cl = o => JSON.parse(JSON.stringify(o));
 const sum = (a, f) => (a || []).reduce((s, x) => s + (+f(x) || 0), 0);
 const p2 = n => String(n).padStart(2, "0");
 const ceil = x => Math.ceil(x - 1e-9);
+// Historie způsobu placení (plpay.grpH) a skupina bez historie
+const hasH = p => !!p && Array.isArray(p.grpH) && p.grpH.length > 0;
+const grp0 = p => (p && p.grp === "single" ? "single" : "monthly");
+const hSort = h => h.slice().sort((a, b) => String(a.ym || "").localeCompare(String(b.ym || "")));
 // Zaokrouhlení na haléře (částky úhrad)
 export const r2 = n => Math.round((+n || 0) * 100) / 100;
 export const kc = n => (Math.round(n * 100) / 100).toLocaleString("cs-CZ") + " Kč";
@@ -69,7 +75,24 @@ export const exFixPlan = players => Object.entries(players || {}).filter(([, p])
   if (ex) doc.fx = 1;
   return {id, name: p.name || id, ex, doc};
 });
-export const grpOf = p => (p && p.grp === "single" ? "single" : "monthly");
+// Skupina plateb: s historií grpH podle dnešního měsíce, jinak pole grp
+export const grpOf = p => (hasH(p) ? grpAt(p, ymNow()) : grp0(p));
+// Skupina platná v den / měsíci day ("RRRR-MM-DD" nebo "RRRR-MM"): poslední záznam historie s ym <= měsíc dne; bez historie grp
+export function grpAt(p, day) {
+  if (!hasH(p)) return grp0(p);
+  const ym = String(day || "").slice(0, 7);
+  let g = null;
+  hSort(p.grpH).forEach(e => { if (String(e.ym || "") <= ym) g = e.grp === "single" ? "single" : "monthly"; });
+  return g || grp0(p);
+}
+// Hráčky se skupinou platnou v den události (pro calcCash – výpočet samotný se nemění); hráčky bez historie beze změny
+export const asOf = (P, day) => (P || []).map(p => { if (!hasH(p)) return p; const o = {...p, grp: grpAt(p, day)}; delete o.grpH; return o; });
+// Historie po změně skupiny na grp od měsíce ym (stejný měsíc se nahradí); bez historie vznikne výchozí záznam {ym: "", grp: dnešní}
+export function grpHWith(p, grp, ym) {
+  const h = hasH(p) ? p.grpH.filter(e => String(e.ym || "") !== ym).map(e => ({ym: String(e.ym || ""), grp: e.grp === "single" ? "single" : "monthly"})) : [{ym: "", grp: grpOf(p)}];
+  h.push({ym, grp: grp === "single" ? "single" : "monthly"});
+  return hSort(h);
+}
 // Skupina pro výpočet události: osvobozená má vlastní skupinu, jinak skupina plateb
 export const grpKey = p => (exOf(p) ? "exempt" : grpOf(p));
 // Koeficient v procentech pro zobrazení ("50 %", "33,3 %") a převod zadaných procent na koeficient 0..1
@@ -318,11 +341,11 @@ export const contribEvent = ym => ({id: contribEid(ym), type: "contrib", title: 
 export const contribDue = (ym, day) => ym + "-" + p2(Math.min(28, Math.max(1, Math.round(+day) || 1))) + "T23:59";
 // Kdo příspěvek platí: hráčky ve skupině monthly, ne ukončené, ne brankářky, fx > 0. Výchozí částka = příspěvek × fx (nahoru na Kč).
 // Osvobozené hráčky jsou v seznamu také (ex: true), ale ve výchozím stavu se příspěvek nevystavuje (obrazovka je musí zahrnout).
-// players = soupiska, cfg = nastavení pokladny, have = existující předpisy příspěvku za měsíc podle mid.
-// Vrací řádky {pid, fx, ex, amt, has} seřazené podle jména (has = už vystavený předpis).
-export function contribRows(players, cfg, have) {
-  const base = +cfg.contrib || 0;
-  const pays = (players || []).filter(p => (p.st || "act") !== "end" && !isG(p) && grpOf(p) === "monthly" && fxOf(p) > 0);
+// players = soupiska, cfg = nastavení pokladny, have = existující předpisy příspěvku za měsíc podle mid, ym = měsíc příspěvku (skupina
+// podle historie grpH platná v tom měsíci; bez ym dnešní). Vrací řádky {pid, fx, ex, amt, has} seřazené podle jména (has = už vystavený předpis).
+export function contribRows(players, cfg, have, ym) {
+  const base = +cfg.contrib || 0, gOf = p => (ym ? grpAt(p, ym) : grpOf(p));
+  const pays = (players || []).filter(p => (p.st || "act") !== "end" && !isG(p) && gOf(p) === "monthly" && fxOf(p) > 0);
   const ids = new Set(pays.map(p => p.id));
   // Hráčky, které už předpis mají (i když mezitím změnily skupinu), se v seznamu ukážou také
   Object.keys(have || {}).forEach(id => { const p = (players || []).find(x => x.id === id); if (p && !ids.has(id)) { pays.push(p); ids.add(id); } });

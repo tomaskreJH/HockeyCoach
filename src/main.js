@@ -8,6 +8,7 @@
 // a platy realizačního týmu (staffpay) jen správci pokladny, hráčka navíc svůj dokument plpay/{pid} (koeficient a skupina pro Moje platby).
 // Připojí se k záznamům v paměti (S.at, S.pl, S.tr) s náhradou ze starých polí; chyba nových kolekcí (nepublikovaná pravidla) aplikaci nezastaví.
 // Ceny uzavřených událostí na hlavu (evprice → S.pr) čtou všichni členové (porovnání způsobu placení v Moje platby).
+// Žádosti (requests → S.rq): správci pokladny všechny, ostatní jen své (dotaz mid == pid / tid).
 
 // ===== Importy =====
 import {HK} from "./data/storage.js";
@@ -17,6 +18,7 @@ import {initNav} from "./core/nav.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {PRICE_COLL} from "./domain/economy.js";
+import {REQ_COLL} from "./domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, joinAttNotes, joinPlPay, joinStaffPay} from "./domain/private-data.js";
 import {SERIES_COLL} from "./domain/recurrence.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
@@ -79,10 +81,14 @@ db.collection("audit").onSnapshot(s=>{S.au=rows(s);render()},ec);
 db.collection("evcash").onSnapshot(s=>{S.ec=rows(s);render()},ec);
 // Platební pole hráček a platy realizačního týmu (jen správci pokladny); připojí se k S.pl a S.tr
 db.collection(PPAY_COLL).onSnapshot(s=>{R.pp=mapOf(s);joinPl();render()},erP(PPAY_COLL));
-db.collection(SPAY_COLL).onSnapshot(s=>{R.sp=mapOf(s);joinTr();render()},erP(SPAY_COLL))}
+db.collection(SPAY_COLL).onSnapshot(s=>{R.sp=mapOf(s);joinTr();render()},erP(SPAY_COLL));
+// Žádosti o změnu placení (vyřizuje správce pokladny)
+db.collection(REQ_COLL).onSnapshot(s=>{S.rq=rows(s);render()},erP(REQ_COLL))}
 else{[HK.pid(),HK.tid()].filter(Boolean).forEach(id=>db.collection("charges").where("mid",id).onSnapshot(s=>{S.ch=rows(s);S.payErr=null;render()},ec));   // odběratel dostane sjednocení výsledků všech dotazů
 // Hráčka: jen svůj dokument platebních polí (skupina, koeficient) – připojí se k S.pl
-if(HK.pid())db.collection(PPAY_COLL).one(HK.pid()).onSnapshot(s=>{R.pp=mapOf(s);joinPl();render()},erP(PPAY_COLL))}
+if(HK.pid())db.collection(PPAY_COLL).one(HK.pid()).onSnapshot(s=>{R.pp=mapOf(s);joinPl();render()},erP(PPAY_COLL));
+// Vlastní žádosti (stav žádosti o změnu placení v Moje platby)
+[HK.pid(),HK.tid()].filter(Boolean).forEach(id=>db.collection(REQ_COLL).where("mid",id).onSnapshot(s=>{S.rq=rows(s);render()},erP(REQ_COLL)))}
 // Ceny uzavřených událostí na hlavu: všichni členové; chyba (nepublikovaná pravidla) jen vypne porovnání v Moje platby
 db.collection(PRICE_COLL).onSnapshot(s=>{S.pr=rows(s);render()},erP(PRICE_COLL));
 db.doc("settings/cash").onSnapshot(s=>{S.cc=s.exists?s.data():{};render();refreshCashSettings()},er);

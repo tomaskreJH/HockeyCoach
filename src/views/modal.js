@@ -11,7 +11,7 @@ import {S} from "../core/state.js";
 import {$,clone,dlBeforeStart,dlDefault,esc,norm,td,toast,uid} from "../core/utils.js";
 import {addPen,el_,fitLayout,goalPen,logEv,migrate,procExp} from "../domain/live-engine.js";
 import {HK} from "../data/storage.js";
-import {FX_QUICK,GRP,STAFF_PAY,fxPct,pctToFx} from "../domain/cash.js";
+import {FX_QUICK,GRP,STAFF_PAY,fxPct,grpHWith,grpOf,pctToFx,ymNow} from "../domain/cash.js";
 import {PPAY_COLL,SPAY_COLL,plPayDoc,staffPayDoc} from "../domain/private-data.js";
 import {pickModal} from "./lineup-editor.js";
 import {render} from "./shell.js";
@@ -55,7 +55,9 @@ el.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{rd();M.pct=b.dataset.
 el.querySelectorAll("[data-eo]").forEach(b=>b.onclick=()=>{rd();M.ex=b.dataset.eo==="1";modal()});
 // Uložení přes merge: zapíšou se jen pole z okna, ostatní pole dokumentu (i ta, která tato verze nezná) zůstanou.
 // Pole plateb (grp, fx, ex, note) zapisuje jen správce pokladny a jen do plpay/{pid}; ostatní je vůbec neposílají (pravidla by zápis odmítla).
-const payDoc=()=>{const fx=pctToFx(M.pct);return fx==null?null:plPayDoc({grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()})};
+// Hráčka s historií způsobu placení (grpH): ruční změna skupiny platí od běžného měsíce a zapíše se i do historie
+const payDoc=()=>{const fx=pctToFx(M.pct);if(fx==null)return null;const o=plPayDoc({grp:M.grp||"monthly",fx,ex:!!M.ex,note:(M.note||"").trim()}),p=S.pl.find(x=>x.id===M.id);
+if(p&&Array.isArray(p.grpH)&&p.grpH.length&&grpOf(p)!==o.grp)o.grpH=grpHWith(p,o.grp,ymNow());return o};
 const done=()=>{S.M=null;modal()};
 $("#ok").onclick=()=>{rd();
 // Jen pole plateb (pokladník bez práva na soupisku)

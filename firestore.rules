@@ -157,11 +157,32 @@ service cloud.firestore {
       allow create, update: if isCash() && request.resource.data.keys().hasOnly(['m', 'amt']);
       allow delete: if isCash();
     }
-    // Platební pole hráčky plpay/{pid} = {grp, fx, ex, note}: čte a zapisuje správce pokladny, číst smí i hráčka sama (pid z členství)
+    // Platební pole hráčky plpay/{pid} = {grp, fx, ex, note, grpH}: čte a zapisuje správce pokladny, číst smí i hráčka sama (pid z členství);
+    // grpH = historie způsobu placení [{ym, grp}] (seznam)
     match /plpay/{id} {
       allow read: if isCash() || (isPlayer() && id == myPid());
-      allow create, update: if isCash() && request.resource.data.keys().hasOnly(['grp', 'fx', 'ex', 'note']);
+      allow create, update: if isCash() && request.resource.data.keys().hasOnly(['grp', 'fx', 'ex', 'note', 'grpH']) && request.resource.data.get('grpH', []) is list;
       allow delete: if isCash();
+    }
+
+    // ===== Žádosti členů requests/{id} (kind "pay" = změna způsobu placení; druh "att" doplní fáze W) =====
+    // Hráčka vytvoří jen vlastní otevřenou žádost o placení pod svým e-mailem a smí ji smazat (zrušit), dokud je otevřená.
+    // Čte vlastník a správce pokladny; žádost o placení vyřizuje jen správce pokladny (ne vlastní žádost) a jen otevřenou:
+    // mění pouze st (ok / no), reply, doneBy (jeho e-mail), doneAt.
+    function reqPayOk(d) {
+      return d.keys().hasOnly(['kind', 'mid', 'at', 'by', 'st', 'from', 'to', 'ym', 'note'])
+        && d.kind == 'pay' && d.st == 'open' && d.mid == myPid() && d.by == mail() && d.at is string
+        && d.from in ['monthly', 'single'] && d.to in ['monthly', 'single'] && d.ym is string && d.note is string && d.note.size() <= 300;
+    }
+    function reqDone() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st', 'reply', 'doneBy', 'doneAt'])
+        && resource.data.st == 'open' && request.resource.data.st in ['ok', 'no'] && request.resource.data.doneBy == mail();
+    }
+    match /requests/{id} {
+      allow read: if isCash() || ownsMid(resource.data.mid);
+      allow create: if isPlayer() && reqPayOk(request.resource.data);
+      allow update: if isCash() && resource.data.kind == 'pay' && !ownsMid(resource.data.mid) && reqDone();
+      allow delete: if isCash() || (isPlayer() && resource.data.mid == myPid() && resource.data.st == 'open');
     }
 
     // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====

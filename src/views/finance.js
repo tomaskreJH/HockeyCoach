@@ -2,7 +2,7 @@
 // Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení (souhrn, po hráčkách, po událostech) -> Eventy.
 // Data: kolekce charges (S.ch); událost se bere ze seznamu předaného z events.js (tréninky + zápasy).
 // Měsíční příspěvky (F4) mají eid "c_RRRR-MM": ve výpisech vystupují jako pseudo-událost „Příspěvek měsíc rok“ (📅), klepnutím se otevře režim Team → 📅 Měsíce.
-// Výjimka z blokace „Jdu“ se uděluje u předpisu po splatnosti (tlačítko 🔒).
+// Výjimka z blokace „Jdu“ se uděluje u předpisu po splatnosti (tlačítko 🔒). Nahoře pruh a okno žádostí o změnu placení (views/request-list.js).
 // Dluh = součet nezaplacených zbytků předpisů hráčky. Úhrada (částečná i plná) se zapisuje přes okno úhrady z payments.js.
 // U předpisu je VS, účet a zpráva pro příjemce (pro párování s výpisem). „Zaplatila vše“ je zvlášť pro každý účet (souhrnná platba
 // smí obsahovat jen předpisy na stejný účet); souhrnná platba chodí s osobním VS hráčky.
@@ -16,6 +16,7 @@ import {HK} from "../data/storage.js";
 import {accIban, accName, accOf, cashCfg, chargeMsg, contribEvent, contribYm, costTotal, fmtDue, kc, ledger, overdue, personVs, r2, restOf, twoAcc} from "../domain/cash.js";
 import {openMonth} from "./money.js";
 import {openPay, payCharge, toggleExc} from "./payments.js";
+import {bindReq, reqBanner, reqModal} from "./request-list.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
@@ -85,11 +86,12 @@ export function financeHtml(evs, AT) {
       return `<div class="it" ${openAttr(e)}><div><b>${icon(e)} ${esc(e.title)}</b><div class="mu">${e.type === "contrib" ? "měsíční příspěvek" : fd(e.date)} · zaplaceno ${ps.length - un.length} z ${ps.length} · vybráno ${kc(tot - debt)} z ${kc(tot)}</div>${un.length ? `<div class="mu">Nezaplatily: ${un.map(x => pn(x.mid)).join(", ")}</div>` : ""}</div><b style="color:${debt ? "var(--no)" : "var(--ok)"}">${debt ? kc(debt) : "✅"}</b></div>`;
     }).join("") : '<div class="msg">Zatím žádná uzavřená vyúčtování.</div>'}</div>`;
   }
-  return err + grid + tabs + unsetH + body;
+  return err + reqBanner() + grid + tabs + unsetH + body + reqModal();
 }
 
 // ===== Eventy =====
 export function bindFinance(a) {
+  bindReq(a);   // pruh a okno žádostí o změnu placení
   a.querySelectorAll("[data-fv]").forEach(b => b.onclick = () => { vw = b.dataset.fv; render(); });
   a.querySelectorAll("[data-fall]").forEach(b => b.onclick = () => { all = !all; render(); });
   a.querySelectorAll("[data-fo]").forEach(b => b.onclick = () => { open = open === b.dataset.fo ? null : b.dataset.fo; render(); });

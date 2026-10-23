@@ -15,7 +15,7 @@ import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
+import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, asOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {PRICE_COLL, coveredBy, eventResult, priceDoc, suggestFlat} from "../domain/economy.js";
 import {render} from "./shell.js";
@@ -27,7 +27,9 @@ const who = () => { const u = HK.user(); return (u && u.email) || ""; };
 // Zápas pro pokladnu (volá ho matches.js při uzavření zápasu)
 export const evOfMatch = m => ({id: m.id, type: "match", raw: m, cx: cxOf(m.id, S.ec)});
 // Přihlášené hráčky události bez brankářek (dělitel ceny)
-const players = eid => goingOf(eid).map(id => pl(id)).filter(p => p && !isG(p));
+// Přihlášené hráčky (bez brankářek) se skupinou plateb platnou v den události (historie grpH; bez historie beze změny)
+const evDate = eid => ((S.ev.find(x => x.id === eid) || S.ma.find(x => x.id === eid)) || {}).date || "";
+const players = eid => asOf(goingOf(eid).map(id => pl(id)).filter(p => p && !isG(p)), evDate(eid));
 const evPath = ev => (ev.type === "match" ? "matches/" : "events/") + ev.id;
 const auditDoc = (eid, act, note) => ({ts: new Date().toISOString(), by: who(), eid, act, note: note || ""});
 const dueDays = (cfg, tpl) => { const t = cfg.tpls[tpl]; return t && t.dueDays != null ? t.dueDays : cfg.due.ev; };

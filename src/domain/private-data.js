@@ -2,7 +2,7 @@
 // Citlivá data jsou v samostatných kolekcích, které čte jen vlastník a správci (firestore.rules):
 //  - attnote/{eid}_{mid} = {eid, mid, reason}  důvod omluvy (čte vlastník a trenér / kustod),
 //  - staffpay/{tid}      = {m, amt}            plat člena realizačního týmu (čte správce pokladny a člen sám),
-//  - plpay/{pid}         = {grp, fx, ex, note} platební pole hráčky (čte správce pokladny a hráčka sama).
+//  - plpay/{pid}         = {grp, fx, ex, note, grpH} platební pole hráčky (čte správce pokladny a hráčka sama; grpH = historie způsobu placení).
 // Aplikace čte nové místo, s náhradou ze starého pole (attendance.reason, staff.pay, players.grp/fx/ex/note) – po úklidu starých polí
 // už jen pro data, která by se do databáze dostala jinou cestou; obnova staré zálohy pole rozdělí předem (splitLegacy).
 // Úklid: po převodu a 🔒 Vyžadovat verzi se stará pole smažou (cleanPlan) a pravidla databáze je už nepovolí zapsat.
@@ -14,6 +14,7 @@ export const NOTE_COLL = "attnote";                       // důvody omluv
 export const SPAY_COLL = "staffpay";                      // platy realizačního týmu
 export const PPAY_COLL = "plpay";                         // platební pole hráček
 export const PPAY_KEYS = ["grp", "fx", "ex", "note"];     // pole, která patří do plpay (a dřív byla v players)
+export const PPAY_HIST = "grpH";                          // historie způsobu placení [{ym, grp}] – jen v plpay (nikdy v players)
 
 // ===== Pomocné funkce =====
 const has = (o, k) => !!o && o[k] !== undefined && o[k] !== null;
@@ -27,6 +28,7 @@ export function withPlPay(p, pp) {
   if (!pp) return p;
   const o = {...p};
   PPAY_KEYS.forEach(k => { if (has(pp, k)) o[k] = pp[k]; });
+  if (Array.isArray(pp[PPAY_HIST])) o[PPAY_HIST] = pp[PPAY_HIST];
   return o;
 }
 // Seznam hráček (S.pl) s připojenými poli z plpay (mapa id → dokument)

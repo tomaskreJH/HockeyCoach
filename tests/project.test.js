@@ -80,6 +80,6 @@ test("pravidla: settings/app (brána verze) zapisuje jen trenér a nejde smazat"
 
 test("pravidla: kolekce, které aplikace čte, mají pravidlo", () => {
   const rules = read("firestore.rules");
-  ["members", "players", "staff", "matches", "opponents", "settings", "events", "evcash", "evprice", "attendance", "charges", "debtors", "cash", "audit"]
+  ["members", "players", "staff", "matches", "opponents", "settings", "events", "evcash", "evprice", "requests", "attendance", "charges", "debtors", "cash", "audit"]
     .forEach(c => assert.ok(rules.includes("match /" + c + "/"), "pravidlo pro " + c));
 });

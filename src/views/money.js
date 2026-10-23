@@ -105,7 +105,7 @@ function monthNav() {
 
 // ===== Vykreslení: příspěvky =====
 function contribHtml(cfg) {
-  const have = contribHave(ym), rows = contribRows(S.pl, cfg, have);
+  const have = contribHave(ym), rows = contribRows(S.pl, cfg, have, ym);
   const issued = Object.values(have), tot = issued.reduce((s, x) => s + (+x.amt || 0), 0), got = issued.reduce((s, x) => s + Math.min(+x.paid || 0, +x.amt || 0), 0);
   const todo = rows.filter(r => !r.has && !isOff(r)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)})).filter(r => r.amt > 0);
   const todoSum = todo.reduce((s, r) => s + r.amt, 0), keyI = "mci" + ym;
@@ -238,7 +238,7 @@ export function bindMoney(a) {
   q("[data-mci]").forEach(b => b.onclick = () => {
     sync();
     confirm2("mci" + ym, () => {
-      const rows = contribRows(S.pl, cfg, contribHave(ym)).filter(r => !r.has && !isOff(r)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)}));
+      const rows = contribRows(S.pl, cfg, contribHave(ym), ym).filter(r => !r.has && !isOff(r)).map(r => ({pid: r.pid, amt: amtOf(camt, r.pid, r.amt)}));
       issueContrib(rows, cfg);
       render();
     });

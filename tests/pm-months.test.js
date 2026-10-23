@@ -80,7 +80,7 @@ test("compareMonths: hráčka s příspěvkem – kolik by platila za události"
   const r = compareMonths(me, myMonths(ch, D, "2026-12-10"), PRICES, went, 500, "2026-12");
   assert.equal(r.grp, "monthly");
   assert.equal(r.alt, "single");
-  assert.deepEqual(r.rows, [{ym: "2026-12", act: 500, alt: 160, n: 1}, {ym: "2026-11", act: 400, alt: 240, n: 1}]);
+  assert.deepEqual(r.rows, [{ym: "2026-12", grp: "monthly", act: 500, alt: 160, n: 1}, {ym: "2026-11", grp: "monthly", act: 400, alt: 240, n: 1}]);
   assert.deepEqual(r.total, {act: 900, alt: 400});
   assert.equal(r.better, "single");
 });
@@ -89,7 +89,7 @@ test("compareMonths: hráčka za událost – příspěvek × koeficient; budouc
   const ch = [{eid: "t1", kind: "event", amt: 300, paid: 300}, {eid: "x1", kind: "event", amt: 200, paid: 0}];
   const me = {id: "p", grp: "single", fx: 1, ex: false};
   const r = compareMonths(me, myMonths(ch, D, "2026-11-20"), [...PRICES, {id: "m7", ym: "2026-07", head: {monthly: 50, single: 50}}], id => went(id) || id === "m7", 500, "2026-11");
-  assert.deepEqual(r.rows, [{ym: "2026-11", act: 300, alt: 500, n: 1}], "prosinec je budoucí, červenec jiná sezóna");
+  assert.deepEqual(r.rows, [{ym: "2026-11", grp: "single", act: 300, alt: 500, n: 1}], "prosinec je budoucí, červenec jiná sezóna");
   assert.equal(r.better, "single");
   const same = compareMonths(me, myMonths([{eid: "t1", kind: "event", amt: 500, paid: 0}], D, "2026-11-20"), [], () => false, 500, "2026-11");
   assert.equal(same.better, null, "stejná částka = bez doporučení");

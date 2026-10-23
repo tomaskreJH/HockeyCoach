@@ -1,7 +1,9 @@
 // Moje platby: člen vidí jen své předpisy, zaplacené částky, dluh a QR platbu. Banner s upozorněním na dluh v Událostech.
 // Přepínač 📄 Předpisy / 📅 Po měsících (S.mk): měsíce sezóny (předepsáno – příspěvek a události, zaplaceno, zbývá; klepnutím rozbalit)
 // a u hráčky karta ⚖️ Kdybych platila jinak (domain/economy.js myMonths, compareMonths; ceny uzavřených událostí na hlavu S.pr = evprice).
-// Struktura: Importy -> Stav -> Pomocné funkce -> Banner -> QR okno -> Po měsících -> Vykreslení -> Export.
+// Žádost o změnu placení (domain/requests.js): stav vlastní žádosti v obou pohledech (otevřenou lze zrušit), formulář ✋ v pohledu Po měsících;
+// správcům pokladny ukáže banner v Událostech počet otevřených žádostí (views/request-list.js).
+// Struktura: Importy -> Stav -> Pomocné funkce -> Banner -> QR okno -> Po měsících a žádost o změnu placení -> Vykreslení -> Export.
 // Data: S.ch (u člena jen jeho předpisy, mid = pid / tid), nastavení pokladny S.cc (IBAN hlavního a provozního účtu). Předpis měsíčního příspěvku má eid "c_RRRR-MM" (F4).
 // QR je formát SPD (české QR platby) generovaný lokálně (src/lib/qrcode.js).
 // Zpráva pro příjemce: za co se platí + jméno plátce (chargeMsg v cash.js – uložená v předpisu, u starších sestavená); je u předpisu, v QR okně i v QR kódu (MSG).
@@ -16,15 +18,18 @@
 // z téhož objektu qrcode, který okno zobrazilo (qr-image.js) – obsah QR se nemění. Android / iPhone: Sdílet, jinde stažení.
 
 // ===== Importy =====
+import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
 import {seasonOf} from "../domain/attendance.js";
-import {GRP, accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, fxPct, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
+import {GRP, accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, fxPct, grpAt, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
 import {compareMonths, myMonths} from "../domain/economy.js";
+import {REQ_COLL, REQ_ST, openReq, payReqDoc, payReqError, reqYms, reqsOf} from "../domain/requests.js";
 import qrcode from "../lib/qrcode.js";
 import {qrFileName, saveQrImage} from "./qr-image.js";
+import {bindReq, reqBanner, reqLine} from "./request-list.js";
 import {render} from "./shell.js";
 
 // ===== Stav =====
@@ -69,7 +74,7 @@ function pendBanner() {
   return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">⏳ Čeká na potvrzení změna účtů týmu</b><div class="mu">Navrhl ${esc(p.by)} · ${esc(fDay(p.at))}.${p.by === me ? " Potvrdit musí jiný trenér nebo pokladník." : " Před potvrzením ověř číslo účtu s navrhovatelem."}</div><button class="s w" data-mko style="margin-top:8px">🏦 Otevřít nastavení pokladny</button></div>`;
 }
 export function mineBanner() {
-  const pb = pendBanner();
+  const pb = pendBanner() + reqBanner(true);
   if (!ids().length) return pb;
   const d = debtOf(S.ch, ids());
   if (!d.debt) return pb;
@@ -78,6 +83,7 @@ export function mineBanner() {
 export function bindBanner(a) {
   a.querySelectorAll("[data-mk]").forEach(b => b.onclick = () => { S.tab = "mk"; S.mid = null; S.evid = null; render(); window.scrollTo(0, 0); });
   a.querySelectorAll("[data-mko]").forEach(b => b.onclick = () => { if (HK.openCash) HK.openCash(); });
+  bindReq(a);   // banner žádostí → Team → Platby
 }
 
 // ===== QR okno =====
@@ -151,15 +157,54 @@ function cmpCard(mm) {
   const how = r.alt === "single" ? "kolik bys zaplatila za uzavřené události, na kterých jsi byla přihlášená (cena na hlavu × tvůj koeficient)" : "kolik by stál příspěvek (" + kc(cashCfg(S.cc).contrib) + " × tvůj koeficient) a události, kde platí i hráčky s příspěvkem";
   return `<div class="cd">${head}<div class="mu">Platíš: <b>${esc(GRP[r.grp])}</b>, koeficient ${fxPct(r.fx)}. Vlevo skutečně předepsáno, vpravo ${how}.</div>${rows}
 ${r.rows.length ? `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;border-top:1px solid var(--bd);padding-top:6px"><b>Sezóna celkem</b><b>${kc(r.total.act)} → ${kc(r.total.alt)}</b></div><div style="margin-top:6px">${verdict}</div>` : ""}
-<div class="mu" style="margin-top:6px">Jen informace. Neuzavřené události se nepočítají, příspěvek podle dnešní výše. Změnu způsobu placení domluv s pokladníkem.</div></div>`;
+${r.mixed ? '<div class="mu" style="margin-top:6px">V sezóně jsi platila oběma způsoby – každý měsíc se porovnává s druhým způsobem toho měsíce.</div>' : ""}<div class="mu" style="margin-top:6px">Jen informace. Neuzavřené události se nepočítají, příspěvek podle dnešní výše. Změnu můžeš navrhnout tlačítkem ✋ níže.</div></div>`;
 }
+// ===== Žádost o změnu placení =====
+// Hráčka (s plpay) propojená s účtem, nebo null
+const meP = () => { const pid = HK.pid(); return pid ? S.pl.find(p => p.id === pid) || null : null; };
+const otherGrp = g => (g === "monthly" ? "single" : "monthly");
+// Stav vlastní žádosti: otevřená (lze zrušit), nebo poslední vyřízená v posledních 30 dnech s odpovědí
+function reqState() {
+  const p = meP();
+  if (!p) return "";
+  const o = openReq(S.rq, p.id, "pay");
+  if (o) return `<div class="cd" style="border-color:var(--wa)"><b>✋ Žádost o změnu placení – ${esc(REQ_ST.open)}</b><div>${reqLine(o)}</div>${o.note ? `<div class="mu">„${esc(o.note)}“</div>` : ""}<button class="s w" id="mkrqdel" style="margin-top:8px">${armed("mkrqdel" + o.id) ? "Opravdu zrušit žádost?" : "Zrušit žádost"}</button></div>`;
+  const l = reqsOf(S.rq, p.id, "pay").find(r => r.st !== "open" && Date.now() - new Date(r.doneAt || r.at).getTime() < 30 * 864e5);
+  if (!l) return "";
+  return `<div class="cd" style="border-color:var(--${l.st === "ok" ? "ok" : "no"})"><b>${l.st === "ok" ? "✅" : "❌"} Žádost o změnu placení – ${esc(REQ_ST[l.st] || l.st)}</b><div>${reqLine(l)}</div>${l.reply ? `<div class="mu">Odpověď: „${esc(l.reply)}“</div>` : ""}</div>`;
+}
+// Formulář žádosti (v pohledu Po měsících): bez otevřené žádosti tlačítko, po klepnutí měsíc od kdy a poznámka
+function reqForm() {
+  const p = meP(), o = mk();
+  if (!p || p.ex === true || openReq(S.rq, p.id, "pay")) return "";
+  if (!o.rq) return `<button class="s w" id="mkrq" style="margin-bottom:10px;min-height:48px">✋ Požádat o změnu placení</button>`;
+  const yms = reqYms(ymNow()), ym = yms.includes(o.rq.ym) ? o.rq.ym : yms[0], to = otherGrp(grpAt(p, ym));
+  return `<div class="cd"><h2>✋ Žádost o změnu placení</h2><div>Od <select id="mkrqym">${yms.map(y => `<option value="${y}"${y === ym ? " selected" : ""}>${esc(ymLabel(y))}</option>`).join("")}</select> chci platit: <b>${esc(GRP[to])}</b></div>
+<textarea id="mkrqn" maxlength="300" placeholder="Poznámka pro pokladníka (nepovinné)" style="margin-top:8px;width:100%">${esc(o.rq.note || "")}</textarea>
+<div class="mu">Změna platí nejdřív od příštího měsíce. O osvobození nebo jiný koeficient požádej pokladníka osobně.</div>
+<div class="row" style="margin-top:8px"><button class="p" id="mkrqok">Odeslat žádost</button><button class="s" id="mkrqx">Zrušit</button></div></div>`;
+}
+// Odeslání žádosti: kontrola (payReqError), nový dokument v requests
+function sendReq() {
+  const p = meP(), o = mk();
+  if (!p || !o.rq) return;
+  const yms = reqYms(ymNow()), ym = yms.includes(o.rq.ym) ? o.rq.ym : yms[0], to = otherGrp(grpAt(p, ym));
+  const e = payReqError(p, to, ym, ymNow(), S.rq);
+  if (e) return toast(e);
+  const u = HK.user();
+  S.db.collection(REQ_COLL).add(payReqDoc(p, to, ym, o.rq.note, (u && u.email) || "", new Date().toISOString()))
+    .then(() => toast("Žádost odeslána pokladníkovi")).catch(() => toast("Žádost se nepodařilo odeslat"));
+  o.rq = null;
+  render();
+}
+
 // Pohled 📅 Po měsících: sezóna (◀ ▶), souhrn sezóny, měsíce od nejnovějšího, porovnání způsobu placení
 function monthsHtml(items) {
   const o = mk(), mm = myMonths(items, S, o.day), se = mm.season;
   const nav = `<div class="row" style="align-items:center;margin-bottom:8px"><button class="s" data-mks="-1" style="flex:0 0 auto">◀</button><b style="text-align:center">Sezóna ${seasonTxt(se)}</b><button class="s" data-mks="1" style="flex:0 0 auto">▶</button></div>`;
   const tot = `<div class="grid3"><div class="stat"><b>${kc(mm.total.amt)}</b>předepsáno</div><div class="stat"><b style="color:var(--ok)">${kc(mm.total.paid)}</b>zaplaceno</div><div class="stat"><b style="color:${mm.total.rest ? "var(--no)" : "inherit"}">${kc(mm.total.rest)}</b>zbývá</div></div>`;
   const list = mm.months.length ? mm.months.map(m => monCard(m, o.open === m.ym)).join("") : '<div class="msg">V této sezóně nemáš žádné předpisy.</div>';
-  return nav + tot + list + cmpCard(mm);
+  return nav + tot + list + cmpCard(mm) + reqForm();
 }
 
 // ===== Vykreslení =====
@@ -183,12 +228,23 @@ export function mineView(a) {
   }).join("") : '<div class="msg">Zatím nemáš žádné předpisy.</div>';
   const o = mk(), tabs = `<div class="row" style="margin-bottom:10px"><button class="${o.v === "list" ? "p" : "s"}" data-mkv="list">📄 Předpisy</button><button class="${o.v === "mon" ? "p" : "s"}" data-mkv="mon">📅 Po měsících</button></div>`;
   const body = o.v === "mon" ? monthsHtml(d.items) : sum + list;
-  a.innerHTML = `${err}<h2 style="margin:0 0 10px">💳 Moje platby</h2>${grid}${state}${tabs}${body}` + qrHtml();
+  a.innerHTML = `${err}<h2 style="margin:0 0 10px">💳 Moje platby</h2>${grid}${state}${reqState()}${tabs}${body}` + qrHtml();
   a.querySelectorAll("[data-mq]").forEach(b => b.onclick = e => { e.stopPropagation(); qr = b.dataset.mq; render(); });
   // Přepínač pohledu, posun sezóny a rozbalení měsíce
   a.querySelectorAll("[data-mkv]").forEach(b => b.onclick = () => { mk().v = b.dataset.mkv; render(); });
   a.querySelectorAll("[data-mks]").forEach(b => b.onclick = () => { const k = mk(), y = +seasonOf(k.day).from.slice(0, 4) + (+b.dataset.mks); k.day = y + "-09-01"; k.open = null; render(); });
   a.querySelectorAll("[data-mkm]").forEach(b => b.onclick = () => { const k = mk(); k.open = k.open === b.dataset.mkm ? null : b.dataset.mkm; render(); });
+  // Žádost o změnu placení: otevřít formulář, měsíc a poznámka (pamatují se při překreslení), odeslat, zrušit otevřenou žádost
+  const q = s => a.querySelector(s);
+  if (q("#mkrq")) q("#mkrq").onclick = () => { mk().rq = {ym: reqYms(ymNow())[0], note: ""}; render(); };
+  if (q("#mkrqym")) q("#mkrqym").onchange = () => { mk().rq.ym = q("#mkrqym").value; render(); };
+  if (q("#mkrqn")) q("#mkrqn").oninput = () => { mk().rq.note = q("#mkrqn").value; };
+  if (q("#mkrqok")) q("#mkrqok").onclick = sendReq;
+  if (q("#mkrqx")) q("#mkrqx").onclick = () => { mk().rq = null; render(); };
+  if (q("#mkrqdel")) q("#mkrqdel").onclick = () => {
+    const o = meP() && openReq(S.rq, meP().id, "pay");
+    if (o) confirm2("mkrqdel" + o.id, () => { S.db.doc(REQ_COLL + "/" + o.id).delete(); toast("Žádost zrušena"); });
+  };
   // Hráčka potvrdila ověření nového účtu: zapamatuje se v zařízení a ukáže se QR
   const ok = a.querySelector("[data-mkok]");
   if (ok) ok.onclick = () => { const p = payData(cashCfg(S.cc)); if (p && p.iban) markSeen(p.iban); render(); };

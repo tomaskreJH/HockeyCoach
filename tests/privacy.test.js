@@ -252,7 +252,7 @@ test("pravidla: staffpay a plpay jen správci pokladny (číst smí i vlastník)
   assert.match(s, /allow create, update: if isCash\(\) && request\.resource\.data\.keys\(\)\.hasOnly\(\['m', 'amt'\]\);/);
   assert.match(s, /allow delete: if isCash\(\);/);
   assert.match(p, /allow read: if isCash\(\) \|\| \(isPlayer\(\) && id == myPid\(\)\);/);
-  assert.match(p, /allow create, update: if isCash\(\) && request\.resource\.data\.keys\(\)\.hasOnly\(\['grp', 'fx', 'ex', 'note'\]\);/);
+  assert.match(p, /allow create, update: if isCash\(\) && request\.resource\.data\.keys\(\)\.hasOnly\(\['grp', 'fx', 'ex', 'note', 'grpH'\]\) && request\.resource\.data\.get\('grpH', \[\]\) is list;/);
   assert.match(p, /allow delete: if isCash\(\);/);
   [s, p].forEach(x => assert.ok(!x.includes("isMember()"), "nečte každý člen"));
 });
