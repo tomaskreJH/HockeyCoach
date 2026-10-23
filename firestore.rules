@@ -111,6 +111,12 @@ service cloud.firestore {
       allow update: if isStaff() || (isCash() && cashFieldsOnly());
     }
 
+    // ===== Série tréninků (definice opakování): čtou členové, zapisuje trenér a kustod; události série jsou v events (pole ser) =====
+    match /series/{id} {
+      allow read: if isMember();
+      allow write: if isStaff();
+    }
+
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
     match /evcash/{id} { allow read, write: if isCash(); }
 

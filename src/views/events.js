@@ -20,6 +20,7 @@
 // v detailu události má dlužnice po splatnosti u jména značku ⛓ (výjimka 🔓) podle veřejného souhrnu debtors (bez částek).
 // Důvod omluvy je v samostatné kolekci attnote/{eid}_{mid} (čte vlastník a trenér / kustod) – zapisuje se v jedné dávce s odpovědí;
 // S.at má důvod už připojený (main.js). Blokace „Jdu“ za jiného člena se ověřuje i podle souhrnu debtors (cizí předpisy nejsou v zařízení).
+// Série tréninků (🔁 Opakovat, úprava a smazání „jen tato / tato a další“): views/event-series.js, výpočty domain/recurrence.js.
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -38,6 +39,7 @@ import {modal} from "./modal.js";
 import {bindBanner, mineBanner} from "./mine.js";
 import {bindMoney, moneyHtml} from "./money.js";
 import {bindPay, payHtml} from "./payments.js";
+import {bindRep, bindScope, bindSerDel, repHtml, repOn, repSave, repSaveText, scopeHtml, serDelBtn, serEditSave, serLine} from "./event-series.js";
 import {attHtml, bindAtt, debtTag} from "./attendance.js";
 import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
@@ -273,9 +275,9 @@ function detail(a, ev) {
       `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(t.kind || "")}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
   const key = "ev" + ev.id;
-  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`}</div>`;
+  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>${mt ? "" : `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : ev.raw.ser ? "🗑 Jen tato" : "🗑 Smazat"}</button>${serDelBtn(ev)}`}</div>`;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : "← Události"}</button>
-<div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
+<div class="cd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(ev.title)}</b></div><div class="mu">${whenLine(ev)}${mt ? (ev.raw.home ? " · doma" : " · venku") : ""}</div><div class="mu" style="margin-top:4px">${dlLine(ev, lk)}</div>${mt ? "" : serLine(ev)}${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
 <div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}<div class="mu" style="margin-top:6px">Přihlášeno: ${rosterLine(roster(ev, AT))}</div>${btns}</div>
 <div class="cd"><h2>Docházka</h2>${lk ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." : "Přihlašování je uzavřeno."}</div>` : ""}${ownP ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div>
 ${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div><button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>${matchStatsHtml(ev.raw)}</div>` : ""}
@@ -293,7 +295,7 @@ ${payHtml(ev)}</div>` + sheetHtml();
   if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
-  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, dlAuto: !ev.dl}; render(); };
+  a.querySelector("#eve").onclick = () => { S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, dlAuto: !ev.dl, ser: mt ? null : ev.raw.ser || null, scope: "one"}; render(); };
   // Smazání tréninku: nejdřív kontrola vyúčtování (HK.canDelete), pak docházka; předpisy bez úhrady maže datová vrstva spolu s událostí
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {
@@ -305,6 +307,8 @@ ${payHtml(ev)}</div>` + sheetHtml();
       S.db.doc("events/" + ev.id).delete(); S.evid = null; render();   // evcash dokument maže datová vrstva
     });
   };
+  // Smazání „tato a další budoucí“ u tréninku ze série (views/event-series.js)
+  bindSerDel(a, ev);
   // Pětky: klíč je id hráčky, nebo "t:" + id člena realizačního týmu
   a.querySelectorAll("[data-ln]").forEach(b => b.onclick = () => {
     const [key, n] = b.dataset.ln.split("|");
@@ -341,29 +345,37 @@ function bindSheet(a) {
 }
 
 // ===== Vykreslení: formulář události =====
-// Trénink: všechna pole; zápas: jen čas, místo a termín přihlašování (ostatní údaje zápasu se mění v kartě zápasu, náklady v Pokladně u události)
+// Trénink: všechna pole; zápas: jen čas, místo a termín přihlašování (ostatní údaje zápasu se mění v kartě zápasu, náklady v Pokladně u události).
+// Nový trénink může být série (🔁 Opakovat – datum je pak „od“ a termín přihlašování relativní); úprava tréninku ze série má volbu „jen tato / tato a další“.
 function formView(a) {
-  const f = S.evf, mt = f.type === "match";
+  const f = S.evf, mt = f.type === "match", rep = repOn(f);
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evfx" style="margin-bottom:12px">← Zpět</button><div class="cd"><h2>${mt ? "Zápas – čas, místo, termín" : f.id ? "Upravit trénink" : "Nový trénink"}</h2>
-${mt ? `<div class="mu" style="margin-bottom:8px">${esc(f.title)} · ${fDay(f.date)}</div>` : `<label>Název</label><input id="ft" value="${esc(f.title)}"><label>Datum</label><input type="date" id="fd" value="${esc(f.date)}">`}
+${mt ? `<div class="mu" style="margin-bottom:8px">${esc(f.title)} · ${fDay(f.date)}</div>` : `<label>Název</label><input id="ft" value="${esc(f.title)}"><label>${rep ? "Od (první trénink)" : "Datum"}</label><input type="date" id="fd" value="${esc(f.date)}">`}
 <label>Čas začátku</label><input type="time" id="fti" value="${esc(f.time)}"><label>Místo</label><input id="fp" value="${esc(f.place)}">
-<label>Konečný termín přihlašování</label><input type="datetime-local" id="fdl" value="${esc(f.dl)}">
+${rep ? "" : `<label>Konečný termín přihlašování</label><input type="datetime-local" id="fdl" value="${esc(f.dl)}">`}
 ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
-<button class="p w" id="evfs" style="min-height:52px">Uložit</button></div></div>`;
+${mt ? "" : repHtml(f) + scopeHtml(f)}
+<button class="p w" id="evfs" style="min-height:52px">${repSaveText(f)}</button></div></div>`;
   const g = id => { const e = document.getElementById(id); return e ? e.value : null; };
   // Přepsání polí do stavu formuláře (před každým překreslením)
   const readF = () => {
     if (g("ft") != null) f.title = g("ft").trim();
     if (g("fd") != null) f.date = g("fd");
-    f.time = g("fti") || ""; f.place = (g("fp") || "").trim(); f.dl = g("fdl") || "";
+    f.time = g("fti") || ""; f.place = (g("fp") || "").trim(); if (g("fdl") != null) f.dl = g("fdl");
     if (g("fn") != null) f.note = g("fn").trim();
   };
   const fd_ = document.getElementById("fd");
   if (fd_) fd_.onchange = () => { readF(); if (f.dlAuto) f.dl = defDl(f.date); render(); };
-  document.getElementById("fdl").oninput = () => { f.dlAuto = false; };
+  const fdl = document.getElementById("fdl");
+  if (fdl) fdl.oninput = () => { f.dlAuto = false; };
+  // Opakování a rozsah úpravy série (views/event-series.js); readR přepíše pole opakování před uložením
+  const readR = mt ? () => {} : bindRep(a, f, readF);
+  if (!mt) bindScope(a, f, readF);
   document.getElementById("evfx").onclick = () => { S.evf = null; render(); };
   document.getElementById("evfs").onclick = () => {
-    readF();
+    readF(); readR();
+    // Série: vlastní kontroly a zápis po dávkách
+    if (repOn(f)) { if (repSave(f)) { S.evf = null; render(); } return; }
     if (!f.date) return toast("Zadej datum");
     if (!f.dl) return toast("Zadej konečný termín přihlašování");
     if (!dlBeforeStart(f.dl, f.date, f.time)) return toast("Termín přihlašování musí být před začátkem události");
@@ -375,6 +387,7 @@ ${mt ? "" : `<label>Poznámka</label><input id="fn" value="${esc(f.note)}">`}
     }
     // Úprava zapíše přes merge jen údaje z formuláře – pětky (lines), příznak vyúčtování (ss) a další pole zůstanou
     const d = {type: "training", title: f.title || "Trénink", date: f.date, time: f.time, place: f.place, dl: f.dl, note: f.note || ""};
+    if (f.id && f.ser) { if (serEditSave(f, d)) { S.evf = null; render(); } return; }
     if (f.id) S.db.doc("events/" + f.id).merge(d); else S.db.collection("events").add({...d, lines: {}});
     S.evf = null; render();
   };

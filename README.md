@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v19.1.1 (23. 10. 2026)** – úklid soukromí: ⚙️ → Kontrola dat → 🧹 Smazat stará citlivá pole (po 🔒 Vyžadovat verzi v19.1.1), zúžená pravidla `firestore.rules` (stará pole už nejde zapsat, pokladník mění platby jen v `plpay` / `staffpay`), obnova staré zálohy rozdělí stará pole do nových kolekcí. **Pravidla publikovat až po smazání starých polí** (postup v CHANGELOG). Dříve v19.1 – soukromí v databázi S: důvody omluv (`attnote`), platy realizačního týmu (`staffpay`) a platební údaje hráček (`plpay`) v samostatných kolekcích, které čte jen vlastník a správci; převod v ⚙️ → Kontrola dat; kontrola dluhu při „Jdu“ za jiného člena přes souhrn dlužníků. **Před nahráním kódu publikovat `firestore.rules`**, po převodu 🔒 Vyžadovat verzi (postup v CHANGELOG). Dříve v19.0: rychlé úpravy R (Kalendář od nejnovějších, Zápis utkání v Událostech, realizační tým v pětkách tréninku).
+**Aktuální verze: v19.2 (23. 10. 2026)** – 🔁 opakované události: série tréninků (Události → + Trénink → 🔁 Opakovat: dny v týdnu, každý / každý 2. týden, do konce sezóny, vynechané dny, relativní termín přihlašování, šablona pokladny, náhled → Vytvořit N tréninků), úprava a smazání „jen tato / tato a další“; čisté pravidlo opakování v `src/domain/recurrence.js`. **Před nahráním kódu publikovat `firestore.rules`** (nová kolekce `series`; události beze změny pravidel). Dříve v19.1.1 – úklid soukromí (🧹 Smazat stará citlivá pole, zúžená pravidla), v19.1 – soukromí v databázi (`attnote`, `staffpay`, `plpay`), v19.0 – rychlé úpravy R.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -10,6 +10,7 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlas
 | [docs/KONVENCE.md](docs/KONVENCE.md) | programovací řád, mapa souborů, verze, testy, postup nasazení – **vstupní bod pro vývoj** |
 | [CHANGELOG.md](CHANGELOG.md) | historie verzí a postup nasazení každé verze |
 | [docs/plan-v18.md](docs/plan-v18.md) | plán dalších verzí, rozhodnutí, otevřené otázky |
+| [docs/prompt-dalsi-vlakno.md](docs/prompt-dalsi-vlakno.md) | prompt pro nové vlákno s Claude (start, stav, pravidla práce, šetření limitu) |
 | [docs/archiv-plan-v18.md](docs/archiv-plan-v18.md) | dokončené fáze v18.0 – v18.7.1 |
 | [docs/archiv-readme-v18.7.1.md](docs/archiv-readme-v18.7.1.md) | původní podrobné README (technický popis funkcí) |
 | Nápověda v aplikaci (❓) | ovládání aplikace – jediný uživatelský návod (`src/views/help.js`) |

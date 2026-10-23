@@ -16,6 +16,7 @@ import {initNav} from "./core/nav.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, joinAttNotes, joinPlPay, joinStaffPay} from "./domain/private-data.js";
+import {SERIES_COLL} from "./domain/recurrence.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
 import {initHelp} from "./views/help.js";
 import {leaveLive} from "./views/live-events.js";
@@ -60,6 +61,8 @@ db.collection("opponents").onSnapshot(s=>{S.op=rows(s);ok("o");render();if(S.rea
 db.collection("events").onSnapshot(s=>{S.ev=rows(s);ok("e");render()},erX("e"));
 db.collection("attendance").onSnapshot(s=>{R.at=rows(s);joinAt();ok("a");render()},erX("a"));
 db.collection("staff").onSnapshot(s=>{R.tr=rows(s);joinTr();render()},erX("t"));
+// Definice sérií tréninků: jen trenér / kustod (kvůli záloze a úpravám série); chyba (nepublikovaná pravidla) aplikaci neblokuje
+if(HK.can("sport"))db.collection(SERIES_COLL).onSnapshot(()=>{},erP(SERIES_COLL));
 // Důvody omluv: trenér a kustod celou kolekci, ostatní jen své (dotaz mid == pid / tid; odběratel dostane sjednocení dotazů)
 const onNotes=s=>{S.an=mapOf(s);joinAt();render()};
 if(HK.can("sport"))db.collection(NOTE_COLL).onSnapshot(onNotes,erP(NOTE_COLL));

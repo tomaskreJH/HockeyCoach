@@ -22,6 +22,7 @@ import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
+import {SERIES_COLL} from "../domain/recurrence.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -34,7 +35,8 @@ const VERSION = APP_LABEL;                                              // čís
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
 // výjimkách, stornech, příspěvcích a platech, evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události je jen příznak ss),
 // attnote = důvody omluv, staffpay = platy realizačního týmu, plpay = platební pole hráček (soukromé kolekce, jsou v záloze)
-const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash", NOTE_COLL, SPAY_COLL, PPAY_COLL];
+// series = definice sérií tréninků (domain/recurrence.js); v záloze, pokud se v zařízení načetla (trenér / kustod)
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash", NOTE_COLL, SPAY_COLL, PPAY_COLL, SERIES_COLL];
 const ROLES = {trener: "Trenér", kustod: "Kustod", hracka: "Hráčka"};   // role v members/{email}
 const STAFF = ["trener", "kustod"];                                     // role s plným přístupem do aplikace
 const PV_KEY = "hk-preview";                                            // klíč náhledu v sessionStorage (jen toto zařízení / okno)
