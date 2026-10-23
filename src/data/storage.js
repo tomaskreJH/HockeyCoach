@@ -11,7 +11,9 @@
    Minimum nastavuje jen trenér (⚙️ → Verze aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
    Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze).
    Soukromí: citlivá data jsou v kolekcích attnote (důvody omluv), staffpay (platy týmu) a plpay (platební pole hráček) – jsou v záloze;
-   ⚙️ → Kontrola dat je převede ze starých polí (náhled, záloha, idempotentně; domain/private-data.js). */
+   ⚙️ → Kontrola dat je převede ze starých polí (náhled, záloha, idempotentně) a po 🔒 Vyžadovat verzi stará pole smaže
+   (domain/private-data.js: privacyPlan, cleanPlan). Obnova staré zálohy rozdělí stará pole do nových kolekcí (splitLegacy),
+   protože pravidla databáze je už zapsat nedovolí. */
 
 // ===== Importy =====
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
@@ -19,7 +21,7 @@ import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
-import {NOTE_COLL, PPAY_COLL, SPAY_COLL, legacyLeft, privacyPlan, withPlPay} from "../domain/private-data.js";
+import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -39,6 +41,7 @@ const PV_KEY = "hk-preview";                                            // klí�
 const RO_MSG = "V náhledu se nezapisuje";
 const OLD_MSG = "Starší verze aplikace – zápis je zablokovaný. Načti novou verzi (⚙️ → Načíst novou verzi).";
 const APP_DOC = "app";                                                  // settings/app = brána verze {minVer, minBy, minAt}
+const CLEAN_MIN = "19.1.1";                                             // úklid starých citlivých polí až při minimální verzi aspoň této
 
 // pid = hráčka propojená s účtem, tid = člen realizačního týmu propojený s účtem, cash = pokladník (příznak navíc k roli)
 let fs = null, auth = null, user = null, role = null, pid = null, tid = null, cash = false, isReady = false, readyP = null;
@@ -85,6 +88,8 @@ const ro = () => !!(pv && !pv.write);
 // Brána verze: požadované minimum ze settings/app (načítá se s ostatním nastavením) a test, zda je tato verze starší
 const minVer = () => ((data.settings || {})[APP_DOC] || {}).minVer || "";
 const outdated = () => isOutdated(APP_VERSION, minVer());
+// Smí proběhnout úklid starých citlivých polí? Jen když starší verze aplikace (které stará pole ještě zapisují) už nesmí zapisovat.
+const cleanGate = () => !!minVer() && !isOutdated(minVer(), CLEAN_MIN);
 // Strážce zápisu: starší verze aplikace nebo náhled jen ke čtení vrátí true a ukáže hlášku (nejvýš jednou za 3 s, aby se hlášky nehromadily)
 function blocked() {
   const old = outdated();
@@ -304,6 +309,8 @@ async function arm2(btn, name, txt, fn) {
   const draw = () => { const on = armed(key); btn.textContent = on ? txt : btn.dataset.t; btn.style.background = on ? "var(--no)" : ""; btn.style.color = on ? "#fff" : ""; };
   confirm2(key, fn, draw);
 }
+// Doplněk hlášky po obnově: kolik důvodů omluv ze staré zálohy se nepřevedlo (jiný tvar id docházky)
+const dropTxt = k => k ? " (" + k + " důvodů omluv ze staré zálohy se nepřevedlo)" : "";
 // Hráčky pro výběr při propojení účtu (bez ukončených), seřazené podle jména
 const playerOpts = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
   .map(([id, p]) => `<option value="${esc(id)}">${esc((p.num ? "#" + p.num + " " : "") + p.name)}</option>`).join("");
@@ -364,6 +371,7 @@ function openCfg() {
   if (q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => raiseMinVer(close));
   if (q("#cex")) q("#cex").onclick = () => arm2(q("#cex"), "exfix", "Opravdu doplnit? Nejdřív se stáhne záloha – klepni znovu", () => runExFix(close));
   if (q("#cpv")) q("#cpv").onclick = () => arm2(q("#cpv"), "privfix", "Opravdu převést? Nejdřív se stáhne záloha – klepni znovu", () => runPrivFix(close));
+  if (q("#cpc")) q("#cpc").onclick = () => arm2(q("#cpc"), "privclean", "Opravdu smazat? Nejdřív se stáhne záloha – klepni znovu", () => runPrivClean(close));
   q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#clo").onclick = async () => { pvWrite(null); await signOut(auth); location.reload(); };
   bindPv(q);
@@ -404,12 +412,12 @@ function openCfg() {
   };
   q("#cm").onclick = async () => {
     if (!pendingImport) return say("Nejdřív vyber soubor.");
-    try { await importData(pendingImport, false); say("Data sloučena"); close(); } catch (e) { say(errTxt(e)); }
+    try { const k = await importData(pendingImport, false); say("Data sloučena" + dropTxt(k)); close(); } catch (e) { say(errTxt(e)); }
   };
   q("#cr").onclick = () => {
     if (!pendingImport) return say("Nejdřív vyber soubor.");
     arm2(q("#cr"), "replace", "Opravdu nahradit? Klepni znovu", async () => {
-      try { await importData(pendingImport, true); say("Data nahrazena"); close(); } catch (e) { say(errTxt(e)); }
+      try { const k = await importData(pendingImport, true); say("Data nahrazena" + dropTxt(k)); close(); } catch (e) { say(errTxt(e)); }
     });
   };
 }
@@ -446,9 +454,19 @@ function privHtml() {
   if (![NOTE_COLL, SPAY_COLL, PPAY_COLL].every(c => first[c])) return `<div class="mu" style="margin-bottom:8px">⚠️ Soukromé kolekce (důvody omluv, platy, platby hráček) se zatím nenačetly. Je publikováno <b>firestore.rules</b>? Zkus ⚙️ otevřít znovu.</div>`;
   const plan = privacyPlan(privSrc()), left = legacyLeft(privSrc()), n = plan.ops.length;
   const skip = plan.skip.length ? `<br>⚠️ ${plan.skip.length} odpovědí má jiný tvar id – důvod se nepřevede (zůstane ve starém poli).` : "";
-  const old = `<br>Ve starých polích zatím zůstává: platby ${left.pp} hráček, plat ${left.sp} členů týmu, ${left.an} důvodů – smažou se až v další verzi aplikace po otestování.`;
-  if (!n) return `<div class="mu" style="margin-bottom:8px">✅ Citlivá data jsou v samostatných kolekcích (čte je jen vlastník a správci).${skip}${old}</div>`;
+  const old = `<br>Ve starých polích zatím zůstává: platby ${left.pp} hráček, plat ${left.sp} členů týmu, ${left.an} důvodů – smazat je půjde po převodu.`;
+  if (!n) return `<div class="mu" style="margin-bottom:8px">✅ Citlivá data jsou v samostatných kolekcích (čte je jen vlastník a správci).${skip}</div>${cleanHtml()}`;
   return `<div class="mu" style="margin-bottom:8px">🔒 <b>Soukromí:</b> převod zkopíruje citlivá data do kolekcí, které čte jen vlastník a správci:<br>· platební pole (skupina, osvobozená, koeficient, poznámka): <b>${plan.pp.length}</b> hráček → plpay<br>· plat: <b>${plan.sp.length}</b> členů realizačního týmu → staffpay<br>· důvody omluv: <b>${plan.an.length}</b> → attnote${skip}<br>Kopírují se jen chybějící hodnoty (nové se nepřepíšou); převod lze spustit znovu.${old}</div><button class="s w" id="cpv" style="margin-bottom:8px">🔒 Převést citlivá data (${n})</button>`;
+}
+// Úklid starých polí (nabízí se až po převodu): náhled počtů; tlačítko jen při minimální verzi aspoň CLEAN_MIN.
+// Po úklidu připomene publikovat zúžená pravidla databáze (stará pole už nepovolí zapsat).
+function cleanHtml() {
+  const c = cleanPlan(privSrc()), k = c.keep, n = c.ops.length;
+  const kept = k.pp + k.sp + k.an ? `<br>⚠️ Bez protějšku v nové kolekci zůstává: platební pole ${k.pp}, platy ${k.sp}, důvody ${k.an} (nesmažou se – zkontroluj je v záloze).` : "";
+  if (!n) return `<div class="mu" style="margin-bottom:8px">✅ Stará citlivá pole jsou smazaná (soupiska, realizační tým a docházka už je neobsahují). Pokud ještě nejsou, publikuj zúžená pravidla <b>firestore.rules</b>.${kept}</div>`;
+  const what = `🧹 <b>Stará citlivá pole</b> (čte je dosud každý člen): platby u <b>${c.pp}</b> hráček, plat u <b>${c.sp}</b> členů týmu, důvod u <b>${c.an}</b> odpovědí.`;
+  if (!cleanGate()) return `<div class="mu" style="margin-bottom:8px">${what}<br>Smazat je půjde, až budou všechna zařízení na v${APP_VERSION} a nastavíš níže <b>🔒 Vyžadovat verzi</b> (starší verze stará pole ještě čtou a zapisují).${kept}</div>`;
+  return `<div class="mu" style="margin-bottom:8px">${what}<br>Hodnoty už jsou v samostatných kolekcích – smaže se jen kopie ve starém místě (prázdná pole také). Před smazáním se stáhne záloha. Potom publikuj zúžená pravidla <b>firestore.rules</b>.${kept}</div><button class="d w" id="cpc" style="margin-bottom:8px">🧹 Smazat stará citlivá pole (${n})</button>`;
 }
 // Převod (jen trenér, po potvrzení druhým klepnutím): záloha, pak zápis po dávkách. Stará pole zůstávají (smažou se v další verzi).
 async function runPrivFix(close) {
@@ -458,6 +476,18 @@ async function runPrivFix(close) {
   exportJSON();
   try { await commitOps(plan.ops); say("Převedeno: platby " + plan.pp.length + ", platy " + plan.sp.length + ", důvody " + plan.an.length); close(); }
   catch (e) { say("Převod se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
+}
+// Úklid starých polí (jen trenér, po potvrzení druhým klepnutím): záloha, pak mazání polí po dávkách. Plán se počítá znovu
+// z aktuálních dat (mezitím mohl někdo zapsat); bez převodu nebo brány verze se nic nesmaže.
+async function runPrivClean(close) {
+  if (blocked()) return;
+  if (!cleanGate()) { say("Nejdřív nastav 🔒 Vyžadovat verzi v" + CLEAN_MIN + " nebo novější"); return; }
+  if (privacyPlan(privSrc()).ops.length) { say("Nejdřív převeď citlivá data"); return; }
+  const c = cleanPlan(privSrc());
+  if (!c.ops.length) { say("Není co smazat"); close(); return; }
+  exportJSON();
+  try { await commitOps(c.ops); say("Smazáno: platby " + c.pp + ", platy " + c.sp + ", důvody " + c.an + ". Publikuj firestore.rules."); close(); }
+  catch (e) { say("Smazání se nepovedlo: " + errTxt(e)); }
 }
 // Trenér zvýší minimální verzi na tuto (po potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
 async function raiseMinVer(close) {
@@ -507,22 +537,27 @@ async function commitOps(ops) {
 // návrhem a potvrzením (vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
 const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
 function keepAcc(d) { const o = clone(d), cur = data.settings.cash || {}; ACC_KEYS.forEach(k => { if (cur[k] != null) o[k] = clone(cur[k]); else delete o[k]; }); return o; }
+// Stará záloha (citlivá data ve starých polích) se nejdřív rozdělí do nových kolekcí (splitLegacy) – pravidla databáze stará pole
+// už zapsat nedovolí a dávka by selhala celá. Hodnoty ze zálohy se zapíšou (set) i v nových kolekcích, nová kolekce v záloze má přednost.
+// Vrací počet důvodů, které se nepřevedly (docházka s jiným tvarem id) – volající ho ukáže.
 async function importData(obj, replace) {
   if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace " + APP_NAME + ".");
   if (outdated()) throw new Error(OLD_MSG);
   if (ro()) throw new Error(RO_MSG);
+  const {data: bk, dropped} = splitLegacy(obj.data);
   const ops = [];
   COLL.forEach(c => {
     if (c === "audit") return;
-    const src = obj.data[c] || {};
-    if (replace && obj.data[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC))) ops.push(["del", c, id]); });
+    const src = bk[c] || {};
+    if (replace && bk[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC))) ops.push(["del", c, id]); });
     Object.entries(src).forEach(([id, d]) => { if (c === "settings" && id === APP_DOC) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : d]); });
   });
   // Předpisy po obnově (pro přepočet souhrnu dlužníků): nahrazení = jen ze zálohy, sloučení = stávající + ze zálohy
-  const chSrc = obj.data.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
+  const chSrc = bk.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
   await commitOps(ops);
   // Souhrn dlužníků se ze zálohy neobnovuje, ale přepočítá; chyba (např. nepublikovaná pravidla) obnovu nezruší
   if (chNew && isCash()) { try { await rebuildDebtors(chNew); } catch (e) { say("Data obnovena, ale souhrn dlužníků se nepřepočítal: " + errTxt(e)); } }
+  return dropped;
 }
 // ===== Exporty a spuštění =====
 document.getElementById("gear").onclick = () => { if (isReady) openCfg(); };

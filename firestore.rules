@@ -19,6 +19,10 @@ service cloud.firestore {
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
     // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno); náklady a vyúčtování jsou v evcash.
     function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss']); }
+    // Stará citlivá pole (dnes v soukromých kolekcích plpay, staffpay, attnote): nový dokument je nesmí obsahovat,
+    // změna dokumentu je nesmí přidat ani změnit – smazat je jde (úklid v ⚙️ → Kontrola dat).
+    function noKeys(ks) { return !request.resource.data.keys().hasAny(ks); }
+    function keepOut(ks) { return !request.resource.data.diff(resource.data).addedKeys().hasAny(ks) && !request.resource.data.diff(resource.data).changedKeys().hasAny(ks); }
 
     // ===== Účty týmu pro QR platby: princip čtyř očí =====
     // iban / iban2 = platné účty, ibanBy = kdo změnu navrhl, ibanOk = kdo ji potvrdil, ibanAt = kdy, ibanPend = čekající návrh {iban, iban2, by, at}.
@@ -64,23 +68,23 @@ service cloud.firestore {
       allow delete: if isCoach() || cashierMember(email, resource.data);
     }
 
-    // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st), pokladník jen pole plateb (grp, fx = koeficient 0..1, ex = osvobozená, note) =====
-    // Přechodné období: platební pole se přesouvají do plpay/{pid}; staré pole zůstávají povolená pro starší verze aplikace
-    // a zúží se až v další verzi (po převodu v ⚙️ → Kontrola dat a 🔒 Vyžadovat verzi).
+    // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st) =====
+    // Platební pole (grp, fx, ex, note) jsou v plpay/{pid} (spravuje je správce pokladny); v soupisce je nejde zapsat, jen smazat.
     match /players/{id} {
       allow read: if isMember();
-      allow create, delete: if isCoach();
-      allow update: if isCoach()
-        || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st']))
-        || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grp', 'fx', 'ex', 'note']));
+      allow create: if isCoach() && noKeys(['grp', 'fx', 'ex', 'note']);
+      allow delete: if isCoach();
+      allow update: if keepOut(['grp', 'fx', 'ex', 'note']) && (isCoach()
+        || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st'])));
     }
 
-    // ===== Realizační tým: čtou všichni členové, spravuje trenér; pokladník smí měnit jen plat (pay) =====
-    // Přechodné období: plat se přesouvá do staffpay/{tid}; pole pay se zúží až v další verzi.
+    // ===== Realizační tým: čtou všichni členové, spravuje trenér =====
+    // Plat je ve staffpay/{tid} (spravuje ho správce pokladny); pole pay v dokumentu týmu nejde zapsat, jen smazat.
     match /staff/{id} {
       allow read: if isMember();
-      allow create, delete: if isCoach();
-      allow update: if isCoach() || (isCash() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pay']));
+      allow create: if isCoach() && noKeys(['pay']);
+      allow delete: if isCoach();
+      allow update: if isCoach() && keepOut(['pay']);
     }
 
     // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss. Číst smí všichni členové (statistiky jsou pro celý tým) =====
@@ -110,14 +114,17 @@ service cloud.firestore {
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
     match /evcash/{id} { allow read, write: if isCash(); }
 
-    // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, reason, at, by =====
-    // Přechodné období: důvod (reason) se přesouvá do attnote/{eid}_{pid}; pole reason se zúží až v další verzi.
+    // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, at, by =====
+    // Důvod omluvy je v attnote/{eid}_{pid}; pole reason v docházce nejde zapsat, jen smazat (čte ji každý člen).
     // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
     match /attendance/{id} {
       allow read: if isMember();
-      allow create, update: if isStaff() || (isPlayer()
+      allow create: if noKeys(['reason']) && (isStaff() || (isPlayer()
         && request.resource.data.pid == myPid()
-        && id == request.resource.data.eid + '_' + myPid());
+        && id == request.resource.data.eid + '_' + myPid()));
+      allow update: if keepOut(['reason']) && (isStaff() || (isPlayer()
+        && request.resource.data.pid == myPid()
+        && id == request.resource.data.eid + '_' + myPid()));
       allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid());
     }
 

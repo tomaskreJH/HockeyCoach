@@ -1,8 +1,9 @@
 // Testy soukromí v databázi: důvody omluv (attnote), platy realizačního týmu (staffpay), platební pole hráček (plpay).
 // Ověřuje připojení nových kolekcí k záznamům v paměti s náhradou ze starých polí, nezměněné výpočty pokladny, plán převodu
-// (jen chybějící hodnoty, lze spustit znovu), blokaci „Jdu“ přes souhrn debtors, zálohu a obnovu nových kolekcí a text pravidel.
+// (jen chybějící hodnoty, lze spustit znovu), úklid starých polí (jen co je v novém místě), rozdělení staré zálohy,
+// blokaci „Jdu“ přes souhrn debtors, zálohu a obnovu nových kolekcí a text pravidel (stará pole už nejde zapsat).
 // Struktura: Importy -> Pomocné funkce a data -> Připojení k záznamům -> Výpočty pokladny beze změny -> Zápis -> Plán převodu
-// -> Blokace „Jdu“ -> Záloha a obnova -> Pravidla databáze.
+// -> Úklid starých polí -> Obnova staré zálohy -> Blokace „Jdu“ -> Záloha a obnova -> Pravidla databáze.
 
 // ===== Importy =====
 import {test} from "node:test";
@@ -11,7 +12,7 @@ import {readFileSync} from "node:fs";
 import {resolveObjectURL} from "node:buffer";
 import {exOf, fxOf, grpOf, salaryRows} from "../src/domain/cash.js";
 import {memberBlocked} from "../src/domain/debtors.js";
-import {NOTE_COLL, PPAY_COLL, SPAY_COLL, attDoc, joinAttNotes, joinPlPay, joinStaffPay, legacyLeft, noteDoc, plPayDoc, privacyPlan, staffPayDoc, withPlPay} from "../src/domain/private-data.js";
+import {NOTE_COLL, PPAY_COLL, SPAY_COLL, attDoc, cleanPlan, joinAttNotes, joinPlPay, joinStaffPay, legacyLeft, noteDoc, plPayDoc, privacyPlan, splitLegacy, staffPayDoc, withPlPay} from "../src/domain/private-data.js";
 import {HK} from "../src/data/storage.js";
 
 // ===== Pomocné funkce a data =====
@@ -129,6 +130,67 @@ test("převod: je idempotentní (druhé spuštění nic nenajde), prázdná data
   assert.deepEqual(legacyLeft(SRC), {pp: 3, sp: 2, an: 3}, "stará pole zůstávají až do úklidu");
 });
 
+// ===== Úklid starých polí =====
+// Použití úklidu na data: "__del" smaže pole
+function applyClean(src, ops) {
+  const o = JSON.parse(JSON.stringify(src));
+  ops.forEach(([, c, id, d]) => Object.entries(d).forEach(([k, v]) => { if (v === "__del") delete o[c][id][k]; }));
+  return o;
+}
+
+test("úklid: po převodu smaže jen pole, která jsou v novém místě (prázdná také); bez protějšku nechá", () => {
+  const after = apply(SRC, privacyPlan(SRC).ops), c = cleanPlan(after);
+  assert.deepEqual(c.ops, [
+    ["merge", "players", "a", {grp: "__del", fx: "__del", ex: "__del", note: "__del"}],
+    ["merge", "players", "b", {grp: "__del", fx: "__del", ex: "__del"}],
+    ["merge", "players", "d", {grp: "__del", fx: "__del"}],
+    ["merge", "staff", "t1", {pay: "__del"}],
+    ["merge", "staff", "t3", {pay: "__del"}],
+    ["merge", "attendance", "e1_a", {reason: "__del"}],
+    ["merge", "attendance", "e1_b", {reason: "__del"}],
+    ["merge", "attendance", "e2_a", {reason: "__del"}]
+  ]);
+  assert.deepEqual([c.pp, c.sp, c.an, c.keep], [3, 2, 3, {pp: 0, sp: 0, an: 1}], "důvod s jiným tvarem id (old1) zůstane");
+  // Po úklidu: stará pole pryč (kromě nepřevoditelného), výpočty pokladny z připojených dat stejné jako před převodem
+  const clean = applyClean(after, c.ops);
+  assert.deepEqual(legacyLeft(clean), {pp: 0, sp: 0, an: 1});
+  const joined = joinPlPay(Object.entries(clean.players).map(([id, p]) => ({id, ...p})), clean.plpay);
+  ["a", "b", "c"].forEach(id => { const o = {id, ...SRC.players[id]}, j = joined.find(x => x.id === id); assert.deepEqual([exOf(j), fxOf(j), grpOf(j)], [exOf(o), fxOf(o), grpOf(o)], id); });
+  assert.deepEqual(cleanPlan(clean).ops, [], "druhé spuštění nic nenajde");
+});
+
+test("úklid: bez převodu nic nesmaže (hodnota by se ztratila)", () => {
+  const c = cleanPlan({players: {a: {name: "A", grp: "single", note: ""}}, staff: {t: {pay: {m: "month", amt: 1}}, u: {pay: null}}, attendance: {e_a: {eid: "e", pid: "a", reason: "Nemoc"}}});
+  assert.deepEqual(c.ops, [["merge", "players", "a", {note: "__del"}], ["merge", "staff", "u", {pay: "__del"}]], "jen prázdné hodnoty");
+  assert.deepEqual(c.keep, {pp: 1, sp: 1, an: 1});
+  assert.deepEqual(cleanPlan(null).ops, []);
+});
+
+// ===== Obnova staré zálohy =====
+test("stará záloha: citlivá pole se rozdělí do nových kolekcí, nové místo v záloze má přednost", () => {
+  const src = {players: {a: {name: "A", grp: "single", fx: 0.5, ex: false}, b: {name: "B", grp: "monthly"}, c: {name: "C"}}, plpay: {b: {grp: "single"}},
+    staff: {t1: {name: "T", pay: {m: "month", amt: 3000}}, t2: {name: "U"}},
+    attendance: {e1_a: {eid: "e1", pid: "a", st: "no", reason: "Nemoc"}, e1_b: {eid: "e1", pid: "b", st: "yes", reason: ""}, old1: {eid: "e3", pid: "c", st: "no", reason: "Škola"}},
+    events: {e1: {name: "Trénink"}}};
+  const copy = JSON.parse(JSON.stringify(src)), r = splitLegacy(src);
+  assert.deepEqual(src, copy, "vstup se nemění");
+  assert.deepEqual(r.data.players, {a: {name: "A"}, b: {name: "B"}, c: {name: "C"}});
+  assert.deepEqual(r.data.plpay, {a: {grp: "single", fx: 0.5, ex: false}, b: {grp: "single"}});
+  assert.deepEqual(r.data.staff, {t1: {name: "T"}, t2: {name: "U"}});
+  assert.deepEqual(r.data.staffpay, {t1: {m: "month", amt: 3000}});
+  assert.deepEqual(r.data.attendance, {e1_a: {eid: "e1", pid: "a", st: "no"}, e1_b: {eid: "e1", pid: "b", st: "yes"}, old1: {eid: "e3", pid: "c", st: "no"}});
+  assert.deepEqual(r.data.attnote, {e1_a: {eid: "e1", mid: "a", reason: "Nemoc"}});
+  assert.deepEqual([r.moved, r.dropped], [{pp: 2, sp: 1, an: 1}, 1]);
+  assert.equal(r.data.events, src.events, "ostatní kolekce beze změny");
+});
+
+test("stará záloha: nová kolekce vznikne jen z nalezených hodnot (Nahradit vším nesmaže cizí plpay)", () => {
+  const r = splitLegacy({players: {a: {name: "A"}}, staff: {t: {name: "T"}}, attendance: {e_a: {eid: "e", pid: "a", st: "yes"}}});
+  assert.ok(!("plpay" in r.data) && !("staffpay" in r.data) && !("attnote" in r.data));
+  assert.deepEqual(splitLegacy({events: {}}).data, {events: {}});
+  assert.deepEqual(splitLegacy(null).data, {});
+});
+
 // ===== Blokace „Jdu“ =====
 test("blokace Jdu: za jiného člena podle souhrnu debtors (kustod nevidí cizí předpisy)", () => {
   const now = new Date("2026-10-20T12:00:00").getTime();
@@ -160,6 +222,18 @@ test("záloha a obnova obsahují nové kolekce attnote, staffpay, plpay", async 
   await HK.importData({app: "hokej-zapasy", data: {plpay: {b: {grp: "monthly"}}, staffpay: {t2: {m: "event", amt: 50}}, attnote: {e2_b: {eid: "e2", mid: "b", reason: "Práce"}}}}, false);
   const paths = globalThis.__fb.writes.map(w => w.path);
   ["plpay/b", "staffpay/t2", "attnote/e2_b"].forEach(p => assert.ok(paths.includes(p), "obnova zapsala " + p));
+  // Stará záloha: soupiska, tým a docházka se zapíšou bez citlivých polí, hodnoty jdou do nových kolekcí
+  globalThis.__fb.writes.length = 0;
+  const k = await HK.importData({app: "hokej-zapasy", data: {players: {c: {name: "C", grp: "single", fx: 0.5}}, staff: {t9: {name: "T", pay: {m: "month", amt: 900}}},
+    attendance: {e5_c: {eid: "e5", pid: "c", st: "no", reason: "Nemoc"}, x1: {eid: "e6", pid: "c", st: "no", reason: "Škola"}}}}, false);
+  const w = Object.fromEntries(globalThis.__fb.writes.map(x => [x.path, x.d]));
+  assert.deepEqual(w["players/c"], {name: "C"});
+  assert.deepEqual(w["plpay/c"], {grp: "single", fx: 0.5});
+  assert.deepEqual(w["staff/t9"], {name: "T"});
+  assert.deepEqual(w["staffpay/t9"], {m: "month", amt: 900});
+  assert.deepEqual(w["attendance/e5_c"], {eid: "e5", pid: "c", st: "no"});
+  assert.deepEqual(w["attnote/e5_c"], {eid: "e5", mid: "c", reason: "Nemoc"});
+  assert.equal(k, 1, "důvod s jiným tvarem id se nepřevedl");
 });
 
 // ===== Pravidla databáze =====
@@ -183,9 +257,16 @@ test("pravidla: staffpay a plpay jen správci pokladny (číst smí i vlastník)
   [s, p].forEach(x => assert.ok(!x.includes("isMember()"), "nečte každý člen"));
 });
 
-test("pravidla: přechodné období – stará pole jsou dál povolená (zúžení až v další verzi)", () => {
+test("pravidla: stará citlivá pole nejde zapsat (jen smazat), pokladník soupisku ani tým nemění", () => {
   const rules = read("firestore.rules");
-  assert.match(ruleBlock(rules, "match /players/{id}"), /affectedKeys\(\)\.hasOnly\(\['grp', 'fx', 'ex', 'note'\]\)/);
-  assert.match(ruleBlock(rules, "match /staff/{id}"), /affectedKeys\(\)\.hasOnly\(\['pay'\]\)/);
-  assert.match(ruleBlock(rules, "match /attendance/{id}"), /allow read: if isMember\(\);/);
+  assert.match(rules, /function noKeys\(ks\) \{ return !request\.resource\.data\.keys\(\)\.hasAny\(ks\); \}/);
+  assert.match(rules, /function keepOut\(ks\) \{ return !request\.resource\.data\.diff\(resource\.data\)\.addedKeys\(\)\.hasAny\(ks\) && !request\.resource\.data\.diff\(resource\.data\)\.changedKeys\(\)\.hasAny\(ks\); \}/);
+  const p = ruleBlock(rules, "match /players/{id}"), t = ruleBlock(rules, "match /staff/{id}"), a = ruleBlock(rules, "match /attendance/{id}");
+  assert.match(p, /allow create: if isCoach\(\) && noKeys\(\['grp', 'fx', 'ex', 'note'\]\);/);
+  assert.match(p, /allow update: if keepOut\(\['grp', 'fx', 'ex', 'note'\]\) && \(isCoach\(\)/);
+  assert.match(t, /allow create: if isCoach\(\) && noKeys\(\['pay'\]\);/);
+  assert.match(t, /allow update: if isCoach\(\) && keepOut\(\['pay'\]\);/);
+  assert.match(a, /allow create: if noKeys\(\['reason'\]\) && \(isStaff\(\)/);
+  assert.match(a, /allow update: if keepOut\(\['reason'\]\) && \(isStaff\(\)/);
+  [p, t].forEach(x => assert.ok(!x.includes("isCash()"), "pokladník platby zapisuje jen do plpay / staffpay"));
 });
