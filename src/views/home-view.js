@@ -1,4 +1,4 @@
-// 🏠 Domů – úvodní přehled (výchozí záložka po spuštění, vidí každý člen): běžící zápas, příští zápas, události tohoto týdne
+// 🏠 Domů – úvodní přehled (výchozí záložka po spuštění, vidí každý člen): běžící zápas, příští zápas, nadcházející události 7 dní
 // s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow);
 // trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js).
 // Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Nic nezapisuje. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
@@ -12,7 +12,7 @@ import {HK} from "../data/storage.js";
 import {cashflow} from "../domain/budget-track.js";
 import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
-import {flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, weekEvents} from "../domain/home-summary.js";
+import {DAYS_AHEAD, flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {econData} from "./payments.js";
 import {render} from "./shell.js";
@@ -65,11 +65,11 @@ function nextHtml(m, mine) {
   return `<div class="cd hmc" data-heo="${esc(m.id)}"><h2>🆚 Příští zápas</h2><div class="hmh"><b style="font-size:18px">${esc(m.opp)}</b><span class="tag">${m.home ? "🏠 doma" : "🚌 venku"}</span></div>
 <div class="mu" style="margin-top:4px">${when(m)}</div><div class="hmh" style="margin-top:6px"><span class="mu">${dl} · ✅ ${m.going}</span>${mine ? ansHtml(m) : ""}</div></div>`;
 }
-// Tento týden Po – Ne: tréninky a zápasy s mojí odpovědí (bez propojeného člena počet „Jdu“)
+// Příštích 7 dní (dnes až dnes + 6, jen nadcházející): tréninky a zápasy s mojí odpovědí (bez propojeného člena počet „Jdu“)
 function weekHtml(list, mine) {
   const q = unanswered(list), rows = list.map(e => `<div class="hmr${e.past ? " past" : ""}" data-heo="${esc(e.id)}"><div><b>${e.type === "match" ? "🆚" : "🏒"} ${esc(e.title)}</b>${e.type === "match" ? ` <span class="mu">${e.home ? "doma" : "venku"}</span>` : ""}<div class="mu">${when(e)}</div></div>${mine ? ansHtml(e) : `<span class="hma">✅ ${e.going}</span>`}</div>`).join("");
-  return `<div class="cd"><div class="hmh"><h2 style="margin:0">📅 Tento týden</h2>${mine && q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>
-${rows || '<div class="mu" style="margin-top:6px">Tento týden nejsou žádné události.</div>'}</div>`;
+  return `<div class="cd"><div class="hmh"><h2 style="margin:0">📅 Příštích ${DAYS_AHEAD} dní</h2>${mine && q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>
+${rows || '<div class="mu" style="margin-top:6px">V příštích ' + DAYS_AHEAD + ' dnech nejsou žádné události.</div>'}</div>`;
 }
 // Moje platby: ✅ vše zaplaceno / 💳 k úhradě / ⛔ po splatnosti → Moje platby
 function payHtml(p) {
@@ -105,7 +105,7 @@ function bind(a, L) {
 // Vykreslení záložky 🏠 Domů do kontejneru a
 export function homeView(a) {
   const now = Date.now(), today = td(), mid = me(), items = homeItems(S.ev, S.ma), L = liveMatch(S.ma);
-  const nm = nextMatch(items, now, today), week = weekEvents(items, S.at, mid, now, today);
+  const nm = nextMatch(items, now, today), week = upcomingEvents(items, S.at, mid, now, today);
   const next = nm ? {...nm, ans: myAnswer(S.at, nm.id, mid), going: goingCount(S.at, nm.id), locked: regClosed(nm, now, today)} : null;
   const mp = mineIds().length ? myPay(S.ch, mineIds(), now) : null;
   const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";

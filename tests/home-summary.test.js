@@ -1,10 +1,10 @@
-// Testy úvodního přehledu 🏠 Domů (domain/home-summary.js): týden Po – Ne, příští zápas, události týdne s odpovědí,
+// Testy úvodního přehledu 🏠 Domů (domain/home-summary.js): období příštích 7 dní, příští zápas, nadcházející události s odpovědí,
 // stav mých plateb, souhrn pokladny týmu, varování cashflow a běžící zápas. Čisté funkce – nic se nezapisuje.
 
 // ===== Importy =====
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {flowWarn, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, weekEvents, weekRange} from "../src/domain/home-summary.js";
+import {flowWarn, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
 
 // ===== Konstanty =====
 const TODAY = "2026-10-21";                                      // středa
@@ -23,10 +23,10 @@ const MA = [
 const AT = [{eid: "t2", pid: "p1", st: "yes"}, {eid: "t2", pid: "p2", st: "yes"}, {eid: "m1", pid: "p2", st: "no"}];
 
 // ===== Události =====
-test("weekRange: pondělí až neděle týdne (i pro neděli a pondělí)", () => {
-  assert.deepEqual(weekRange(TODAY), {from: "2026-10-19", to: "2026-10-25"});
-  assert.deepEqual(weekRange("2026-10-25"), {from: "2026-10-19", to: "2026-10-25"}, "neděle patří do končícího týdne");
-  assert.deepEqual(weekRange("2026-11-02"), {from: "2026-11-02", to: "2026-11-08"});
+test("daysRange: dnes a dalších 6 dní (i přes konec měsíce)", () => {
+  assert.deepEqual(daysRange(TODAY), {from: "2026-10-21", to: "2026-10-27"});
+  assert.deepEqual(daysRange("2026-10-28"), {from: "2026-10-28", to: "2026-11-03"});
+  assert.deepEqual(daysRange("2026-12-30", 3), {from: "2026-12-30", to: "2027-01-01"});
 });
 
 test("nextMatch: nejbližší neuzavřený zápas, dnešní jen do svého začátku, běžící se přeskočí", () => {
@@ -37,17 +37,20 @@ test("nextMatch: nejbližší neuzavřený zápas, dnešní jen do svého začá
   assert.equal(nextMatch(homeItems(EV, [MA[3]]), NOW, TODAY), null);
 });
 
-test("weekEvents: události Po – Ne s mojí odpovědí, počtem Jdu a uzávěrkou; ❓ jen otevřené bez odpovědi", () => {
-  const w = weekEvents(homeItems(EV, MA), AT, "p1", NOW, TODAY);
-  assert.deepEqual(w.map(e => e.id), ["t1", "m0", "t2", "m1"]);
-  const t2 = w.find(e => e.id === "t2"), m1 = w.find(e => e.id === "m1"), t1 = w.find(e => e.id === "t1");
+test("upcomingEvents: příštích 7 dní bez uplynulých, s mojí odpovědí, počtem Jdu a uzávěrkou; ❓ jen otevřené bez odpovědi", () => {
+  const w = upcomingEvents(homeItems(EV, MA), AT, "p1", NOW, TODAY);
+  assert.deepEqual(w.map(e => e.id), ["t2", "m1", "t3"], "t1 (pondělí) a m0 (dnes 9:00) už proběhly, m2 je za 12 dní");
+  const t2 = w.find(e => e.id === "t2"), m1 = w.find(e => e.id === "m1");
   assert.equal(t2.ans, "yes"); assert.equal(t2.going, 2); assert.equal(t2.locked, false);
   assert.equal(m1.ans, null); assert.equal(m1.type, "match"); assert.equal(m1.home, false);
-  assert.equal(t1.past, true); assert.equal(t1.locked, true);
-  assert.equal(unanswered(w), 2, "m0 (dnes, bez termínu) a m1; t1 uplynul, t2 má odpověď");
-  assert.equal(unanswered(w.filter(e => e.id === "m1")), 1);
-  const wl = weekEvents(homeItems(EV, [{...MA[0], live: {per: 1}}]), AT, "p1", NOW, TODAY);
-  assert.equal(wl.find(e => e.id === "m0").locked, true, "zahájený zápas už odpověď nežádá");
+  assert.ok(w.every(e => !e.past));
+  assert.equal(unanswered(w), 2, "m1 a t3 bez odpovědi, t2 má odpověď");
+  const early = upcomingEvents(homeItems(EV, MA), AT, "p1", new Date("2026-10-21T08:00:00").getTime(), TODAY);
+  assert.equal(early[0].id, "m0", "dnešní zápas do svého začátku zůstává");
+  const nt = upcomingEvents(homeItems([{id: "x", date: TODAY}], []), AT, "p1", NOW, TODAY);
+  assert.deepEqual(nt.map(e => e.id), ["x"], "dnešní událost bez času zůstává celý den");
+  const wl = upcomingEvents(homeItems([], [{...MA[1], live: {per: 1}}, {...MA[1], id: "mc", closed: true}]), AT, "p1", NOW, TODAY);
+  assert.deepEqual(wl, [], "běžící (karta 🔴) a uzavřený zápas se v seznamu nezobrazí");
   assert.equal(myAnswer(AT, "m1", "p2"), "no");
   assert.equal(myAnswer(AT, "m1", null), null, "trenér bez propojení nemá vlastní odpověď");
   assert.equal(regClosed({date: "2026-10-23", dl: "2026-10-21T10:00"}, NOW, TODAY), true, "po termínu přihlašování");

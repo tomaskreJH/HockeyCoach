@@ -4,6 +4,19 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.6.2 (23. 10. 2026) – 🏠 Domů: příštích 7 dní místo tohoto týdne (jen čtení, bez změny dat a pravidel)
+> **Nasazení:** 1) Záloha: zip současného repozitáře (data se nemění). 2) **firestore.rules beze změny – nepublikovat.** 3) Nahrát kód (nic nového se nepřidává ani nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6.2 v záhlaví.
+> **🔒 Vyžadovat verzi: ne.** Návrat na v19.6.1: nahrát předchozí zip.
+
+**Změněno**
+- 🏠 Domů: karta **📅 Tento týden** (pondělí – neděle) nahrazena kartou **📅 Příštích 7 dní** (dnes a dalších 6 dní). Uplynulé události se nezobrazují: dřívější dny, dnešní trénink / zápas po svém začátku (bez času celý den), uzavřený zápas; běžící zápas zůstává v kartě 🔴 nahoře. Počet ❔ bez odpovědi se počítá z nadcházejících událostí.
+- `src/domain/home-summary.js` – `daysRange`, `upcomingEvents`, `DAYS_AHEAD` místo `weekRange`, `weekEvents`; `src/views/home-view.js` (nadpis a prázdný stav karty); `tests/home-summary.test.js` (nové testy období a filtru uplynulých).
+- `src/views/help.js` (sekce 🏠 Domů), `docs/KONVENCE.md`, `docs/plan-v18.md` (náhled živého zápasu UP2 posunut na v19.6.3), `docs/prompt-dalsi-vlakno.md`, `README.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v67`).
+
+**Beze změny**
+- Ostatní karty 🏠 Domů (běžící zápas, příští zápas, platby, pokladna týmu, ✋ žádosti o přijetí), odpovědi v detailu události, živý zápis, pokladna, statistiky, docházka, pravidla databáze.
+- Ověřeno: `npm test` (175, srovnávací test D1 beze změny), kouřový test v jsdom mimo repozitář (trenér, hráčka): start v 🏠 bez chyb, karta „Příštích 7 dní“ bez uplynulých událostí, žádný zápis do databáze.
+
 ## v19.6.1 (23. 10. 2026) – ČL: ✋ žádost o přijetí do týmu (⚠️ sahá na přihlašování a správu členů, ne na platby)
 > **Nasazení:** 1) Záloha: ⚙️ → Stáhnout zálohu (JSON) a zip současného repozitáře. 2) **Nejdřív publikovat `firestore.rules`** (nová kolekce `joinreq`; ostatní pravidla beze změny). 3) Nahrát kód (nové soubory `src/domain/join-requests.js`, `src/views/join-view.js`, `tests/join-requests.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6.1 v záhlaví. 5) Test: přihlásit se účtem Google, který není v Členech týmu → vyplnit žádost; trenér ji v 🏠 Domů vyřídí.
 > **🔒 Vyžadovat verzi: ne** (stará verze žádosti jen nevidí – trenér je pak vyřídí v nové verzi). Návrat na v19.6: nahrát předchozí zip a vrátit pravidla z historie v konzoli Firebase (kolekce `joinreq` může zůstat).

@@ -1,4 +1,4 @@
-// Úvodní přehled 🏠 Domů: čisté výpočty bez DOM – příští zápas, události tohoto týdne (Po – Ne) s mojí odpovědí,
+// Úvodní přehled 🏠 Domů: čisté výpočty bez DOM – příští zápas, nadcházející události příštích 7 dní s mojí odpovědí,
 // stav mých plateb, souhrn pokladny týmu pro správce, varování cashflow a běžící zápas.
 // Nic nezapisuje; vstupem jsou data ze stavu aplikace (events, matches, attendance, charges, requests) a dnešní datum / čas.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Události -> Platby -> Živý zápas -> Exporty (u funkcí).
@@ -19,12 +19,12 @@ const startMs = e => new Date(e.date + "T" + (/^\d{1,2}:\d{2}$/.test(e.time || "
 const byStart = (a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || ""));
 
 // ===== Události =====
-// Pondělí a neděle týdne, do kterého patří den today ("RRRR-MM-DD")
-export function weekRange(today) {
-  const d = new Date(today + "T12:00:00"), off = (d.getDay() + 6) % 7;
-  const mon = new Date(d); mon.setDate(d.getDate() - off);
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  return {from: iso(mon), to: iso(sun)};
+// Počet dní nadcházejícího období v přehledu (dnes + 6 dalších dní)
+export const DAYS_AHEAD = 7;
+// První a poslední den období „příštích n dní“ od dneška today ("RRRR-MM-DD"), dnešek se počítá
+export function daysRange(today, n = DAYS_AHEAD) {
+  const d = new Date(today + "T12:00:00"), end = new Date(d); end.setDate(d.getDate() + n - 1);
+  return {from: iso(d), to: iso(end)};
 }
 // Sjednocený seznam tréninků (events) a zápasů (matches) pro přehled; zápas nese soupeře a doma / venku
 export function homeItems(ev, ma) {
@@ -46,12 +46,14 @@ export function nextMatch(items, now, today) {
   const list = (items || []).filter(e => e.type === "match" && !e.closed && !e.live && e.date >= today && (e.date > today || !e.time || startMs(e) >= now));
   return list.sort(byStart)[0] || null;
 }
-// Události tohoto týdne (Po – Ne) seřazené od nejbližší; každá s mojí odpovědí, počtem „Jdu“, uzavřením přihlašování
-// (po termínu, po dni události, zahájený nebo uzavřený zápas) a příznakem uplynulé
-export function weekEvents(items, at, mid, now, today) {
-  const {from, to} = weekRange(today);
-  return (items || []).filter(e => e.date >= from && e.date <= to).sort(byStart).map(e => ({
-    ...e, ans: myAnswer(at, e.id, mid), going: goingCount(at, e.id), locked: regClosed(e, now, today) || !!e.closed || !!e.live, past: e.date < today
+// Nadcházející události příštích 7 dní (dnes až dnes + 6) seřazené od nejbližší. Uplynulé se vynechají: dřívější dny,
+// dnešní událost po svém začátku (bez času až zítra) a uzavřený zápas; běžící zápas ukazuje karta 🔴 nahoře.
+// Každá s mojí odpovědí, počtem „Jdu“ a uzavřením přihlašování (po termínu nebo zahájený zápas).
+export function upcomingEvents(items, at, mid, now, today, n = DAYS_AHEAD) {
+  const {from, to} = daysRange(today, n);
+  const ahead = e => e.date > today || !e.time || startMs(e) >= now;
+  return (items || []).filter(e => e.date >= from && e.date <= to && ahead(e) && !e.closed && !e.live).sort(byStart).map(e => ({
+    ...e, ans: myAnswer(at, e.id, mid), going: goingCount(at, e.id), locked: regClosed(e, now, today), past: false
   }));
 }
 // Počet událostí, na které člen ještě neodpověděl a přihlašování je otevřené (❓ v přehledu)

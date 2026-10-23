@@ -21,7 +21,7 @@ const SECTIONS = [
 <li><b>🏠 Domů</b> je první záložka (ikona domečku vlevo v liště) a otevře se po spuštění aplikace. Vidí ji každý člen; nic se v ní nezapisuje – klepnutím se dostaneš tam, kde se věc vyřizuje.</li>
 <li><b>🔴 Zápas právě běží:</b> skóre a třetina běžícího zápasu. Trenér a kustod jdou tlačítkem <b>▶ Do živého zápisu</b> rovnou do zápisu; ostatní vidí jen skóre (průběh je v detailu po uzavření zápasu).</li>
 <li><b>🆚 Příští zápas:</b> soupeř, datum a čas, místo, doma / venku, uzávěrka přihlašování, počet ✅ a tvoje odpověď. Klepnutím otevřeš detail zápasu a odpovíš tam (tlačítko ← Domů tě vrátí zpět).</li>
-<li><b>📅 Tento týden</b> (pondělí – neděle): tréninky a zápasy s tvojí odpovědí; <b>❔ Odpověz</b> = odpověď ještě chybí a přihlašování je otevřené. Trenér / kustod bez propojení s realizačním týmem vidí počet přihlášených ✅.</li>
+<li><b>📅 Příštích 7 dní</b> (dnes a dalších 6 dní): nadcházející tréninky a zápasy s tvojí odpovědí – uplynulé (i dnešní po začátku) se nezobrazují, běžící zápas je v kartě 🔴 nahoře; <b>❔ Odpověz</b> = odpověď ještě chybí a přihlašování je otevřené. Trenér / kustod bez propojení s realizačním týmem vidí počet přihlášených ✅.</li>
 <li><b>💳 Moje platby:</b> ✅ vše zaplaceno, 💳 k úhradě (s nejbližší splatností), ⛔ po splatnosti (přihlášení „Jdu“ je zablokované, pokud nemáš výjimku). Klepnutím otevřeš Moje platby.</li>
 <li><b>💰 Pokladna týmu</b> (jen trenér a pokladník): nezaplaceno celkem, po splatnosti s počtem dlužníků, otevřené žádosti ✋ (klepnutím Team → 💰 Platby) a varování cashflow z rozpočtu sezóny (klepnutím Team → 📊 Rozpočet).</li>
 <li><b>Zpět</b> z kterékoli jiné záložky vede do 🏠 Domů; v Domů se aplikace zeptá „Ukončit aplikaci?“.</li>
