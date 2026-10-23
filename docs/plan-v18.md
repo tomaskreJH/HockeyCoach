@@ -6,7 +6,6 @@ Výchozí verze: v17.7 (22. 10. 2026). Cíl: řada verzí v18.x, po každé fáz
 Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřazeno podle náročnosti:** nejdřív rychlé úpravy (R), pak úklid (D) a ověření všech modulů (T), teprve potom velké celky (role, rušení událostí, žádosti, notifikace, hosté, více týmů) – viz sekce „Plán v18.8 – v20“.
 **Doplněno 23. 10. 2026 (8:52, po v19.0):** nová fáze **OU – opakované události** (v19.2) před Pokladnou II; upřesnění EK a RP od uživatele; pořadí od v19.2 posunuto o jednu verzi; samostatná sekce fáze S.
 **Doplněno 23. 10. 2026 (výchozí kód v18.9.3):** nový celek **Pokladna II** (sekce „Pokladna II – hospodaření událostí, Moje platby, žádosti o změnu placení, rozpočet“) – fáze EK, PM, RP; „Moje platby po měsících“ přesunuty z R do PM, společná kolekce žádostí `requests` pro PM i W, pořadí fází posunuto (P2 → v19.5 … HG → v20.0).
-**Doplněno 23. 10. 2026 (23:30, výchozí kód v19.6.3) – NOVÉ POŘADÍ:** nejdřív **události a docházka** (UD1, UD2, DO, HG1, Z, W + NP), pak **modulární práva** (OM1, OM2, HG2), potom **notifikace** (N), **modul Trénink** (E) a **jistota plateb** (P2) úplně nakonec – sekce „Nové pořadí 23. 10. 2026 – Události, docházka, modulární práva“, otázky 65–76. Sekce „O – v19.7“ je nahrazena sekcí „OM“.
 **Kontrola plánu proti kódu v18.7.1 (22. 10. 2026, 19:00) – rozhodnuto 19:10 (sekce „Rozhodnutý postup“):** testy (T1) před úklidem, rozhodnutí o více týmech před pravidly a notifikacemi, nová fáze S (soukromí v databázi), P2 rozdělena (bod 8 do O), brána verze v D2 – podrobnosti v sekci „Kontrola plánu“ na konci plánu, otázky 31–40.
 
 | Verze | Fáze | Obsah |
@@ -41,26 +40,26 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 | v19.6.1 | ČL | ✋ **Žádost o přijetí do týmu** (požadavek 23. 10. 2026, „co nejdříve“): účet Google bez členství pošle žádost (e-mail z přihlášení, přezdívka, číslo dresu), trenér ji vyřídí – založí / přiřadí hráčku nebo člena týmu a účet – sekce „ČL“ – **hotovo, nasazeno** (23. 10. 2026) – **publikovat firestore.rules před kódem** (nová kolekce `joinreq`) |
 | v19.6.2 | UP | 🏠 Domů: místo „Tento týden“ (Po – Ne) **📅 Příštích 7 dní** (dnes + 6), uplynulé události (i dnešní po začátku, uzavřené a běžící zápasy) se nezobrazují – požadavek uživatele 23. 10. 2026 – **hotovo, nasazeno, otestováno bez nálezu** (23. 10. 2026), pravidla beze změny |
 | v19.6.3 | UP2 | 👁 Náhled živého zápasu pro členy (jen ke čtení: skóre, střely, čas, třetina, průběh – góly, tresty, střely; bez sestav a času na ledě) – `domain/watch-feed.js`, `views/live-watch.js` – sekce „UP“, otázka 56 – **hotovo, k testu** (23. 10. 2026), pravidla beze změny |
-| v19.7 | UD1 | 📅 **Čas od – do a ⏰ sraz** u událostí: trénink od – do (výchozí délka 60 min), sraz u všech událostí (výchozí trénink 30 min, zápas 60 min předem); i v sériích tréninků, kartách, 🏠 Domů a kalendáři – sekce „UD1“ |
-| v19.7.1 | UD2 | Počty **✅ Jdu · ❓ Nejistá · ❌ Nejdu** přímo v tlačítkách odpovědi (místo v popisu události), bez odpovědi zvlášť – sekce „UD2“ |
-| v19.8 | DO | 🚫 **Nedorazila bez omluvy** – trenér / kustod označí po události u přihlášených; nový sloupec v 📊 Docházce, účast bez nich – **publikovat firestore.rules** – sekce „DO“ |
-| v19.9 | HG1 | 🎟 **Hostující hráčky bez účtu** – v soupisce s příznakem host (zakládá trenér / kustod), přihlášení za ni, nominace, sestava, docházka a statistiky zvlášť – sekce „HG1“ |
+| s W | NP | 🏖 **Nepřítomnost člena od–do** (dovolená, nemoc): omluva v otevřených událostech, u uzavřených žádost trenérovi (`requests`, druh `att`) – sekce „NP“ |
+| v19.7 | UD1 + UD2 | 📅 **Čas od – do u tréninku** (`end`, výchozí +60 min), **⏰ sraz u všech událostí** (`meet` v minutách předem, výchozí trénink 30 / zápas 60, u každé události lze měnit, výchozí v ⚙️ → ⏰ Nastavení událostí = `settings/events`), série přenáší konec i sraz; **počty ✅ / ❌ / ❓ v tlačítkách** na kartě – `domain/event-time.js`, `views/event-settings.js` – **hotovo, k testu** (23. 10. 2026), pravidla beze změny (UD1 a UD2 spojeny na přání uživatele) |
+| v19.8 | DO | 🚫 Nedorazila bez omluvy (Docházka) – sekce „Nové pořadí 23. 10. 2026“ |
+| v19.9 | HG1 | Hostující hráčky bez účtu |
 | v20.0 | Z | Zrušení události (zůstává v historii), úplné smazání jen vývojář |
-| v20.1 | W + NP | Žádosti o změnu účasti po uzávěrce + 🏖 nepřítomnost člena od–do (sekce „W“ a „NP“) – **publikovat firestore.rules** |
-| v20.2 | OM1 | 🔐 **Modulární práva – část 1:** seznam oprávnění (moduly), role jako sady oprávnění, `members.perms` vedle staré `role`, ⚙️ → Role a práva (matice), převod 1 : 1 **bez změny účinných práv** – **publikovat firestore.rules (rozšířit)** – sekce „OM“ |
-| v20.3 | OM2 | 🔐 **Modulární práva – část 2:** nové role (Hlavní trenér, Manažer, Trenér, Asistent, Pokladník, Hráčka), přidělení členům, aplikace i pravidla jen podle oprávnění, audit členů – **publikovat firestore.rules (zúžit) + 🔒 Vyžadovat verzi** |
-| v20.4 | HG2 | 🎟 Účet hostující hráčky (role host, vlastní úzké dokumenty `evpub`, `matchpub`) – **publikovat firestore.rules** |
-| v20.5 | N | 🔔 Upozornění **v aplikaci** (přehled novinek při otevření); push při zavřené aplikaci jen po souhlasu s Blaze (otázka K1) |
-| v21.x | E | 🏋 **Modul Trénink** (velký celek, rozdělit na více verzí – nejdřív rozbor) |
-| poslední | P2 | ⭐ **Jistota plateb pro hráčky** (sekce „⭐ Důležité kroky – P2“) – **publikovat firestore.rules** |
+| v20.1 | W + NP | Žádosti o změnu účasti po uzávěrce + 🏖 nepřítomnost od–do (kolekce `requests`) – **publikovat firestore.rules** |
+| v20.2 / v20.3 | OM1 / OM2 | Modulární práva (náhrada fáze O – role po modulech) – **publikovat firestore.rules** |
+| v20.4 | HG2 | Hostující hráčky – vlastní úzké dokumenty (`evpub`, `matchpub`) – **publikovat firestore.rules** |
+| v20.5 | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) |
+| v21.x | E | Modul Trénink |
+| poslední | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
 | později | M | Další tým = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
+| později | E | Modul Trénink (zatím neřešit) |
 
 ---
 
 ## Stav (aktualizováno 23. 10. 2026)
-- **23. 10. 2026 (23:30): nové požadavky uživatele a nové pořadí.** v19.6.3 nasazena, netestována (nebyl živý zápas). Hotové jsou návody pro hráčky, pokladníka a kustoda (dokumenty Claude, mimo repozitář). Další: **v19.7 UD1 – čas od – do a sraz** (sekce „Nové pořadí 23. 10. 2026“). Pořadí: UD1 → UD2 → DO → HG1 → Z → W + NP → OM1 → OM2 → HG2 → N → E → P2.
+- **v19.7 (UD1 + UD2) dodáno, k testu** (uživatel: „spoj úpravy UD1, UD2; srazy musí jít editovat, defaulty sedí“): trénink má konec `events.end` (automaticky začátek + `len`, dokud se ručně nezmění; konec po začátku), trénink i zápas sraz `meet` v minutách před začátkem (0 = bez srazu), výchozí `settings/events = {meetT: 30, meetM: 60, len: 60}` mění trenér / kustod v ⚙️ → ⏰ Nastavení událostí (`src/views/event-settings.js`); událost bez polí ukazuje výchozí hodnoty. Sraz se edituje u každé události (trénink ✏️ Upravit, zápas ✏️ Čas, místo, termín; při + Zápas se nezadává). Série (OU) přenáší konec a sraz (`seriesOps`, `editPlan`, `manualChange` jen s uvedenými poli – staré volání beze změny). Zobrazení „18:00 – 19:00 · ⏰ sraz 17:30“: karta, detail, 🏠 Domů. UD2: rychlá tlačítka ✅ / ❌ / ❓ s počty odpovědí hráček (`answerCounts`). Výpočty `src/domain/event-time.js` + `tests/event-time.test.js` (8 testů, celkem 187). Začátek zůstává `time` (docházka, uzávěrka beze změny). **Pravidla beze změny, 🔒 Vyžadovat verzi ne. Test v19.6.3 (náhled živého zápasu) zatím neproběhl. Další: v19.8 – DO.**
 - **v19.6.2 nasazena a otestována bez nálezu (karta 📅 Příštích 7 dní funguje). v19.6.3 (UP2) dodáno, k testu:** v 🏠 Domů klepnutí na kartu 🔴 běžícího zápasu otevře členům bez `can("sport")` **👁 náhled jen ke čtení** (`src/views/live-watch.js`, stav `S.hw`): skóre a střely (domácí vlevo), zbývající čas třetiny a třetina (▶ / ⏸ / 🏁, odpočet se dopočítává místně z `live.acc`, `t0`, `pst`, `perLen`), průběh od nejnovějšího – góly s průběžným skóre, tresty, střely (lze skrýt) a konce třetin; bez sestav, střídání, času na ledě a zranění, žádné ovládání. Výpočty `src/domain/watch-feed.js` (`watchClock`, `watchScore`, `watchFeed`, `WATCH_KINDS`; průběh z `timeline` bez střídání) + `tests/watch-feed.test.js` (4 testy, celkem 179). Zpět / ← Domů vrátí přehled, po uzavření zápasu se náhled zavře sám, přepnutí záložky ho zruší. Živý zápis beze změny (místní posun času ◀ ▶ zapisovatele se do dokumentu neukládá – náhled ukazuje čas bez něj). **Pravidla beze změny, 🔒 Vyžadovat verzi ne. UP je hotová (veřejný náhled s HG, otázka 57). Další: v19.7 – P2.**
 - **v19.6.1 (ČL) nasazena. v19.6.2 dodáno, k testu:** 🏠 Domů – karta „📅 Tento týden“ (Po – Ne) nahrazena kartou **📅 Příštích 7 dní** (dnes až dnes + 6, `daysRange`, `upcomingEvents`, `DAYS_AHEAD` v `domain/home-summary.js`; `weekRange` a `weekEvents` odstraněny); uplynulé události se nezobrazují (dřívější dny, dnešní po začátku, uzavřený zápas; běžící zápas je v kartě 🔴). Pravidla beze změny, 🔒 Vyžadovat verzi ne. **Náhled živého zápasu UP2 posunut na v19.6.3.**
 - **v19.6 nasazena a otestována bez nálezu (🏠 Domů funguje). v19.6.1 (ČL) dodáno, k testu:** účet Google bez `members` místo hlášky „nemá přístup“ vidí obrazovku **✋ Přijetí do týmu** (e-mail z přihlášení zamčený, přezdívka, číslo dresu 1–99, hráčka / realizační tým, poznámka) → `joinreq/{email}` `st: "open"`; stav ⏳ s možností zrušit (potvrzení druhým klepnutím), po schválení se aplikace sama načte s rolí; zamítnutí ukáže důvod, nová žádost za 24 h (`doneMs`). Trenér: pruh ✋ v 🏠 Domů a tlačítko v ⚙️ → Členové týmu otevřou okno vyřízení (`src/views/join-view.js`) – role, založit novou hráčku / přiřadit hráčku bez účtu (shoda čísla první, obsazené číslo jen upozorní), u trenéra / kustoda člen `staff` nový / existující / bez propojení; jedna dávka soupiska + `members` + žádost + audit (`act: "join"` / `"join-no"`). Výpočty `src/domain/join-requests.js` + `tests/join-requests.test.js` (9 testů, celkem 175). Plán pro nové hráčky se nezakládá (`plpay` doplní trenér v Team). **Publikovat firestore.rules před kódem, 🔒 Vyžadovat verzi ne.** Otázky 61–64 rozhodnuty podle návrhu (63: jen trenér). Další: v19.6.3 UP2 (náhled živého zápasu pro členy).
@@ -89,105 +88,6 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 - **v19.4.1 nasazena a otestována (23. 10. 2026, uživatel: „vidím to tam“). v19.5 (RP část 1) dodáno, k testu:** RP rozdělena podle návrhu (potvrdil uživatel): v19.5 = parametry, položky, plán po měsících, odhad příspěvku; v19.5.1 = plnění a cashflow; v19.5.2 = schválení, úpravy, export. Nový `src/domain/budget.js` (`seasonKeyOf`, `seasonYms`, `rosterCounts`, `defaultPar`, `defaultSal`, `newItem`, `newBudget`, `copyBudget`, `normBudget`, `seriesIn`, `itemDates`, `itemCounts`, `incomeOf`, `contribAt`, `budgetPlan`, `suggestContrib`, `contribVariants`, `budgetError`, `budgetDoc`, `sameBudget`) + `tests/budget.test.js` (7 testů, celkem 149 s testem pravidel). `src/views/budget-view.js` – Team → 📊 Rozpočet (přepínač v `CASH_MODES` v `events.js`). Dokument `budget/{sezóna}` = {season, par: {n: {monthly, single, exempt}, att, contrib, cH: [{ym, amt}], cm: [měsíce], goal}, items: [{id, name, tpl, mode: rule | count | ser, rule: {days, every}, n, per, from, to, skip, ser, cost, inc, att}], sal: [{name, m, amt}], other: [{name, k, amt, rep, ym}], by, at}; ukládá se tlačítkem 💾 (merge + audit `budget`). Otázky 46, 50 podle návrhu (sezóna 1. 8. – 30. 6., jeden rozpočet na sezónu; platy a ostatní výdaje ano); otázka 49 až ve v19.5.1 (plnění). Odhad je orientační: koeficienty hráček se nepočítají, příjem za událost ze šablony podle složení hráček (nebo ručně), plat za událost × všechny plánované události měsíce. Pravidla: `budget` čte a zapisuje `isCash()`, jen pole plánu a `season == id`, smazat jen trenér; záloha obsahuje `budget`. Pokladna, předpisy, šablony a kalendář beze změny. **Další: v19.5.1 – plnění a cashflow.**
 - **v19.5 nasazena (23. 10. 2026, uživatel: „část rozpočet vidím“), bez nálezu. v19.5.1 (RP část 2) dodáno, k testu:** nový `src/domain/budget-track.js` (`tplOfEvent`, `itemOfEvent`, `otherCash`, `budgetTrack`, `cashflow`, `trackAdvice`, `devOf`, `DEV_LIMIT`, `TRACK_SKIP_CATS`) + `tests/budget-track.test.js` (5 testů, celkem 154). Rozpočet má tři části (přepínač 📝 Plán / 📈 Plnění / 💧 Cashflow) a varování v hlavičce. Otázka 49 podle návrhu: přiřazení podle šablony a období položky, pak série → den v týdnu (bez vynechaných dnů) → počet → první; události bez položky = „mimo rozpočet“. Otázka 50 podle návrhu (10 %, varuje uplynulý měsíc s výdaji nad plánem nebo příjmy pod plánem). Skutečnost: náklady a příjmy událostí z `monthEconomy`, příspěvky předepsané (nevystavené = odhad ze soupisky jen v měsících s příspěvkem), vyplacené platy, ostatní pohyby pokladny bez kategorií Příspěvky, Platby za události, Platy, Pronájem ledu, Rozhodčí, Doprava. Odhad sezóny = skutečnost uplynulých měsíců + plán od běžícího. Cashflow: zůstatek dnes (`sumCash`, i po účtech) + (plán − už předepsané) + nezaplacené předpisy měsíce − plán výdajů (dražší kalendář má přednost, u běžícího měsíce bez už vydaného); staré dluhy zvlášť, do odhadu se nepočítají. Nový parametr `par.res` (rezerva, výchozí 0; pravidla beze změny – `par` je map). Návrh (jen text): příspěvek od příštího měsíce, platba za událost, nebo vynechat události. **Další: v19.5.2 – schválení, úpravy a export.** Nové požadavky uživatele (🏠 úvodní přehled, 🏖 nepřítomnost) zapracovány do sekcí „UP“ a „NP“ (otázky 54–60), pořadí čeká na potvrzení.
 - **23. 10. 2026:** v18.9.3 částečně otestována (úklid D3). Plán doplněn o celek **Pokladna II** (EK, PM, RP – viz níže); Moje platby po měsících přesunuty z R do PM, pořadí od S dál posunuto.
-
-## Nové pořadí 23. 10. 2026 – Události, docházka, modulární práva (požadavek uživatele 23. 10. 2026, 23:25)
-Uživatel: „Chtěl bych mít hotové události a docházky v prvních krocích. Pak předělat práva … Notifikace, tréninky (velký úkol) a jistotu plateb zařadit nakonec.“
-**Pořadí:** UD1 v19.7 → UD2 v19.7.1 → DO v19.8 → HG1 v19.9 → Z v20.0 → W + NP v20.1 → OM1 v20.2 → OM2 v20.3 → HG2 v20.4 → N v20.5 → E v21.x → P2 poslední. Každá verze malá, po každé test na Androidu.
-
-### UD1 – v19.7: Čas od – do a ⏰ sraz (malá až střední náročnost)
-**Dnes:** událost má `date` a `time` (začátek); konec ani sraz neexistují. Začátek používá docházka (`startMs`), 🏠 Domů (uplynulé se skryjí) a série tréninků.
-- **Trénink:** pole **do** (`end`, „HH:MM“) – při zadání začátku se předvyplní začátek + výchozí délka (60 min); konec musí být po začátku (přes půlnoc ne).
-- **Sraz u všech událostí:** `meet` = počet minut před začátkem (výchozí trénink 30, zápas 60; ⚙️ → Nastavení událostí, `settings/ev`); v kartě a detailu se ukáže čas srazu (např. „⏰ sraz 17:30 · 🏒 18:00 – 19:00“). 0 = bez srazu.
-- **Série tréninků (OU):** konec i sraz se zadají jednou pro celou sérii (`series` + každá událost); úprava „tato a další“ je přenese.
-- **Zápas:** jen začátek a sraz; konec se nezadává (otázka 65).
-- **Kde se zobrazí:** karty v Událostech a kalendáři, detail, 🏠 Domů (Příští zápas, Příštích 7 dní), Zápis utkání beze změny.
-- **Technicky:** čisté funkce v `domain/` (např. `domain/event-time.js` – `endOf`, `meetOf`, `fmtSpan`) + testy; staré události bez polí = konec neuveden, sraz podle výchozího nastavení (jen zobrazení). Data jen přidáváme (merge). Pravidla `events` / `matches` pole neomezují → **pravidla beze změny** (ověřit při práci), 🔒 Vyžadovat verzi ne.
-
-### UD2 – v19.7.1: Počty přímo v tlačítkách odpovědi (malá náročnost, jen UI)
-- Tlačítka **✅ Jdu 12 · ❓ Nejistá 3 · ❌ Nejdu 2** (počty u tlačítka), pod nimi drobně „bez odpovědi 5“; z popisu události počty zmizí.
-- Platí v detailu události i na kartách (na kartě jen počet u vlastní odpovědi a souhrn, aby se karta nepřeplnila – rozhodne se podle místa). Hráčka vidí počty, jména jako dnes.
-- Realizační tým se počítá zvlášť (🎓), jako dnes v souhrnu. Pravidla beze změny.
-
-### DO – v19.8: 🚫 Nedorazila bez omluvy (střední náročnost, pravidla)
-- **Kdo a kdy:** trenér / kustod (`can("sport")`) po začátku události u přihlášených (✅ Jdu) přepne **🚫 Nedorazila** (opakovaným klepnutím vrátí). Lze i u ❓ Nejistá (otázka 67). Přišla bez přihlášení = trenér zapíše ✅ Jdu dodatečně (jde už dnes).
-- **Data:** `attendance/{eid}_{mid}.ns = true` (+ `nsBy`, `nsAt`). Odpověď `st` zůstává „yes“ → **platby a vyúčtování beze změny** (přihlášená platí, otázka 67). Pravidla: hráčka nesmí `ns` změnit ani smazat (při vlastním zápisu musí zůstat beze změny), zapisuje jen `isStaff()` → **publikovat firestore.rules**, 🔒 Vyžadovat verzi ano (starší verze by při změně odpovědi pole přepsala).
-- **📊 Docházka:** nový sloupec **🚫 nedorazila**; účast (✅) = přihlášená a dorazila; % z počtu událostí. Domain `attendance.js` – nová hodnota, testy.
-- **Ukazovat:** v detailu uplynulé události u jména 🚫; v Docházce počet vidí všichni (jako ⛓), otázka 68.
-
-### HG1 – v19.9: 🎟 Hostující hráčky bez účtu (střední náročnost)
-- Hostující hráčka = záznam v soupisce `players/{pid}` s `guest: true` (jméno, číslo, pozice, poznámka „odkud“); zakládá a upravuje trenér i kustod (otázka 70), účet nemá.
-- **Přihlášení:** za ni odpovídá trenér / kustod v detailu události (jako dnes za kohokoli); v seznamu označena 🎟.
-- **Nominace a sestava:** nabízí se jako ostatní přihlášené; v živém zápisu a zápisu utkání beze změny (jen značka 🎟).
-- **Docházka a statistiky:** v 📊 Docházce a Statistikách zvlášť pod nadpisem „Hosté“ (přepínač „bez hostů“); do týmových součtů zápasu se počítá.
-- **Platby:** výchozí neplatí; volitelně skupina „Za událost“ – předpis vidí jen pokladna (hráčka bez účtu nemá Moje platby, zaplatí hotově) – otázka 69.
-- Pravidla: `players` – pole `guest` zapisuje `isStaff()` (dnes přidat hráčku smí jen trenér → kustod jen hosty) → **publikovat firestore.rules**.
-- Účet pro hostující hráčku (vidí jen své události a sestavu, kde je nominovaná) = **HG2 po modulárních právech**.
-
-### OM – v20.2 / v20.3: 🔐 Modulární práva (vysoká náročnost, pravidla, převod)
-**Dnes:** pevné role `trener` / `kustod` / `hracka` + příznak `cash`; tabulka `CAN` v `src/data/storage.js` (`sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`); v pravidlech `isCoach` / `isStaff` / `isCash`. Vývojář vystupuje jako trenér + pokladník – to se musí oddělit.
-
-**Princip:** aplikace zná **oprávnění** (malé moduly). **Role** je jen pojmenovaná sada oprávnění. Člen může mít **víc rolí** (např. Hráčka + Pokladník, Trenér + Manažer) – platí jejich sjednocení. Vývojář (`DEV_EMAILS`) není role – jen náhled role a technické nástroje.
-
-**Oprávnění (moduly):**
-| Klíč | Co dovoluje |
-|---|---|
-| `ev` | zakládat, upravovat a mazat události a série, čas, sraz, uzávěrka |
-| `att` | docházka za ostatní, změny po uzávěrce, 🚫 nedorazila, pětky na tréninku, čtení důvodů omluv |
-| `prep` | nominace, sestava, základní formace, jednotky PP / OS |
-| `live` | živý zápis, opravy zápisu, uzavření a znovuotevření zápasu |
-| `opp` | soupeři |
-| `rstat` | stav hráčky (aktivní / zraněná / ukončila), hosté |
-| `roster` | přidat, upravit a smazat hráčku a člena realizačního týmu |
-| `payv` | vidět platby ostatních (dluhy, předpisy, štítek plateb, částky) |
-| `cash` | pokladna, úhrady, vyúčtování událostí, příspěvky, platby hráček, CSV |
-| `salary` | platy realizačního týmu (vidět a vyplácet) |
-| `budget` | rozpočet sezóny, hospodaření měsíce, schválení rozpočtu |
-| `preq` | vyřizovat žádosti o změnu placení |
-| `accp` / `accc` | navrhnout / potvrdit změnu účtu pro QR (4 oči – nikdy tentýž člověk) |
-| `members` | členové týmu, žádosti o přijetí, přidělování rolí |
-| `roles` | upravit obsah rolí (matice) |
-| `admin` | obnova ze zálohy, 🔒 Vyžadovat verzi, kontrola a převody dat, úplné mazání |
-Bez oprávnění (každý člen): 🏠 Domů, Události ke čtení, vlastní odpověď, 📊 Docházka (bez důvodů), Statistiky, Zápis utkání, 👁 náhled zápasu, Moje platby.
-
-**Výchozí role (návrh, otázky 71–73):**
-| Role | Oprávnění |
-|---|---|
-| **Hlavní trenér** | vše; nejde odebrat poslednímu, sám sebe neodebere |
-| **Manažer** | vše kromě `prep` a `live` (otázka 71) – má pod kontrolou tým, peníze, členy |
-| **Trenér** | `ev`, `att`, `prep`, `live`, `opp`, `rstat` – **bez** hráček (`roster`), plateb, pokladny, rozpočtu |
-| **Asistent** (místo kustoda) | `att`, `live`, `opp`, `rstat` – události a sestavy jen čte (otázka 72) |
-| **Pokladník** | `payv`, `cash`, `salary`, `budget`, `preq`, `accc` (+ `ev` – zakládat události, požadavek 22. 10.) |
-| **Hráčka** | nic navíc (jako dnes) |
-| **Host** (HG2) | jen vlastní události a sestava, kde je nominovaná |
-Jednoduchá kontrola „kdo co smí“: ⚙️ → **Role a práva** = tabulka role × oprávnění (zaškrtávátka); úpravy jen s `roles` (Hlavní trenér); Hlavní trenér má vše vždy (nejde odškrtnout). Stejná tabulka se generuje do nápovědy.
-
-**Data (návrh):**
-- `settings/roles` = `{head: {name, perms: [...], fixed: true}, mgr: {...}, coach, asst, cash, player, host}` – sady oprávnění.
-- `members/{email}` = `{roles: ["coach", "cash"], perms: [...]}` – `perms` je **spočtené sjednocení** rolí (zapisuje aplikace při přidělení i při změně matice – dávkou všem dotčeným). Pravidla čtou jen `members/{email}.perms` (jedno `get`, které se už dnes dělá), ne `settings/roles`.
-- **Pojistky v pravidlech:** člen s `members` smí přidělit jen oprávnění, která sám má (`request.resource.data.perms.toSet().hasOnly(myPerms)`); vlastní `perms` měnit nesmí; roli Hlavní trenér přiděluje jen Hlavní trenér; poslední Hlavní trenér nejde odebrat (kontrola v aplikaci + audit). 4 oči: `accp` a `accc` musí být dva různé účty (už dnes – navrhovatel ≠ potvrzující).
-- **Audit členů:** každé přidělení / odebrání role a změna matice → `audit` (kdo, komu, co, kdy).
-- **Kód:** `CAN` se změní na `can(perm)` nad `perms` přihlášeného; staré akce (`sport`, `money` …) se během převodu mapují na nová oprávnění (`sport` → `ev|att|prep|live`, `money` → `cash` …), aby šlo měnit obrazovku po obrazovce. Náhled role (G) dostane nové role.
-
-**Postup (rozšířit → převést → zúžit):**
-1. **OM1 v20.2:** `settings/roles` + `members.roles/perms` vedle staré `role`; ⚙️ → Role a práva (matice, zatím jen ke čtení a přidělení); ⚙️ → Kontrola dat → **🔐 Převést role** (`trener` → Hlavní trenér, `kustod` → Asistent+Trenér podle dnešních práv, `hracka` → Hráčka, `cash` → + Pokladník) – **účinná práva se nemění**. Pravidla: nové funkce `has(p)` přijímají staré role i nové `perms`.
-2. Test u uživatele: rozdělit vlastní účet (vývojář = Hlavní trenér; pokladní role jinému účtu nebo ponechat).
-3. **OM2 v20.3:** aplikace a pravidla jen podle `perms`; skrytí plateb trenérům a asistentům (i v databázi – `charges`, `plpay`, `staffpay`, `debtors` čtou jen `payv`; hráčka své jako dnes), úprava matice; 🔒 Vyžadovat verzi; staré pole `role` smazat až o verzi později.
-
-**Pozor:** Trenér bez `payv` nesmí číst cizí platby ani z databáze → `main.js` poslouchá kolekce podle `perms`. Značka ⛓ dlužnice (bez částek) zůstává vidět všem, protože blokuje „Jdu“ (otázka 75).
-
-### Otázky k UD, DO, HG1 a OM (65–76) – návrh vývojáře, platí, pokud uživatel nerozhodne jinak
-65. Zápas: jen začátek a sraz, konec nezadávat? (návrh ano)
-66. Sraz zadávat jako „minut předem“ s výchozí hodnotou v ⚙️ (trénink 30, zápas 60), nebo jako přesný čas? (návrh minuty předem, v detailu se ukáže čas)
-67. Nedorazila bez omluvy: platí dál za událost (návrh ano – platby beze změny)? Jde označit i u ❓ Nejistá? (návrh ano)
-68. Počet 🚫 v Docházce vidí všichni členové (návrh ano), nebo jen trenéři?
-69. Hostující hráčka bez účtu platí? (návrh výchozí ne, volitelně předpis „za událost“ jen pro pokladnu)
-70. Hostující hráčku zakládá trenér i kustod / asistent? (návrh ano)
-71. Manažer: vše kromě nominace, sestavy a živého zápisu (návrh), nebo úplně vše jako Hlavní trenér?
-72. Asistent: docházka, živý zápis, soupeři, stav hráček (návrh), nebo i události a sestavy?
-73. Smí Hlavní trenér měnit obsah rolí (matice zaškrtávátek – návrh ano), nebo pevné role?
-74. Účty pro QR (4 oči): navrhuje Hlavní trenér nebo Manažer (`accp`), potvrzuje Pokladník nebo druhý z nich (`accc`)? (návrh ano)
-75. Trenér / Asistent vidí značku ⛓ dlužnice bez částek (návrh ano – blokuje Jdu)?
-76. Smí Pokladník zakládat události (požadavek 22. 10. 2026 – návrh ano, `ev`)?
 
 ## S – v19.1: Soukromí v databázi (✅ v19.1 dodáno 23. 10. 2026; ✅ úklid starých polí v19.1.1 dodán, k testu)
 Cíl: citlivá data nečte z databáze každý člen, jen ten, komu patří, a správci. Dnes je skrývá jen aplikace (nálezy 2, 3, 5 z kontroly v18.7.1).
@@ -302,6 +202,18 @@ Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; ž
 62. Žádost může poslat i člen realizačního týmu (trenér, kustod) – druh „realizační tým“, role se pak určí při schválení? (návrh ano; roli hráčky / kustoda / pokladníka vybere trenér při schválení)
 63. Kdo žádosti vyřizuje: jen trenér (role trenér), nebo i pokladník (smí spravovat členy s rolí Hráčka)? (návrh: jen trenér; po fázi O i zástupce trenéra)
 64. Zamítnutý uchazeč smí poslat novou žádost (přepíše starou), nebo až po smazání trenérem? (návrh: smí, nejdřív za 24 h – ochrana proti zahlcení)
+
+## Nové pořadí 23. 10. 2026 – Události, docházka, modulární práva (požadavek uživatele)
+Nejdřív události a docházka, pak modulární práva, nakonec notifikace, Trénink a jistota plateb (P2 poslední). Pořadí: **v19.7 UD1 + UD2** → v19.8 DO → v19.9 HG1 → v20.0 Z → v20.1 W + NP → v20.2 OM1 / v20.3 OM2 → v20.4 HG2 → v20.5 N → v21.x E → P2.
+
+### UD1 + UD2 – v19.7 📅 čas od – do, ⏰ sraz, počty v tlačítkách (✅ dodáno 23. 10. 2026, k testu)
+- UD1 a UD2 spojeny do jedné verze (uživatel 23. 10. 2026). Výchozí hodnoty potvrzeny („defaulty sedí“): konec tréninku začátek + 60 min, sraz trénink 30 min, zápas 60 min; **sraz musí jít editovat** – u každé události i výchozí v ⚙️.
+- Data jen přidávána: `events.end`, `events.meet`, `matches.meet`, `series.d.end` / `series.d.meet`, dokument `settings/events`. Pravidla beze změny (events / matches / series pole neomezují, `settings/{id}` zapisuje `isStaff`).
+- Otázka 65 (zápas bez konce): rozhodnuto podle návrhu – zápas konec nemá. Otázka 66 (sraz v minutách předem): ano, `meet` = minuty, 0 = bez srazu.
+- N (notifikace) použije `meetAt` z `domain/event-time.js` jako čas připomínky srazu.
+
+### DO – v19.8 🚫 nedorazila bez omluvy (Docházka) · HG1 – v19.9 hostující hráčky bez účtu · OM1 / OM2 – modulární práva
+- Podrobné zadání a otázky 67–76 z předchozího vlákna doplnit při práci na fázi (v repozitáři zatím nejsou).
 
 ## NP – 🏖 Nepřítomnost člena od–do (požadavek uživatele 23. 10. 2026; návrh spolu s W)
 **Porovnání s dneškem:** omluvu („Nejdu“ s důvodem) zadává člen ke každé události zvlášť; po uzávěrce přihlašování ji změní jen trenér / kustod ručně (žádost o změnu účasti řeší až fáze W); hromadná nepřítomnost neexistuje.
@@ -443,7 +355,7 @@ Kontrola po úklidu: stejná čísla statistik, pokladny, docházky a dlužník�
 - **Ruční kontrolní seznam pro Android** (do `docs/test-checklist.md`): přihlášení a role, Události (seznam, kalendář, detail, přihlašování, uzávěrka, Docházka), Team (soupiska, pětky, rotace, PP/OS), zápas (nominace, sestava, živý zápis – střely, góly, tresty, zranění, Zpět, Průběh, Zápis utkání, Opravy zápisu), Statistiky, Soupeři, Pokladna (předpisy, úhrady, příspěvky, platy, měsíce, CSV), Moje platby (QR, uložení QR), ⚙️ (členové, nastavení pokladny, účty 4 oči, náhled role, záloha / obnova, přepočet dlužníků), offline a nová verze (cache).
 - Výstup: seznam nálezů → opravy v18.9.x; teprve po „vše zelené“ začíná v19.
 
-### O – v19.7: Role a oprávnění (střední až vysoká náročnost) – ⚠️ NAHRAZENO sekcí „OM – modulární práva“ (23. 10. 2026); níže jen podklad
+### O – v19.7: Role a oprávnění (střední až vysoká náročnost)
 | Role | Práva |
 |---|---|
 | **Hlavní trenér** | vše (sport, peníze, účty, členové, nastavení, mazání) |

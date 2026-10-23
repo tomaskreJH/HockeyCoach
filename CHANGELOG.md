@@ -4,6 +4,28 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.7 (23. 10. 2026) – UD1 + UD2: 📅 čas od – do, ⏰ sraz a počty odpovědí v tlačítkách (bez změny pravidel)
+> **Nasazení:** 1) Záloha: zip současného repozitáře (data se jen doplňují). 2) **firestore.rules beze změny – nepublikovat** (`events`, `matches` a `series` pole neomezují, `settings/events` zapisuje trenér a kustod podle stávajícího pravidla `settings`). 3) Nahrát kód (nové soubory `src/domain/event-time.js`, `src/views/event-settings.js`, `tests/event-time.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.7 v záhlaví. 5) Případně ⚙️ → ⏰ Nastavení událostí upravit výchozí sraz a délku tréninku.
+> **🔒 Vyžadovat verzi: ne** (starší verze pole `end` a `meet` jen nezobrazí; úprava tréninku starší verzí je přes merge nesmaže). Návrat na v19.6.3: nahrát předchozí zip (nová pole v datech nevadí).
+
+**Přidáno**
+- **📅 Čas od – do u tréninku:** pole konec (`events.end`); dokud ho nikdo nezmění, nastaví se samo na začátek + výchozí délku (60 min) a posouvá se se začátkem. Konec musí být po začátku. Zápas konec nemá (otázka 65).
+- **⏰ Sraz u všech událostí:** pole `meet` = minuty před začátkem (otázka 66), výchozí trénink 30 min, zápas 60 min, 0 = bez srazu; ve formuláři se hned ukáže „Sraz v 17:30“. **Sraz jde měnit u každé události** – u tréninku v ✏️ Upravit, u zápasu v ✏️ Čas, místo, termín. Událost bez pole (starší data, zápas založený bez srazu) ukazuje výchozí hodnotu.
+- **⚙️ → ⏰ Nastavení událostí** (trenér a kustod): výchozí sraz na trénink a zápas a délka tréninku → `settings/events = {meetT, meetM, len, by, at}` (merge), s ukázkou a tlačítkem Výchozí (30 / 60 / 60 min). Čtou všichni členové (`S.es`).
+- **Počty v tlačítkách (UD2):** rychlá tlačítka ✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý na kartě události ukazují počet odpovědí hráček; řádek „✅ · ❓ · ❌“ zůstává jen tam, kde tlačítka nejsou (trenér bez propojení s realizačním týmem).
+- Zobrazení „18:00 – 19:00 · ⏰ sraz 17:30“ na kartě, v detailu (tedy i ve vybraném dni kalendáře) a v 🏠 Domů (příští zápas, příštích 7 dní).
+- `src/domain/event-time.js` (`EVSET_DOC`, `EV_DEF`, `MEET_MAX`, `LEN_MAX`, `okTime`, `toMin`, `fromMin`, `addMin`, `clampMin`, `evDefaults`, `meetDefault`, `meetOf`, `meetAt`, `endOf`, `endOk`, `defEnd`, `timeParts`, `timeFields`), `answerCounts` v `src/domain/event-helpers.js`, `src/views/event-settings.js`, `tests/event-time.test.js` (8 testů, celkem 187).
+
+**Změněno**
+- `src/views/events.js` – formulář (konec, sraz), karta (počty v tlačítkách), detail a karta (čas od – do, sraz), počty přes `answerCounts`; uložení tréninku a zápasu doplní `end` / `meet`.
+- `src/views/event-series.js`, `src/domain/recurrence.js` – série tréninků přenese konec a sraz do všech událostí i do definice série; „tato a další“ je změní u dalších událostí; „jen tato“ porovnává se zobrazenými hodnotami (uložení beze změny událost neoznačí jako ručně upravenou). Volání bez nových polí dává stejný výsledek jako dřív.
+- `src/domain/home-summary.js` (`homeItems` nese `end`, `meet`), `src/views/home-view.js` (čas a sraz), `src/core/state.js` (`S.es`), `src/main.js` (poslech `settings/events`, `HK.openEvSet`), `src/data/storage.js` (⚙️ → sekce Události s tlačítkem ⏰, jen trenér a kustod), `src/core/nav.js` (Zpět zavře okno nastavení událostí).
+- `src/views/help.js`, `docs/KONVENCE.md`, `docs/plan-v18.md` (UD1 a UD2 spojeny do v19.7, nové pořadí), `docs/prompt-dalsi-vlakno.md`, `README.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v69`).
+
+**Beze změny**
+- Začátek události zůstává v poli `time` – výpočet docházky, uzávěrka přihlašování, blokace dlužnic, 🏠 příští zápas a „uplynulé“ události se řídí začátkem jako dřív. Živý zápis (střely, góly, časomíra, tresty), pokladna, statistiky, pravidla databáze. Založení zápasu (+ Zápas) beze změny – sraz se nastaví ve ✏️ Čas, místo, termín (do té doby platí výchozí).
+- Ověřeno: `npm test` (187, srovnávací test D1 beze změny), kouřový test v jsdom mimo repozitář (trenér, hráčka): start bez chyb; 🏠 Domů a karta ukazují „18:00 – 19:00 · ⏰ sraz 17:30“, zápas „sraz 16:00“, uložený konec a sraz u jiné události; hráčka – tlačítka „✅ Jdu 1 | ❌ Nejdu 1 | ❓ Nejsem jistý 0“, bez ✏️, okno nastavení se neotevře, žádný zápis; trenér – formulář s automatickým koncem (posun se začátkem), text srazu, uložení tréninku zapíše `end` a `meet`, zápas bez konce se srazem 90, ⏰ Nastavení událostí zapíše jen `settings/events`.
+
 ## v19.6.3 (23. 10. 2026) – 🏠 Domů: 👁 náhled živého zápasu pro členy (jen čtení, bez změny dat a pravidel)
 > **Nasazení:** 1) Záloha: zip současného repozitáře (data se nemění). 2) **firestore.rules beze změny – nepublikovat.** 3) Nahrát kód (nové soubory `src/domain/watch-feed.js`, `src/views/live-watch.js`, `tests/watch-feed.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6.3 v záhlaví.
 > **🔒 Vyžadovat verzi: ne.** Návrat na v19.6.2: nahrát předchozí zip.

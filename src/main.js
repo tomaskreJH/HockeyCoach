@@ -27,6 +27,7 @@ import {NOTE_COLL, PPAY_COLL, SPAY_COLL, joinAttNotes, joinPlPay, joinStaffPay} 
 import {SERIES_COLL} from "./domain/recurrence.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
 import {initHelp} from "./views/help.js";
+import {openEventSettings, refreshEventSettings} from "./views/event-settings.js";
 import {openJoinWindow, refreshJoin} from "./views/join-view.js";
 import {leaveLive} from "./views/live-events.js";
 import {liveTick} from "./views/live-view.js";
@@ -57,6 +58,8 @@ initNav({leaveLive});
 HK.openCash=openCashSettings;
 // Okno žádostí o přijetí do týmu (trenér) se otevírá z ⚙️ → Členové týmu
 HK.openJoin=openJoinWindow;
+// Okno výchozích hodnot událostí (sraz, délka tréninku) se otevírá z ⚙️ (trenér a kustod)
+HK.openEvSet=openEventSettings;
 setInterval(liveTick,500);
 
 // ===== Hlavní logika: poslech dat =====
@@ -103,4 +106,6 @@ if(HK.pid())db.collection(PPAY_COLL).one(HK.pid()).onSnapshot(s=>{R.pp=mapOf(s);
 // Ceny uzavřených událostí na hlavu: všichni členové; chyba (nepublikovaná pravidla) jen vypne porovnání v Moje platby
 db.collection(PRICE_COLL).onSnapshot(s=>{S.pr=rows(s);render()},erP(PRICE_COLL));
 db.doc("settings/cash").onSnapshot(s=>{S.cc=s.exists?s.data():{};render();refreshCashSettings()},er);
+// Výchozí sraz a délka tréninku (settings/events) – čtou všichni členové
+db.doc("settings/events").onSnapshot(s=>{S.es=s.exists?s.data():{};render();refreshEventSettings()},er);
 db.doc("settings/lineup").onSnapshot(s=>{S.def=s.exists?s.data():{};ok("s");render()},er)}catch(e){S.err="Nepodařilo se spustit úložiště: "+(e&&e.message||e);render()}})();

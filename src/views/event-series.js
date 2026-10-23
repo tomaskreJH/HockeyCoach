@@ -1,6 +1,7 @@
 // Série tréninků (🔁 Opakovat): část formuláře „+ Trénink“ (dny v týdnu, každý / každý 2. týden, do kdy, termín přihlašování relativně,
 // šablona pokladny, náhled termínů s vynecháním dnů) a volby v detailu události ze série (úprava a smazání „jen tato / tato a další“).
 // Výpočty jsou v domain/recurrence.js; formulář a detail události vykresluje views/events.js a volá funkce z tohoto souboru.
+// Konec tréninku (end) a ⏰ sraz (meet) se přenášejí do všech událostí série i do definice série (domain/event-time.js).
 // Data: události série mají ser = {id, i, x?} (x = ručně upravená, „tato a další“ ji vynechá), definice série je v series/{id} (zapisuje trenér / kustod).
 // Smazat „tato a další budoucí“ jde jen události bez odpovědí v docházce a bez vyúčtování – ostatní zůstanou a ukáže je hláška.
 
@@ -10,6 +11,7 @@ import {S} from "../core/state.js";
 import {dlBeforeStart, dlDefault, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {cashCfg} from "../domain/cash.js";
+import {endOf, evDefaults, meetOf, timeFields} from "../domain/event-time.js";
 import {SERIES_COLL, WEEK_DAYS, chunks, datesOf, deletePlan, editPlan, manualChange, relDl, relOf, seasonEnd, seriesOps} from "../domain/recurrence.js";
 import {render} from "./shell.js";
 
@@ -95,7 +97,7 @@ export function repSave(f) {
   if (!dlBeforeStart(relDl(dates[0], rel), dates[0], f.time)) { toast("Termín přihlašování musí být před začátkem tréninku"); return false; }
   const sid = S.db.collection(SERIES_COLL).newId(), ids = dates.map(() => S.db.collection("events").newId());
   const tpl = cashMgr() ? r.tpl : "train";
-  const {series, ops} = seriesOps({sid, ids, dates, rule: ruleOf(f), d: {title: f.title, time: f.time, place: f.place, note: f.note}, rel, tpl, by: who(), at: new Date().toISOString()});
+  const {series, ops} = seriesOps({sid, ids, dates, rule: ruleOf(f), d: {title: f.title, time: f.time, place: f.place, note: f.note, ...timeFields("training", f, evDefaults(S.es))}, rel, tpl, by: who(), at: new Date().toISOString()});
   commitOps(ops);
   // Definice série zvlášť: kdyby pravidla kolekci series ještě neznala, události se i tak vytvoří
   S.db.doc(SERIES_COLL + "/" + sid).set(series);
@@ -109,7 +111,7 @@ export function scopeHtml(f) {
   if (!f.id || !f.ser) return "";
   const sc = f.scope === "next" ? "next" : "one";
   return `<label>Změnu uložit pro</label><div class="chips"><button class="chip ${sc === "one" ? "on" : ""}" data-sc="one">Jen tato</button><button class="chip ${sc === "next" ? "on" : ""}" data-sc="next">Tato a další</button></div>
-<div class="mu" style="margin-bottom:6px">${sc === "next" ? "Čas, místo a termín přihlašování (stejně dní předem) se změní u této a dalších událostí série; ručně upravené události série se vynechají. Název, datum a poznámka jen u této." : "Změní se jen tato událost (série ji pak bere jako ručně upravenou)."}</div>`;
+<div class="mu" style="margin-bottom:6px">${sc === "next" ? "Čas od – do, ⏰ sraz, místo a termín přihlašování (stejně dní předem) se změní u této a dalších událostí série; ručně upravené události série se vynechají. Název, datum a poznámka jen u této." : "Změní se jen tato událost (série ji pak bere jako ručně upravenou)."}</div>`;
 }
 export function bindScope(a, f, readF) {
   a.querySelectorAll("[data-sc]").forEach(b => { b.onclick = () => { readF(); f.scope = b.dataset.sc; render(); }; });
@@ -120,7 +122,9 @@ export function serEditSave(f, d) {
   if (!cur || !cur.ser) { S.db.doc("events/" + f.id).merge(d); return true; }
   if (f.scope !== "next") {
     // Jen tato: změna data, času, místa nebo termínu označí událost jako ručně upravenou
-    S.db.doc("events/" + f.id).merge(manualChange(cur, d) ? {...d, ser: {...cur.ser, x: 1}} : d);
+    // Porovnává se se skutečně zobrazeným koncem a srazem (událost bez polí = výchozí hodnoty), aby uložení beze změny nebylo „ruční úpravou“
+    const D = evDefaults(S.es), shown = {...cur, end: endOf({...cur, type: "training"}, D), meet: meetOf({...cur, type: "training"}, D)};
+    S.db.doc("events/" + f.id).merge(manualChange(shown, d) ? {...d, ser: {...cur.ser, x: 1}} : d);
     return true;
   }
   if (d.date !== cur.date) { toast("Datum se mění jen u jedné události – zvol „Jen tato“"); return false; }
@@ -128,7 +132,7 @@ export function serEditSave(f, d) {
   // Aktuální událost dostane i název a poznámku; ostatní jen čas, místo a termín přihlašování
   commitOps(plan.apply.map(x => ["merge", "events", x.id, x.id === cur.id ? {...d, ...x.d} : x.d]));
   const rel = relOf(cur.date, d.dl);
-  S.db.batch().merge(SERIES_COLL + "/" + cur.ser.id, {d: {time: d.time || "", place: d.place || "", ...(rel ? {dl: rel} : {})}, ed: {i: cur.ser.i, by: who(), at: new Date().toISOString()}}).commit();
+  S.db.batch().merge(SERIES_COLL + "/" + cur.ser.id, {d: {time: d.time || "", place: d.place || "", ...(d.end !== undefined ? {end: d.end || ""} : {}), ...(typeof d.meet === "number" ? {meet: d.meet} : {}), ...(rel ? {dl: rel} : {})}, ed: {i: cur.ser.i, by: who(), at: new Date().toISOString()}}).commit();
   toast("Upraveno událostí: " + plan.apply.length + (plan.skip.length ? ". Vynechány ručně upravené: " + dList(plan.skip.map(x => x.date)) : ""));
   return true;
 }

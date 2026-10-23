@@ -13,6 +13,7 @@ import {HK} from "../data/storage.js";
 import {cashflow} from "../domain/budget-track.js";
 import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
+import {evDefaults, timeParts} from "../domain/event-time.js";
 import {DAYS_AHEAD, flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
@@ -39,7 +40,9 @@ const CSS = `<style>
 const me = () => HK.pid() || HK.tid() || null;                        // člen, za kterého se ukazují odpovědi (hráčka / propojený trenér)
 const mineIds = () => [HK.pid(), HK.tid()].filter(Boolean);
 const fDay = s => DAYS[new Date(s + "T12:00:00").getDay()] + " " + fd(s);
-const when = e => fDay(e.date) + (e.time ? " · " + esc(e.time) : "") + (e.place ? " · " + esc(e.place) : "");
+// Den, čas od – do (trénink), ⏰ sraz (výchozí hodnoty z settings/events, S.es) a místo
+const timeTxt = e => { const t = timeParts(e, evDefaults(S.es)); return (t.range ? " · " + esc(t.range) : "") + (t.meet ? " · ⏰ sraz " + t.meet : ""); };
+const when = e => fDay(e.date) + timeTxt(e) + (e.place ? " · " + esc(e.place) : "");
 const ansHtml = e => e.ans ? `<span class="hma">${ANS[e.ans] || ""}</span>`
   : e.past || e.locked ? '<span class="hma mu">–</span>' : '<span class="hma" style="color:var(--wa)">❔ Odpověz</span>';
 // Varování cashflow z uloženého rozpočtu běžící sezóny (jen správce pokladny); chyba výpočtu přehled nezastaví

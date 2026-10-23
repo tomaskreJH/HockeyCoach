@@ -26,10 +26,11 @@ export function daysRange(today, n = DAYS_AHEAD) {
   const d = new Date(today + "T12:00:00"), end = new Date(d); end.setDate(d.getDate() + n - 1);
   return {from: iso(d), to: iso(end)};
 }
-// Sjednocený seznam tréninků (events) a zápasů (matches) pro přehled; zápas nese soupeře a doma / venku
+// Sjednocený seznam tréninků (events) a zápasů (matches) pro přehled; zápas nese soupeře a doma / venku.
+// end (konec tréninku) a meet (sraz v minutách) se přenesou beze změny – zobrazení dopočítá domain/event-time.js
 export function homeItems(ev, ma) {
-  const t = (ev || []).map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", place: e.place || "", dl: e.dl || ""}));
-  const m = (ma || []).map(x => ({id: x.id, type: "match", title: "Zápas – " + (x.opp || "?"), opp: x.opp || "", home: !!x.home, date: x.date || "", time: x.time || "", place: x.place || "", dl: x.dl || "", closed: !!x.closed, live: !!x.live}));
+  const t = (ev || []).map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", end: e.end || "", meet: e.meet, place: e.place || "", dl: e.dl || ""}));
+  const m = (ma || []).map(x => ({id: x.id, type: "match", title: "Zápas – " + (x.opp || "?"), opp: x.opp || "", home: !!x.home, date: x.date || "", time: x.time || "", meet: x.meet, place: x.place || "", dl: x.dl || "", closed: !!x.closed, live: !!x.live}));
   return [...t, ...m].filter(e => e.date);
 }
 // Přihlašování uzavřeno: po termínu dl nebo po dni události (stejné pravidlo jako v Událostech)

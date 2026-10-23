@@ -12,6 +12,12 @@ const DAY_MS = 86400000;
 
 // ===== Pomocné funkce =====
 const p2 = n => String(n).padStart(2, "0");
+// Přenese konec tréninku a sraz z src do dst, jen když jsou v src uvedené (starší volání bez nich výstup nemění)
+function timeKeys(src, dst) {
+  if (src && src.end !== undefined) dst.end = src.end || "";
+  if (src && typeof src.meet === "number") dst.meet = src.meet;
+  return dst;
+}
 // Datum ↔ milisekundy v UTC (bez posunů letního času)
 const msOf = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
 const isoOf = ms => { const d = new Date(ms); return d.getUTCFullYear() + "-" + p2(d.getUTCMonth() + 1) + "-" + p2(d.getUTCDate()); };
@@ -64,8 +70,8 @@ export function seriesTail(evs, cur) {
   if (!s || !s.id) return [];
   return (evs || []).filter(e => e.ser && e.ser.id === s.id && +e.ser.i >= +s.i).sort((a, b) => a.ser.i - b.ser.i);
 }
-// Plán úpravy „tato a další“: ch = {time, place, dl} nové hodnoty pro aktuální událost. Termín přihlašování se přenese
-// relativně (stejný počet dní předem a stejný čas). Ručně upravené události (ser.x) kromě aktuální se vynechají.
+// Plán úpravy „tato a další“: ch = {time, place, dl, end?, meet?} nové hodnoty pro aktuální událost. Termín přihlašování se přenese
+// relativně (stejný počet dní předem a stejný čas); konec tréninku a sraz (jsou-li v ch) beze změny. Ručně upravené události (ser.x) kromě aktuální se vynechají.
 // Vrací {apply: [{id, d}], skip: [události]}.
 export function editPlan(evs, cur, ch) {
   const rel = relOf(cur.date, ch.dl), apply = [], skip = [];
@@ -73,6 +79,7 @@ export function editPlan(evs, cur, ch) {
     if (e.id !== cur.id && e.ser.x) { skip.push(e); return; }
     const d = {time: ch.time || "", place: ch.place || ""};
     if (rel) d.dl = relDl(e.date, rel);
+    timeKeys(ch, d);
     apply.push({id: e.id, d});
   });
   return {apply, skip};
@@ -88,22 +95,24 @@ export function deletePlan(evs, cur, answered, today) {
   });
   return {del, keep};
 }
-// Byla událost série ručně změněna oproti stavu před úpravou? (čas, místo, termín přihlašování nebo datum)
-export const manualChange = (before, after) => ["date", "time", "place", "dl"].some(k => (before[k] || "") !== (after[k] || ""));
+// Byla událost série ručně změněna oproti stavu před úpravou? (datum, čas, konec, místo, termín přihlašování nebo sraz;
+// konec a sraz jen když je nová hodnota uvedena – úprava bez těchto polí je nepovažuje za změnu)
+export const manualChange = (before, after) => ["date", "time", "place", "dl"].some(k => (before[k] || "") !== (after[k] || ""))
+  || ["end", "meet"].some(k => after[k] !== undefined && (before[k] ?? "") !== (after[k] ?? ""));
 
 // ===== Zápisy =====
-// Zápisy pro založení série: o = {sid, ids (id událostí ve stejném pořadí jako dates), dates, rule, d: {title, time, place, note},
+// Zápisy pro založení série: o = {sid, ids (id událostí ve stejném pořadí jako dates), dates, rule, d: {title, time, place, note, end?, meet?},
 // rel: {d, t}, tpl (šablona pokladny; jen když ji smí zapsat správce pokladny a není výchozí "train"), by, at}.
 // Vrací {series: data dokumentu series/{sid}, ops: [["set", kolekce, id, data]]} – události a případně evcash/{id} = {tpl}.
 export function seriesOps(o) {
   const d = o.d || {}, ops = [];
   o.dates.forEach((date, i) => {
     const id = o.ids[i];
-    ops.push(["set", "events", id, {type: "training", title: d.title || "Trénink", date, time: d.time || "", place: d.place || "", dl: relDl(date, o.rel), note: d.note || "", lines: {}, ser: {id: o.sid, i: i + 1}}]);
+    ops.push(["set", "events", id, timeKeys(d, {type: "training", title: d.title || "Trénink", date, time: d.time || "", place: d.place || "", dl: relDl(date, o.rel), note: d.note || "", lines: {}, ser: {id: o.sid, i: i + 1}})]);
     if (o.tpl && o.tpl !== "train") ops.push(["set", "evcash", id, {tpl: o.tpl}]);
   });
   const series = {rule: {days: [...o.rule.days], every: +o.rule.every === 2 ? 2 : 1, from: o.rule.from, to: o.rule.to, skip: [...(o.rule.skip || [])]},
-    d: {title: d.title || "Trénink", time: d.time || "", place: d.place || "", note: d.note || "", dl: {d: +o.rel.d || 0, t: o.rel.t}, tpl: o.tpl || "train"},
+    d: timeKeys(d, {title: d.title || "Trénink", time: d.time || "", place: d.place || "", note: d.note || "", dl: {d: +o.rel.d || 0, t: o.rel.t}, tpl: o.tpl || "train"}),
     n: o.dates.length, by: o.by || "", at: o.at || ""};
   return {series, ops};
 }

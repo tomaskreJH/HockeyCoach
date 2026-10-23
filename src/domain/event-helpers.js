@@ -45,3 +45,11 @@ export function lineCounts(lines, pl, tr) {
   (tr || []).forEach(id => { const n = L[trKey(id)]; if (c.tr[n] != null) c.tr[n]++; });
   return c;
 }
+
+// ===== Počty odpovědí =====
+// Počty odpovědí členů ids na událost: A = {memberId: {st}} → {yes, no, maybe, none} (neznámý stav = bez odpovědi)
+export function answerCounts(A, ids) {
+  const r = {yes: 0, no: 0, maybe: 0, none: 0};
+  (ids || []).forEach(id => { const a = (A || {})[id]; if (a && r[a.st] != null) r[a.st]++; else r.none++; });
+  return r;
+}

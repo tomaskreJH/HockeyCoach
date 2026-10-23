@@ -35,6 +35,7 @@ const DOM_LAYERS = [
   "#cpay #cpx",                // okno úhrady (pokladna u události)
   "#mkq #mkx",                 // QR platba (Moje platby, banner dluhu)
   "#cset #csx",                // nastavení pokladny
+  "#evset #esx",               // nastavení událostí (sraz, délka tréninku)
   "#cfg #cz",                  // ⚙️ účet a data
   '#mod [data-pp="x"]',        // výběr hráčky na místo v sestavě
   "#mod #cl",                  // okna zápasu, hráčky, člena týmu, gólu a trestu

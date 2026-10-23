@@ -36,6 +36,8 @@ const SECTIONS = [
 <li><b>Trenér a kustod</b> odklikávají docházku hráček i realizačního týmu v detailu události (klepni na událost). Trenér / kustod propojený s realizačním týmem má na kartě události rychlá tlačítka za sebe.</li>
 <li><b>Detail události:</b> nahoře docházka, výsledek zápasu a rozdělení do pětek; pokladna (vyúčtování) je až na konci stránky.</li>
 <li><b>+ Trénink / + Zápas:</b> založení události. U zápasu se zadává i čas začátku, místo a konečný termín přihlašování (výchozí den předem v 18:00); po vytvoření se otevře detail události a hráčky se mohou přihlašovat. Zápas se otevře klepnutím na něj → 🏒 Otevřít zápas.</li>
+<li><b>📅 Čas od – do a ⏰ sraz:</b> trénink má čas začátku a konce (konec se sám nastaví na začátek + výchozí délku, dokud ho nezměníš), trénink i zápas mají sraz v minutách před začátkem (výchozí trénink 30 min, zápas 60 min; 0 = bez srazu). Karta, detail i 🏠 Domů ukazují např. „18:00 – 19:00 · ⏰ sraz 17:30“. Sraz i konec se mění u každé události přes ✏️ (u zápasu ✏️ Čas, místo, termín), série je přenese do všech tréninků. Výchozí hodnoty mění trenér a kustod v ⚙️ → ⏰ Nastavení událostí.</li>
+<li><b>Počty v tlačítkách:</b> rychlá tlačítka ✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý na kartě události ukazují, kolik hráček už tak odpovědělo.</li>
 <li><b>🔁 Opakovat (série tréninků, trenér a kustod):</b> v novém tréninku klepni na 🔁 Opakovat a vyber dny v týdnu, každý / každý 2. týden a datum „do“ (nejdéle konec sezóny 30. 6.; datum tréninku je první den série). Termín přihlašování se zadá relativně (např. 1 den předem v 18:00), trenér a pokladník volí i šablonu pokladny. V náhledu klepnutím vynecháš termíny (prázdniny, svátky) a tlačítkem <b>Vytvořit N tréninků</b> se založí všechny najednou.<br>Detail tréninku ze série ukazuje „🔁 Série: 3. z 30“. <b>✏️ Upravit</b> nabídne <b>Jen tato</b> (trénink se pak bere jako ručně upravený) nebo <b>Tato a další</b> (čas, místo a termín přihlašování – stejně dní předem – u této a dalších; ručně upravené vynechá a ukáže). <b>🗑 Jen tato</b> smaže jeden trénink, <b>🗑 Tato a další</b> smaže budoucí tréninky série bez odpovědí v docházce a bez vyúčtování (ostatní ponechá a vypíše).</li>
 <li><b>Rozdělení do pětek</b> (detail tréninku): 1.–4. pětka nebo „–“ u přihlášených hráček i u přihlášeného <b>realizačního týmu</b> 🎓 (kdo vede stanoviště nebo jde s pětkou; v souhrnu „+ 🎓1“). ↻ Podle základní formace rozdělí jen hráčky, přiřazení trenérů zůstane. Hráčka vidí rozdělení jen ke čtení.</li>
 <li><b>Uzavřený zápas:</b> v detailu události je výsledek, tlačítko <b>📋 Zápis utkání</b> (celý zápis jako v záložce Soupeři – vývoj zápasu, střely, střídání, čas na ledě, tisk a export) a statistiky zápasu pro všechny členy týmu.</li>
@@ -182,6 +184,7 @@ const SECTIONS = [
 <tr><td>Přihlásit se na trénink</td><td>Události → ✅ Jdu</td></tr>
 <tr><td>Založit trénink / zápas</td><td>Události → + Trénink / + Zápas</td></tr>
 <tr><td>Série tréninků</td><td>Události → + Trénink → 🔁 Opakovat</td></tr>
+<tr><td>Výchozí sraz a délka tréninku</td><td>⚙️ → ⏰ Nastavení událostí</td></tr>
 <tr><td>Přidat hráčku</td><td>Team → Soupiska (trenér)</td></tr>
 <tr><td>Nastavit pětky</td><td>Team → Základní formace</td></tr>
 <tr><td>Vybrat nominaci</td><td>Zápas → krok 2 → A Nominace</td></tr>
