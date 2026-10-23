@@ -4,6 +4,23 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v19.6.3 (23. 10. 2026) – 🏠 Domů: 👁 náhled živého zápasu pro členy (jen čtení, bez změny dat a pravidel)
+> **Nasazení:** 1) Záloha: zip současného repozitáře (data se nemění). 2) **firestore.rules beze změny – nepublikovat.** 3) Nahrát kód (nové soubory `src/domain/watch-feed.js`, `src/views/live-watch.js`, `tests/watch-feed.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6.3 v záhlaví.
+> **🔒 Vyžadovat verzi: ne.** Návrat na v19.6.2: nahrát předchozí zip.
+
+**Přidáno**
+- 🏠 Domů: členové bez práva zápisu (hráčka, pokladník bez role kustod) otevřou klepnutím na kartu **🔴 Zápas právě běží** náhled **👁 Živě – jen náhled**: skóre a střely (domácí vlevo), zbývající čas třetiny a třetina, stav ▶ hra běží / ⏸ přerušeno / 🏁 konec, průběh od nejnovějšího – góly s průběžným skóre, tresty, střely (přepínač Střely) a konce třetin. Bez sestav, střídání, času na ledě a zranění, žádné ovládání. Obnovuje se sám z databáze, čas mezi uloženími dopočítává místní odpočet.
+- `src/domain/watch-feed.js` – `watchClock`, `watchScore`, `watchFeed`, `WATCH_KINDS` (průběh z existující `timeline` bez střídání, skóre a střely ze `score` / `shots`); `src/views/live-watch.js` – pohled; `tests/watch-feed.test.js` (4 testy).
+
+**Změněno**
+- `src/views/home-view.js` – karta 🔴 pro ostatní členy je klepatelná (text „👁 Klepni pro čas a průběh zápasu →“), otevřený náhled se vykreslí místo přehledu; po uzavření zápasu se vrátí přehled. Trenér / kustod beze změny (▶ Do živého zápisu).
+- `src/core/state.js` (`S.hw`), `src/core/nav.js` (Zpět z náhledu → přehled 🏠 Domů), `src/views/shell.js` (přepnutí záložky náhled zavře).
+- `src/views/help.js` (sekce 🏠 Domů, rychlá reference), `docs/KONVENCE.md`, `docs/plan-v18.md`, `docs/prompt-dalsi-vlakno.md`, `README.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v68`).
+
+**Beze změny**
+- Živý zápis (`live-*.js`, `domain/live-engine.js`, `domain/timeline.js`), střely, góly, časomíra, tresty, ostatní karty 🏠 Domů, pokladna, statistiky, docházka, pravidla databáze. Místní posun času ◀ ▶ zapisovatele se neukládá, náhled ukazuje uložený čas.
+- Ověřeno: `npm test` (179, srovnávací test D1 beze změny), kouřový test v jsdom mimo repozitář (trenér, hráčka): start v 🏠 bez chyb; hráčka – karta 🔴 otevře náhled se skórem, střelami, časem a průběhem bez střídání, přepínač Střely, ← Domů i Zpět vrátí přehled, uzavření zápasu náhled zavře; trenér – karta beze změny (▶ Do živého zápisu, náhled se neotevře); žádný zápis do databáze.
+
 ## v19.6.2 (23. 10. 2026) – 🏠 Domů: příštích 7 dní místo tohoto týdne (jen čtení, bez změny dat a pravidel)
 > **Nasazení:** 1) Záloha: zip současného repozitáře (data se nemění). 2) **firestore.rules beze změny – nepublikovat.** 3) Nahrát kód (nic nového se nepřidává ani nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.6.2 v záhlaví.
 > **🔒 Vyžadovat verzi: ne.** Návrat na v19.6.1: nahrát předchozí zip.

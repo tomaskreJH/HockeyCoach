@@ -19,7 +19,7 @@
 //   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas),
 //   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
 //   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), Události (Minulé / Kalendář / Docházka) → Nadcházející,
-//      jiná záložka → 🏠 Domů,
+//      jiná záložka → 🏠 Domů, 👁 náhled živého zápasu → přehled 🏠 Domů,
 //   5) domovská stránka (🏠 Domů): dotaz „Ukončit aplikaci?“.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Potvrzovací okno -> Ukončení aplikace -> Zavření nejvyšší vrstvy -> Eventy -> Export.
 
@@ -125,6 +125,7 @@ function closeTop() {
   // 4) režimy a záložky
   if (S.tab === "fo" && S.tm && S.tm !== "team") { S.tm = "team"; render(); top0(); return true; }
   if (S.tab === "ev" && S.evm && S.evm !== "up") { S.evm = "up"; S.evd = null; render(); top0(); return true; }
+  if (S.tab === "home" && S.hw) { S.hw = null; render(); top0(); return true; }   // 👁 náhled živého zápasu → přehled
   if (S.tab !== "home") { S.tab = "home"; S.oid = null; S.evid = null; S.evf = null; S.evr = null; S.evBack = null; render(); top0(); return true; }
   // 5) domovská stránka
   return false;

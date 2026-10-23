@@ -1,6 +1,7 @@
 // 🏠 Domů – úvodní přehled (výchozí záložka po spuštění, vidí každý člen): běžící zápas, příští zápas, nadcházející události 7 dní
 // s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow);
-// trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js).
+// trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js). Klepnutí na běžící zápas otevře členům
+// bez práva zápisu 👁 náhled jen ke čtení (views/live-watch.js, stav S.hw), trenér / kustod jde do živého zápisu.
 // Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Nic nezapisuje. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Vykreslení karet -> Eventy -> Export.
 
@@ -14,6 +15,7 @@ import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {DAYS_AHEAD, flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
+import {liveWatchView, watchable} from "./live-watch.js";
 import {econData} from "./payments.js";
 import {render} from "./shell.js";
 
@@ -49,13 +51,13 @@ function flowOf() {
 }
 
 // ===== Vykreslení karet =====
-// 🔴 Běžící zápas: trenér / kustod rovnou do živého zápisu, ostatní jen skóre a třetina
+// 🔴 Běžící zápas: trenér / kustod rovnou do živého zápisu, ostatní klepnutím do 👁 náhledu (jen ke čtení)
 function liveHtml(L) {
   if (!L) return "";
   const names = L.home ? esc(TEAM_NAME) + " – " + esc(L.opp) : esc(L.opp) + " – " + esc(TEAM_NAME), sc = L.home ? L.us + " : " + L.them : L.them + " : " + L.us;
   const act = HK.can("sport") ? '<button class="p w" data-hlv style="margin-top:8px;min-height:52px">▶ Do živého zápisu</button>'
-    : '<div class="mu" style="text-align:center;margin-top:4px">Průběh zápasu uvidíš v detailu po jeho uzavření.</div>';
-  return `<div class="cd hml"><div class="hmh"><b style="color:var(--no)">🔴 Zápas právě běží</b><span class="tag">${esc(L.perText)}${L.ended ? "" : L.running ? " · ▶" : " · ⏸"}</span></div>
+    : '<div class="mu" style="text-align:center;margin-top:4px">👁 Klepni pro čas a průběh zápasu →</div>';
+  return `<div class="cd hml${HK.can("sport") ? "" : ' hmc" data-hwt="1'}"><div class="hmh"><b style="color:var(--no)">🔴 Zápas právě běží</b><span class="tag">${esc(L.perText)}${L.ended ? "" : L.running ? " · ▶" : " · ⏸"}</span></div>
 <div style="text-align:center;margin-top:6px"><b>${names}</b></div><div class="hms">${sc}</div>${act}</div>`;
 }
 // Příští zápas: soupeř, kdy a kde, doma / venku, moje odpověď a uzávěrka přihlašování
@@ -98,12 +100,17 @@ function bind(a, L) {
   a.querySelectorAll("[data-hjr]").forEach(b => b.onclick = () => openJoinWindow());
   a.querySelectorAll("[data-hbud]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "bud"; S.mid = null; S.evid = null; }));
   // Trenér / kustod: otevře kartu běžícího zápasu a v ní živý zápis (stejně jako ▶ Pokračovat v živém zápisu)
+  // Ostatní členové: 👁 náhled běžícího zápasu jen ke čtení
+  a.querySelectorAll("[data-hwt]").forEach(b => b.onclick = go(() => { if (L) S.hw = L.id; }));
   a.querySelectorAll("[data-hlv]").forEach(b => b.onclick = () => { if (!L || !HK.can("sport")) return; S.tab = "ev"; S.evid = null; S.mid = L.id; S.step = 3; S.lv = true; render(); });
 }
 
 // ===== Export =====
 // Vykreslení záložky 🏠 Domů do kontejneru a
 export function homeView(a) {
+  // Otevřený náhled živého zápasu; po uzavření zápasu (nebo zrušení živého zápisu) se vrátí přehled
+  if (S.hw && !HK.can("sport") && watchable(S.hw)) return liveWatchView(a);
+  S.hw = null;
   const now = Date.now(), today = td(), mid = me(), items = homeItems(S.ev, S.ma), L = liveMatch(S.ma);
   const nm = nextMatch(items, now, today), week = upcomingEvents(items, S.at, mid, now, today);
   const next = nm ? {...nm, ans: myAnswer(S.at, nm.id, mid), going: goingCount(S.at, nm.id), locked: regClosed(nm, now, today)} : null;

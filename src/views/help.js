@@ -19,7 +19,7 @@ const SECTIONS = [
   {t: "2. 🏠 Domů – úvodní přehled", h: `
 <ul>
 <li><b>🏠 Domů</b> je první záložka (ikona domečku vlevo v liště) a otevře se po spuštění aplikace. Vidí ji každý člen; nic se v ní nezapisuje – klepnutím se dostaneš tam, kde se věc vyřizuje.</li>
-<li><b>🔴 Zápas právě běží:</b> skóre a třetina běžícího zápasu. Trenér a kustod jdou tlačítkem <b>▶ Do živého zápisu</b> rovnou do zápisu; ostatní vidí jen skóre (průběh je v detailu po uzavření zápasu).</li>
+<li><b>🔴 Zápas právě běží:</b> skóre a třetina běžícího zápasu. Trenér a kustod jdou tlačítkem <b>▶ Do živého zápisu</b> rovnou do zápisu. Ostatní klepnutím na kartu otevřou <b>👁 náhled</b> jen ke čtení: skóre, střely, zbývající čas a třetina (▶ hra běží / ⏸ přerušeno) a průběh od nejnovějšího – góly, tresty, střely (střely lze skrýt) a konce třetin. Sestavy a čas na ledě náhled neukazuje, nic se v něm neovládá; obnovuje se sám. Zpět nebo <b>← Domů</b> vrátí přehled, po uzavření zápasu se náhled zavře sám.</li>
 <li><b>🆚 Příští zápas:</b> soupeř, datum a čas, místo, doma / venku, uzávěrka přihlašování, počet ✅ a tvoje odpověď. Klepnutím otevřeš detail zápasu a odpovíš tam (tlačítko ← Domů tě vrátí zpět).</li>
 <li><b>📅 Příštích 7 dní</b> (dnes a dalších 6 dní): nadcházející tréninky a zápasy s tvojí odpovědí – uplynulé (i dnešní po začátku) se nezobrazují, běžící zápas je v kartě 🔴 nahoře; <b>❔ Odpověz</b> = odpověď ještě chybí a přihlašování je otevřené. Trenér / kustod bez propojení s realizačním týmem vidí počet přihlášených ✅.</li>
 <li><b>💳 Moje platby:</b> ✅ vše zaplaceno, 💳 k úhradě (s nejbližší splatností), ⛔ po splatnosti (přihlášení „Jdu“ je zablokované, pokud nemáš výjimku). Klepnutím otevřeš Moje platby.</li>
@@ -178,6 +178,7 @@ const SECTIONS = [
 <table style="width:100%;border-collapse:collapse">
 <tr><th style="text-align:left">Úkol</th><th style="text-align:left">Kde</th></tr>
 <tr><td>Co mě čeká, příští zápas, stav plateb</td><td>🏠 Domů</td></tr>
+<tr><td>Sledovat běžící zápas</td><td>🏠 Domů → 🔴 karta zápasu</td></tr>
 <tr><td>Přihlásit se na trénink</td><td>Události → ✅ Jdu</td></tr>
 <tr><td>Založit trénink / zápas</td><td>Události → + Trénink / + Zápas</td></tr>
 <tr><td>Série tréninků</td><td>Události → + Trénink → 🔁 Opakovat</td></tr>

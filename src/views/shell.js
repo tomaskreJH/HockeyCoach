@@ -39,7 +39,7 @@ const oldBar = () => HK.outdated && HK.outdated() ? `<div style="flex-basis:100%
 export function tabs(){const all=[["home","🏠"],["ev","Události"],["fo","Team"],["st","Statistiky"],["op","Soupeři"]],base=onlyPl()?all.filter(([k])=>plTabs().includes(k)):all,list=hasMine()?[...base,["mk","Moje platby"]]:base,bar=oldBar()+pvBar(),nav=$("#nav");nav.style.flexWrap=bar?"wrap":"";nav.innerHTML=bar+list.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}"${k==="home"?HOME_BTN:""}>${l}</button>`).join("");
 const x=nav.querySelector("#pvx");if(x)x.onclick=()=>HK.endPreview();
 const o=nav.querySelector("#oldx");if(o)o.onclick=()=>HK.refresh();
-nav.querySelectorAll("button[data-t]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.mid=null;S.oid=null;S.evid=null;S.evf=null;S.evr=null;S.evBack=null;render()})}
+nav.querySelectorAll("button[data-t]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.hw=null;S.mid=null;S.oid=null;S.evid=null;S.evf=null;S.evr=null;S.evBack=null;render()})}
 export function render(){if(onlyPl()){if(!plTabs().includes(S.tab))S.tab="home";S.mid=null}if(S.tab==="mk"&&!hasMine())S.tab="home";tabs();const a=$("#app");
 if(S.err){a.innerHTML=`<div class="msg">${esc(S.err)}</div>`;return}
 if(!S.ready){a.innerHTML='<div class="msg">Načítám…</div>';return}
