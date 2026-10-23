@@ -4,6 +4,7 @@
 // Data: náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
 // V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Snapshot nese i podíl příspěvků (share) a měsíc (ym) v okamžiku uzavření.
 // Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
+// Cena na hlavu pro hráčky (evprice/{id}, Moje platby) se zapíše / smaže hned po dávce zvlášť – nepublikovaná pravidla nesmí zastavit vyúčtování.
 // Předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
 // Každá dávka, která mění předpisy, zapíše i veřejný souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
 // Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js, příspěvky, platy a měsíce ve views/money.js.
@@ -16,7 +17,7 @@ import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
-import {coveredBy, eventResult, suggestFlat} from "../domain/economy.js";
+import {PRICE_COLL, coveredBy, eventResult, priceDoc, suggestFlat} from "../domain/economy.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
@@ -79,6 +80,9 @@ export function settleEvent(ev, raw, force, d) {
   withDebtors(b, plan.set, plan.del);
   b.set("audit/" + uid(), auditDoc(ev.id, "close", k.payers.length + " předpisů, vybereme " + kc(k.collect) + " z " + kc(k.total)));
   b.commit();
+  // Cena na hlavu pro porovnání v Moje platby (mimo dávku; chybějící doplní ⚙️ → Pokladna → Doplnit ceny pro hráčky)
+  const pd = priceDoc(settle, raw.date);
+  if (pd) S.db.doc(PRICE_COLL + "/" + ev.id).set(pd);
   raw.ss = 1;
   return k;
 }
@@ -267,6 +271,8 @@ export function bindPay(a, ev) {
       delete cx.settle;
       S.db.batch().set("evcash/" + ev.id, cx).merge(evPath(ev), {ss: "__del"})
         .set("audit/" + uid(), auditDoc(ev.id, "reopen", "ruční znovuotevření vyúčtování")).commit();
+      // Otevřená událost nemá platnou cenu na hlavu (mimo dávku, stejně jako zápis při uzavření)
+      if ((S.pr || []).some(x => x.id === ev.id)) S.db.doc(PRICE_COLL + "/" + ev.id).delete();
       dr = null;
       toast("Vyúčtování znovu otevřeno");
     });

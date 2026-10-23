@@ -15,7 +15,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `src/core/app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), porovnání verzí, brána verze |
 | `src/core/` | stav `state.js` (`S`), `utils.js` (DOM, formát, čas, `csv`), `selectors.js` (čtení stavu, jména `pn` / `nm`, `matchesVs`), `actions.js` (ukládání zápasu, `confirm2`), `drag.js` (přetahování `makeDrag`), `nav.js` (Zpět), `table-sort.js` |
 | `src/data/storage.js` | datová vrstva: Firebase, přihlášení a role, **oprávnění `can(akce)`** (jediné místo), strážce zápisu `blocked()`, dávky, kontrola mazání, záloha / obnova, okno ⚙️ |
-| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, statistiky `player-stats.js`, pokladna, docházka, dlužníci, účty, opakování událostí `recurrence.js`, hospodaření události a měsíce `economy.js`) – testované v `tests/` |
+| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, statistiky `player-stats.js`, pokladna, docházka, dlužníci, účty, opakování událostí `recurrence.js`, hospodaření události a měsíce, Moje platby po měsících a ceny na hlavu `economy.js`) – testované v `tests/` |
 | `src/views/` | obrazovky: jen vykreslení a obsluha událostí, výpočty volají z `domain/` |
 | `src/views/live-*.js` | živý zápis: `live-view.js` (vykreslení, odpočty, upozornění), `live-panels.js` (menu ⋯ a panely: sestava, jednotky, zranění, brankářka, nastavení), `live-events.js` (obsluha klepnutí, odchod), `live-quick.js` (rychlý zápis gólu a trestu), `live-feedback.js` (vibrace, záblesk) |
 | `src/lib/qrcode.js` | knihovna QR (cizí kód, neupravovat) |

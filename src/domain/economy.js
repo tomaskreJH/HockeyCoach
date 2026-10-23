@@ -2,20 +2,30 @@
 // Událost krytá příspěvkem = skupina Příspěvek v ní neplatí a událost má náklady (pravidelný trénink, domácí zápas).
 // Příspěvky měsíce (předepsané i zaplacené, předpisy c_RRRR-MM) se dělí mezi kryté události měsíce podle nákladů; nevystavené = odhad ze soupisky.
 // Uzavřená událost s uloženým podílem (evcash.settle.share) si ho ponechá, zbytek příspěvků se dělí mezi ostatní kryté události.
-// Výpočty pokladny (calcCash), předpisy ani šablony se tu nemění – jen se čtou.
+// Moje platby: předpisy osoby po měsících (myMonths) a porovnání způsobu placení (compareMonths) z cen na hlavu evprice/{eid}
+// (priceDoc – zapisuje se při uzavření vyúčtování, čte každý člen). Výpočty pokladny (calcCash), předpisy ani šablony se tu nemění – jen se čtou.
 
 // ===== Importy =====
-import {CAT_SALARY, calcCash, contribEid, contribRows, costTotal, cxOf, evCash, fxOf, grpKey, r2} from "./cash.js";
+import {seasonOf} from "./attendance.js";
+import {CAT_SALARY, calcCash, chargeItem, contribEid, contribRows, costTotal, cxOf, evCash, exOf, fxOf, grpKey, grpOf, isContrib, r2, ymOk} from "./cash.js";
 
 // ===== Konstanty =====
 // Skupiny, kterým se navrhuje poplatek (Za událost, Osvobozené) – jen pokud v události platí
 export const SUGGEST_GROUPS = ["single", "exempt"];
+// Kolekce cen na hlavu uzavřených událostí (evprice/{eid} = {ym, date, tpl, head: {monthly, single, exempt}})
+export const PRICE_COLL = "evprice";
+// Skupiny plateb v ceně na hlavu
+const HEAD_GROUPS = ["monthly", "single", "exempt"];
 
 // ===== Pomocné funkce =====
 const cl = o => JSON.parse(JSON.stringify(o));
 const ceil = x => Math.ceil(x - 1e-9);
 const sum = (a, f) => (a || []).reduce((s, x) => s + (+f(x) || 0), 0);
 const inYm = (d, ym) => String(d || "").startsWith(ym);
+// Cena na hlavu s přesností na desetitisíciny (dělení nákladů počtem hráček se před koeficientem nezaokrouhluje)
+const r4 = n => Math.round((+n || 0) * 10000) / 10000;
+// Sezóna, do které patří měsíc (od začátku – „RRRR-08-01“), stejně jako Docházka
+const seasonKey = ym => seasonOf(ym + "-15").from;
 // Předepsáno a zaplaceno (zaplaceno nejvýše do výše předpisu)
 const owed = xs => ({amt: r2(sum(xs, x => x.amt)), paid: r2(sum(xs, x => Math.min(+x.paid || 0, +x.amt || 0))), n: xs.length});
 
@@ -114,6 +124,92 @@ export function suggestFlat(c, P, share) {
     return {who, collect: k.collect, res: r2(k.collect + sh - total)};
   };
   return {groups, n: pick.length, fxs, need, flat, calc: opt("calc"), flatOpt: opt("flat")};
+}
+
+// ===== Ceny na hlavu (evprice) =====
+// Cena na hlavu před koeficientem pro každou skupinu ze snapshotu uzavření: neplatí = 0, paušál = flat, výpočet = náklady ÷ počet hráček
+export function headOf(st) {
+  const n = +(st || {}).n || 0, total = +(st || {}).total || 0, who = (st || {}).who || {}, o = {};
+  HEAD_GROUPS.forEach(g => {
+    const w = who[g] || {};
+    o[g] = !w.pays ? 0 : w.mode === "flat" ? r4(+w.flat || 0) : n > 0 ? r4(total / n) : 0;
+  });
+  return o;
+}
+// Dokument evprice/{eid} z uzavřeného vyúčtování (st = evcash.settle) a data události; bez data null
+export function priceDoc(st, date) {
+  const d = String(date || "");
+  if (!st || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  return {ym: d.slice(0, 7), date: d, tpl: st.tpl || "", head: headOf(st)};
+}
+// Doplnění cen (⚙️ → Pokladna, idempotentní): ec = evcash [{id, settle}], D = {ev, ma}, have = evprice {eid: doc}.
+// Vrací {set: [{id, d}] – chybějící nebo jiné ceny, del: [id] – ceny bez uzavřeného vyúčtování nebo smazané události}.
+export function pricePlan(ec, D, have) {
+  const dateOf = id => ((D.ev || []).find(x => x.id === id) || (D.ma || []).find(x => x.id === id) || {}).date || "";
+  const set = [], keep = new Set();
+  (ec || []).forEach(x => {
+    const d = x.settle ? priceDoc(x.settle, dateOf(x.id)) : null;
+    if (!d) return;
+    keep.add(x.id);
+    if (JSON.stringify((have || {})[x.id] || null) !== JSON.stringify(d)) set.push({id: x.id, d});
+  });
+  const del = Object.keys(have || {}).filter(id => !keep.has(id));
+  return {set, del};
+}
+
+// ===== Moje platby po měsících =====
+// Měsíc předpisu: měsíc příspěvku, datum události; u smazané události podle splatnosti
+export function chargeYm(x, D) {
+  const i = chargeItem(x && x.eid, D);
+  return String(i.date || (x && x.due) || "").slice(0, 7);
+}
+// Předpisy osoby (ch = jen její předpisy) po měsících sezóny dne day (1. 8. – 1. 7.); částečná úhrada = zaplaceno v měsíci předpisu.
+// Vrací {season: {from, to}, months: [{ym, contrib: {amt, paid}, ev: {amt, paid}, amt, paid, rest, items}] od nejnovějšího, total: {amt, paid, rest}}.
+export function myMonths(ch, D, day) {
+  const season = seasonOf(day), by = {};
+  (ch || []).forEach(x => {
+    const ym = chargeYm(x, D);
+    if (!ymOk(ym) || seasonKey(ym) !== season.from) return;
+    const m = by[ym] = by[ym] || {ym, contrib: {amt: 0, paid: 0}, ev: {amt: 0, paid: 0}, items: []};
+    const k = isContrib(x) ? m.contrib : m.ev, amt = +x.amt || 0;
+    k.amt = r2(k.amt + amt); k.paid = r2(k.paid + Math.min(+x.paid || 0, amt));
+    m.items.push(x);
+  });
+  const months = Object.values(by).map(m => {
+    const amt = r2(m.contrib.amt + m.ev.amt), paid = r2(m.contrib.paid + m.ev.paid);
+    return {...m, amt, paid, rest: r2(amt - paid)};
+  }).sort((a, b) => b.ym.localeCompare(a.ym));
+  const total = {amt: r2(sum(months, m => m.amt)), paid: r2(sum(months, m => m.paid))};
+  total.rest = r2(total.amt - total.paid);
+  return {season, months, total};
+}
+
+// ===== Porovnání způsobu placení („Kdybych platila jinak“) =====
+// me = hráčka (s platebními poli z plpay), mm = výsledek myMonths, prices = evprice [{id, ym, date, head}], went = eid -> byla přihlášená,
+// contrib = výše příspěvku z nastavení pokladny, now = dnešní měsíc „RRRR-MM“ (budoucí měsíce se nepočítají).
+// Skutečnost = předepsáno v měsíci; druhý způsob = (příspěvek × koeficient, pokud by platila příspěvek) + cena na hlavu × koeficient
+// za uzavřené události, kde byla přihlášená a druhá skupina platí. Osvobozená hráčka nebo koeficient 0 → {skip}.
+// Vrací {grp, alt, fx, rows: [{ym, act, alt, n}] od nejnovějšího, total: {act, alt}, better: grp | alt | null (rozdíl pod 1 Kč)}.
+export function compareMonths(me, mm, prices, went, contrib, now) {
+  if (!me) return null;
+  if (exOf(me)) return {skip: "exempt"};
+  const fx = fxOf(me);
+  if (!(fx > 0)) return {skip: "fx0"};
+  const grp = grpOf(me), alt = grp === "monthly" ? "single" : "monthly", from = (mm || {}).season ? mm.season.from : "";
+  const act = {};
+  ((mm || {}).months || []).forEach(m => { act[m.ym] = m.amt; });
+  // Uzavřené události sezóny, kde byla přihlášená (do dnešního měsíce)
+  const mine = (prices || []).filter(p => ymOk(p.ym) && p.ym <= now && (!from || seasonKey(p.ym) === from) && went(p.id));
+  const yms = [...new Set([...Object.keys(act), ...mine.map(p => p.ym)])].filter(ym => ym <= now).sort().reverse();
+  const rows = yms.map(ym => {
+    const evs = mine.filter(p => p.ym === ym);
+    const base = alt === "monthly" ? ceil((+contrib || 0) * fx) : 0;
+    const a = base + sum(evs, p => ceil((+(p.head || {})[alt] || 0) * fx));
+    return {ym, act: r2(act[ym] || 0), alt: r2(a), n: evs.length};
+  });
+  const total = {act: r2(sum(rows, r => r.act)), alt: r2(sum(rows, r => r.alt))};
+  const d = total.alt - total.act;
+  return {grp, alt, fx, rows, total, better: Math.abs(d) < 1 ? null : d < 0 ? alt : grp};
 }
 
 // ===== Exporty =====

@@ -1,7 +1,8 @@
 /* Datová vrstva: Firebase (Firestore + přihlášení přes Google).
    Rozhraní `db`: collection/doc, set (celý dokument), merge (jen uvedená pole – ostatní pole dokumentu zůstanou), add, delete, onSnapshot
    a batch() pro atomické zápisy (úhrada = příjem do pokladny + předpis; uzavření vyúčtování = evcash + událost + předpisy + audit),
-   a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy. Struktura: Importy -> Konstanty a stav
+   a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy, collection(c).one(id) pro jediný vlastní dokument
+   (hráčka: plpay/{pid}). Ceny událostí na hlavu evprice doplní ⚙️ → Pokladna (domain/economy.js pricePlan). Struktura: Importy -> Konstanty a stav
    -> Pomocné funkce -> Náhled role -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Okno nastavení -> Zálohy -> Exporty.
    Náhled role: vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
    zařízení (sessionStorage), po znovunačtení stránky platí jako role účtu (main.js podle ní poslouchá jen povolená data).
@@ -21,6 +22,7 @@ import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
+import {PRICE_COLL, pricePlan} from "../domain/economy.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
@@ -53,8 +55,9 @@ const data = {};                       // zrcadlo dat pro export a zálohy
 const subs = {};                       // odběratelé změn podle kolekce
 const first = {};                      // už dorazil první snapshot kolekce?
 const listening = new Set();           // kolekce, které se právě poslouchají
-// Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (odvozuje se z předpisů, po obnově se přepočítá)
-const EXTRA = [DEBT_COLL];
+// Kolekce mimo zálohu: debtors = veřejný souhrn dlužníků bez částek (odvozuje se z předpisů, po obnově se přepočítá),
+// evprice = ceny uzavřených událostí na hlavu (odvozují se z evcash, po obnově se doplní v ⚙️ → Pokladna)
+const EXTRA = [DEBT_COLL, PRICE_COLL];
 [...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
@@ -135,6 +138,14 @@ function listenWhere(c, f, v, cb, er) {
     try { cb(view(c)); } catch (e) { console.error(e); }
   }, err => er && er(err));
 }
+// Poslech jednoho dokumentu (člen smí číst jen svůj, např. plpay/{pid}): odběratel dostane kolekci s nejvýše tímto dokumentem
+function listenOne(c, id, cb, er) {
+  onSnapshot(fsDoc(fs, c, id), snap => {
+    data[c] = snap.exists() ? {[id]: snap.data()} : {};
+    first[c] = true;
+    try { cb(view(c)); } catch (e) { console.error(e); }
+  }, err => er && er(err));
+}
 const view = c => ({docs: Object.entries(data[c]).map(([id, d]) => ({id, data: () => clone(d)}))});
 function fire(c) { subs[c].forEach(s => { try { s.cb(view(c)); } catch (e) { console.error(e); } }); }
 function subscribe(c, cb, er) {
@@ -176,6 +187,8 @@ function removeDoc(c, id) {
   }
   // Vyúčtování události (evcash) se maže spolu s ní
   if ((c === "matches" || c === "events") && isCash() && data.evcash[id]) deleteDoc(fsDoc(fs, "evcash", id)).catch(() => {});
+  // Cena události na hlavu pro hráčky (evprice) také
+  if ((c === "matches" || c === "events") && isCash() && data[PRICE_COLL][id]) deleteDoc(fsDoc(fs, PRICE_COLL, id)).catch(() => {});
   deleteDoc(fsDoc(fs, c, id)).catch(e => say("Smazání se nepovedlo: " + errTxt(e)));
 }
 // Předpisy jako seznam {id, ...data} a test člena realizačního týmu (pro souhrn dlužníků)
@@ -197,6 +210,16 @@ async function rebuildDebtors(ch) {
   await commitOps([...plan.set.map(x => ["set", DEBT_COLL, x.id, x.d]), ...plan.del.map(id => ["del", DEBT_COLL, id])]);
   return plan.set.length;
 }
+// Doplnění cen událostí na hlavu (evprice) ze snapshotů uzavření evcash (⚙️ → Pokladna, idempotentní – zapíše jen chybějící a změněné,
+// smaže ceny událostí bez uzavřeného vyúčtování). Vrací {set, del} počty, nebo null, když zápis zastavil strážce.
+async function rebuildPrices() {
+  if (blocked()) return null;
+  if (!isCash()) throw new Error("Doplnění cen smí jen trenér nebo pokladník");
+  const list = c => Object.entries(data[c]).map(([id, d]) => ({id, ...d}));
+  const plan = pricePlan(list("evcash"), {ev: list("events"), ma: list("matches")}, data[PRICE_COLL]);
+  await commitOps([...plan.set.map(x => ["set", PRICE_COLL, x.id, x.d]), ...plan.del.map(id => ["del", PRICE_COLL, id])]);
+  return {set: plan.set.length, del: plan.del.length};
+}
 // Dávka zápisů (atomicky): b.set("kolekce/id", data).delete("kolekce/id").commit()
 function makeBatch() {
   const b = writeBatch(fs), api = {
@@ -214,6 +237,7 @@ const db = {
   collection: c => ({
     onSnapshot: (cb, er) => subscribe(c, cb, er),
     where: (f, v) => ({onSnapshot: (cb, er) => listenWhere(c, f, v, cb, er)}),
+    one: id => ({onSnapshot: (cb, er) => listenOne(c, id, cb, er)}),
     add: async d => { const id = fsDoc(fsCol(fs, c)).id; writeDoc(c, id, d); return {id}; },
     // Nové id dokumentu (bez zápisu) – pro založení hráčky a jejích platebních polí v jedné dávce
     newId: () => fsDoc(fsCol(fs, c)).id
@@ -362,7 +386,7 @@ function openCfg() {
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
  <h3>Přihlášený účet</h3><div class="mu" style="margin-bottom:8px"><b>${esc(user.email)}</b> · ${esc(ROLES[role] || role)}${pv ? " (👁 náhled)" : ""}${cash && role !== "trener" ? " · 💰 pokladník" : ""}${role === "hracka" && data.players[pid] ? " · " + esc(data.players[pid].name) : ""}${staff && tid && data.staff[tid] ? " · 🎓 " + esc(data.staff[tid].name) : ""}<br>${navigator.onLine ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}</div><button class="s w" id="clo">Odhlásit</button>
  ${pvSection()}
- ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button>` : ""}
+ ${cashier ? `<h3>Pokladna</h3><button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button><div class="mu" style="margin:8px 0">Hráčky v Moje platby porovnávají způsob placení podle ceny uzavřených událostí na hlavu. Pro dříve uzavřené události (nebo po obnově zálohy) ceny doplň – opakování nic nepokazí.</div><button class="s w" id="cpr">💲 Doplnit ceny pro hráčky</button>` : ""}
  ${cashier ? `<h3>Členové týmu</h3><div class="mu" style="margin-bottom:8px">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? "" : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><div id="cmb" style="margin-bottom:8px"></div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${coach ? '<option value="trener">Trenér</option><option value="kustod" selected>Kustod</option>' : ""}<option value="hracka"${coach ? "" : " selected"}>Hráčka</option></select><select id="cmp"${coach ? ' style="display:none"' : ""}><option value="">— vyber hráčku —</option>${playerOpts()}</select><select id="cmt"><option value="">— člen realizačního týmu (volitelné) —</option>${staffOpts()}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>` : ""}
  ${staff ? `<h3>Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>` : ""}
  ${coach ? `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>` : ""}
@@ -384,6 +408,10 @@ function openCfg() {
   q("#cdb").onclick = async () => {
     try { const n = await rebuildDebtors(); if (n != null) say("Dlužníci přepočítáni (" + n + " s nezaplaceným předpisem)"); }
     catch (e) { say("Přepočet se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
+  };
+  q("#cpr").onclick = async () => {
+    try { const r = await rebuildPrices(); if (r) say(r.set || r.del ? "Ceny pro hráčky: zapsáno " + r.set + ", smazáno " + r.del : "Ceny pro hráčky jsou aktuální"); }
+    catch (e) { say("Doplnění se nepovedlo: " + errTxt(e) + " – je publikováno firestore.rules?"); }
   };
   renderMembers(el);
   // Výběr hráčky se ukáže jen u role Hráčka; člen týmu je volitelný u každé role (hráčka může být i členem týmu)

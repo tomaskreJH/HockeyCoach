@@ -39,9 +39,11 @@ export const getDoc = async ref => {
   const f = fb(), d = f && ref && ref.c === "members" ? (f.members || {})[ref.id] : null;
   return {exists: () => !!d, data: () => d || {}};
 };
-// Poslech kolekce: obsah z __fb.data[kolekce] se předá ihned
+// Poslech kolekce nebo jednoho dokumentu: obsah z __fb.data[kolekce] se předá ihned
 export const onSnapshot = (ref, cb) => {
   const f = fb(), d = f && ref && ref.c ? (f.data || {})[ref.c] : null;
+  // Odkaz na dokument (doc) dostane snímek dokumentu, odkaz na kolekci seznam dokumentů
+  if (ref && ref.id != null) { const x = (d || {})[ref.id]; if (f) cb({exists: () => x !== undefined, data: () => x}); return () => {}; }
   if (d) cb({docs: Object.entries(d).map(([id, x]) => ({id, data: () => x}))});
   return () => {};
 };

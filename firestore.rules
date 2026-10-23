@@ -119,6 +119,14 @@ service cloud.firestore {
 
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
     match /evcash/{id} { allow read, write: if isCash(); }
+    // Cena uzavřené události na hlavu evprice/{id} = {ym, date, tpl, head: {monthly, single, exempt}} (před koeficientem, 0 = skupina neplatí):
+    // čte každý člen (Moje platby – porovnání způsobu placení), zapisuje správce pokladny; celkové náklady ani dodavatelé tu nejsou
+    function priceOk(d) { return d.keys().hasOnly(['ym', 'date', 'tpl', 'head']) && d.ym is string && d.date is string && d.tpl is string && d.head is map; }
+    match /evprice/{id} {
+      allow read: if isMember();
+      allow create, update: if isCash() && priceOk(request.resource.data);
+      allow delete: if isCash();
+    }
 
     // ===== Docházka: dokument {eid}_{pid} s poli eid, pid, st, at, by =====
     // Důvod omluvy je v attnote/{eid}_{pid}; pole reason v docházce nejde zapsat, jen smazat (čte ji každý člen).

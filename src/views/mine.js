@@ -1,5 +1,7 @@
 // Moje platby: člen vidí jen své předpisy, zaplacené částky, dluh a QR platbu. Banner s upozorněním na dluh v Událostech.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Banner -> QR okno -> Vykreslení -> Export.
+// Přepínač 📄 Předpisy / 📅 Po měsících (S.mk): měsíce sezóny (předepsáno – příspěvek a události, zaplaceno, zbývá; klepnutím rozbalit)
+// a u hráčky karta ⚖️ Kdybych platila jinak (domain/economy.js myMonths, compareMonths; ceny uzavřených událostí na hlavu S.pr = evprice).
+// Struktura: Importy -> Stav -> Pomocné funkce -> Banner -> QR okno -> Po měsících -> Vykreslení -> Export.
 // Data: S.ch (u člena jen jeho předpisy, mid = pid / tid), nastavení pokladny S.cc (IBAN hlavního a provozního účtu). Předpis měsíčního příspěvku má eid "c_RRRR-MM" (F4).
 // QR je formát SPD (české QR platby) generovaný lokálně (src/lib/qrcode.js).
 // Zpráva pro příjemce: za co se platí + jméno plátce (chargeMsg v cash.js – uložená v předpisu, u starších sestavená); je u předpisu, v QR okně i v QR kódu (MSG).
@@ -15,10 +17,12 @@
 
 // ===== Importy =====
 import {S} from "../core/state.js";
-import {esc, fd, toast} from "../core/utils.js";
+import {esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
-import {accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash} from "../domain/cash.js";
+import {seasonOf} from "../domain/attendance.js";
+import {GRP, accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, fxPct, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
+import {compareMonths, myMonths} from "../domain/economy.js";
 import qrcode from "../lib/qrcode.js";
 import {qrFileName, saveQrImage} from "./qr-image.js";
 import {render} from "./shell.js";
@@ -115,6 +119,49 @@ function qrHtml() {
   return `<div class="md" id="mkq"><div class="mb"><h2>📱 Platba</h2><div class="mu" style="margin-bottom:10px">${esc(p.title)} · ${kc(p.amt)}</div>${body}${list}<button class="s w" id="mkx" style="margin-top:14px;min-height:52px">Zavřít</button></div></div>`;
 }
 
+// ===== Po měsících =====
+// Pohled Moje platby: v = "list" | "mon", day = den určující sezónu, open = rozbalený měsíc
+const mk = () => (S.mk = S.mk || {v: "list", day: td(), open: null});
+// Sezóna jako text „2026/27“
+const seasonTxt = se => se.from.slice(0, 4) + "/" + se.to.slice(2, 4);
+// Řádek předpisu v rozbaleném měsíci (s tlačítkem QR u nezaplaceného)
+function monItem(x) {
+  const i = chargeItem(x.eid, S), rest = restOf(x);
+  return `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px"><span>${esc(i.title)}${i.date && i.type !== "contrib" ? " · " + fd(i.date) : ""}<br><span class="mu">předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(Math.min(+x.paid, +x.amt || 0)) : ""}</span></span>${rest ? `<button class="p" data-mq="${x.id}" style="flex:0 0 auto">📱 ${kc(rest)}</button>` : '<span class="tag pp">zaplaceno</span>'}</div>`;
+}
+// Karta jednoho měsíce: předepsáno (příspěvek / události), zaplaceno, zbývá; klepnutím rozbalit předpisy
+function monCard(m, open) {
+  const parts = [m.contrib.amt ? "příspěvek " + kc(m.contrib.amt) : "", m.ev.amt ? "události " + kc(m.ev.amt) : ""].filter(Boolean).join(" · ");
+  const list = open ? `<div style="margin-top:6px;border-top:1px solid var(--bd);padding-top:4px">${m.items.slice().sort((p, q) => (chargeItem(p.eid, S).date || "").localeCompare(chargeItem(q.eid, S).date || "")).map(monItem).join("")}</div>` : "";
+  return `<div class="cd"><div data-mkm="${m.ym}" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${open ? "▾" : "▸"} ${esc(ymLabel(m.ym))}</b><span class="tag ${m.rest ? "sh" : "pp"}">${m.rest ? "zbývá " + kc(m.rest) : "zaplaceno"}</span></div>
+<div class="mu">Předepsáno ${kc(m.amt)}${parts ? " (" + parts + ")" : ""} · zaplaceno ${kc(m.paid)}</div></div>${list}</div>`;
+}
+// Karta ⚖️ Kdybych platila jinak (jen hráčka): skutečnost po měsících vs. druhý způsob placení – jen informace
+function cmpCard(mm) {
+  const pid = HK.pid(), me = pid ? S.pl.find(p => p.id === pid) : null;
+  if (!me) return "";
+  const went = eid => S.at.some(x => x.eid === eid && x.pid === pid && x.st === "yes");
+  const r = compareMonths(me, mm, S.pr, went, cashCfg(S.cc).contrib, ymNow());
+  const head = '<h2>⚖️ Kdybych platila jinak</h2>';
+  if (!r) return "";
+  if (r.skip) return `<div class="cd">${head}<div class="mu">${r.skip === "exempt" ? "Jsi osvobozená – porovnání způsobu placení se tě netýká." : "Máš koeficient 0 % – neplatíš příspěvek ani za události."}</div></div>`;
+  const altTxt = GRP[r.alt], rows = r.rows.length ? r.rows.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px"><span>${esc(ymLabel(x.ym))}</span><span>${kc(x.act)} → <b>${kc(x.alt)}</b>${r.alt === "single" ? ` <span class="mu">(${x.n} ${x.n === 1 ? "událost" : x.n >= 2 && x.n <= 4 ? "události" : "událostí"})</span>` : ""}</span></div>`).join("") : '<div class="mu">V této sezóně zatím není co porovnat.</div>';
+  const diff = r2(Math.abs(r.total.alt - r.total.act));
+  const verdict = !r.rows.length ? "" : r.better === r.alt ? `Výhodnější by byl způsob <b>${esc(altTxt)}</b> (o ${kc(diff)}).` : r.better === r.grp ? `Tvůj současný způsob <b>${esc(GRP[r.grp])}</b> je výhodnější (o ${kc(diff)}).` : "Oba způsoby vycházejí stejně.";
+  const how = r.alt === "single" ? "kolik bys zaplatila za uzavřené události, na kterých jsi byla přihlášená (cena na hlavu × tvůj koeficient)" : "kolik by stál příspěvek (" + kc(cashCfg(S.cc).contrib) + " × tvůj koeficient) a události, kde platí i hráčky s příspěvkem";
+  return `<div class="cd">${head}<div class="mu">Platíš: <b>${esc(GRP[r.grp])}</b>, koeficient ${fxPct(r.fx)}. Vlevo skutečně předepsáno, vpravo ${how}.</div>${rows}
+${r.rows.length ? `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;border-top:1px solid var(--bd);padding-top:6px"><b>Sezóna celkem</b><b>${kc(r.total.act)} → ${kc(r.total.alt)}</b></div><div style="margin-top:6px">${verdict}</div>` : ""}
+<div class="mu" style="margin-top:6px">Jen informace. Neuzavřené události se nepočítají, příspěvek podle dnešní výše. Změnu způsobu placení domluv s pokladníkem.</div></div>`;
+}
+// Pohled 📅 Po měsících: sezóna (◀ ▶), souhrn sezóny, měsíce od nejnovějšího, porovnání způsobu placení
+function monthsHtml(items) {
+  const o = mk(), mm = myMonths(items, S, o.day), se = mm.season;
+  const nav = `<div class="row" style="align-items:center;margin-bottom:8px"><button class="s" data-mks="-1" style="flex:0 0 auto">◀</button><b style="text-align:center">Sezóna ${seasonTxt(se)}</b><button class="s" data-mks="1" style="flex:0 0 auto">▶</button></div>`;
+  const tot = `<div class="grid3"><div class="stat"><b>${kc(mm.total.amt)}</b>předepsáno</div><div class="stat"><b style="color:var(--ok)">${kc(mm.total.paid)}</b>zaplaceno</div><div class="stat"><b style="color:${mm.total.rest ? "var(--no)" : "inherit"}">${kc(mm.total.rest)}</b>zbývá</div></div>`;
+  const list = mm.months.length ? mm.months.map(m => monCard(m, o.open === m.ym)).join("") : '<div class="msg">V této sezóně nemáš žádné předpisy.</div>';
+  return nav + tot + list + cmpCard(mm);
+}
+
 // ===== Vykreslení =====
 export function mineView(a) {
   const my = ids();
@@ -134,8 +181,14 @@ export function mineView(a) {
     return `<div class="cd"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(i.title)}</b><span class="tag ${rest ? (od ? "red" : "sh") : "pp"}">${rest ? (od ? "po splatnosti" : "k úhradě") : "zaplaceno"}</span></div>
 <div class="mu">${i.date ? fd(i.date) + " · " : ""}předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${x.exc && rest ? " · 🔓 výjimka od blokace" : ""}</div>${rest ? `<div class="mu">${two ? "Na účet: <b>" + esc(accName(cfg, accOf(x, cfg))) + "</b> · " : ""}VS <b>${esc(x.vs || vsHash(x.id))}</b> · zpráva: <b>${esc(qrMsg(chargeMsg(x, S)))}</b></div>` : ""}${rest ? `<button class="p w" data-mq="${x.id}" style="margin-top:8px;min-height:48px">📱 Zaplatit ${kc(rest)} (QR)</button>` : ""}</div>`;
   }).join("") : '<div class="msg">Zatím nemáš žádné předpisy.</div>';
-  a.innerHTML = `${err}<h2 style="margin:0 0 10px">💳 Moje platby</h2>${grid}${state}${sum}${list}` + qrHtml();
-  a.querySelectorAll("[data-mq]").forEach(b => b.onclick = () => { qr = b.dataset.mq; render(); });
+  const o = mk(), tabs = `<div class="row" style="margin-bottom:10px"><button class="${o.v === "list" ? "p" : "s"}" data-mkv="list">📄 Předpisy</button><button class="${o.v === "mon" ? "p" : "s"}" data-mkv="mon">📅 Po měsících</button></div>`;
+  const body = o.v === "mon" ? monthsHtml(d.items) : sum + list;
+  a.innerHTML = `${err}<h2 style="margin:0 0 10px">💳 Moje platby</h2>${grid}${state}${tabs}${body}` + qrHtml();
+  a.querySelectorAll("[data-mq]").forEach(b => b.onclick = e => { e.stopPropagation(); qr = b.dataset.mq; render(); });
+  // Přepínač pohledu, posun sezóny a rozbalení měsíce
+  a.querySelectorAll("[data-mkv]").forEach(b => b.onclick = () => { mk().v = b.dataset.mkv; render(); });
+  a.querySelectorAll("[data-mks]").forEach(b => b.onclick = () => { const k = mk(), y = +seasonOf(k.day).from.slice(0, 4) + (+b.dataset.mks); k.day = y + "-09-01"; k.open = null; render(); });
+  a.querySelectorAll("[data-mkm]").forEach(b => b.onclick = () => { const k = mk(); k.open = k.open === b.dataset.mkm ? null : b.dataset.mkm; render(); });
   // Hráčka potvrdila ověření nového účtu: zapamatuje se v zařízení a ukáže se QR
   const ok = a.querySelector("[data-mkok]");
   if (ok) ok.onclick = () => { const p = payData(cashCfg(S.cc)); if (p && p.iban) markSeen(p.iban); render(); };

@@ -3,7 +3,7 @@
 
 // ===== Konstanty =====
 // Název cache se mění s každou verzí (hokej-vNN, číslo jen roste), aby se stará kopie aplikace zahodila; přiřazení k verzím je v CHANGELOG.md
-const C = "hokej-v59", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const C = "hokej-v60", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/";
 
 // ===== Instalace a aktivace =====
