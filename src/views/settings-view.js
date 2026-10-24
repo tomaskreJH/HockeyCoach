@@ -48,7 +48,7 @@ function verInfo() {
 // 👤 Účet: e-mail, role, připojení, odhlášení, verze aplikace (vždy vidět, nesbaluje se)
 function accountHtml(coach, staff) {
   const a = C().acct();
-  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${coach ? "" : verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div></div>`;
+  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}${a.legacy ? `<br><span style="color:var(--wa)">⚠️ Tvůj účet má starou roli (před převodem) – databáze mu nedovolí správu ani zápis za tým. Požádej managera o ⚙️ → 💾 Data → 🔁 Převod rolí.</span>` : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${coach ? "" : verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div></div>`;
 }
 // 👥 Tým a členové: ✋ žádosti o přijetí (manager), seznam členů, formulář přidání až po rozkliknutí
 function teamHtml(coach) {
@@ -148,7 +148,8 @@ async function renderRoles(el, close) {
   const intro = `<div class="mu" style="margin-bottom:6px">Nové role: <b>Manager</b> = vše (členové, ✋ žádosti, obnova, účty pro QR, brána verze), <b>Trenér</b> = sport (zápasy, události, docházka, soupeři, formace, soupiska, realizační tým), <b>Asistent</b> = dřívější Kustod beze změny. Trenér, který nebude managerem, dostane příznak 💰 Pokladník – pokladna se mu nezmění. Zaškrtni, kdo bude Manager (aspoň jeden):</div>${chk}<div class="mu" id="crp" style="margin:8px 0"></div>`;
   const gate = st.gate ? `<button class="s w" id="crc" style="margin-bottom:8px">🔁 Převést role</button>`
     : `<div class="mu" style="margin-bottom:8px">⚠️ Převést půjde, až budou všechna zařízení na v${esc(APP_VERSION)} a nastavíš v sekci 🔒 Aplikace <b>🔒 Vyžadovat verzi</b> (aspoň v${esc(st.min)}) – starší verze nové role neznají a člena by nepustily dál.</div>`;
-  box.innerHTML = intro + gate;
+  const warn = `<div class="mu" style="margin-bottom:6px;color:var(--wa)">⚠️ Účty se starou rolí mají od v20.6 v databázi jen omezená práva (stará Kustod žádná, Trenér bez převodu jen jako Trenér) – převeď je.</div>`;
+  box.innerHTML = warn + intro + gate;
   const picked = () => [...box.querySelectorAll("[data-rm]")].filter(c => c.checked).map(c => c.dataset.rm);
   // Náhled plánu podle zaškrtnutí: kdo → na co, počet managerů, chyba
   const draw = () => {

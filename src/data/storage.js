@@ -11,7 +11,7 @@
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
    Minimum nastavuje jen manager (⚙️ → 🔒 Aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
-   Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; staré kustod = asistent, trener bez rv = manager);
+   Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; staré kustod = asistent, trener bez rv = manager – jen v aplikaci, pravidla databáze staré role neznají);
    matice práv settings/perm (zapisuje jen manager, ⚙️ → 🔐 Práva rolí) se předává do HK.can a HK.perm – chybějící dokument = výchozí práva.
    Účet Google bez členství vidí formulář ✋ žádosti o přijetí (joinreq/{e-mail}, views/join-view.js), manager ji vyřídí v okně z 🏠 / ⚙️.
    Pokladník (bez role manager) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze).
@@ -37,7 +37,7 @@ import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL, isGuest} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
 import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
-import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf, keepsManager, managerCount, permClean, permDoc, permOf, roleLabel, roleOf, rolePlan} from "../domain/permissions.js";
+import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf, isLegacy, keepsManager, managerCount, permClean, permDoc, permOf, roleLabel, roleOf, rolePlan} from "../domain/permissions.js";
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
@@ -409,7 +409,8 @@ async function boot() {
 const meEmail = () => (user ? user.email.toLowerCase() : "");
 // Přihlášený účet pro záhlaví ⚙️: e-mail, popis role, náhled, pokladník, propojená hráčka / člen týmu
 const acct = () => ({email: user ? user.email : "", label: pv ? ROLES[role] || role || "?" : roleLabel(stored.role, stored.rv), preview: !!pv, cash: cash && role !== "manager",
-  player: PID_ROLES.includes(role) && data.players[pid] ? data.players[pid].name : "", staff: isStaff() && tid && data.staff[tid] ? data.staff[tid].name || "" : ""});
+  player: PID_ROLES.includes(role) && data.players[pid] ? data.players[pid].name : "", staff: isStaff() && tid && data.staff[tid] ? data.staff[tid].name || "" : "",
+  legacy: !pv && isLegacy(stored.role, stored.rv)});   // účet se starou rolí (kustod, trener bez rv) – pravidla mu od v20.6 nedají správcovská práva
 // Hráčky pro výběr při propojení účtu (bez ukončených), seřazené podle jména; hostující mají značku 🎟
 const playerList = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
   .map(([id, p]) => ({id, label: (p.num ? "#" + p.num + " " : "") + p.name + (isGuest(p) ? " 🎟" : "")}));

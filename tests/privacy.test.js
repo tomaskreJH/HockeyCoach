@@ -262,10 +262,10 @@ test("pravidla: stará citlivá pole nejde zapsat (jen smazat), pokladník soupi
   assert.match(rules, /function noKeys\(ks\) \{ return !request\.resource\.data\.keys\(\)\.hasAny\(ks\); \}/);
   assert.match(rules, /function keepOut\(ks\) \{ return !request\.resource\.data\.diff\(resource\.data\)\.addedKeys\(\)\.hasAny\(ks\) && !request\.resource\.data\.diff\(resource\.data\)\.changedKeys\(\)\.hasAny\(ks\); \}/);
   const p = ruleBlock(rules, "match /players/{id}"), t = ruleBlock(rules, "match /staff/{id}"), a = ruleBlock(rules, "match /attendance/{id}");
-  assert.match(p, /allow create: if isCoach\(\) && noKeys\(\['grp', 'fx', 'ex', 'note'\]\);/);
-  assert.match(p, /allow update: if keepOut\(\['grp', 'fx', 'ex', 'note'\]\) && \(isCoach\(\)/);
-  assert.match(t, /allow create: if isCoach\(\) && noKeys\(\['pay'\]\);/);
-  assert.match(t, /allow update: if isCoach\(\) && keepOut\(\['pay'\]\);/);
+  assert.match(p, /allow create: if isRoster\(\) && noKeys\(\['grp', 'fx', 'ex', 'note'\]\);/);
+  assert.match(p, /allow update: if keepOut\(\['grp', 'fx', 'ex', 'note'\]\) && \(isRoster\(\)/);
+  assert.match(t, /allow create: if isRoster\(\) && noKeys\(\['pay'\]\);/);
+  assert.match(t, /allow update: if isRoster\(\) && keepOut\(\['pay'\]\);/);
   assert.match(a, /allow create: if noKeys\(\['reason'\]\) && \(isStaff\(\)/);
   assert.match(a, /allow update: if keepOut\(\['reason'\]\) && \(isStaff\(\)/);
   [p, t].forEach(x => assert.ok(!x.includes("isCash()"), "pokladník platby zapisuje jen do plpay / staffpay"));

@@ -129,7 +129,7 @@ test("pravidla: výchozí matice permDef = DEFAULT_PERMS, účinná role a can()
   assert.ok(lit, "chybí permDef");
   const parsed = JSON.parse("{" + lit[1].replace(/'/g, '"') + "}");
   assert.deepEqual(parsed, JSON.parse(JSON.stringify(DEFAULT_PERMS)));
-  assert.match(r, /function roleFix\(m\) \{ return m\.role == 'kustod' \? 'asistent' : \(\(m\.role == 'trener' && m\.get\('rv', 0\) != 2\) \? 'manager' : m\.role\); \}/);
+  assert.match(r, /function myRole\(\) \{ return role\(\); \}/);
   assert.match(r, /function canAs\(r, mod, act\) \{ return r == 'manager' \|\| \(r in \['trener', 'asistent', 'hracka'\] && permVal/);
   assert.match(r, /function can\(mod, act\) \{ return isMember\(\) && canAs\(myRole\(\), mod, act\); \}/);
   assert.match(r, /function permSettingsOk\(\) \{\s+return isMgr\(\)/);

@@ -101,8 +101,8 @@ test("pravidla joinreq: založení jen vlastní e-mail bez členství, čte vlas
   assert.ok(i > 0, "pravidlo pro joinreq");
   assert.match(rules, /function joinOwner\(email\) \{ return signedIn\(\) && email == mail\(\) && !isMember\(\); \}/);
   assert.match(rules, /d\.keys\(\)\.hasOnly\(\['email', 'nick', 'num', 'kind', 'note', 'st', 'at'\]\)\s+&& d\.email == email && d\.st == 'open'/);
-  assert.match(blk, /allow read: if signedIn\(\) && \(email == mail\(\) \|\| isCoach\(\)\);/);
+  assert.match(blk, /allow read: if signedIn\(\) && \(email == mail\(\) \|\| isMgr\(\)\);/);
   assert.match(blk, /allow create: if joinOwner\(email\) && joinForm\(email, request\.resource\.data\);/);
   assert.match(blk, /86400000/);
-  assert.match(blk, /allow delete: if isCoach\(\) \|\| \(signedIn\(\) && email == mail\(\) && resource\.data\.st == 'open'\);/);
+  assert.match(blk, /allow delete: if isMgr\(\) \|\| \(signedIn\(\) && email == mail\(\) && resource\.data\.st == 'open'\);/);
 });

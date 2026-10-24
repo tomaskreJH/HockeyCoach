@@ -4,6 +4,27 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.6 (24. 10. 2026) – OM3: zúžení pravidel databáze podle rolí ⚠️ SAHÁ NA PLATBY (pravidla pokladny: kdo je správce pokladny a kdo navrhuje účty)
+> **Nasazení (pořadí je důležité):** 1) Záloha (⚙️ → 💾 Data → Stáhnout zálohu) a zip současného repozitáře. 2) Nahrát kód (nový soubor `tests/rules-narrow.test.js`, nic se nemaže). 3) Na všech zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.6. 4) **Publikovat firestore.rules AŽ PO nahrání kódu** (zúžení – starší pravidla s novým kódem fungují beze změny). 5) Test na telefonu: Manager (členové, ✋ žádosti o přijetí, 🔒 brána verze, pokladna), Trenér s 💰 (pokladna, soupiska, realizační tým), Trenér bez 💰 (soupiska, realizační tým, události; ⚙️ bez pokladny a členů), Asistent (docházka, 🤕 stav hráčky, formace), Hráčka, Hostující (👁 Náhled role i skutečné účty). 6) **🔒 Vyžadovat verzi v20.6** (doporučeno).
+> **Podmínka:** 🔁 převod rolí hotový (ověř v ⚙️ → 💾 Data: „✅ Role jsou převedené“). Účet se starou rolí ukáže v ⚙️ → 👤 Účet upozornění a databáze mu nedovolí správu ani zápis za tým. Návrat: pravidla vrátit z historie v konzoli Firebase (*Firestore → Rules*), pak nahrát zip v20.5.1.
+
+**Změněno**
+- `firestore.rules` – **jen nové role**: odstraněny `isCoach`, `roleFix` a stará role `kustod`, pravidla nečtou `rv` (`myRole` = uložená role). Nové pomocné funkce: `isMgr` = manager, `isRoster` = manager a trener, `isStaff` = manager, trener, asistent.
+  - **Jen manager** (`isMgr`): členové týmu (`members` – číst, přidat, změnit, odebrat; pokladník dál jen hráčky), ✋ žádosti o přijetí (`joinreq` – číst, vyřídit, smazat), 🔒 brána verze (`settings/app`), návrh změny účtů pro QR (`ibanPend`), smazání neschváleného rozpočtu (`budget`).
+  - **Správce pokladny** (`isCash`) = manager nebo příznak 💰 `cash` (dříve i každý trener) – pokladna, předpisy, platy, ceny, rozpočet, audit, `staffpay`, `plpay`, žádosti o změnu placení.
+  - **Soupiska a realizační tým** (`players`, `staff`): manager a trener (`isRoster`); asistent u hráčky dál jen stav `st`.
+  - Docházka, důvody, žádosti o účast, nepřítomnost, veřejné `evpub` / `lineuppub` a ostatní `settings`: manager, trener, asistent (bez `kustod`).
+  - Matice `can(modul, akce)` beze změny výpočtu (stará role se v ní nenajde = žádné právo).
+- `src/data/storage.js` – `HK.cfg.acct().legacy` (účet se starou rolí mimo náhled); `src/views/settings-view.js` – upozornění v 👤 Účet a v 🔁 Převodu rolí, že stará role nemá v databázi správcovská práva.
+- `src/views/help.js` (role, převod, účty pro QR navrhuje manager, členové, soupiska, „trenér a pokladník“ = správce pokladny), `README.md` (verze, tabulka rolí), `docs/KONVENCE.md` (pravidla, `isMgr` / `isRoster` / `isStaff` / `isCash`), `docs/plan-v18.md`, `docs/prompt-dalsi-vlakno.md` (další v20.7 N), testy textu pravidel (`tests/role-perms.test.js`, `tests/perm-matrix.test.js`, `tests/join-requests.test.js`, `tests/privacy.test.js`, `tests/project.test.js`), verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v80`).
+
+**Přidáno**
+- `tests/rules-narrow.test.js` (4): **srovnání – zkratky `HK.can` nových rolí (s 💰 i bez) jsou stejné jako ve v20.5**; role v pravidlech odpovídají aplikaci (`isMgr` = `admin`, `isRoster` = `roster`, `isStaff` = `sport`, `isCash` = manager nebo `cash`); text pravidel bez `'kustod'`, `isCoach`, `roleFix` a čtení `rv`; členové, žádosti, brána verze, účty a mazání rozpočtu jen manager.
+
+**Beze změny**
+- Práva v aplikaci (`HK.can`, `HK.perm`, matice `settings/perm`) – viditelný rozdíl jen u účtu Trenér bez 💰: v databázi ztratil to, co mu aplikace už od v20.4 nenabízela (členy, žádosti o přijetí, pokladnu, bránu verze, návrh účtů). Živý zápis, statistiky, docházka, zrušení událostí, žádosti, nepřítomnost, hostující, výpočty pokladny.
+- Ověřeno: `npm test` (242/242); kouřový test v jsdom (Manager, Trenér s 💰 i bez, Asistent, Hráčka s 💰 i bez, Hostující, stará role trener bez `rv` a kustod; min. verze v20.6): start bez chyb, sekce ⚙️ (`[data-acc]`) a zkratky `HK.can` stejné jako ve v20.5, upozornění na starou roli jen u nepřevedených účtů, realizační tým (Upravit / Smazat) podle práv.
+
 ## v20.5.1 (24. 10. 2026) – oprava: realizační tým podle nových rolí
 > **Nasazení:** 1) Zip současného repozitáře. 2) Nahrát kód (nový soubor `tests/staff-kind.test.js`, nic se nemaže). 3) **firestore.rules beze změny – nepublikovat.** 4) Na telefonu ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.5.1. 5) Test: Tým → Realizační tým – Funkce nabízí Manager / Trenér / Asistent / Jiný, dřívější „Kustod“ se ukazuje jako Asistent (Upravit → Uložit ji tak i zapíše); detail události a ✋ žádost o přijetí (Asistent → funkce Asistent).
 > **🔒 Vyžadovat verzi: ne** (tvar dat se nemění, v20.5 funguje dál). Návrat na v20.5: nahrát předchozí zip.

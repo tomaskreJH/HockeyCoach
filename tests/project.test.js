@@ -65,15 +65,15 @@ test("canRaise: minimum jde jen zvýšit", () => {
 test("pravidla: pokladník spravuje jen členy s rolí hracka a ne vlastní dokument", () => {
   const rules = read("firestore.rules"), m = ruleBlock(rules, "match /members/{email}");
   assert.match(rules, /function cashierMember\(email, d\) \{ return isCash\(\) && email != mail\(\) && d\.role == 'hracka'; \}/);
-  assert.match(m, /allow create: if isCoach\(\) \|\| cashierMember\(email, request\.resource\.data\);/);
-  assert.match(m, /allow update: if isCoach\(\) \|\| \(cashierMember\(email, request\.resource\.data\) && cashierMember\(email, resource\.data\)\);/);
-  assert.match(m, /allow delete: if isCoach\(\) \|\| cashierMember\(email, resource\.data\);/);
+  assert.match(m, /allow create: if isMgr\(\) \|\| cashierMember\(email, request\.resource\.data\);/);
+  assert.match(m, /allow update: if isMgr\(\) \|\| \(cashierMember\(email, request\.resource\.data\) && cashierMember\(email, resource\.data\)\);/);
+  assert.match(m, /allow delete: if isMgr\(\) \|\| cashierMember\(email, resource\.data\);/);
   assert.ok(!m.includes("!= 'trener'"), "stará podmínka „jen ne trenér“ zmizela");
 });
 
-test("pravidla: settings/app (brána verze) zapisuje jen manager / trenér a nejde smazat; settings/perm jen manager", () => {
+test("pravidla: settings/app (brána verze) zapisuje jen manager a nejde smazat; settings/perm jen manager", () => {
   const rules = read("firestore.rules"), s = ruleBlock(rules, "match /settings/{id}");
-  assert.match(rules, /function appSettingsOk\(\) \{\s+return isCoach\(\)/);
+  assert.match(rules, /function appSettingsOk\(\) \{\s+return isMgr\(\)/);
   assert.match(s, /id == 'app' \? appSettingsOk\(\)/);
   assert.match(s, /allow delete: if id != 'cash' && id != 'app' && \(id == 'perm' \? isMgr\(\) : isStaff\(\)\);/);
   assert.match(s, /id == 'perm' \? permSettingsOk\(\)/);
@@ -90,7 +90,7 @@ test("pravidla: rozpočet sezóny čte a zapisuje jen správce pokladny, schvál
   assert.match(m, /allow read: if isCash\(\);/);
   assert.match(m, /allow create: if isCash\(\) && id\.matches\('\^\[0-9\]\{4\}-\[0-9\]\{2\}\$'\) && budgetOk\(id, request\.resource\.data\);/);
   assert.match(m, /allow update: if isCash\(\) && id\.matches\('\^\[0-9\]\{4\}-\[0-9\]\{2\}\$'\) && budgetOk\(id, request\.resource\.data\) && budgetKeep\(resource\.data, request\.resource\.data\);/);
-  assert.match(m, /allow delete: if isCoach\(\) && !\('approved' in resource\.data\);/);
+  assert.match(m, /allow delete: if isMgr\(\) && !\('approved' in resource\.data\);/);
   assert.match(rules, /function budgetOk\(id, d\) \{ return d\.keys\(\)\.hasOnly\(\['season', 'par', 'items', 'sal', 'other', 'by', 'at', 'approved', 'rev'\]\) && d\.season == id/);
   // Schválená verze se nemění ani neodebírá, úpravy se jen přidávají
   assert.match(rules, /function budgetKeep\(o, d\) \{ return \(!\('approved' in o\) \|\| \(\('approved' in d\) && d\.approved == o\.approved\)\)/);

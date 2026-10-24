@@ -115,9 +115,10 @@ test("keepsManager: posledního managera nejde odebrat ani snížit", () => {
   assert.equal(keepsManager([...one, {email: "old@x.cz", role: "trener"}], "m@x.cz", null), true, "trenér před převodem se počítá jako manager");
   assert.equal(keepsManager(one, "novy@x.cz", "hracka"), true);
 });
-test("pravidla databáze přijímají staré i nové role (přechod v20.4)", () => {
+test("pravidla databáze přijímají jen nové role (zúženo ve v20.6)", () => {
   const r = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
-  assert.match(r, /function isCoach\(\) \{ return isMember\(\) && role\(\) in \['manager', 'trener'\]; \}/);
-  assert.match(r, /function isStaff\(\) \{ return isMember\(\) && role\(\) in \['manager', 'trener', 'asistent', 'kustod'\]; \}/);
-  assert.match(r, /function isCash\(\) \{ return isMember\(\) && \(role\(\) in \['manager', 'trener'\]/);
+  assert.match(r, /function isMgr\(\) \{ return isMember\(\) && role\(\) == 'manager'; \}/);
+  assert.match(r, /function isRoster\(\) \{ return isMember\(\) && role\(\) in \['manager', 'trener'\]; \}/);
+  assert.match(r, /function isStaff\(\) \{ return isMember\(\) && role\(\) in \['manager', 'trener', 'asistent'\]; \}/);
+  assert.match(r, /function isCash\(\) \{ return isMember\(\) && \(role\(\) == 'manager'/);
 });
