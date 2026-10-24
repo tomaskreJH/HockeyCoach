@@ -15,7 +15,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `src/core/app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), porovnání verzí, brána verze |
 | `src/core/` | stav `state.js` (`S`), `utils.js` (DOM, formát, čas, `csv`), `selectors.js` (čtení stavu, jména `pn` / `nm`, `matchesVs`), `actions.js` (ukládání zápasu, `confirm2`), `drag.js` (přetahování `makeDrag`), `nav.js` (Zpět), `table-sort.js` |
 | `src/data/storage.js` | datová vrstva: Firebase, přihlášení a role, **oprávnění `can(akce)`** (jediné místo), strážce zápisu `blocked()`, dávky, kontrola mazání, záloha / obnova, okno ⚙️ |
-| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, statistiky `player-stats.js`, pokladna, docházka a 🚫 nedorazila bez omluvy `attendance.js` (pole `attendance.nos`), dlužníci, účty, opakování událostí `recurrence.js`, hospodaření události a měsíce, Moje platby po měsících a ceny na hlavu `economy.js`, žádosti členů `requests.js`, rozpočet sezóny `budget.js`, plnění rozpočtu a cashflow `budget-track.js`, schválení, úpravy a export rozpočtu `budget-review.js`, úvodní přehled `home-summary.js`, náhled živého zápasu pro členy `watch-feed.js`, žádosti o přijetí do týmu `join-requests.js`, čas události od – do a ⏰ sraz `event-time.js`) – testované v `tests/` |
+| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, statistiky `player-stats.js`, pokladna, docházka a 🚫 nedorazila bez omluvy `attendance.js` (pole `attendance.nos`), dlužníci, účty, opakování událostí `recurrence.js`, hospodaření události a měsíce, Moje platby po měsících a ceny na hlavu `economy.js`, žádosti členů `requests.js`, rozpočet sezóny `budget.js`, plnění rozpočtu a cashflow `budget-track.js`, schválení, úpravy a export rozpočtu `budget-review.js`, úvodní přehled `home-summary.js`, náhled živého zápasu pro členy `watch-feed.js`, žádosti o přijetí do týmu `join-requests.js`, čas události od – do a ⏰ sraz `event-time.js`, 🎟 hostující hráčky a veřejné dokumenty `evpub` / `lineuppub` `guests.js`, ❌ zrušení a úplné smazání události `event-cancel.js`, ✋ žádosti o změnu účasti `att-requests.js`, 🏖 nepřítomnost `absence.js`) – testované v `tests/` |
 | `src/views/` | obrazovky: jen vykreslení a obsluha událostí, výpočty volají z `domain/` |
 | `src/views/home-view.js` | 🏠 Domů – úvodní přehled (výchozí záložka pro všechny): běžící zápas, příští zápas, nadcházející události příštích 7 dní, moje platby, u správce pokladny souhrn týmu a varování cashflow; jen čte a odkazuje, výpočty `domain/home-summary.js` |
 | `src/views/live-watch.js` | 👁 náhled běžícího zápasu pro členy bez práva zápisu (z karty 🔴 v 🏠 Domů, stav `S.hw`): skóre, střely, čas a třetina, průběh (góly, tresty, střely, konce třetin) – jen ke čtení, živý zápis nevolá; výpočty `domain/watch-feed.js` |
@@ -24,7 +24,10 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `src/views/budget-view.js` | 📊 Rozpočet sezóny v Team (jen správce pokladny): 📝 Plán (parametry, položky, plán po měsících, odhad příspěvku, ✅ schválení a porovnání se schváleným), 📈 Plnění a 💧 Cashflow; výpočty `domain/budget.js`, `domain/budget-track.js`, `domain/budget-review.js`, data `budget/{sezóna}` (schválená kopie `approved` je neměnná, úpravy `rev` jen přidávat) |
 | `src/views/budget-print.js` | 🖨 Export rozpočtu pro valnou hromadu v okně `#rp` (jako Zápis utkání): tisk / PDF a ⬇️ CSV, komentář jen v paměti |
 | `src/views/event-settings.js` | ⏰ Nastavení událostí z ⚙️ (trenér, kustod): výchozí sraz tréninku a zápasu a délka tréninku → `settings/events` (`S.es`); výpočty `domain/event-time.js` |
-| `src/views/request-list.js` | žádosti členů pro správce pokladny (pruh, okno vyřízení); použije i fáze W (žádosti o změnu účasti) |
+| `src/views/request-list.js` | žádosti o změnu placení pro správce pokladny (pruh, okno vyřízení) |
+| `src/views/att-request-view.js` | ✋ žádosti o změnu účasti (`requests`, kind `att`): pruh a okno vyřízení pro trenéra / kustoda v Událostech, rámeček člena v detailu události |
+| `src/views/absence-view.js` | 🏖 nepřítomnost: karta v 🏠 Domů a okno s náhledem „Co se změní“ (`absence`, omluvy v `attendance` s `abs` a důvody v `attnote`) |
+| `src/views/auto-sync.js` | tichá synchronizace bez obrazovky (`HK.syncOps`): veřejné dokumenty pro hostující (`evpub`, `lineuppub` – jen trenér / kustod) a automatické omluvy z nepřítomnosti |
 | `src/lib/qrcode.js` | knihovna QR (cizí kód, neupravovat) |
 | `src/debug.js` | ruční ladění (`?debug` → `window.__hk`); testy importují moduly přímo |
 | `tests/` | automatické testy (`npm test`), `tests/support/` = zástupci prohlížeče a Firebase |
@@ -50,7 +53,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `csv(rows)` | `core/utils.js` | Jediný text CSV pro Excel (středník, uvozovky, BOM, CRLF); částky přes `csvNum` (`domain/cash.js`), stažení `downloadFile`. |
 | `makeDrag(root, items, {target, start, drop, click})` | `core/drag.js` | Přetahování (prst: podržení 320 ms, myš: > 6 px). `start(b)` → `{data, text}` nebo `null`, `drop(data, cíl)`, `click(b)` → obsluha klepnutí nebo `null`. |
 | `matchesVs(name, ex)` / `vsHash(id)` | `core/selectors.js` / `domain/cash.js` | Uzavřené zápasy proti soupeři / variabilní symbol z id předpisu (dva různé významy – nezaměňovat). |
-| `HK.can(akce)` | `data/storage.js` | Oprávnění: `sport` (trenér, kustod), `money` a `members` (trenér, pokladník), `roster`, `accounts`, `admin` (trenér), `onlyOwn` (hráčka). Neznámá akce = výjimka. Nové role (fáze O) mění jen tabulku `CAN`. |
+| `HK.can(akce)` | `data/storage.js` | Oprávnění: `sport` (trenér, kustod), `money` a `members` (trenér, pokladník), `roster`, `accounts`, `admin` (trenér), `onlyOwn` (hráčka, hostující), `guest` (hostující – vidí jen sebe), `wipe` (vývojář s rolí trenér mimo náhled – úplné smazání události). Neznámá akce = výjimka. Nové role (fáze O) mění jen tabulku `CAN`. |
 | `TEAM_NAME`, `APP_NAME`, `DEV_EMAILS` | `config/team-config.js` | Název týmu a aplikace, účty vývojáře. Výjimky: `index.html`, `manifest.webmanifest` a značka zálohy `app: "hokej-zapasy"` (nemění se). |
 | `playerStats(matches, {match})` | `domain/player-stats.js` | Statistiky hráček a brankářek pro jeden zápas (`match: true` – bruslařky sestavy, +/- bez brankářek) i souhrn (gp, +/- všem, góly v PP, body doma / venku, tým). |
 
@@ -61,7 +64,8 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 - Pravidla databáze ve dvou krocích: 1) rozšířit (staré i nové), 2) převést data, 3) zúžit v další verzi. U každé verze napsat, zda a kdy **publikovat firestore.rules** (před, nebo po nahrání kódu).
 - **Brána verze:** `settings/app = {minVer, minBy, minAt}`. Verze, která mění tvar dat, po nasazení zvýší minimum (⚙️ → 🔒 Vyžadovat verzi, jen trenér). Klient pod minimem nezapisuje a ukáže pruh „Načíst novou verzi“.
 - Převody dat: tlačítko v ⚙️ s náhledem „co se změní“, idempotentní (lze spustit znovu), před převodem záloha.
-- Oprávnění v aplikaci **jen přes `HK.can(akce)`** (tabulka `CAN` v `storage.js`, od v18.9.1); `HK.isStaff`, `HK.isCash` a `HK.role` už neexistují. Pravidla databáze: `isCoach`, `isStaff`, `isCash`, `isPlayer` (musí odpovídat tabulce `CAN`).
+- Oprávnění v aplikaci **jen přes `HK.can(akce)`** (tabulka `CAN` v `storage.js`, od v18.9.1); `HK.isStaff`, `HK.isCash` a `HK.role` už neexistují. Pravidla databáze: `isCoach`, `isStaff`, `isCash`, `isPlayer` (hráčka i hostující), `isHost`, `isTeam` (člen kromě hostujícího – čtení týmových kolekcí) – musí odpovídat tabulce `CAN`.
+- Odvozené dokumenty, které aplikace zapisuje sama (veřejné `evpub` / `lineuppub`, automatické omluvy z nepřítomnosti), jdou přes `HK.syncOps` (tichý zápis, jen rozdíly, bez hlášek) ze `src/views/auto-sync.js`.
 - Pokladník (bez role trenér) spravuje jen členy s rolí Hráčka a nikdy vlastní dokument `members` (vynucují pravidla).
 
 ## 4. Verze a vydání

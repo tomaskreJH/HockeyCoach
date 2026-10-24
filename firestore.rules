@@ -10,10 +10,14 @@ service cloud.firestore {
     function role() { return get(memberPath()).data.role; }
     function isCoach() { return isMember() && role() == 'trener'; }
     function isStaff() { return isMember() && role() in ['trener', 'kustod']; }
-    // Správce pokladny: trenér, nebo člen s příznakem cash (pokladník)
-    function isCash() { return isMember() && (role() == 'trener' || get(memberPath()).data.get('cash', false) == true); }
-    // Hráčka smí zapisovat jen tehdy, když ji trenér propojil s hráčkou v soupisce (pole pid)
-    function isPlayer() { return isMember() && role() == 'hracka' && get(memberPath()).data.pid is string; }
+    // Hostující (role host, hráčka 🎟 z jiného týmu): vidí jen sebe – vlastní hráčku, docházku, předpisy a veřejné dokumenty evpub / lineuppub.
+    // isTeam = člen týmu kromě hostujícího; všechna čtení týmových kolekcí jsou jen pro isTeam().
+    function isHost() { return isMember() && role() == 'host'; }
+    function isTeam() { return isMember() && role() != 'host'; }
+    // Správce pokladny: trenér, nebo člen s příznakem cash (pokladník); hostující pokladníkem být nemůže
+    function isCash() { return isMember() && (role() == 'trener' || (role() != 'host' && get(memberPath()).data.get('cash', false) == true)); }
+    // Hráčka (i hostující) smí zapisovat jen tehdy, když ji trenér propojil s hráčkou v soupisce (pole pid)
+    function isPlayer() { return isMember() && role() in ['hracka', 'host'] && get(memberPath()).data.pid is string; }
     function myPid() { return get(memberPath()).data.pid; }
     // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
@@ -70,8 +74,9 @@ service cloud.firestore {
 
     // ===== Soupiska: spravuje trenér; kustod smí měnit jen stav (st) =====
     // Platební pole (grp, fx, ex, note) jsou v plpay/{pid} (spravuje je správce pokladny); v soupisce je nejde zapsat, jen smazat.
+    // Příznak guest (hostující 🎟) zapisuje trenér; hostující čte jen svůj dokument.
     match /players/{id} {
-      allow read: if isMember();
+      allow read: if isTeam() || (isHost() && id == myPid());
       allow create: if isCoach() && noKeys(['grp', 'fx', 'ex', 'note']);
       allow delete: if isCoach();
       allow update: if keepOut(['grp', 'fx', 'ex', 'note']) && (isCoach()
@@ -81,24 +86,25 @@ service cloud.firestore {
     // ===== Realizační tým: čtou všichni členové, spravuje trenér =====
     // Plat je ve staffpay/{tid} (spravuje ho správce pokladny); pole pay v dokumentu týmu nejde zapsat, jen smazat.
     match /staff/{id} {
-      allow read: if isMember();
+      allow read: if isTeam();
       allow create: if isCoach() && noKeys(['pay']);
       allow delete: if isCoach();
       allow update: if isCoach() && keepOut(['pay']);
     }
 
-    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss. Číst smí všichni členové (statistiky jsou pro celý tým) =====
+    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss. Číst smí členové týmu (statistiky jsou pro celý tým) =====
+    // Zrušení (pole cancelled) zapisuje trenér a kustod jako každou úpravu zápasu / tréninku.
     match /matches/{id} {
-      allow read: if isMember();
+      allow read: if isTeam();
       allow create, delete: if isStaff();
       allow update: if isStaff() || (isCash() && cashFieldsOnly());
     }
-    match /opponents/{id} { allow read: if isMember(); allow write: if isStaff(); }
+    match /opponents/{id} { allow read: if isTeam(); allow write: if isStaff(); }
 
     // ===== Nastavení: základní formace trenér a kustod, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení;
-    // settings/app (brána verze) jen trenér; čtou všichni členové. settings/cash ani settings/app nejde smazat =====
+    // settings/app (brána verze) jen trenér; čtou členové týmu, hostující jen cash (účet pro QR), events (sraz) a app. settings/cash ani settings/app nejde smazat =====
     match /settings/{id} {
-      allow read: if isMember();
+      allow read: if isTeam() || (isHost() && id in ['cash', 'events', 'app']);
       allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : isStaff());
       allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : isStaff());
       allow delete: if id != 'cash' && id != 'app' && isStaff();
@@ -106,14 +112,14 @@ service cloud.firestore {
 
     // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen příznak ss =====
     match /events/{id} {
-      allow read: if isMember();
+      allow read: if isTeam();
       allow create, delete: if isStaff();
       allow update: if isStaff() || (isCash() && cashFieldsOnly());
     }
 
     // ===== Série tréninků (definice opakování): čtou členové, zapisuje trenér a kustod; události série jsou v events (pole ser) =====
     match /series/{id} {
-      allow read: if isMember();
+      allow read: if isTeam();
       allow write: if isStaff();
     }
 
@@ -147,9 +153,10 @@ service cloud.firestore {
     // Důvod omluvy je v attnote/{eid}_{pid}; pole reason v docházce nejde zapsat, jen smazat (čte ji každý člen).
     // pid je hráčka nebo člen realizačního týmu. Trenér a kustod zapisují za kohokoli; hráčka jen svůj dokument (pid z jejího členství, id = eid_pid)
     // Docházka: odpověď st; nos = 🚫 nedorazila bez omluvy – nastavuje a ruší jen trenér / kustod, hráčka značku nezaloží, nezmění ani nesmaže
+    // abs = id 🏖 nepřítomnosti, ze které omluva vznikla (zapisuje ji vlastník i trenér / kustod). Hostující čte jen své odpovědi.
     function nosKeep() { return request.resource.data.get('nos', null) == resource.data.get('nos', null); }
     match /attendance/{id} {
-      allow read: if isMember();
+      allow read: if isTeam() || (isHost() && resource.data.pid == myPid());
       allow create: if noKeys(['reason']) && (isStaff() || (isPlayer() && noKeys(['nos'])
         && request.resource.data.pid == myPid()
         && id == request.resource.data.eid + '_' + myPid()));
@@ -182,24 +189,63 @@ service cloud.firestore {
       allow delete: if isCash();
     }
 
-    // ===== Žádosti členů requests/{id} (kind "pay" = změna způsobu placení; druh "att" doplní fáze W) =====
+    // ===== Žádosti členů requests/{id} (kind "pay" = změna způsobu placení, kind "att" = změna účasti po uzávěrce) =====
     // Hráčka vytvoří jen vlastní otevřenou žádost o placení pod svým e-mailem a smí ji smazat (zrušit), dokud je otevřená.
-    // Čte vlastník a správce pokladny; žádost o placení vyřizuje jen správce pokladny (ne vlastní žádost) a jen otevřenou:
+    // Žádost o změnu účasti podá člen (hráčka, hostující, člen týmu) za sebe (mid = jeho pid / tid); vyřizuje ji trenér / kustod.
+    // Čte vlastník, správce pokladny a u žádostí o účast trenér / kustod; vyřízení jen otevřené žádosti:
     // mění pouze st (ok / no), reply, doneBy (jeho e-mail), doneAt.
     function reqPayOk(d) {
       return d.keys().hasOnly(['kind', 'mid', 'at', 'by', 'st', 'from', 'to', 'ym', 'note'])
         && d.kind == 'pay' && d.st == 'open' && d.mid == myPid() && d.by == mail() && d.at is string
         && d.from in ['monthly', 'single'] && d.to in ['monthly', 'single'] && d.ym is string && d.note is string && d.note.size() <= 300;
     }
+    function reqAttOk(d) {
+      return d.keys().hasOnly(['kind', 'mid', 'at', 'by', 'st', 'eid', 'want', 'reason', 'abs'])
+        && d.kind == 'att' && d.st == 'open' && ownsMid(d.mid) && d.by == mail() && d.at is string && d.eid is string
+        && d.want in ['yes', 'no', 'maybe'] && d.reason is string && d.reason.size() <= 300 && d.get('abs', '') is string;
+    }
     function reqDone() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st', 'reply', 'doneBy', 'doneAt'])
         && resource.data.st == 'open' && request.resource.data.st in ['ok', 'no'] && request.resource.data.doneBy == mail();
     }
     match /requests/{id} {
-      allow read: if isCash() || ownsMid(resource.data.mid);
-      allow create: if isPlayer() && reqPayOk(request.resource.data);
-      allow update: if isCash() && resource.data.kind == 'pay' && !ownsMid(resource.data.mid) && reqDone();
-      allow delete: if isCash() || (isPlayer() && resource.data.mid == myPid() && resource.data.st == 'open');
+      allow read: if isCash() || ownsMid(resource.data.mid) || (isStaff() && resource.data.kind == 'att');
+      allow create: if (isPlayer() && reqPayOk(request.resource.data)) || reqAttOk(request.resource.data);
+      allow update: if (isCash() && resource.data.kind == 'pay' && !ownsMid(resource.data.mid) && reqDone())
+        || (isStaff() && resource.data.kind == 'att' && reqDone());
+      allow delete: if isCash() || (isStaff() && resource.data.kind == 'att') || (ownsMid(resource.data.mid) && resource.data.st == 'open');
+    }
+
+    // ===== 🏖 Nepřítomnost člena absence/{id} = {mid, kind, from, to, note, by, at} (druh nemoc = zdravotní údaj) =====
+    // Čte vlastník (mid = jeho pid / tid) a trenér / kustod; zakládá, mění a maže vlastník za sebe (by = jeho e-mail),
+    // trenér / kustod za kohokoli (i obnova ze zálohy s původním by).
+    function absOk(d) {
+      return d.keys().hasOnly(['mid', 'kind', 'from', 'to', 'note', 'by', 'at']) && d.mid is string && d.kind in ['vac', 'sick', 'other']
+        && d.from is string && d.to is string && d.from <= d.to && d.note is string && d.note.size() <= 300 && d.by is string && d.at is string;
+    }
+    function absMine(d) { return ownsMid(d.mid) && d.by == mail(); }
+    match /absence/{id} {
+      allow read: if isStaff() || ownsMid(resource.data.mid);
+      allow create: if absOk(request.resource.data) && (isStaff() || absMine(request.resource.data));
+      allow update: if absOk(request.resource.data) && (isStaff() || (ownsMid(resource.data.mid) && absMine(request.resource.data)));
+      allow delete: if isStaff() || ownsMid(resource.data.mid);
+    }
+
+    // ===== Veřejné dokumenty pro hostující (zapisuje aplikace trenéra / kustoda, views/auto-sync.js) =====
+    // evpub/{id} = hlavička události bez odpovědí, nákladů a statistik – čte každý člen včetně hostujících.
+    // lineuppub/{id} = pětky / formace jako jména – čtou členové týmu a hostující jen u události, kde má odpověď „Jdu“.
+    function pubOk(d) { return d.keys().hasOnly(['k', 'date', 'time', 'place', 'dl', 'meet', 'title', 'end', 'note', 'opp', 'home', 'cancelled']) && d.k in ['t', 'm'] && d.date is string; }
+    function attPath(eid) { return /databases/$(database)/documents/attendance/$(eid + '_' + myPid()); }
+    function hostGoing(eid) { return isHost() && exists(attPath(eid)) && get(attPath(eid)).data.st == 'yes'; }
+    match /evpub/{id} {
+      allow read: if isMember();
+      allow create, update: if isStaff() && pubOk(request.resource.data);
+      allow delete: if isStaff();
+    }
+    match /lineuppub/{id} {
+      allow read: if isTeam() || hostGoing(id);
+      allow create, update: if isStaff() && request.resource.data.keys().hasOnly(['k', 'date', 'rows']) && request.resource.data.rows is list;
+      allow delete: if isStaff();
     }
 
     // ===== Žádosti o přijetí do týmu joinreq/{email} (id = e-mail účtu Google malými písmeny) =====
@@ -229,9 +275,9 @@ service cloud.firestore {
       allow write: if isCash();
     }
     // Souhrn dlužníků: dokument {mid, since, dues: [{d, x}]} BEZ částek (splatnosti nezaplacených předpisů a příznak výjimky).
-    // Čtou všichni členové (značka ⛓ v Docházce), zapisuje jen správce pokladny ve stejné dávce jako změny předpisů; id dokumentu = mid
+    // Čtou členové týmu (značka ⛓ v Docházce), zapisuje jen správce pokladny ve stejné dávce jako změny předpisů; id dokumentu = mid
     match /debtors/{id} {
-      allow read: if isMember();
+      allow read: if isTeam();
       allow create, update: if isCash() && request.resource.data.mid == id
         && request.resource.data.keys().hasOnly(['mid', 'since', 'dues'])
         && request.resource.data.since is string && request.resource.data.dues is list;

@@ -4,10 +4,10 @@
 
 // ===== Hlavní logika =====
 const [role, cash] = process.argv.slice(2);
-globalThis.__fb = {user: {email: "x@test.cz", uid: "u"}, members: {"x@test.cz": {role, cash: cash === "1", pid: role === "hracka" ? "p1" : undefined}}, data: {}};
+globalThis.__fb = {user: {email: "x@test.cz", uid: "u"}, members: {"x@test.cz": {role, cash: cash === "1", pid: role === "hracka" || role === "host" ? "p1" : undefined}}, data: {}};
 const {HK} = await import("../../src/data/storage.js");
 await HK.ready();
-const acts = ["sport", "money", "members", "roster", "accounts", "admin", "onlyOwn"];
+const acts = ["sport", "money", "members", "roster", "accounts", "admin", "onlyOwn", "guest", "wipe"];
 let unknown = "";
 try { HK.can("neznama"); } catch (e) { unknown = e.message; }
 process.stdout.write(JSON.stringify({can: Object.fromEntries(acts.map(a => [a, HK.can(a)])), unknown, old: ["isStaff", "isCash", "role"].filter(k => k in HK)}));

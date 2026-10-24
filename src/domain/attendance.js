@@ -6,6 +6,7 @@
 //  - odpovědi (kolekce attendance): {eid, pid, st: "yes" | "no" | "maybe", nos?: true} – nos = 🚫 nedorazila bez omluvy (jen u „Jdu“, zapisuje trenér / kustod)
 // Pravidla přehledu (rozhodnutí 7): počítají se jen UPLYNULÉ události ve zvoleném období (výchozí zimní sezóna 1. 8. – 1. 7. dalšího roku);
 // účast = odpověď „Jdu“ bez 🚫, procento = účasti / počet uplynulých událostí daného typu v období; 🚫, „Nejsem jistý“ a bez odpovědi se do účasti nepočítají.
+// Zrušená událost (pole cancelled) se do přehledu nepočítá vůbec (ani do počtu událostí, ani do procenta).
 
 // ===== Konstanty =====
 // Typy událostí v přehledu (klíč -> popis); "all" = součet všech typů
@@ -43,10 +44,11 @@ export const nosPatch = on => ({[NOS_KEY]: on ? true : "__del"});
 export const nosCount = (A, ids) => (ids || []).filter(id => isNos((A || {})[id])).length;
 
 // ===== Výpočet přehledu =====
-// Sjednocený seznam událostí pro docházku: {id, kind: "train" | "home" | "away", date, start (ms)}
+// Sjednocený seznam událostí pro docházku: {id, kind: "train" | "home" | "away", date, start (ms)}; zrušené události se vynechají
+const counted = e => isDayStr(e.date) && !(e.cancelled && typeof e.cancelled === "object");
 export function attEvents(trainings, matches) {
-  const t = (trainings || []).filter(e => isDayStr(e.date)).map(e => ({id: e.id, kind: "train", date: e.date, start: startMs(e.date, e.time)}));
-  const m = (matches || []).filter(x => isDayStr(x.date)).map(x => ({id: x.id, kind: x.home ? "home" : "away", date: x.date, start: startMs(x.date, x.time)}));
+  const t = (trainings || []).filter(counted).map(e => ({id: e.id, kind: "train", date: e.date, start: startMs(e.date, e.time)}));
+  const m = (matches || []).filter(counted).map(x => ({id: x.id, kind: x.home ? "home" : "away", date: x.date, start: startMs(x.date, x.time)}));
   return [...t, ...m];
 }
 // Uplynulé události v období [from, to] (obě meze včetně; prázdná mez = bez omezení)

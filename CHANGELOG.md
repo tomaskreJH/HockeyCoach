@@ -4,6 +4,80 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.2 (24. 10. 2026) – HG2: hostující hráčky s účtem – vidí jen sebe (`evpub`, `lineuppub`)
+> **Nasazení (dodáno spolu s v19.9, v20.0 a v20.1 – jeden zip, nasazuje se najednou):** 1) Záloha: zip současného repozitáře a ⚙️ → Stáhnout zálohu (data se jen doplňují). 2) **Publikovat firestore.rules – před nahráním kódu** (nová pravidla starým verzím nevadí: role trenér / kustod / hráčka čtou dál vše jako dnes; bez nich nová verze nezapíše nepřítomnost, žádosti o účast ani veřejné dokumenty – jen hláška v konzoli). 3) Nahrát kód: nové soubory `src/domain/guests.js`, `src/domain/event-cancel.js`, `src/domain/att-requests.js`, `src/domain/absence.js`, `src/views/auto-sync.js`, `src/views/att-request-view.js`, `src/views/absence-view.js`, `tests/guests.test.js`, `tests/event-cancel.test.js`, `tests/att-absence.test.js`; nic se nemaže. 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v20.2 v záhlaví. 5) Test podle bodů u v19.9 – v20.2 níže. 6) Po otestování na všech zařízeních trenér ⚙️ → **🔒 Vyžadovat verzi v20.2** (starší verze neznají zrušení události a nepřítomnost – mohly by zapsat odpověď do zrušené události).
+> **Test HG2:** trenér – Team → hráčka → Upravit → 🎟 Hostující = Ano; ⚙️ → Členové týmu → e-mail testovacího účtu, role **Hostující**, vybrat hráčku 🎟; počkat pár sekund (aplikace trenéra zapíše `evpub` / `lineuppub`). Testovací účet: záložky jen 🏠 / Události / Moje platby, v Událostech bez počtů ostatních a bez 📊 Docházky, v detailu jen vlastní řádek; po ✅ Jdu a rozdělení do pětek trenérem vidí pětky / formaci. Také 👁 Náhled role → Hostující.
+> **Návrat na v20.1:** nahrát předchozí zip, pravidla vrátit z historie; účty s rolí Hostující smazat (starší verze je nepustí dál).
+
+**Přidáno**
+- **Role Hostující** (`members.role = "host"` + `pid` hráčky 🎟): přiřadí jen trenér v ⚙️ → Členové týmu (hráčka 🎟 jen s rolí Hostující, ostatní jen s rolí Hráčka; hostující nemá člena týmu ani příznak pokladníka). V 👁 Náhledu role volba Hostující.
+- **Hostující vidí jen sebe:** záložky 🏠 Domů, Události, Moje platby; v Událostech bez počtů a řádku „Přihlášeno“, bez 📊 Docházky, v detailu jen vlastní řádek; ✋ žádost o změnu účasti a 🏖 nepřítomnost jako hráčka; formace (pětky tréninku / sestava zápasu jako jména) jen u události s jejím ✅ Jdu.
+- **Veřejné dokumenty:** `evpub/{id}` (hlavička události: typ, datum, čas, konec, sraz, místo, uzávěrka, poznámka, soupeř, doma, zrušení – bez odpovědí, nákladů a statistik) a `lineuppub/{id}` (`rows: [{t, n: [jména]}]`). Zapisuje je **aplikace trenéra / kustoda** automaticky (`src/views/auto-sync.js`, tichý zápis `HK.syncOps`) – jen rozdíly, jen při aktivní hostující hráčce, události od dneška − 14 dní; bez hostujících se smažou. Bez Firebase Blaze (Cloud Functions nejsou potřeba).
+- `src/domain/guests.js`: `evPubDoc`, `lineupPubDoc`, `pubPlan`, `fromPub`, `stable`, `EVPUB_COLL`, `LUPUB_COLL`; `HK.can("guest")`; `db.collection(c).part(id)` (poslech jednoho dokumentu jako části kolekce). `tests/guests.test.js` (6 testů).
+
+**Změněno**
+- ⚠️ `firestore.rules` (zabezpečení): `isHost()`, `isTeam()` = člen kromě hostujícího; čtení `players` (hostující jen svůj), `staff`, `matches`, `opponents`, `events`, `series`, `debtors` jen `isTeam()`; `attendance` hostující jen své; `settings` hostující jen `cash`, `events`, `app`; `isPlayer()` zahrnuje hostující; `isCash()` nikdy hostující; nové `evpub` (čte každý člen, zapisuje trenér / kustod) a `lineuppub` (čte tým, hostující jen s vlastním „Jdu“ – `hostGoing()`).
+- `src/main.js` – samostatný poslech hostujícího účtu; trenér / kustod poslouchá `evpub` a `lineuppub` a spouští auto-sync; po načtení dat první synchronizace.
+- `src/data/storage.js` – role Hostující (vstup, náhled, Členové týmu), `CAN.guest`, `CAN.onlyOwn` i pro hostující, `syncOps`, kolekce `evpub` / `lineuppub` mimo zálohu.
+- `src/views/shell.js`, `src/views/events.js`, `src/views/home-view.js`, `src/core/state.js`, `src/views/help.js`, testy `permissions`, `event-time`, `recurrence` (nová pravidla čtení), `tests/support/can-probe.mjs`.
+- `docs/KONVENCE.md`, `docs/plan-v18.md` (HG2 jako v20.2, OM posunuto na v20.3 / v20.4 – čísla verzí musí růst kvůli bráně verze), `docs/prompt-dalsi-vlakno.md`, `README.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v74`; v19.9 = v71, v20.0 = v72, v20.1 = v73 – samostatně se nevydávaly).
+
+**Beze změny**
+- Živý zápis (střely, góly, časomíra, tresty), pokladna a předpisy, statistiky, čas a sraz událostí, 🚫 docházka. Role trenér / kustod / hráčka čtou a zapisují jako dosud.
+- Ověřeno: `npm test` (211 testů, srovnávací test D1 beze změny); kouřový test v jsdom mimo repozitář pro role trenér, kustod, hráčka, hostující a vývojář (viz v19.9 – v20.1): hostující – start bez chyb, záložky jen 🏠 / Události / Moje platby, události z `evpub`, bez Docházky a počtů, v detailu jen sebe, formace z `lineuppub`, žádný zápis do `events` / `matches` / `evpub`; trenér / kustod – auto-sync zapíše `evpub` / `lineuppub`; hráčka je nezapisuje.
+
+## v20.1 (24. 10. 2026) – W + NP: ✋ žádosti o změnu účasti po uzávěrce, 🏖 nepřítomnost od – do
+> **Nasazení:** společně s v20.2 (viz nahoře). **Publikovat firestore.rules** (kolekce `requests` – druh `att`, nová kolekce `absence`).
+> **Test W:** hráčka – detail události po uzávěrce (ještě nezačala) → ✋ Požádat o změnu účasti → nová odpověď a důvod → Odeslat; stav ⏳, zrušení. Trenér / kustod – v Událostech pruh ✋ → okno → ✓ Schválit (odpověď se zapíše do docházky) / ✕ Zamítnout; hráčka vidí výsledek.
+> **Test NP:** 🏠 Domů → 🏖 Nepřítomnost → + Přidat → od – do → náhled „Co se změní“ → Uložit (dvakrát); otevřené události v období mají ❌ Nejdu s důvodem „Nepřítomnost: …“, po uzávěrce vznikne žádost; 🗑 zrušení vrátí omluvy otevřených událostí. Trenér – + Zadat za člena.
+
+**Přidáno**
+- **✋ Žádost o změnu účasti** (`requests`, `kind: "att"` = `{mid, by, at, st, eid, want, reason, abs?}`): podá člen (hráčka, hostující, člen týmu) za sebe po uzávěrce a nejpozději do začátku nezrušené události, jedna otevřená na událost; v detailu stav ⏳ / ✅ / ✕ s odpovědí a zrušení otevřené. Trenér / kustod: pruh v Událostech (seznam i detail) a okno vyřízení – schválení = jedna dávka (žádost + docházka jako ruční změna + důvod v `attnote`), upozornění u vyúčtované události (předpisy se nepřepočítají). Bez zápisu do auditu (kustod do auditu nesmí).
+- **🏖 Nepřítomnost od – do** (`absence/{id}` = `{mid, kind: vac | sick | other, from, to, note, by, at}`): karta v 🏠 Domů (vlastní, u trenéra / kustoda i tým a zadání za člena), okno s náhledem „Co se změní“. Uložení v jedné dávce: otevřené události → ❌ Nejdu s důvodem a `attendance.abs = id` (i místo Jdu / Nejistá), po uzávěrce → žádost (trenér / kustod zapíše rovnou); později založené události dostanou omluvu automaticky, jen bez odpovědi (`auto-sync`); zrušení smaže omluvy nepřítomnosti u otevřených budoucích událostí; úprava = zrušení + nové uložení.
+- `src/domain/att-requests.js` (`attReqError`, `attReqDoc`, `attDecidePlan`, `openAttReqs`, `openAttReq`, `myAttReqs`), `src/domain/absence.js` (`absError`, `absDoc`, `absReason`, `absPlan`, `absAuto`, `absRevert`, `activeAbs`, `absRange`), `src/views/att-request-view.js`, `src/views/absence-view.js`, `tests/att-absence.test.js` (7 testů).
+
+**Změněno**
+- ⚠️ `firestore.rules`: `requests` – `reqAttOk()`, čtení a vyřízení žádostí o účast trenér / kustod, zrušení otevřené vlastníkem (`ownsMid`); nová kolekce `absence` (čte vlastník a trenér / kustod; zapisuje vlastník za sebe, trenér / kustod za kohokoli; obnova ze zálohy s původním `by`).
+- `src/domain/home-summary.js` – souhrn pokladny počítá jen žádosti o placení (žádosti o účast ne).
+- `src/main.js` (poslech `absence`, kustod žádosti `att`), `src/data/storage.js` (`absence` v záloze), `src/views/events.js`, `src/views/home-view.js`, `src/core/state.js`, `src/views/help.js`.
+
+**Beze změny**
+- Uzávěrka přihlašování, blokace dlužnic, výpočet Docházky (omluva z nepřítomnosti = Nejdu), žádosti o změnu placení, pokladna.
+- Ověřeno: kouřový test v jsdom – trenér a kustod: pruh ✋, okno a schválení (žádost `ok` + docházka Nejdu), nepřítomnost za člena s náhledem a uložením; hráčka: stav otevřené žádosti a zrušení, formulář a odeslání žádosti (`kind: "att"`), nepřítomnost zapíše Nejdu s důvodem „Nepřítomnost: …“.
+
+## v20.0 (24. 10. 2026) – Z: ❌ zrušení události (zůstává v historii), úplné smazání jen vývojář
+> **Nasazení:** společně s v20.2 (viz nahoře). Pravidla pro samotné zrušení se nemění (`events` / `matches` zapisuje trenér a kustod). **⚠️ SAHÁ NA PLATBY** – jen zobrazení hospodaření (viz Změněno), předpisy beze změny.
+> **Test:** trenér – detail události → ❌ Zrušit → důvod → potvrdit; událost přeškrtnutá ❌ Zrušeno, odpovědi zamčené (i pro trenéra), v 📊 Docházce se nepočítá, zápas nejde otevřít; ↩ Obnovit událost. Událost s odpověďmi nemá 🗑 Smazat, prázdná ano. Vývojář – 🧨 Smazat úplně (počty před potvrzením).
+
+**Přidáno**
+- **❌ Zrušit / ↩ Obnovit událost** (trenér, kustod): pole `cancelled = {by, at, reason}` v `events` / `matches` (merge, obnovení pole smaže); důvod nepovinný; běžící a uzavřený zápas zrušit nejde. Zrušená událost: v seznamu a 🏠 Domů přeškrtnutá se značkou ❌ Zrušeno, přihlašování zamčené pro všechny (i 🚫), nepočítá se do 📊 Docházky ani do ❔ bez odpovědi, příští zápas ji přeskočí, zápas nejde otevřít. U vyúčtované události upozornění: storno předpisů ručně (Znovu otevřít).
+- **Smazání:** trenér / kustod jen **prázdnou** událost (bez odpovědí, předpisů, vyúčtování, u zápasu bez zápisu) – v detailu události i v kartě zápasu; **🧨 Smazat úplně** jen vývojář (`DEV_EMAILS`, role trenér, mimo náhled – `HK.can("wipe")`): docházka, důvody, předpisy, úhrady v pokladně (`cash` podle `cid` / `eid`), `evcash`, `evprice`, žádosti, veřejné dokumenty a událost; potom přepočet dlužníků; audit zůstává.
+- `src/domain/event-cancel.js` (`isCancelled`, `cancelPatch`, `uncancelPatch`, `cancelBlock`, `cancelText`, `isEmptyEvent`, `wipePlan`, `wipeText`), `HK.wipeEvent`, `HK.wipePreview`; `tests/event-cancel.test.js` (5 testů).
+
+**Změněno**
+- `src/domain/attendance.js` – `attEvents` vynechá zrušené události; `src/domain/home-summary.js` – `cancelled` v položkách, `regClosed` u zrušené vždy uzavřeno, `nextMatch` a `unanswered` bez zrušených.
+- ⚠️ `src/views/payments.js` (`econData`): zrušená **nevyúčtovaná** událost se nepočítá do hospodaření události / měsíce, plnění rozpočtu a cashflow (nebere podíl příspěvků ostatním); vyúčtovaná zůstává se skutečnými čísly. Předpisy ani vyúčtování se nemění.
+- `src/views/events.js`, `src/views/matches.js` (jen tlačítko Smazat zápas – prázdný / vývojář; živý zápis beze změny), `src/views/home-view.js`, `src/data/storage.js`, `src/views/help.js`.
+
+**Beze změny**
+- Živý zápis, statistiky, vyúčtování a předpisy, série tréninků (🗑 Tato a další dál maže jen budoucí tréninky bez odpovědí a vyúčtování).
+- Ověřeno: kouřový test v jsdom – trenér / kustod: zrušení zapíše `cancelled` s důvodem, zamčené odpovědi, ↩ Obnovit, prázdnou událost lze smazat, událost s odpověďmi ne, Docházka se vykreslí; vývojář: 🧨 s počty a smazání docházky, předpisu, úhrady a veřejných dokumentů, zrušený zápas nejde otevřít.
+
+## v19.9 (24. 10. 2026) – HG1: 🎟 hostující hráčky bez účtu
+> **Nasazení:** společně s v20.2 (viz nahoře). Pravidla pro HG1 beze změny (pole `guest` zapisuje trenér jako ostatní pole soupisky).
+> **Test:** trenér – Team → Přidat hráče se zaškrtnutím 🎟 Hostující (nebo Upravit → 🎟 Hostující = Ano); u jména značka 🎟 v soupisce, docházce, nominaci a sestavě; počítá se do Docházky, statistik i plateb jako ostatní.
+
+**Přidáno**
+- **🎟 Hostující hráčka** (`players.guest = true`, jen trenér – přidání i úprava; vypnutí pole smaže): počítá se všude jako každá hráčka (nominace, sestava, pětky, docházka, statistiky, platby), u jména značka 🎟 (`pn`). Hostující bez účtu nic dalšího nepotřebuje; účet s rolí Hostující přidává v20.2.
+- `src/domain/guests.js` (`isGuest`, `guestPatch`, `hasGuests`, `GUEST_KEY`).
+
+**Změněno**
+- `src/core/selectors.js` (značka 🎟 v `pn`; `nm` a CSV beze změny), `src/views/team.js` (volba při přidání), `src/views/modal.js` (okno Upravit hráče – volba jen pro trenéra; kustod dál mění jen stav), `src/views/help.js`.
+
+**Beze změny**
+- Výpočty Docházky, statistik a plateb; živý zápis; srovnávací test D1 (hráčky bez příznaku vypadají stejně).
+- Ověřeno: kouřový test v jsdom (vývojář / trenér): v Teamu volba 🎟 Hostující a značka, okno úpravy ukazuje Hostující = Ano, vypnutí zapíše smazání pole `guest`.
+
 ## v19.8 (24. 10. 2026) – DO: 🚫 nedorazila bez omluvy (Docházka)
 > **Nasazení:** 1) Záloha: zip současného repozitáře a ⚙️ → Stáhnout zálohu (data se jen doplňují). 2) **Publikovat firestore.rules** (kolekce `attendance`: značku 🚫 smí zapsat a zrušit jen trenér a kustod) – kdykoli, před i po nahrání kódu (stará pravidla zápis trenéra povolují, nová jen brání hráčce značku změnit). 3) Nahrát kód (nový soubor `tests/attendance-nos.test.js`; nic se nemaže). 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v19.8 v záhlaví. 5) Test: trenér – detail uplynulého tréninku, u hráčky s ✅ Jdu klepnout 🚫 (značka „🚫 Nedorazila“), znovu 🚫 = zrušit; 📊 Docházka – sloupec 🚫; hráčka – značku vidí, svou odpověď u té události nezmění.
 > **🔒 Vyžadovat verzi: ne** (starší verze značku jen nezobrazí a Docházku počítá po staru). Návrat na v19.7: nahrát předchozí zip, pravidla vrátit z historie (pole `nos` v datech nevadí).

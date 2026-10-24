@@ -38,8 +38,10 @@ const isStaffId = mid => S.tr.some(t => t.id === mid);
 // Souhrn dlužníků po změně předpisů (sets = [{id, d}], dels = [id]) přidaný do téže dávky
 const withDebtors = (b, sets, dels) => applyDebtors(b, debtorPlanFor(S.ch, sets, dels, isStaffId));
 const byName = (a, b) => pri(pl(a.mid)) - pri(pl(b.mid)) || pl(a.mid).name.localeCompare(pl(b.mid).name, "cs");
-// Data pro hospodaření události a měsíce (domain/economy.js)
-export const econData = () => ({ev: S.ev, ma: S.ma, ec: S.ec, ch: S.ch, cs: S.cs, pl: S.pl, cfg: cashCfg(S.cc), players});
+// Data pro hospodaření události a měsíce (domain/economy.js); zrušená nevyúčtovaná událost se do hospodaření nepočítá
+// (nemá náklady ani předpisy – jinak by ubírala podíl příspěvků ostatním událostem měsíce), vyúčtovaná zůstává se skutečnými čísly
+const kept = e => !e.cancelled || !!e.ss || !!cxOf(e.id, S.ec).settle;
+export const econData = () => ({ev: S.ev.filter(kept), ma: S.ma.filter(kept), ec: S.ec, ch: S.ch, cs: S.cs, pl: S.pl, cfg: cashCfg(S.cc), players});
 // Rozpracovaná úprava (jen v paměti, dokud se neuloží)
 let dr = null;
 // Id události s otevřeným návrhem poplatku (💡 Navrhnout)

@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v19.8 (24. 10. 2026)** – 🚫 **Nedorazila bez omluvy:** trenér / kustod v detailu uplynulé události označí hráčku přihlášenou ✅ Jdu, která nepřišla; v 📊 Docházce nový sloupec 🚫 (do účasti se nepočítá). Pravidla databáze: `attendance` – značku mění jen trenér a kustod. Další: v19.9 – HG1 hostující hráčky bez účtu. Dříve v19.7 – 📅 čas od – do a ⏰ sraz u událostí, počty ✅ / ❌ / ❓ v tlačítkách, v19.6.3 – 👁 náhled živého zápasu pro členy, v19.6.2 – 📅 příštích 7 dní v 🏠 Domů, v19.6.1 – ✋ žádost o přijetí do týmu (kolekce `joinreq`), v19.6 – 🏠 Domů, v19.5.2 – ✅ schválení a 🖨 export rozpočtu, v19.5.1 – 📈 plnění a 💧 cashflow rozpočtu, v19.5 – 📊 rozpočet sezóny, v19.4.1 – ✋ žádost o změnu placení, v19.4 – 💳 Moje platby po měsících, v19.3 – ⚖️ hospodaření události a měsíce, v19.2 – 🔁 opakované události, v19.1 – soukromí v databázi.
+**Aktuální verze: v20.2 (24. 10. 2026)** – v jednom vydání čtyři fáze: **v19.9** 🎟 hostující hráčky (příznak v soupisce, počítají se jako ostatní), **v20.0** ❌ zrušení události (zůstává v historii, nepočítá se do Docházky; 🧨 úplné smazání jen vývojář), **v20.1** ✋ žádosti o změnu účasti po uzávěrce a 🏖 nepřítomnost od – do (kolekce `absence`), **v20.2** role **Hostující** – účet vidí jen sebe (veřejné dokumenty `evpub`, `lineuppub`). Pravidla databáze: **publikovat firestore.rules**. Další: v20.3 / v20.4 – OM modulární práva. Dříve v19.8 – 🚫 nedorazila bez omluvy, v19.7 – 📅 čas od – do a ⏰ sraz, v19.6.3 – 👁 náhled živého zápasu, v19.6.1 – ✋ žádost o přijetí do týmu, v19.6 – 🏠 Domů, v19.5.x – 📊 rozpočet sezóny, v19.4.x – 💳 Moje platby a žádost o změnu placení, v19.3 – ⚖️ hospodaření, v19.2 – 🔁 opakované události, v19.1 – soukromí v databázi.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -41,8 +41,9 @@ Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrá
 | Role (`members/{email}.role`) | Smí |
 |---|---|
 | `trener` | vše (členové a ✋ žádosti o přijetí do týmu, soupiska, zápasy, události, docházka, pokladna, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze) |
-| `kustod` | zápasy a živý zápis, soupeři, formace, události, docházka za kohokoli; u hráčky jen stav |
+| `kustod` | zápasy a živý zápis, soupeři, formace, události (i ❌ zrušení), docházka za kohokoli, ✋ žádosti o změnu účasti; u hráčky jen stav |
 | `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; Moje platby jen své předpisy |
+| `host` (+ `pid` hráčky 🎟) | hostující: čte jen sebe (svou hráčku, docházku, předpisy, žádosti, nepřítomnosti) a veřejné hlavičky `evpub`; formaci `lineuppub` jen u události se svým ✅ Jdu |
 | příznak `cash: true` | pokladník: předpisy, pohyby, vyúčtování, nastavení pokladny; **členy jen s rolí Hráčka a ne vlastní účet** |
 
 Účet bez `members` smí jen založit / zrušit vlastní žádost `joinreq/{email}` (vyřizuje trenér). Pravidla databáze (`firestore.rules`) jsou skutečná ochrana – skrytí v rozhraní nestačí. Známé mezery (důvody omluv, platy trenérů a platební pole soupisky čitelné všemi členy; uzávěrka přihlašování jen v aplikaci) řeší fáze S a W v plánu.

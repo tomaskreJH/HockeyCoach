@@ -27,24 +27,26 @@ export function daysRange(today, n = DAYS_AHEAD) {
   return {from: iso(d), to: iso(end)};
 }
 // Sjednocený seznam tréninků (events) a zápasů (matches) pro přehled; zápas nese soupeře a doma / venku.
-// end (konec tréninku) a meet (sraz v minutách) se přenesou beze změny – zobrazení dopočítá domain/event-time.js
+// end (konec tréninku) a meet (sraz v minutách) se přenesou beze změny – zobrazení dopočítá domain/event-time.js;
+// cancelled = zrušená událost (zůstává v přehledu se značkou ❌, přihlašování je zamčené)
+const canc = x => !!(x.cancelled && typeof x.cancelled === "object");
 export function homeItems(ev, ma) {
-  const t = (ev || []).map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", end: e.end || "", meet: e.meet, place: e.place || "", dl: e.dl || ""}));
-  const m = (ma || []).map(x => ({id: x.id, type: "match", title: "Zápas – " + (x.opp || "?"), opp: x.opp || "", home: !!x.home, date: x.date || "", time: x.time || "", meet: x.meet, place: x.place || "", dl: x.dl || "", closed: !!x.closed, live: !!x.live}));
+  const t = (ev || []).map(e => ({id: e.id, type: "training", title: e.title || "Trénink", date: e.date || "", time: e.time || "", end: e.end || "", meet: e.meet, place: e.place || "", dl: e.dl || "", cancelled: canc(e)}));
+  const m = (ma || []).map(x => ({id: x.id, type: "match", title: "Zápas – " + (x.opp || "?"), opp: x.opp || "", home: !!x.home, date: x.date || "", time: x.time || "", meet: x.meet, place: x.place || "", dl: x.dl || "", closed: !!x.closed, live: !!x.live, cancelled: canc(x)}));
   return [...t, ...m].filter(e => e.date);
 }
-// Přihlašování uzavřeno: po termínu dl nebo po dni události (stejné pravidlo jako v Událostech)
+// Přihlašování uzavřeno: po termínu dl nebo po dni události (stejné pravidlo jako v Událostech); zrušená událost je uzavřená vždy
 export function regClosed(e, now, today) {
   const t = e.dl ? new Date(e.dl).getTime() : NaN;
-  return (!isNaN(t) && now > t) || e.date < today;
+  return (!isNaN(t) && now > t) || e.date < today || !!e.cancelled;
 }
 // Odpověď člena mid na událost eid ("yes" | "no" | "maybe" | null); bez člena null
 export const myAnswer = (at, eid, mid) => { if (!mid) return null; const a = (at || []).find(x => x.eid === eid && x.pid === mid); return a ? a.st || null : null; };
 // Počet odpovědí „Jdu“ u události
 export const goingCount = (at, eid) => (at || []).filter(x => x.eid === eid && x.st === "yes").length;
-// Příští zápas: nejbližší neuzavřený a nezahájený zápas, který ještě nezačal (dnešní zápas do svého začátku); null = žádný
+// Příští zápas: nejbližší neuzavřený, nezahájený a nezrušený zápas, který ještě nezačal (dnešní zápas do svého začátku); null = žádný
 export function nextMatch(items, now, today) {
-  const list = (items || []).filter(e => e.type === "match" && !e.closed && !e.live && e.date >= today && (e.date > today || !e.time || startMs(e) >= now));
+  const list = (items || []).filter(e => e.type === "match" && !e.closed && !e.live && !e.cancelled && e.date >= today && (e.date > today || !e.time || startMs(e) >= now));
   return list.sort(byStart)[0] || null;
 }
 // Nadcházející události příštích 7 dní (dnes až dnes + 6) seřazené od nejbližší. Uplynulé se vynechají: dřívější dny,
@@ -57,8 +59,8 @@ export function upcomingEvents(items, at, mid, now, today, n = DAYS_AHEAD) {
     ...e, ans: myAnswer(at, e.id, mid), going: goingCount(at, e.id), locked: regClosed(e, now, today), past: false
   }));
 }
-// Počet událostí, na které člen ještě neodpověděl a přihlašování je otevřené (❓ v přehledu)
-export const unanswered = list => (list || []).filter(e => !e.ans && !e.locked && !e.past).length;
+// Počet událostí, na které člen ještě neodpověděl a přihlašování je otevřené (❓ v přehledu); zrušené se nepočítají
+export const unanswered = list => (list || []).filter(e => !e.ans && !e.locked && !e.past && !e.cancelled).length;
 
 // ===== Platby =====
 // Moje platby: state "none" (žádný předpis), "ok" (vše zaplaceno), "due" (k úhradě), "over" (po splatnosti);
@@ -70,7 +72,7 @@ export function myPay(ch, ids, now) {
   const state = !d.items.length ? "none" : !d.debt ? "ok" : d.over ? "over" : "due";
   return {state, debt: d.debt, over: d.over, blocked: d.blocked, next: nextDue, n: d.items.filter(x => restOf(x) > 0).length};
 }
-// Souhrn pokladny týmu pro správce: nezaplaceno celkem, po splatnosti (částka a počet dlužníků), otevřené žádosti
+// Souhrn pokladny týmu pro správce: nezaplaceno celkem, po splatnosti (částka a počet dlužníků), otevřené žádosti o změnu placení
 export function teamPay(ch, rq, now) {
   let unpaid = 0, over = 0;
   const who = new Set();
@@ -80,7 +82,7 @@ export function teamPay(ch, rq, now) {
     unpaid += r;
     if (x.due && new Date(x.due).getTime() < now) { over += r; who.add(x.mid); }
   });
-  return {unpaid: r2(unpaid), over: r2(over), debtors: who.size, reqs: openReqs(rq).length};
+  return {unpaid: r2(unpaid), over: r2(over), debtors: who.size, reqs: openReqs(rq).filter(r => r.kind !== "att").length};
 }
 // Varování cashflow z výsledku cashflow() (domain/budget-track.js): první měsíc pod rezervou / pod nulou, jinak null
 export function flowWarn(flow) {

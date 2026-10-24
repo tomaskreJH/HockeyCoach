@@ -15,9 +15,9 @@ export const pl=id=>S.pl.find(p=>p.id===id);
 export const goingOf=eid=>[...new Set(S.at.filter(a=>a.eid===eid&&a.st==="yes").map(a=>a.pid))].filter(id=>pl(id));
 // Člen realizačního týmu (trenér, kustod…) podle id
 const trOf=id=>S.tr.find(t=>t.id===id);
-// Jméno osoby jedinou funkcí ve dvou podobách: pn = HTML (číslo, jméno, značka 🤕 zraněná / ⛔ skončila), nm = čistý text (číslo a jméno; CSV, časová osa, hlášky).
+// Jméno osoby jedinou funkcí ve dvou podobách: pn = HTML (číslo, jméno, značka 🎟 hostující, 🤕 zraněná / ⛔ skončila), nm = čistý text (číslo a jméno; CSV, časová osa, hlášky).
 // Volby: staff = najít i člena realizačního týmu (v HTML s 🎓), fb = text pro neznámé id (výchozí „?“).
-export const pn=(id,{staff=false,fb="?"}={})=>{const p=pl(id);if(p)return(p.num?"#"+esc(p.num)+" ":"")+esc(p.name)+(stOf(p)==="inj"?" 🤕":stOf(p)==="end"?" ⛔":"");const t=staff&&trOf(id);return t?"🎓 "+esc(t.name):fb};
+export const pn=(id,{staff=false,fb="?"}={})=>{const p=pl(id);if(p)return(p.num?"#"+esc(p.num)+" ":"")+esc(p.name)+(p.guest===true?" 🎟":"")+(stOf(p)==="inj"?" 🤕":stOf(p)==="end"?" ⛔":"");const t=staff&&trOf(id);return t?"🎓 "+esc(t.name):fb};
 export const nm=(id,{staff=false,fb="?"}={})=>{const p=pl(id);if(p)return(p.num?"#"+p.num+" ":"")+(p.name||"");const t=staff&&trOf(id);return t?t.name||"":fb};
 export const lineIds=(lu,n)=>SL.map(s=>lu[n+s]).filter(Boolean);
 export const luPlayers=lu=>[...new Set(Object.values(lu||{}).filter(Boolean))];

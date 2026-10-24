@@ -2,7 +2,9 @@
 // s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow);
 // trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js). Klepnutí na běžící zápas otevře členům
 // bez práva zápisu 👁 náhled jen ke čtení (views/live-watch.js, stav S.hw), trenér / kustod jde do živého zápisu.
-// Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Nic nezapisuje. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
+// Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
+// Karta 🏖 Nepřítomnost (views/absence-view.js) je jediné místo s formulářem – zapisuje nepřítomnost a omluvy. Zrušená událost má značku ❌.
+// Hostující (HK.can("guest")) nevidí počty přihlášených ostatních (vidí jen sebe).
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Vykreslení karet -> Eventy -> Export.
 
 // ===== Importy =====
@@ -15,6 +17,7 @@ import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
 import {DAYS_AHEAD, flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
+import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
 import {econData} from "./payments.js";
@@ -43,7 +46,8 @@ const fDay = s => DAYS[new Date(s + "T12:00:00").getDay()] + " " + fd(s);
 // Den, čas od – do (trénink), ⏰ sraz (výchozí hodnoty z settings/events, S.es) a místo
 const timeTxt = e => { const t = timeParts(e, evDefaults(S.es)); return (t.range ? " · " + esc(t.range) : "") + (t.meet ? " · ⏰ sraz " + t.meet : ""); };
 const when = e => fDay(e.date) + timeTxt(e) + (e.place ? " · " + esc(e.place) : "");
-const ansHtml = e => e.ans ? `<span class="hma">${ANS[e.ans] || ""}</span>`
+// Zrušená událost: značka místo odpovědi
+const ansHtml = e => e.cancelled ? '<span class="hma" style="color:var(--no)">❌ Zrušeno</span>' : e.ans ? `<span class="hma">${ANS[e.ans] || ""}</span>`
   : e.past || e.locked ? '<span class="hma mu">–</span>' : '<span class="hma" style="color:var(--wa)">❔ Odpověz</span>';
 // Varování cashflow z uloženého rozpočtu běžící sezóny (jen správce pokladny); chyba výpočtu přehled nezastaví
 function flowOf() {
@@ -68,11 +72,11 @@ function nextHtml(m, mine) {
   if (!m) return `<div class="cd"><h2>🆚 Příští zápas</h2><div class="mu">Žádný naplánovaný zápas.</div></div>`;
   const dl = m.dl ? (m.locked ? "🔒 Přihlašování uzavřeno" : "Přihlášení do " + dlText(m.dl)) : (m.locked ? "🔒 Uzavřeno" : "Termín přihlašování nenastaven");
   return `<div class="cd hmc" data-heo="${esc(m.id)}"><h2>🆚 Příští zápas</h2><div class="hmh"><b style="font-size:18px">${esc(m.opp)}</b><span class="tag">${m.home ? "🏠 doma" : "🚌 venku"}</span></div>
-<div class="mu" style="margin-top:4px">${when(m)}</div><div class="hmh" style="margin-top:6px"><span class="mu">${dl} · ✅ ${m.going}</span>${mine ? ansHtml(m) : ""}</div></div>`;
+<div class="mu" style="margin-top:4px">${when(m)}</div><div class="hmh" style="margin-top:6px"><span class="mu">${dl}${HK.can("guest") ? "" : " · ✅ " + m.going}</span>${mine ? ansHtml(m) : ""}</div></div>`;
 }
 // Příštích 7 dní (dnes až dnes + 6, jen nadcházející): tréninky a zápasy s mojí odpovědí (bez propojeného člena počet „Jdu“)
 function weekHtml(list, mine) {
-  const q = unanswered(list), rows = list.map(e => `<div class="hmr${e.past ? " past" : ""}" data-heo="${esc(e.id)}"><div><b>${e.type === "match" ? "🆚" : "🏒"} ${esc(e.title)}</b>${e.type === "match" ? ` <span class="mu">${e.home ? "doma" : "venku"}</span>` : ""}<div class="mu">${when(e)}</div></div>${mine ? ansHtml(e) : `<span class="hma">✅ ${e.going}</span>`}</div>`).join("");
+  const q = unanswered(list), rows = list.map(e => `<div class="hmr${e.past || e.cancelled ? " past" : ""}" data-heo="${esc(e.id)}"><div><b>${e.type === "match" ? "🆚" : "🏒"} ${e.cancelled ? "<s>" + esc(e.title) + "</s>" : esc(e.title)}</b>${e.type === "match" ? ` <span class="mu">${e.home ? "doma" : "venku"}</span>` : ""}<div class="mu">${when(e)}</div></div>${mine ? ansHtml(e) : e.cancelled ? ansHtml(e) : `<span class="hma">✅ ${e.going}</span>`}</div>`).join("");
   return `<div class="cd"><div class="hmh"><h2 style="margin:0">📅 Příštích ${DAYS_AHEAD} dní</h2>${mine && q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>
 ${rows || '<div class="mu" style="margin-top:6px">V příštích ' + DAYS_AHEAD + ' dnech nejsou žádné události.</div>'}</div>`;
 }
@@ -119,6 +123,7 @@ export function homeView(a) {
   const next = nm ? {...nm, ans: myAnswer(S.at, nm.id, mid), going: goingCount(S.at, nm.id), locked: regClosed(nm, now, today)} : null;
   const mp = mineIds().length ? myPay(S.ch, mineIds(), now) : null;
   const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";
-  a.innerHTML = CSS + `<div id="hmw">${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${nextHtml(next, !!mid)}${weekHtml(week, !!mid)}${payHtml(mp)}${team}</div>`;
+  a.innerHTML = CSS + `<div id="hmw">${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${nextHtml(next, !!mid)}${weekHtml(week, !!mid)}${payHtml(mp)}${absCardHtml()}${team}</div>${absModal()}`;
   bind(a, L);
+  bindAbs(a);
 }

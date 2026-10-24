@@ -2,6 +2,7 @@
 // První záložka 🏠 Domů (úvodní přehled, views/home-view.js) je výchozí po spuštění a vidí ji každý člen.
 // Záložka Události obsahuje zápasy i tréninky: je-li otevřený zápas (S.mid), zobrazí se jeho karta, jinak seznam událostí.
 // Přihlášená hráčka (role "hracka") vidí záložky Domů, Události, Statistiky, Soupeři (jen ke čtení) a Moje platby; karta zápasu je jen pro trenéra a kustoda.
+// Hostující (HK.can("guest")) vidí jen Domů, Události a Moje platby (statistiky, soupeři a tým nejsou její data).
 // Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.can("money")) ho vidí také – formaci jen ke čtení, u soupisky a realizačního týmu jen platby, plus Platby / Pokladna / Měsíce.
 // Statistiky jsou přístupné všem členům týmu (jen ke čtení).
 // Záložka Moje platby je pro každého, kdo má v účtu propojenou hráčku nebo člena týmu (pid / tid).
@@ -26,7 +27,7 @@ import {formV} from "./team.js";
 const onlyPl = () => HK.can("onlyOwn");
 const hasMine = () => !!(HK.pid() || HK.tid());
 // Záložky dostupné hráčce (Soupeři jen ke čtení); hráčka-pokladník má navíc Team
-const plTabs = () => HK.can("money") ? ["home", "ev", "fo", "st", "op", "mk"] : ["home", "ev", "st", "op", "mk"];
+const plTabs = () => HK.can("guest") ? ["home", "ev", "mk"] : HK.can("money") ? ["home", "ev", "fo", "st", "op", "mk"] : ["home", "ev", "st", "op", "mk"];
 // Záložka 🏠 Domů jen jako ikona (šetří místo v liště s až šesti záložkami)
 const HOME_BTN = ' style="flex:0 0 52px;font-size:20px" title="Domů" aria-label="Domů"';
 // Pruh náhledu role přes celou šířku lišty (prázdný, když náhled neběží)

@@ -12,14 +12,15 @@ import {fileURLToPath} from "node:url";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const probe = (role, cash) => JSON.parse(execFileSync(process.execPath, ["--import", "./tests/support/setup.mjs", "tests/support/can-probe.mjs", role, cash ? "1" : "0"], {cwd: ROOT, encoding: "utf8"}));
 
-// ===== Očekávané hodnoty (chování v18.9) =====
+// ===== Očekávané hodnoty (role trenér, kustod, hráčka, hostující; wipe jen vývojář – testovací účet jím není) =====
 const T = true, F = false;
 const EXP = [
-  ["trener", F, {sport: T, money: T, members: T, roster: T, accounts: T, admin: T, onlyOwn: F}],
-  ["kustod", F, {sport: T, money: F, members: F, roster: F, accounts: F, admin: F, onlyOwn: F}],
-  ["kustod", T, {sport: T, money: T, members: T, roster: F, accounts: F, admin: F, onlyOwn: F}],
-  ["hracka", F, {sport: F, money: F, members: F, roster: F, accounts: F, admin: F, onlyOwn: T}],
-  ["hracka", T, {sport: F, money: T, members: T, roster: F, accounts: F, admin: F, onlyOwn: T}]
+  ["trener", F, {sport: T, money: T, members: T, roster: T, accounts: T, admin: T, onlyOwn: F, guest: F, wipe: F}],
+  ["kustod", F, {sport: T, money: F, members: F, roster: F, accounts: F, admin: F, onlyOwn: F, guest: F, wipe: F}],
+  ["kustod", T, {sport: T, money: T, members: T, roster: F, accounts: F, admin: F, onlyOwn: F, guest: F, wipe: F}],
+  ["hracka", F, {sport: F, money: F, members: F, roster: F, accounts: F, admin: F, onlyOwn: T, guest: F, wipe: F}],
+  ["hracka", T, {sport: F, money: T, members: T, roster: F, accounts: F, admin: F, onlyOwn: T, guest: F, wipe: F}],
+  ["host", F, {sport: F, money: F, members: F, roster: F, accounts: F, admin: F, onlyOwn: T, guest: T, wipe: F}]
 ];
 
 // ===== Testy =====

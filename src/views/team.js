@@ -7,6 +7,7 @@
 // Tlačítka, na která role nemá právo, se nezobrazují (práva navíc vynucují pravidla databáze).
 // Soukromí: platební pole hráčky jsou v plpay/{pid} a plat člena týmu ve staffpay/{tid} (čtou jen správci pokladny) – štítek plateb
 // u hráčky vidí jen správce pokladny; nová hráčka se zakládá v jedné dávce s dokumentem plpay, se smazáním zmizí i plpay / staffpay.
+// Hostující hráčka (players.guest, značka 🎟 – domain/guests.js) se zakládá zaškrtnutím „Hostující“; počítá se všude jako ostatní.
 import {KIND,POS,ST} from "../config/constants.js";
 import {confirm2,saveDef} from "../core/actions.js";
 import {PG,isG,pl,pn,pri,stOf} from "../core/selectors.js";
@@ -39,7 +40,7 @@ const T=[...S.tr].sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs"));
 const coach=HK.can("roster"),cashier=HK.can("money"),edit=!ro()||cashier;
 a.innerHTML=`${coach?`<div class="cd"><h2>Přidat hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="n"></div><div><label>Číslo</label><input id="c" inputmode="numeric"></div></div>
 <div class="row"><div><label>Pozice</label><select id="p">${POS.map(x=>`<option>${x}</option>`).join("")}<option value="">Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="q"><option value="">–</option>${POS.map(x=>`<option>${x}</option>`).join("")}</select></div></div>
-<div class="row"><div><label>Skupina plateb</label><select id="py">${Object.entries(GRP).map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select></div><div><label>Koeficient (% z ceny)</label><input id="pfx" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="100"></div></div><label class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><input id="pex" type="checkbox" style="width:auto;margin:0"> Osvobozená (zvýhodněná) hráčka</label><label>Poznámka k platbám (např. kompenzace)</label><input id="pnt">
+<div class="row"><div><label>Skupina plateb</label><select id="py">${Object.entries(GRP).map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select></div><div><label>Koeficient (% z ceny)</label><input id="pfx" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="100"></div></div><label class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><input id="pex" type="checkbox" style="width:auto;margin:0"> Osvobozená (zvýhodněná) hráčka</label><label class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><input id="pgs" type="checkbox" style="width:auto;margin:0"> 🎟 Hostující hráčka (z jiného týmu; účet s rolí Hostující uvidí jen sebe)</label><label>Poznámka k platbám (např. kompenzace)</label><input id="pnt">
 <button class="p w" id="add">Přidat</button></div>`:""}
 <div class="cd"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">Soupiska (${l.length})</h2><button class="s" id="ft" style="flex:none">Filtry ${S.fo?"▴":"▾"}</button></div>
 <div class="mu" style="margin:6px 0 4px">${({act:"Aktivní",inj:"Zranění",end:"Ukončili",all:"Všichni"})[S.pf]} · ${S.pq==="all"?"všechny pozice":S.pq===""?"Neurčeno":S.pq}</div>
@@ -55,8 +56,8 @@ a.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{S.pf=b.dataset.pf;rend
 // Přidání hráčky: koeficient se zadává v procentech (0–100 %), ukládá se jako 0..1; soupiska do players, platební pole do plpay (jedna dávka)
 Q2("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;const fx=pctToFx($("#pfx").value);if(fx==null)return toast("Zadej koeficient 0–100 %");
 const id=S.db.collection("players").newId();
-S.db.batch().set("players/"+id,{name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act"}).set(PPAY_COLL+"/"+id,plPayDoc({grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()})).commit()};
-a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
+S.db.batch().set("players/"+id,{name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act",...($("#pgs").checked?{guest:true}:{})}).set(PPAY_COLL+"/"+id,plPayDoc({grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()})).commit()};
+a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),guest:p.guest===true,grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
 // Smazání hráčky (jen trenér): s ní i její platební pole v plpay
 a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"));S.db.doc(PPAY_COLL+"/"+id).delete()})});
 // Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka, důvody a plat ve staffpay)

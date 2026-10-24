@@ -40,14 +40,14 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 | v19.6.1 | ČL | ✋ **Žádost o přijetí do týmu** (požadavek 23. 10. 2026, „co nejdříve“): účet Google bez členství pošle žádost (e-mail z přihlášení, přezdívka, číslo dresu), trenér ji vyřídí – založí / přiřadí hráčku nebo člena týmu a účet – sekce „ČL“ – **hotovo, nasazeno** (23. 10. 2026) – **publikovat firestore.rules před kódem** (nová kolekce `joinreq`) |
 | v19.6.2 | UP | 🏠 Domů: místo „Tento týden“ (Po – Ne) **📅 Příštích 7 dní** (dnes + 6), uplynulé události (i dnešní po začátku, uzavřené a běžící zápasy) se nezobrazují – požadavek uživatele 23. 10. 2026 – **hotovo, nasazeno, otestováno bez nálezu** (23. 10. 2026), pravidla beze změny |
 | v19.6.3 | UP2 | 👁 Náhled živého zápasu pro členy (jen ke čtení: skóre, střely, čas, třetina, průběh – góly, tresty, střely; bez sestav a času na ledě) – `domain/watch-feed.js`, `views/live-watch.js` – sekce „UP“, otázka 56 – **hotovo, k testu** (23. 10. 2026), pravidla beze změny |
-| s W | NP | 🏖 **Nepřítomnost člena od–do** (dovolená, nemoc): omluva v otevřených událostech, u uzavřených žádost trenérovi (`requests`, druh `att`) – sekce „NP“ |
+| v20.1 | NP | 🏖 **Nepřítomnost člena od–do** (dovolená, nemoc): omluva v otevřených událostech, u uzavřených žádost trenérovi (`requests`, druh `att`) – sekce „NP“ – **hotovo spolu s W** |
 | v19.7 | UD1 + UD2 | 📅 **Čas od – do u tréninku** (`end`, výchozí +60 min), **⏰ sraz u všech událostí** (`meet` v minutách předem, výchozí trénink 30 / zápas 60, u každé události lze měnit, výchozí v ⚙️ → ⏰ Nastavení událostí = `settings/events`), série přenáší konec i sraz; **počty ✅ / ❌ / ❓ v tlačítkách** na kartě – `domain/event-time.js`, `views/event-settings.js` – **hotovo, k testu** (23. 10. 2026), pravidla beze změny (UD1 a UD2 spojeny na přání uživatele) |
 | v19.8 | DO | 🚫 **Nedorazila bez omluvy**: značka `attendance.nos` u odpovědi „Jdu“ po začátku události (trenér, kustod, detail události), v Docházce sloupec 🚫 mimo účast – `domain/attendance.js` – **hotovo, k testu** (24. 10. 2026), **publikovat firestore.rules** (attendance) |
-| v19.9 | HG1 | Hostující hráčky bez účtu |
-| v20.0 | Z | Zrušení události (zůstává v historii), úplné smazání jen vývojář |
-| v20.1 | W + NP | Žádosti o změnu účasti po uzávěrce + 🏖 nepřítomnost od–do (kolekce `requests`) – **publikovat firestore.rules** |
-| v20.2 / v20.3 | OM1 / OM2 | Modulární práva (náhrada fáze O – role po modulech) – **publikovat firestore.rules** |
-| v20.4 | HG2 | Hostující hráčky – vlastní úzké dokumenty (`evpub`, `matchpub`) – **publikovat firestore.rules** |
+| v19.9 | HG1 | 🎟 Hostující hráčky bez účtu (`players.guest`, značka 🎟, počítají se jako ostatní) – **hotovo, k testu** (24. 10. 2026; dodáno v jednom zipu s v20.0 – v20.2) |
+| v20.0 | Z | ❌ Zrušení události (`cancelled`, zůstává v historii, mimo Docházku), smazání prázdné trenér / kustod, 🧨 úplné smazání se vším jen vývojář – **hotovo, k testu** (24. 10. 2026) |
+| v20.1 | W + NP | ✋ Žádosti o změnu účasti po uzávěrce (`requests`, kind `att`) + 🏖 nepřítomnost od–do (`absence`) – **hotovo, k testu** (24. 10. 2026) – **publikovat firestore.rules** |
+| v20.2 | HG2 | Role **Hostující** – vidí jen sebe; úzké dokumenty `evpub` (hlavička) a `lineuppub` (formace jen s jejím „Jdu“) zapisuje aplikace trenéra / kustoda (bez Blaze) – **hotovo, k testu** (24. 10. 2026) – **publikovat firestore.rules**, po testu 🔒 Vyžadovat verzi v20.2 |
+| v20.3 / v20.4 | OM1 / OM2 | Modulární práva (náhrada fáze O – role po modulech) – **publikovat firestore.rules** (posunuto: HG2 vydána dřív jako v20.2, čísla verzí musí růst kvůli bráně verze) |
 | v20.5 | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) |
 | v21.x | E | Modul Trénink |
 | poslední | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
@@ -58,7 +58,8 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 
 ---
 
-## Stav (aktualizováno 23. 10. 2026)
+## Stav (aktualizováno 24. 10. 2026)
+- **v19.8 nasazena a otestována (24. 10. 2026). v19.9 + v20.0 + v20.1 + v20.2 dodány najednou v jednom zipu (požadavek uživatele „udělej zaráz“), k testu.** Rozhodnutí uživatele: **HG1** – hostující hráčka bez účtu se chová jako každá jiná a počítá se i v souhrnech (jen značka 🎟, příznak `players.guest` zapíná trenér); **HG2** – hostující s účtem „nemá přístup k nikomu jinému, jen sama k sobě a vidí formace při události, kde je přihlášena“ → role `host`, pravidla `isTeam()` / `isHost()`, veřejné `evpub` + `lineuppub` (jen jména), zapisuje aplikace trenéra / kustoda (`views/auto-sync.js`), Blaze ani Cloud Functions nejsou potřeba; **Z** – ruší trenér + kustod (lze vrátit), úplné smazání i s úhradami jen vývojář, trenér / kustod smaže jen prázdnou událost; **W + NP** – podle návrhu (otázky 24, 26, 27, 58–60): vyřizuje trenér + kustod, lhůta do začátku, schválení zapíše docházku, nepřítomnost přepíše i Jdu / Nejistá (s náhledem), nemoc vidí jen člen a trenér / kustod, za člena zadá trenér / kustod. HG2 vydána jako v20.2 (ne v20.4) – OM posunuto na v20.3 / v20.4. **Publikovat firestore.rules před kódem, po testu 🔒 Vyžadovat verzi v20.2. Další: v20.3 – OM1.**
 - **v19.7 nasazena (24. 10. 2026, uživatel: „změny vidím“), bez nálezu. v19.8 (DO) dodáno, k testu:** 🚫 nedorazila bez omluvy. Otázky DO rozhodnuty uživatelem: značka **jen u odpovědi ✅ Jdu** (ne bez odpovědi), zapisuje a ruší **trenér a kustod**, zápis **v detailu uplynulé události** (tlačítko 🚫 u hráčky, jen po začátku), v 📊 Docházce **nový sloupec 🚫 a „Jdu“ se značkou se do účasti ani procenta nepočítá**. Data: `attendance.nos = true` (merge, zrušení smaže pole); změna odpovědi trenérem (set dokumentu) značku zruší; hráčka odpověď se značkou nezmění (aplikace i pravidla). Realizační tým tlačítko nemá (výpočet by ho zvládl). Výpočty `src/domain/attendance.js` (`NOS_KEY`, `isNos`, `canNos`, `nosPatch`, `nosCount`, `startMs` exportován, `attSummary` s `nos`) + `tests/attendance-nos.test.js` (5 testů, celkem 192). Pravidla `attendance`: `nosKeep()` – hráčka značku nezaloží, nezmění ani nesmaže (ani smazáním dokumentu). **Publikovat firestore.rules (kdykoli – před i po kódu), 🔒 Vyžadovat verzi ne. Test v19.6.3 (náhled živého zápasu) zatím neproběhl. Další: v19.9 – HG1.**
 - **v19.7 (UD1 + UD2) dodáno, k testu** (uživatel: „spoj úpravy UD1, UD2; srazy musí jít editovat, defaulty sedí“): trénink má konec `events.end` (automaticky začátek + `len`, dokud se ručně nezmění; konec po začátku), trénink i zápas sraz `meet` v minutách před začátkem (0 = bez srazu), výchozí `settings/events = {meetT: 30, meetM: 60, len: 60}` mění trenér / kustod v ⚙️ → ⏰ Nastavení událostí (`src/views/event-settings.js`); událost bez polí ukazuje výchozí hodnoty. Sraz se edituje u každé události (trénink ✏️ Upravit, zápas ✏️ Čas, místo, termín; při + Zápas se nezadává). Série (OU) přenáší konec a sraz (`seriesOps`, `editPlan`, `manualChange` jen s uvedenými poli – staré volání beze změny). Zobrazení „18:00 – 19:00 · ⏰ sraz 17:30“: karta, detail, 🏠 Domů. UD2: rychlá tlačítka ✅ / ❌ / ❓ s počty odpovědí hráček (`answerCounts`). Výpočty `src/domain/event-time.js` + `tests/event-time.test.js` (8 testů, celkem 187). Začátek zůstává `time` (docházka, uzávěrka beze změny). **Pravidla beze změny, 🔒 Vyžadovat verzi ne. Test v19.6.3 (náhled živého zápasu) zatím neproběhl. Další: v19.8 – DO.**
 - **v19.6.2 nasazena a otestována bez nálezu (karta 📅 Příštích 7 dní funguje). v19.6.3 (UP2) dodáno, k testu:** v 🏠 Domů klepnutí na kartu 🔴 běžícího zápasu otevře členům bez `can("sport")` **👁 náhled jen ke čtení** (`src/views/live-watch.js`, stav `S.hw`): skóre a střely (domácí vlevo), zbývající čas třetiny a třetina (▶ / ⏸ / 🏁, odpočet se dopočítává místně z `live.acc`, `t0`, `pst`, `perLen`), průběh od nejnovějšího – góly s průběžným skóre, tresty, střely (lze skrýt) a konce třetin; bez sestav, střídání, času na ledě a zranění, žádné ovládání. Výpočty `src/domain/watch-feed.js` (`watchClock`, `watchScore`, `watchFeed`, `WATCH_KINDS`; průběh z `timeline` bez střídání) + `tests/watch-feed.test.js` (4 testy, celkem 179). Zpět / ← Domů vrátí přehled, po uzavření zápasu se náhled zavře sám, přepnutí záložky ho zruší. Živý zápis beze změny (místní posun času ◀ ▶ zapisovatele se do dokumentu neukládá – náhled ukazuje čas bez něj). **Pravidla beze změny, 🔒 Vyžadovat verzi ne. UP je hotová (veřejný náhled s HG, otázka 57). Další: v19.7 – P2.**
@@ -205,7 +206,7 @@ Sloučeno: bod R1.3 „Moje platby po měsících“ (otázka 20) → **PM**; ž
 64. Zamítnutý uchazeč smí poslat novou žádost (přepíše starou), nebo až po smazání trenérem? (návrh: smí, nejdřív za 24 h – ochrana proti zahlcení)
 
 ## Nové pořadí 23. 10. 2026 – Události, docházka, modulární práva (požadavek uživatele)
-Nejdřív události a docházka, pak modulární práva, nakonec notifikace, Trénink a jistota plateb (P2 poslední). Pořadí: **v19.7 UD1 + UD2** → v19.8 DO → v19.9 HG1 → v20.0 Z → v20.1 W + NP → v20.2 OM1 / v20.3 OM2 → v20.4 HG2 → v20.5 N → v21.x E → P2.
+Nejdřív události a docházka, pak modulární práva, nakonec notifikace, Trénink a jistota plateb (P2 poslední). Pořadí: **v19.7 UD1 + UD2** → v19.8 DO → v19.9 HG1 → v20.0 Z → v20.1 W + NP → v20.2 HG2 (vydáno spolu s v19.9 – v20.1) → v20.3 OM1 / v20.4 OM2 → v20.5 N → v21.x E → P2.
 
 ### UD1 + UD2 – v19.7 📅 čas od – do, ⏰ sraz, počty v tlačítkách (✅ dodáno 23. 10. 2026, k testu)
 - UD1 a UD2 spojeny do jedné verze (uživatel 23. 10. 2026). Výchozí hodnoty potvrzeny („defaulty sedí“): konec tréninku začátek + 60 min, sraz trénink 30 min, zápas 60 min; **sraz musí jít editovat** – u každé události i výchozí v ⚙️.
@@ -217,8 +218,20 @@ Nejdřív události a docházka, pak modulární práva, nakonec notifikace, Tr�
 - Rozhodnuto uživatelem: jen u ✅ Jdu; zapisuje trenér a kustod; v detailu uplynulé události; v Docházce sloupec 🚫, do účasti se nepočítá.
 - Data `attendance.nos` (merge), pravidla `nosKeep()`; čisté funkce `domain/attendance.js`.
 
-### HG1 – v19.9 hostující hráčky bez účtu · OM1 / OM2 – modulární práva
-- Podrobné zadání a otázky (dříve 67–76) z předchozího vlákna doplnit při práci na fázi (v repozitáři zatím nejsou).
+### HG1 – v19.9 hostující hráčky bez účtu (✅ dodáno 24. 10. 2026, k testu)
+- `players.guest = true` (trenér při přidání nebo v Upravit; vypnutí pole smaže), značka 🎟 v `pn`; počítá se všude jako ostatní hráčky (rozhodnutí uživatele). Pravidla beze změny.
+
+### Z – v20.0 zrušení události (✅ dodáno 24. 10. 2026, k testu)
+- `cancelled = {by, at, reason}` v `events` / `matches` (trenér, kustod; ↩ obnovení pole smaže). Zrušená: zamčené přihlašování, mimo Docházku a ❔, příští zápas ji přeskočí, zápas nejde otevřít; nevyúčtovaná mimo hospodaření (`econData`). Smazání: prázdná událost trenér / kustod, 🧨 úplné smazání se vším (`wipePlan`, `HK.wipeEvent`) jen vývojář; audit zůstává. Notifikace o zrušení s fází N.
+
+### W + NP – v20.1 (✅ dodáno 24. 10. 2026, k testu)
+- `requests` kind `att` (`domain/att-requests.js`, `views/att-request-view.js`), `absence` (`domain/absence.js`, `views/absence-view.js`), `attendance.abs`; automatická omluva později založených událostí jen bez odpovědi (`views/auto-sync.js`).
+
+### HG2 – v20.2 hostující s účtem (✅ dodáno 24. 10. 2026, k testu)
+- Role `host` (+ `pid` hráčky 🎟); záložky 🏠 / Události / Moje platby; `evpub` a `lineuppub` (místo dřívějšího návrhu `matchpub` s Cloud Functions) zapisuje aplikace trenéra / kustoda – jen rozdíly, jen s aktivní hostující, události od dneška − 14 dní. Pravidla `isTeam()` pro všechna týmová čtení, `hostGoing()` pro formaci.
+
+### OM1 / OM2 – v20.3 / v20.4 modulární práva
+- Podrobné zadání a otázky doplnit při práci na fázi (v repozitáři zatím nejsou). Pozor: role `host` už existuje – OM ji musí zachovat (`isTeam()` / `isHost()`).
 
 ## NP – 🏖 Nepřítomnost člena od–do (požadavek uživatele 23. 10. 2026; návrh spolu s W)
 **Porovnání s dneškem:** omluvu („Nejdu“ s důvodem) zadává člen ke každé události zvlášť; po uzávěrce přihlašování ji změní jen trenér / kustod ručně (žádost o změnu účasti řeší až fáze W); hromadná nepřítomnost neexistuje.

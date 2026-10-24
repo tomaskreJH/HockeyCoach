@@ -1,6 +1,7 @@
 // Seznam zápasů a detail zápasu (průvodce kroky).
 // Nominace: jen hráčky přihlášené na událost (odpověď „Jdu“ v záložce Události); uzavření zápasu automaticky vytvoří vyúčtování plateb.
-// Smazání zápasu: nejdřív kontrola vyúčtování (HK.canDelete), potom se smaže docházka zápasu a zápas (předpisy bez úhrady a evcash maže datová vrstva).
+// Smazání zápasu: trenér / kustod jen prázdný zápas (bez odpovědí, zápisu a vyúčtování – domain/event-cancel.js), jinak se zápas ruší v detailu
+// události (❌ Zrušit); vývojář (HK.can("wipe")) smaže i zápas s daty – úplně se vším (HK.wipeEvent).
 // Příprava zápasu: událost (zveřejněná při vytvoření) → přihlášky hráček → nominace z přihlášených → sestava → uzavření sestavy → živý zápis; dokud přihlášky nestačí (1 + 5), karta vede do detailu události.
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
@@ -9,6 +10,7 @@ import {PG, compactRot, goingOf, nomOf, pl, pn, pri, score, stOf} from "../core/
 import {S} from "../core/state.js";
 import {$, Q, clone, dlText, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {isEmptyEvent, wipeText} from "../domain/event-cancel.js";
 import {benchM, fillDef, readiness, signupState} from "../domain/lineup.js";
 import {initLive} from "../domain/live-engine.js";
 import {benchGrouped, bindLu, luEditor, matchDrag} from "./lineup-editor.js";
@@ -26,6 +28,7 @@ a.innerHTML=`<button class="p w" id="nw" style="margin-bottom:12px">+ Nový záp
 $("#nw").onclick=()=>{S.M={k:"NEW",date:td(),opp:"",home:true};modal()};
 a.querySelectorAll(".it").forEach(i=>i.onclick=()=>{S.mid=i.dataset.id;S.showLu=false;S.showNom=false;S.step=1;render()})}
 export function detail(a,m){const[g,o]=score(m);const ev=(m.events||[]).map((e,i)=>({e,i})).sort((x,y)=>y.e.per-x.e.per||(y.e.time||"").localeCompare(x.e.time||"")||y.i-x.i).map(x=>x.e);const gk=m.gk||(m.lineup||{}).G1,ge=m.events||[];const tm=e=>e.per+". tř."+(e.time?" "+esc(e.time):"");
+const dmE=isEmptyEvent(m.id,m,{attendance:Object.fromEntries(S.at.map(x=>[x.id,x])),evcash:Object.fromEntries(S.ec.filter(x=>x.settle).map(x=>[x.id,x])),charges:Object.fromEntries(S.ch.map(x=>[x.id,x]))}),dmOk=dmE||HK.can("wipe");
 const lu=m.lineup||{},nom=nomOf(m),GO=goingOf(m.id),lk=!!m.closed,st=S.step||1,NM=["Zápas","Sestava","Zápas živě"],R0=readiness(m),SU=signupState(GO),BM=benchM(m),ph=m.live||lk?"lu":(!R0.nom.ok?"nom":(S.ph||"lu"));
 // Postup přípravy: přihlášky (událost) → nominace z přihlášených → sestava → uzavření sestavy → zahájení. Dokud přihlášky nestačí na nominaci (1 + 5), karta vede do detailu události.
 const suCard=()=>`<div class="ev"><div class="b">${SU.ok?"✅":"⏳"} ${SU.txt}<div class="mu">${m.dl?"Uzávěrka přihlášek: "+esc(dlText(m.dl)):"Termín přihlašování není nastaven – nastav ho v Událostech (✏️ Upravit)."}</div></div></div>`;
@@ -50,7 +53,7 @@ ${ph==="nom"?`<div class="cd" data-s="2"><h2>Nominace (${nom.length})</h2><div c
 ${ph==="lu"?`<div class="cd" data-s="2"><h2>Přesilovky a oslabení</h2><div class="mu" style="margin-bottom:8px">Formace 5:5 jsou řady výše. Zvlášť určuješ přesilovky (5 hráček), oslabení se 4 hráčkami (střed, útočník Ú, oba obránci) a oslabení se 3 hráčkami (střed a dva obránci). Hráčka může být v každém druhu jen jednou (např. jen v jedné přesilovce a jen v jednom oslabení 4 hráčky), mezi druhy se překrývat smí. Kombinace si můžeš zvolit libovolně. Za zápasu jdou jednotky měnit v menu živého zápisu.</div><div class="tw">${UK.map(k=>{const u=(m.sp||{})[k]||{};return`<div class="lnl">${ULAB[k]}</div><div class="ln">${USLOT[k].map(c=>{const id=u[c];return`<button class="sl ${id&&pl(id)?"f":""}" data-sl="${k}:${c}"><small>${slab(k,c)}</small>${id&&pl(id)?pn(id):"+"}</button>`}).join("")}</div>`}).join("")}</div><button class="s w ed" id="cpsp" style="margin-top:6px">Zkopírovat z posledního zápasu</button></div>`:""}
 
 ${lk?`<div class="cd" data-s="3"><b>🔒 Zápas je uzavřený</b><div class="mu">Nic v něm nejde měnit. Pokud je potřeba oprava, otevři ho znovu.</div><button class="s w" id="ro" style="margin-top:8px">${S.cf==="o"+m.id?"Opravdu otevřít? Klepni znovu":"Znovu otevřít"}</button></div>`:`<div class="cd" data-s="3"><h2>Uzavření zápasu</h2><div class="mu" style="margin-bottom:8px">Do uzavření jde všechno upravovat: nominaci, sestavu, průběh i soupeřovu sestavu (tu můžeš doplnit i za pár dní z oficiálního zápisu). Po uzavření se zápas zamkne a automaticky se vytvoří vyúčtování plateb (cena a způsob úhrady se nastavují v záložce Události).</div><button class="p w" id="cz">${S.cf==="c"+m.id?"Opravdu uzavřít? Klepni znovu":"Uzavřít a potvrdit zápas"}</button></div>`}
-<button class="d w ed" data-s="1" id="dm" style="${S.cf===m.id?"background:var(--no);color:#fff":""}">${S.cf===m.id?"Opravdu smazat celý zápas? Klepni znovu":"Smazat zápas"}</button><div style="display:flex;gap:12px;margin:16px 0">${st>1?`<button class="s" id="pv" style="flex:1;min-height:56px">← ${NM[st-2]}</button>`:""}${st<3?`<button class="p" id="nx" style="flex:2;min-height:56px">${NM[st]} →</button>`:""}</div></div>`;
+${dmOk?`<button class="d w ed" data-s="1" id="dm" style="${S.cf===m.id?"background:var(--no);color:#fff":""}">${S.cf===m.id?(dmE?"Opravdu smazat celý zápas? Klepni znovu":"Smazat VŠE ("+esc(wipeText(HK.wipePreview("matches",m.id)))+")? Klepni znovu"):dmE?"Smazat zápas":"🧨 Smazat úplně (vývojář)"}</button>`:""}<div style="display:flex;gap:12px;margin:16px 0">${st>1?`<button class="s" id="pv" style="flex:1;min-height:56px">← ${NM[st-2]}</button>`:""}${st<3?`<button class="p" id="nx" style="flex:2;min-height:56px">${NM[st]} →</button>`:""}</div></div>`;
 
 const go=n=>{S.step=n;render();window.scrollTo(0,0)};Q("#pv").onclick=()=>go(st-1);Q("#nx").onclick=()=>go(st+1);a.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>go(+b.dataset.st));
 a.querySelectorAll("[data-lvs]").forEach(b=>b.onclick=()=>{const R=readiness(m);if(!R.nom.ok||!R.lu.ok)return toast("Nejdřív dokonči nominaci a sestavu");const n=clone(m);n.live=initLive(n);S.lv=true;upd(n)});
@@ -87,7 +90,7 @@ a.querySelectorAll("[data-luop]").forEach(b=>b.onclick=()=>{const n=clone(m);del
 Q("#gu").onclick=()=>{S.M={k:"G",team:"us",per:S.per,time:"",sit:"E",scorer:null,a1:null,a2:null,on:[]};modal()};
 Q("#go").onclick=()=>{S.M={k:"G",team:"opp",per:S.per,time:"",sit:"E",on:[gk].filter(Boolean)};modal()};
 Q("#pe").onclick=()=>{S.M={k:"P",team:"us",per:S.per,time:"",min:2,reason:REA[0],pid:null};modal()};
-Q("#dm").onclick=()=>confirm2(m.id,()=>{if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()});
+Q("#dm").onclick=()=>confirm2(m.id,()=>{if(!dmE){HK.wipeEvent("matches",m.id).then(r=>{if(r){toast("Smazáno úplně: "+wipeText(r));S.mid=null;render()}}).catch(e=>toast("Smazání se nepovedlo: "+(e&&(e.code||e.message)||e)));return}if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()});
 const add=o=>{const n=clone(m);n.events=[...(n.events||[]),{id:uid(),k:"S",per:S.per,...o}];save(n)};
 const del=f=>{const n=clone(m);const i=n.events.map((e,j)=>e.k==="S"&&f(e)?j:-1).filter(j=>j>=0).pop();if(i===undefined)return;n.events.splice(i,1);save(n)};
 a.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{S.per=+b.dataset.per;render()});

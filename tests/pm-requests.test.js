@@ -111,15 +111,17 @@ test("impactOf: vystavené příspěvky a uzavřená vyúčtování od měsíce 
 });
 
 // ===== Pravidla databáze (kontrola textu) =====
-test("pravidla: requests – hráčka jen vlastní otevřenou žádost, vyřizuje správce pokladny (ne vlastní), plpay dovolí grpH", async () => {
+test("pravidla: requests – hráčka jen vlastní otevřenou žádost o placení, vyřizuje správce pokladny (ne vlastní); účast trenér / kustod; plpay dovolí grpH", async () => {
   const {readFileSync} = await import("node:fs");
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   const i = rules.indexOf("match /requests/{id}"), b = rules.slice(i, rules.indexOf("\n    }", i));
   assert.ok(i > 0, "pravidlo pro requests");
-  assert.match(b, /allow read: if isCash\(\) \|\| ownsMid\(resource\.data\.mid\);/);
-  assert.match(b, /allow create: if isPlayer\(\) && reqPayOk\(request\.resource\.data\);/);
-  assert.match(b, /allow update: if isCash\(\) && resource\.data\.kind == 'pay' && !ownsMid\(resource\.data\.mid\) && reqDone\(\);/);
-  assert.match(b, /allow delete: if isCash\(\) \|\| \(isPlayer\(\) && resource\.data\.mid == myPid\(\) && resource\.data\.st == 'open'\);/);
+  assert.match(b, /allow read: if isCash\(\) \|\| ownsMid\(resource\.data\.mid\) \|\| \(isStaff\(\) && resource\.data\.kind == 'att'\);/);
+  assert.match(b, /allow create: if \(isPlayer\(\) && reqPayOk\(request\.resource\.data\)\) \|\| reqAttOk\(request\.resource\.data\);/);
+  assert.match(b, /\(isCash\(\) && resource\.data\.kind == 'pay' && !ownsMid\(resource\.data\.mid\) && reqDone\(\)\)/);
+  assert.match(b, /\(isStaff\(\) && resource\.data\.kind == 'att' && reqDone\(\)\)/);
+  assert.match(b, /allow delete: if isCash\(\) \|\| \(isStaff\(\) && resource\.data\.kind == 'att'\) \|\| \(ownsMid\(resource\.data\.mid\) && resource\.data\.st == 'open'\);/);
+  assert.match(rules, /d\.kind == 'att' && d\.st == 'open' && ownsMid\(d\.mid\) && d\.by == mail\(\)/);
   assert.match(rules, /d\.kind == 'pay' && d\.st == 'open' && d\.mid == myPid\(\) && d\.by == mail\(\)/);
   assert.match(rules, /affectedKeys\(\)\.hasOnly\(\['st', 'reply', 'doneBy', 'doneAt'\]\)/);
   assert.match(rules, /hasOnly\(\['grp', 'fx', 'ex', 'note', 'grpH'\]\)/);
