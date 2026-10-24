@@ -56,7 +56,7 @@ test("volné hráčky a členové týmu: bez účtu, bez ukončených, shoda č�
   assert.deepEqual(freeStaff(staff, members).map(t => t.id), ["t2"]);
   assert.deepEqual(numTaken(players, "7").map(p => p.id), ["p1"], "ukončená hráčka číslo neblokuje");
   assert.deepEqual(numTaken(players, ""), []);
-  assert.equal(defaultRole("staff"), "kustod");
+  assert.equal(defaultRole("staff"), "asistent");
   assert.equal(defaultRole("hracka"), "hracka");
 });
 test("approvePlan: nová hráčka = soupiska + members + žádost + audit v jedné dávce", () => {
@@ -64,7 +64,7 @@ test("approvePlan: nová hráčka = soupiska + members + žádost + audit v jedn
   assert.equal(p.ok, true);
   assert.deepEqual(p.ops.map(o => o[0] + " " + o[1]), ["set players/NEW", "set members/kacka@x.cz", "merge joinreq/kacka@x.cz", "set audit/A1"]);
   assert.deepEqual(p.ops[0][2], {name: "Kačka", num: "12", pos: "", alt: "", st: "act"});
-  assert.deepEqual(p.member, {role: "hracka", addedBy: "trener@x.cz", pid: "NEW"});
+  assert.deepEqual(p.member, {role: "hracka", rv: 2, addedBy: "trener@x.cz", pid: "NEW"});
   assert.deepEqual(p.ops[2][2], {st: "ok", reply: "", doneBy: "trener@x.cz", doneMs: 1000, pid: "NEW"});
   assert.equal(p.ops[3][2].act, "join");
   assert.ok(!p.ops.some(o => /plpay|charges|cash/.test(o[1])), "nesahá na platby");
@@ -75,14 +75,15 @@ test("approvePlan: existující hráčka, realizační tým s / bez propojení, 
   assert.equal(a.member.pid, "p2");
   assert.match(approvePlan(open, {role: "hracka", target: "p2"}, {...ctx, label: "Bára"}).ops[2][2].note, /hráčka Bára$/);
   const s = {...open, kind: "staff"};
-  const b = approvePlan(s, {role: "kustod", target: "new"}, ctx);
+  const b = approvePlan(s, {role: "asistent", target: "new"}, ctx);
   assert.deepEqual(b.ops[0], ["set", "staff/NEW", {name: "Kačka", kind: "Kustod"}]);
-  assert.deepEqual(b.member, {role: "kustod", addedBy: "trener@x.cz", tid: "NEW"});
+  assert.deepEqual(b.member, {role: "asistent", rv: 2, addedBy: "trener@x.cz", tid: "NEW"});
   const c = approvePlan(s, {role: "trener", target: "none"}, ctx);
-  assert.deepEqual(c.member, {role: "trener", addedBy: "trener@x.cz"});
+  assert.deepEqual(c.member, {role: "trener", rv: 2, addedBy: "trener@x.cz"});
   assert.deepEqual(c.ops[1][2], {st: "ok", reply: "", doneBy: "trener@x.cz", doneMs: 1000});
   assert.equal(approvePlan(open, {role: "hracka", target: "none"}, ctx).ok, false);
   assert.equal(approvePlan(open, {role: "boss", target: "new"}, ctx).ok, false);
+  assert.equal(approvePlan(s, {role: "kustod", target: "new"}, ctx).ok, false, "stará role kustod se při přijetí už nenabízí");
   assert.equal(approvePlan({...open, st: "no"}, {role: "hracka", target: "new"}, ctx).ok, false);
 });
 test("rejectPlan: důvod povinný, žádost + audit", () => {

@@ -8,14 +8,17 @@ service cloud.firestore {
     function memberPath() { return /databases/$(database)/documents/members/$(mail()); }
     function isMember() { return signedIn() && exists(memberPath()); }
     function role() { return get(memberPath()).data.role; }
-    function isCoach() { return isMember() && role() == 'trener'; }
-    function isStaff() { return isMember() && role() in ['trener', 'kustod']; }
+    // Role (v20.4 OM1 – přechod): nové manager / trener / asistent a staré trener / kustod platí současně.
+    // isCoach = manager a trener (trenér zatím smí na serveru vše jako dřív; aplikace mu dává jen sport – zúží se ve v20.6 OM3).
+    // isStaff = manager, trener, asistent a stará hodnota kustod (= asistent).
+    function isCoach() { return isMember() && role() in ['manager', 'trener']; }
+    function isStaff() { return isMember() && role() in ['manager', 'trener', 'asistent', 'kustod']; }
     // Hostující (role host, hráčka 🎟 z jiného týmu): vidí jen sebe – vlastní hráčku, docházku, předpisy a veřejné dokumenty evpub / lineuppub.
     // isTeam = člen týmu kromě hostujícího; všechna čtení týmových kolekcí jsou jen pro isTeam().
     function isHost() { return isMember() && role() == 'host'; }
     function isTeam() { return isMember() && role() != 'host'; }
-    // Správce pokladny: trenér, nebo člen s příznakem cash (pokladník); hostující pokladníkem být nemůže
-    function isCash() { return isMember() && (role() == 'trener' || (role() != 'host' && get(memberPath()).data.get('cash', false) == true)); }
+    // Správce pokladny: manager a trener (do v20.6; po převodu má trenér příznak cash), nebo člen s příznakem cash (pokladník); hostující nikdy
+    function isCash() { return isMember() && (role() in ['manager', 'trener'] || (role() != 'host' && get(memberPath()).data.get('cash', false) == true)); }
     // Hráčka (i hostující) smí zapisovat jen tehdy, když ji trenér propojil s hráčkou v soupisce (pole pid)
     function isPlayer() { return isMember() && role() in ['hracka', 'host'] && get(memberPath()).data.pid is string; }
     function myPid() { return get(memberPath()).data.pid; }
@@ -30,7 +33,7 @@ service cloud.firestore {
 
     // ===== Účty týmu pro QR platby: princip čtyř očí =====
     // iban / iban2 = platné účty, ibanBy = kdo změnu navrhl, ibanOk = kdo ji potvrdil, ibanAt = kdy, ibanPend = čekající návrh {iban, iban2, by, at}.
-    // Návrh smí podat jen trenér (pod svým e-mailem), potvrdit jen JINÝ správce pokladny a jen přesně navržené účty.
+    // Návrh smí podat jen manager / trenér (isCoach, pod svým e-mailem), potvrdit jen JINÝ správce pokladny a jen přesně navržené účty.
     function sNew(k) { return request.resource.data.get(k, ''); }
     function sOld(k) { return resource.data.get(k, ''); }
     function pendNew() { return request.resource.data.get('ibanPend', null); }
@@ -54,7 +57,7 @@ service cloud.firestore {
     }
 
     // ===== Brána verze (settings/app): {minVer, minBy, minAt} – minimální verze aplikace, která smí zapisovat =====
-    // Nastavuje jen trenér; minVer = číslo verze (např. 18.8), minBy = jeho e-mail. Dokument nejde smazat.
+    // Nastavuje jen manager / trenér (isCoach); minVer = číslo verze (např. 18.8), minBy = jeho e-mail. Dokument nejde smazat.
     function appSettingsOk() {
       return isCoach() && request.resource.data.keys().hasOnly(['minVer', 'minBy', 'minAt'])
         && request.resource.data.minVer is string && request.resource.data.minVer.matches('^[0-9]+([.][0-9]+){0,2}$')
@@ -62,8 +65,8 @@ service cloud.firestore {
     }
 
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
-    // Trenér spravuje všechny členy. Pokladník (bez role trenér) jen členy s rolí hracka – před změnou i po ní –
-    // a nikdy vlastní dokument (jinak by si mohl dát roli kustod a získat sportovní zápis).
+    // Manager (a do v20.6 trener) spravuje všechny členy, převádí role a zapisuje rv. Pokladník jen členy s rolí hracka – před změnou i po ní –
+    // a nikdy vlastní dokument (jinak by si mohl dát roli asistent a získat sportovní zápis). Posledního managera hlídá aplikace.
     function cashierMember(email, d) { return isCash() && email != mail() && d.role == 'hracka'; }
     match /members/{email} {
       allow read: if signedIn() && (email == mail() || isCoach() || isCash());

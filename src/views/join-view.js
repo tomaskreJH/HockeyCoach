@@ -1,5 +1,5 @@
 // ✋ Žádost o přijetí do týmu: 1) obrazovka pro přihlášený účet Google bez členství (formulář, stav ⏳, zrušení, zamítnutí s důvodem),
-// 2) okno vyřízení pro trenéra (přijmout = založit / přiřadit hráčku nebo člena realizačního týmu + účet members, zamítnout s důvodem).
+// 2) okno vyřízení pro managera (přijmout = založit / přiřadit hráčku nebo člena realizačního týmu + účet members, zamítnout s důvodem).
 // Zápisy uchazeče předává datová vrstva (storage.js → api), vyřízení jde jednou dávkou přes S.db.batch(). Výpočty: domain/join-requests.js.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Obrazovka uchazeče -> Okno trenéra -> Exporty.
 
@@ -87,7 +87,7 @@ export function joinScreen(app, api) {
 }
 
 // ===== Okno trenéra =====
-// Volby cíle podle role: hráčka = nová / volná hráčka (shoda čísla první); trenér / kustod = bez propojení, nový nebo volný člen týmu
+// Volby cíle podle role: hráčka = nová / volná hráčka (shoda čísla první); manager / trenér / asistent = bez propojení, nový nebo volný člen týmu
 function targetOpts(r, role) {
   if (role === "hracka") {
     const ps = freePlayers(S.pl, members, r.num);
@@ -109,7 +109,7 @@ function drawWin() {
   if (!list.find(r => r.email === sel)) { sel = list.length ? list[0].email : null; if (sel) resetChoice(list[0]); }
   const r = list.find(x => x.email === sel);
   let body;
-  if (!HK.can("admin")) body = `<div class="mu">Žádosti o přijetí vyřizuje jen trenér.</div>`;
+  if (!HK.can("admin")) body = `<div class="mu">Žádosti o přijetí vyřizuje jen manager týmu.</div>`;
   else if (members === null) body = `<div class="mu">Načítám členy týmu…</div>`;
   else if (!r) body = `<div class="mu">Žádné otevřené žádosti o přijetí.</div>`;
   else {

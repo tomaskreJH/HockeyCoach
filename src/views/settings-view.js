@@ -1,7 +1,7 @@
 /* Okno ⚙️ Účet a data (všechny role): sbalitelné sekce, nahoře vždy přihlášený účet. Rozbalená je nejvýš jedna sekce,
    pamatuje se v zařízení (localStorage, jen pohodlí). Sbalená sekce ukazuje stav v záhlaví (žádosti, minimální verze, kontrola dat).
    Jen vykreslení a obsluha – údaje a zápisy dává datová vrstva přes HK.cfg, oprávnění HK.can (kontroly rolí jsou v storage.js).
-   Otevírá se tlačítkem ⚙️ v záhlaví (HK.openCfg, napojeno v main.js); zavírá Zavřít, klepnutí mimo okno a Zpět (core/nav.js → #cz).
+   Otevírá se tlačítkem ⚙️ (HK.openCfg z main.js); zavírá Zavřít, klepnutí mimo okno a Zpět. 💾 Data obsahuje i převod rolí (náhled, volba managerů).
    Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Sekce -> Hlavní logika -> Eventy -> Export. */
 
 // ===== Importy =====
@@ -48,11 +48,11 @@ function accountHtml(coach, staff) {
   const a = C().acct();
   return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${coach ? "" : verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div></div>`;
 }
-// 👥 Tým a členové: ✋ žádosti o přijetí (trenér), seznam členů, formulář přidání až po rozkliknutí
+// 👥 Tým a členové: ✋ žádosti o přijetí (manager), seznam členů, formulář přidání až po rozkliknutí
 function teamHtml(coach) {
   const n = coach ? C().joinCount() : 0;
   const join = coach ? `<button class="s w" id="cjr" style="margin-bottom:8px${n ? ";border-color:var(--wa)" : ""}">✋ Žádosti o přijetí do týmu${n ? " (" + n + ")" : " – žádné otevřené"}</button>` : "";
-  const form = `<div class="mu" style="margin:8px 0">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? " Většinu členů přidáš přijetím ✋ žádosti." : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje trenér."}</div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${opts(C().memberRoles())}</select><select id="cmp">${listOpts(C().playerList(), "— vyber hráčku —")}</select><select id="cmt">${listOpts(C().staffList(), "— člen realizačního týmu (volitelné) —")}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>`;
+  const form = `<div class="mu" style="margin:8px 0">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? " Většinu členů přidáš přijetím ✋ žádosti." : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje manager."}</div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${opts(C().memberRoles())}</select><select id="cmp">${listOpts(C().playerList(), "— vyber hráčku —")}</select><select id="cmt">${listOpts(C().staffList(), "— člen realizačního týmu (volitelné) —")}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>`;
   const body = `${join}<h3 style="margin-top:4px">Členové týmu</h3><div id="cmb" style="margin-bottom:8px"></div><button class="s w" id="cmo">${addOpen ? "▾ Skrýt přidání člena" : "+ Přidat člena ručně"}</button><div id="cmf"${addOpen ? "" : " hidden"}>${form}</div>`;
   return sec("team", "👥 Tým a členové", body, n ? "✋ " + n + (n === 1 ? " žádost" : n < 5 ? " žádosti" : " žádostí") : "", n > 0);
 }
@@ -88,18 +88,18 @@ function privHtml(p) {
   if (!n) return `<div class="mu" style="margin-bottom:8px">✅ Citlivá data jsou v samostatných kolekcích (čte je jen vlastník a správci).${skip}</div>${cleanHtml(p)}`;
   return `<div class="mu" style="margin-bottom:8px">🔒 <b>Soukromí:</b> převod zkopíruje citlivá data do kolekcí, které čte jen vlastník a správci:<br>· platební pole (skupina, osvobozená, koeficient, poznámka): <b>${plan.pp.length}</b> hráček → plpay<br>· plat: <b>${plan.sp.length}</b> členů realizačního týmu → staffpay<br>· důvody omluv: <b>${plan.an.length}</b> → attnote${skip}<br>Kopírují se jen chybějící hodnoty (nové se nepřepíšou); převod lze spustit znovu.${old}</div><button class="s w" id="cpv" style="margin-bottom:8px">🔒 Převést citlivá data (${n})</button>`;
 }
-// 💾 Data: záloha a CSV (trenér, kustod), obnova ze zálohy a kontrola dat (trenér); v záhlaví upozornění na nevyřízenou kontrolu
+// 💾 Data: záloha a CSV (manager, trenér, asistent), obnova ze zálohy, kontrola dat a převod rolí (manager); v záhlaví upozornění na nevyřízenou kontrolu
 function dataHtml(coach) {
   let body = `<h3 style="margin-top:4px">Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>`, st = "", wa = false;
   if (coach) {
     const ex = C().exPlan(), pv = C().privState();
-    body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div><h3>Kontrola dat</h3>${exFixHtml(ex)}${privHtml(pv)}`;
+    body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div><h3>Kontrola dat</h3>${exFixHtml(ex)}${privHtml(pv)}<h3>🔁 Převod rolí</h3><div id="crl"><div class="mu">Načítám…</div></div>`;
     const todo = ex.length || !pv.loaded || pv.plan.ops.length || (pv.gate && pv.clean.ops.length);
     if (todo) { st = "⚠️ kontrola dat"; wa = true; }
   }
   return sec("data", "💾 Data", body, st, wa);
 }
-// 🔒 Aplikace: brána verze (jen trenér); v záhlaví minimální verze nebo upozornění, že není nastavená
+// 🔒 Aplikace: brána verze (jen manager); v záhlaví minimální verze nebo upozornění, že není nastavená
 function appHtml() {
   const g = C().gateInfo();
   const body = `<div class="mu" style="margin-bottom:8px">Zařízení se starší verzí, než je minimální, nic nezapisuje a ukáže pruh Načíst novou verzi. Minimum jde jen zvýšit.${verInfo()}</div>${g.raise ? `<button class="s w" id="cmv">🔒 Vyžadovat verzi v${esc(APP_VERSION)}</button>` : `<div class="mu">✅ Minimální verze odpovídá této verzi.</div>`}`;
@@ -115,7 +115,7 @@ function devHtml() {
 }
 
 // ===== Hlavní logika =====
-// Seznam členů (trenér a pokladník): e-mail, role, propojení, Odebrat podle oprávnění
+// Seznam členů (manager a pokladník): e-mail, role, propojení, Odebrat podle oprávnění
 async function renderMembers(el) {
   const box = el.querySelector("#cmb");
   if (!box) return;
@@ -132,6 +132,34 @@ async function renderMembers(el) {
       if (await C().removeMember(b.dataset.md)) renderMembers(el);
     }; });
   } catch (e) { box.textContent = "Nelze načíst: " + ((e && (e.code || e.message)) || e); }
+}
+// Převod rolí (manager): náhled „co se změní“ – u každého trenéra před převodem volba Manager / Trenér + pokladník,
+// kustod → asistent; tlačítko až při minimální verzi (🔒 Vyžadovat verzi), potvrzení druhým klepnutím
+async function renderRoles(el, close) {
+  const box = el.querySelector("#crl");
+  if (!box) return;
+  let st;
+  try { st = await C().roleState(); } catch (e) { box.innerHTML = `<div class="mu">Nelze načíst členy: ${esc((e && (e.code || e.message)) || e)}</div>`; return; }
+  if (!el.contains(box)) return;
+  if (!st.plan.list.length) { box.innerHTML = `<div class="mu" style="margin-bottom:8px">✅ Role jsou převedené (Manager · Trenér · Asistent). Managerů: <b>${st.managers}</b>.</div>`; return; }
+  const chk = st.trainers.map(t => `<label style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox" data-rm="${esc(t.email)}" style="width:auto;margin:0"${t.def ? " checked" : ""}>${esc(t.email)} → Manager</label>`).join("");
+  const intro = `<div class="mu" style="margin-bottom:6px">Nové role: <b>Manager</b> = vše (členové, ✋ žádosti, obnova, účty pro QR, brána verze), <b>Trenér</b> = sport (zápasy, události, docházka, soupeři, formace, soupiska, realizační tým), <b>Asistent</b> = dřívější Kustod beze změny. Trenér, který nebude managerem, dostane příznak 💰 Pokladník – pokladna se mu nezmění. Zaškrtni, kdo bude Manager (aspoň jeden):</div>${chk}<div class="mu" id="crp" style="margin:8px 0"></div>`;
+  const gate = st.gate ? `<button class="s w" id="crc" style="margin-bottom:8px">🔁 Převést role</button>`
+    : `<div class="mu" style="margin-bottom:8px">⚠️ Převést půjde, až budou všechna zařízení na v${esc(APP_VERSION)} a nastavíš v sekci 🔒 Aplikace <b>🔒 Vyžadovat verzi</b> (aspoň v${esc(st.min)}) – starší verze nové role neznají a člena by nepustily dál.</div>`;
+  box.innerHTML = intro + gate;
+  const picked = () => [...box.querySelectorAll("[data-rm]")].filter(c => c.checked).map(c => c.dataset.rm);
+  // Náhled plánu podle zaškrtnutí: kdo → na co, počet managerů, chyba
+  const draw = () => {
+    const p = C().rolePreview(st.rows, picked());
+    const lines = p.list.map(l => esc(l.email) + ": " + esc(C().roleLabel(l.from)) + " → <b>" + esc(C().roleLabel(l.to, 2)) + "</b>" + (l.cash ? " + 💰 pokladník" : "")).join("<br>");
+    box.querySelector("#crp").innerHTML = `<b>Co se změní (${p.list.length}):</b><br>${lines}<br>Managerů po převodu: <b>${p.managers}</b>. Před zápisem se stáhne záloha členů (JSON); převod lze spustit znovu (převede jen zbylé).${p.ok ? "" : `<br>⚠️ ${esc(p.err)}`}`;
+    const b = box.querySelector("#crc");
+    if (b) { b.disabled = !p.ok; b.textContent = b.dataset.t = "🔁 Převést role (" + p.list.length + ")"; }
+  };
+  box.querySelectorAll("[data-rm]").forEach(c => { c.onchange = draw; });
+  draw();
+  const b = box.querySelector("#crc");
+  if (b) b.onclick = () => arm2(b, "roles", "Opravdu převést? Nejdřív se stáhne záloha – klepni znovu", () => C().runRoleConvert(picked(), close));
 }
 // Otevře okno ⚙️ podle oprávnění přihlášeného účtu (v náhledu podle role náhledu)
 function openSettings() {
@@ -154,6 +182,7 @@ function openSettings() {
   if (coach && q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => C().raiseMinVer(close));
   if (dev) bindPv(q);
   if (cashier) renderMembers(el);
+  if (coach && staff) renderRoles(el, close);
 }
 
 // ===== Eventy =====
@@ -178,7 +207,7 @@ function bindTeam(el, q, close, coach) {
   // Výběr hráčky jen u role Hráčka / Hostující; člen týmu a pokladník ne u hostující
   const sync = () => { const r = q("#cmr").value; q("#cmp").style.display = C().needsPid(r) ? "" : "none"; q("#cmt").style.display = q("#cmc").style.display = C().staffOk(r) ? "" : "none"; };
   q("#cmr").onchange = sync; sync();
-  // Výběr hráčky přepne roli Hráčka ↔ Hostující podle značky 🎟 (role Hostující je jen u trenéra)
+  // Výběr hráčky přepne roli Hráčka ↔ Hostující podle značky 🎟 (role Hostující je jen u managera)
   q("#cmp").onchange = () => { const p = q("#cmp").value, r = C().pidRoleOf(p); if (p && C().needsPid(q("#cmr").value) && q("#cmr").querySelector('option[value="' + r + '"]')) { q("#cmr").value = r; sync(); } };
   q("#cma").onclick = async () => {
     const ok = await C().saveMember(q("#cme").value, q("#cmr").value, q("#cmp").value, q("#cmt").value, q("#cmc").value === "1");
@@ -199,7 +228,7 @@ function bindCash(q, close) {
     catch (e) { toast("Doplnění se nepovedlo: " + ((e && (e.code || e.message)) || e) + " – je publikováno firestore.rules?"); }
   };
 }
-// Data: záloha, CSV; trenér navíc obnova ze zálohy a kontrola dat (potvrzení druhým klepnutím)
+// Data: záloha, CSV; manager navíc obnova ze zálohy a kontrola dat (potvrzení druhým klepnutím)
 function bindData(q, close, coach) {
   q("#ce").onclick = HK.exportJSON; q("#cc").onclick = HK.exportCSV;
   if (!coach) return;

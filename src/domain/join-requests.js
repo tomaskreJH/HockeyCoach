@@ -1,16 +1,20 @@
 // Žádosti o přijetí do týmu (joinreq/{email}): čisté funkce bez DOM – kontrola formuláře, dokument žádosti, možnost poslat znovu,
 // volné hráčky / členové týmu bez účtu, shoda podle čísla dresu a plán vyřízení (přijetí = soupiska + members + žádost + audit
-// v jedné dávce, zamítnutí = žádost + audit). Žádost zakládá jen účet sám za sebe (id = e-mail z přihlášení), vyřizuje trenér.
-// Struktura: Konstanty -> Pomocné funkce -> Formulář žádosti -> Vyřízení -> Exporty.
+// v jedné dávce, zamítnutí = žádost + audit). Žádost zakládá jen účet sám za sebe (id = e-mail z přihlášení), vyřizuje manager.
+// Role při přijetí jsou nové role (domain/permissions.js), účet dostane rv (role po převodu).
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Formulář žádosti -> Vyřízení -> Exporty.
+
+// ===== Importy =====
+import {ROLE_VER} from "./permissions.js";
 
 // ===== Konstanty =====
 export const JOIN_COLL = "joinreq";                                    // kolekce žádostí o přijetí (id dokumentu = e-mail malými písmeny)
 export const JOIN_KINDS = {hracka: "Hráčka", staff: "Realizační tým"};  // druh žádosti (určuje uchazeč)
-export const JOIN_ROLES = {hracka: "Hráčka", kustod: "Kustod", trener: "Trenér"};   // role při přijetí (určuje trenér)
+export const JOIN_ROLES = {hracka: "Hráčka", asistent: "Asistent", trener: "Trenér", manager: "Manager"};   // role při přijetí (určuje manager)
 export const RESEND_MS = 24 * 60 * 60 * 1000;                          // nová žádost po vyřízení nejdřív za 24 h
 export const NICK_MAX = 40, NOTE_MAX = 300;
 // Druh člena realizačního týmu (pole kind v staff) podle role při přijetí
-const STAFF_KIND = {trener: "Trenér", kustod: "Kustod", hracka: "Jiný"};
+const STAFF_KIND = {manager: "Jiný", trener: "Trenér", asistent: "Kustod", hracka: "Jiný"};
 
 // ===== Pomocné funkce =====
 const str = v => String(v == null ? "" : v).trim();
@@ -50,7 +54,7 @@ export const openJoins = list => (list || []).filter(r => r && r.st === "open").
 
 // ===== Vyřízení =====
 // Výchozí role při přijetí podle druhu žádosti
-export const defaultRole = kind => (kind === "staff" ? "kustod" : "hracka");
+export const defaultRole = kind => (kind === "staff" ? "asistent" : "hracka");
 // Hráčky bez propojeného účtu (bez ukončených), shoda čísla dresu první, pak podle jména
 export function freePlayers(players, members, num) {
   const used = linked(members).pid, n = str(num);
@@ -61,7 +65,7 @@ export function freePlayers(players, members, num) {
 export const freeStaff = (staff, members) => { const used = linked(members).tid; return (staff || []).filter(t => t && t.id && !used.has(t.id)).sort(byName); };
 // Aktivní hráčky se stejným číslem dresu (upozornění při přijetí, ne blokace)
 export const numTaken = (players, num) => { const n = str(num); return n ? (players || []).filter(p => p && active(p) && str(p.num) === n) : []; };
-// Plán přijetí. ch = {role, target}: target "new" = založit (hráčku / člena týmu), "none" = bez propojení (jen role trenér / kustod),
+// Plán přijetí. ch = {role, target}: target "new" = založit (hráčku / člena týmu), "none" = bez propojení (jen role manager / trenér / asistent),
 // jinak id existující hráčky (role hracka) / člena týmu. ctx = {by, at (ISO), ms, newId, auditId, label = jméno existujícího pro audit}.
 // Vrací {ok, err} nebo {ok, ops: [[druh, cesta, data]], member} – ops se zapíší jednou dávkou (set / merge).
 export function approvePlan(req, ch, ctx) {
@@ -69,7 +73,7 @@ export function approvePlan(req, ch, ctx) {
   const role = ch && ch.role, target = str(ch && ch.target), email = str(req.email).toLowerCase();
   if (!JOIN_ROLES[role]) return {ok: false, err: "Vyber roli"};
   if (role === "hracka" && (!target || target === "none")) return {ok: false, err: "Vyber hráčku, nebo založ novou"};
-  const ops = [], member = {role, addedBy: ctx.by};
+  const ops = [], member = {role, rv: ROLE_VER, addedBy: ctx.by};
   let link = "", who = "";
   if (role === "hracka") {
     const pid = target === "new" ? ctx.newId : target;

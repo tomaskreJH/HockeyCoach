@@ -1,11 +1,11 @@
 // Verze aplikace a brána verze (settings/app.minVer).
 // Struktura: Konstanty (jediné místo s číslem verze v kódu aplikace) -> Pomocné funkce (porovnání verzí) -> Brána verze.
 // Číslo verze musí souhlasit s package.json (hlídá test tests/project.test.js); název cache v sw.js se mění zvlášť (hokej-vNN).
-// Brána verze: trenér v ⚙️ nastaví minimální verzi (settings/app.minVer). Klient se starší verzí nic nezapisuje
+// Brána verze: manager v ⚙️ nastaví minimální verzi (settings/app.minVer). Klient se starší verzí nic nezapisuje
 // (strážce blocked() v data/storage.js) a nahoře ukáže pruh s tlačítkem Načíst novou verzi – starší klient tak nesmaže nová pole.
 
 // ===== Konstanty =====
-export const APP_VERSION = "20.3";                        // číslo verze bez „v“ (hlavní.fáze[.oprava])
+export const APP_VERSION = "20.4";                        // číslo verze bez „v“ (hlavní.fáze[.oprava])
 export const APP_DATE = "24. 10. 2026";          // datum vydání verze (zobrazení v záhlaví a v ⚙️)
 export const APP_LABEL = "v" + APP_VERSION + " · " + APP_DATE;
 // Platný zápis verze: 1 až 3 čísla oddělená tečkou (např. 18, 18.8, 18.8.1)
