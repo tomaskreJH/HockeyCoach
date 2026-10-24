@@ -350,3 +350,13 @@ th { color: var(--mu); font-size: 12px; }
   100% { box-shadow: 0 0 0 12px rgba(46, 125, 50, 0); filter: none; }
 }
 .hc-flash { animation: hcFlash .45s ease-out; }
+
+/* ⚙️ Účet a data – sbalitelné sekce (views/settings-view.js) */
+.acc { border: 1px solid var(--bd); border-radius: 12px; margin-top: 10px; }
+.acc-h { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 10px 12px; background: none; border: 0; color: inherit; text-align: left; font-weight: 600; }
+.acc-st { margin-left: auto; font-weight: 400; font-size: 13px; color: var(--mu); text-align: right; }
+.acc-st.wa { color: var(--wa); }
+.acc-ch { color: var(--mu); transition: transform .15s; }
+.acc.on .acc-ch { transform: rotate(90deg); }
+.acc-b { padding: 0 12px 12px; }
+.acc-b[hidden], #cmf[hidden] { display: none; }

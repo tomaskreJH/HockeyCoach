@@ -4,6 +4,27 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.3 (24. 10. 2026) – OM0: reorganizace okna ⚙️ (sbalitelné sekce)
+> **Nasazení:** 1) Záloha (⚙️ → 💾 Data → Stáhnout zálohu) a zip současného repozitáře. 2) Nahrát kód (nový soubor `src/views/settings-view.js`, nic se nemaže). 3) **firestore.rules beze změny – nepublikovat.** 4) Na telefonu ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.3. 5) Test: ⚙️ u trenéra, kustoda, pokladníka a hráčky (👁 Náhled role) – sekce, rozbalení, ✋ žádosti, přidání člena, záloha.
+> **🔒 Vyžadovat verzi: ne** (beze změny dat). Návrat na v20.2.1: nahrát předchozí zip (soubor `src/views/settings-view.js` lze ponechat – nic ho nenačte).
+
+**Přidáno**
+- `src/views/settings-view.js` – okno ⚙️ Účet a data: nahoře vždy **👤 Účet** (e-mail, role, připojení, verze aplikace, Načíst novou verzi, Odhlásit), pod ním **sbalitelné sekce** 👥 Tým a členové · 📅 Události · 💰 Pokladna · 💾 Data · 🔒 Aplikace · 🛠 Vývojář. Rozbalená je nejvýš jedna sekce, pamatuje se v zařízení (`localStorage` `hk-cfg-open`, jen pohodlí).
+- Stav v záhlaví sbalené sekce: „✋ N žádostí“ (Tým a členové), „⚠️ kontrola dat“ (Data – chybí pole ex, převod nebo úklid citlivých dat), „⚠️ minimální verze není nastavená“ / „min. vX · lze zvýšit“ (Aplikace), „👁 náhled běží“ (Vývojář).
+- 👥 Tým a členové: nahoře ✋ Žádosti o přijetí (trenér), pod nimi seznam členů; formulář **+ Přidat člena ručně** až po rozkliknutí.
+- `HK.cfg` v `src/data/storage.js` – rozhraní pro okno ⚙️ (účet, volby rolí, členové, náhled role, kontrola dat, brána verze) bez vykreslení; `HK.openCfg` napojuje `main.js`.
+- Styly sekcí (`.acc`, `.acc-h`, `.acc-st`, `.acc-b`) v `styles/main.css`.
+
+**Změněno**
+- Vykreslení ⚙️ přesunuto ze `src/data/storage.js` do pohledu (storage.js je o ~13 kB menší, směr importů podle KONVENCE). Kontroly rolí a popisky rolí zůstávají v `storage.js`; zápisy (`members`, kontrola dat, `settings/app`) se nemění.
+- 🔒 Vyžadovat verzi je v sekci 🔒 Aplikace; ostatní role vidí minimální verzi v 👤 Účtu.
+- `tests/d3-cleanup.test.js` – kontrola potvrzení druhým klepnutím hledá ⚙️ v novém souboru.
+- `src/main.js`, `src/views/help.js`, `README.md`, `docs/KONVENCE.md`, `docs/plan-v18.md` (nová sekce „OM – role a práva po modulech“ s rozhodnutími), `docs/prompt-dalsi-vlakno.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v76`).
+
+**Beze změny**
+- Oprávnění (`HK.can`), role, data, pravidla databáze; obsah a chování všech tlačítek ⚙️ (stejná id, potvrzení druhým klepnutím, zálohy, obnova, převody, náhled role).
+- Ověřeno: `npm test` (211/211); kouřový test v jsdom pro vývojáře (trenér), trenéra, kustoda, kustoda-pokladníka, hráčku, hráčku-pokladníka, hostující a 👁 náhled Hráčka: start bez chyb, viditelné sekce podle role (hráčka a hostující jen 👤 Účet), rozbalení a zapamatování sekce, seznam členů a Odebrat (pokladník jen hráčky, nikdy vlastní účet), přidání člena zapíše `members/{e-mail}` stejně jako dřív (pokladník jen role Hráčka), výběr hráčky 🎟 přepne roli na Hostující (Členové i náhled), 🔒 Vyžadovat verzi se potvrzuje druhým klepnutím, Zavřít.
+
 ## v20.2.1 (24. 10. 2026) – oprava: výběr hostující hráčky přepne roli sám
 > **Nasazení:** 1) Nahrát kód (jen změněné soubory, nic se nemaže). 2) **firestore.rules beze změny – nepublikovat.** 3) Na telefonu ⚙️ → Načíst novou verzi, ověřit v20.2.1. 4) Test: ⚙️ → 👁 Náhled role → role Hráčka → vybrat hráčku 🎟 → role se sama přepne na Hostující → Spustit náhled.
 > **🔒 Vyžadovat verzi: ne** (jen ovládání v ⚙️). Návrat na v20.2: nahrát předchozí zip.

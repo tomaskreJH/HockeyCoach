@@ -40,9 +40,11 @@ test("D3: pravidla bez kolekce coach a bez poznámek o payments", () => {
 test("D3: potvrzení druhým klepnutím bez vlastních příznaků (jen confirm2)", () => {
   // (core/nav.js má vlastní příznak „armed“ pro tlačítko Zpět – nejde o potvrzení)
   assert.deepEqual(grep(/dataset\.armed|let arm\b/), []);
-  assert.ok(!/let armed\b/.test(read("src/data/storage.js")), "⚙️ bez vlastního příznaku");
-  assert.ok(/arm2\(q\("#cr"\)/.test(read("src/data/storage.js")), "Nahradit vším přes confirm2");
-  assert.ok(/arm2\(q\("#cmv"\)/.test(read("src/data/storage.js")), "Vyžadovat verzi přes confirm2");
+  // Okno ⚙️ je v views/settings-view.js (potvrzení přes arm2 → confirm2)
+  assert.ok(!/let armed\b/.test(read("src/views/settings-view.js")), "⚙️ bez vlastního příznaku");
+  assert.ok(/arm2\(q\("#cr"\)/.test(read("src/views/settings-view.js")), "Nahradit vším přes confirm2");
+  assert.ok(/arm2\(q\("#cmv"\)/.test(read("src/views/settings-view.js")), "Vyžadovat verzi přes confirm2");
+  assert.ok(/confirm2\(key, fn, draw\)/.test(read("src/views/settings-view.js")), "arm2 volá společné confirm2");
   assert.ok(/confirm2\(TD_KEY/.test(read("src/views/cash-settings.js")), "smazání šablony přes confirm2");
 });
 test("D3: nápověda bez čísel verzí", () => {

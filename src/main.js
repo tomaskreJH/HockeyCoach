@@ -36,6 +36,7 @@ import {autoSync} from "./views/auto-sync.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
 import {initHelp} from "./views/help.js";
 import {openEventSettings, refreshEventSettings} from "./views/event-settings.js";
+import {openSettings} from "./views/settings-view.js";
 import {openJoinWindow, refreshJoin} from "./views/join-view.js";
 import {leaveLive} from "./views/live-events.js";
 import {liveTick} from "./views/live-view.js";
@@ -74,6 +75,8 @@ HK.openCash=openCashSettings;
 HK.openJoin=openJoinWindow;
 // Okno výchozích hodnot událostí (sraz, délka tréninku) se otevírá z ⚙️ (trenér a kustod)
 HK.openEvSet=openEventSettings;
+// Okno ⚙️ Účet a data (sbalitelné sekce) – tlačítko ⚙️ v záhlaví
+HK.openCfg=openSettings;
 setInterval(liveTick,500);
 
 // ===== Hlavní logika: poslech dat hostujícího účtu =====

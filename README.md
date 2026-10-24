@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v20.2.1 (24. 10. 2026)** – oprava: v 👁 Náhledu role a ve Členech týmu výběr hráčky 🎟 sám přepne roli na Hostující. v20.2 – v jednom vydání čtyři fáze: **v19.9** 🎟 hostující hráčky (příznak v soupisce, počítají se jako ostatní), **v20.0** ❌ zrušení události (zůstává v historii, nepočítá se do Docházky; 🧨 úplné smazání jen vývojář), **v20.1** ✋ žádosti o změnu účasti po uzávěrce a 🏖 nepřítomnost od – do (kolekce `absence`), **v20.2** role **Hostující** – účet vidí jen sebe (veřejné dokumenty `evpub`, `lineuppub`). Pravidla databáze: **publikovat firestore.rules**. Další: v20.3 / v20.4 – OM modulární práva. Dříve v19.8 – 🚫 nedorazila bez omluvy, v19.7 – 📅 čas od – do a ⏰ sraz, v19.6.3 – 👁 náhled živého zápasu, v19.6.1 – ✋ žádost o přijetí do týmu, v19.6 – 🏠 Domů, v19.5.x – 📊 rozpočet sezóny, v19.4.x – 💳 Moje platby a žádost o změnu placení, v19.3 – ⚖️ hospodaření, v19.2 – 🔁 opakované události, v19.1 – soukromí v databázi.
+**Aktuální verze: v20.3 (24. 10. 2026)** – OM0: okno ⚙️ rozdělené do sbalitelných sekcí (👤 Účet, 👥 Tým a členové, 📅 Události, 💰 Pokladna, 💾 Data, 🔒 Aplikace, 🛠 Vývojář), stav v záhlaví sekce, přidání člena až po rozkliknutí; práva, data i pravidla beze změny (**firestore.rules nepublikovat**). Další: v20.4 – OM1 role manager / trener / asistent. Dříve v20.2.1 – výběr hráčky 🎟 přepne roli na Hostující, v20.2 – role Hostující, v20.1 – ✋ žádosti o změnu účasti a 🏖 nepřítomnost, v20.0 – ❌ zrušení události, v19.9 – 🎟 hostující hráčky, v19.8 – 🚫 nedorazila bez omluvy, v19.7 – 📅 čas od – do a ⏰ sraz, v19.6.x – 🏠 Domů, žádost o přijetí, náhled živého zápasu, v19.5.x – 📊 rozpočet sezóny, v19.4.x – 💳 Moje platby, v19.3 – ⚖️ hospodaření, v19.2 – 🔁 opakované události, v19.1 – soukromí v databázi.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -25,12 +25,12 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlas
 2. *Firestore → Rules*: vložit `firestore.rules` → **Publish** (při každé verzi, která pravidla mění – viz CHANGELOG).
 3. *Authentication → Sign-in method → Google → Enable*; v *Authorized domains* doména hostingu.
 4. *Project settings → Your apps → Web app* → hodnoty do `src/data/firebase-config.js` (klíč není tajný, chrání pravidla).
-5. První trenér ručně: kolekce `members`, ID dokumentu = e-mail malými písmeny, pole `role` = `trener`. Další členy přidává trenér v ⚙️ → Členové týmu.
+5. První trenér ručně: kolekce `members`, ID dokumentu = e-mail malými písmeny, pole `role` = `trener`. Další členy přidává trenér v ⚙️ → 👥 Tým a členové (přijetím ✋ žádosti nebo + Přidat člena ručně).
 
 Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrát celou složku kromě `node_modules/` (složky `tests/` a `docs/` na webu nevadí, aplikace je nenačítá).
 
 ## Nasazení nové verze
-1. Záloha: ⚙️ → Stáhnout zálohu (JSON) + zip současného repozitáře.
+1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu (JSON) + zip současného repozitáře.
 2. Podle záznamu v CHANGELOG **publikovat firestore.rules** (před, nebo po nahrání kódu).
 3. Nahrát soubory; soubory, které CHANGELOG uvádí jako odstraněné, smazat i na webu.
 4. Na zařízeních ⚙️ → **Načíst novou verzi** (číslo verze je v záhlaví vedle názvu).

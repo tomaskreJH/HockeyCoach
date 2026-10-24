@@ -47,9 +47,12 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 | v20.0 | Z | ❌ Zrušení události (`cancelled`, zůstává v historii, mimo Docházku), smazání prázdné trenér / kustod, 🧨 úplné smazání se vším jen vývojář – **hotovo, k testu** (24. 10. 2026) |
 | v20.1 | W + NP | ✋ Žádosti o změnu účasti po uzávěrce (`requests`, kind `att`) + 🏖 nepřítomnost od–do (`absence`) – **hotovo, k testu** (24. 10. 2026) – **publikovat firestore.rules** |
 | v20.2 | HG2 | Role **Hostující** – vidí jen sebe; úzké dokumenty `evpub` (hlavička) a `lineuppub` (formace jen s jejím „Jdu“) zapisuje aplikace trenéra / kustoda (bez Blaze) – **hotovo, k testu** (24. 10. 2026) – **publikovat firestore.rules**, po testu 🔒 Vyžadovat verzi v20.2 |
-| v20.2.1 | oprava | Výběr hráčky 🎟 v 👁 Náhledu role a ve Členech týmu sám přepne roli na Hostující (nález z testu v20.2) – **hotovo, k testu**, pravidla beze změny |
-| v20.3 / v20.4 | OM1 / OM2 | Modulární práva (náhrada fáze O – role po modulech) – **publikovat firestore.rules** (posunuto: HG2 vydána dřív jako v20.2, čísla verzí musí růst kvůli bráně verze) |
-| v20.5 | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) |
+| v20.2.1 | oprava | Výběr hráčky 🎟 v 👁 Náhledu role a ve Členech týmu sám přepne roli na Hostující (nález z testu v20.2) – **hotovo, otestováno** (24. 10. 2026), pravidla beze změny |
+| v20.3 | OM0 | ⚙️ **Reorganizace okna nastavení**: vykreslení přesunuto ze `storage.js` do `src/views/settings-view.js`, sbalitelné sekce (👤 Účet, 👥 Tým a členové, 📅 Události, 💰 Pokladna, 💾 Data, 🔒 Aplikace, 🛠 Vývojář), stav v záhlaví sbalené sekce, „+ Přidat člena ručně“ až po rozkliknutí – sekce „OM“ – **hotovo, k testu** (24. 10. 2026), bez změny práv, dat a pravidel |
+| v20.4 | OM1 | Role **manager / trener / asistent** (+ hracka, host), `src/domain/permissions.js` s výchozími hodnotami = dnešní chování, převod `members.role` v ⚙️ → 💾 Data, pravidla přijímají staré i nové role – **publikovat firestore.rules před kódem**, po testu 🔒 Vyžadovat verzi |
+| v20.5 | OM2 | 🔐 **Nastavitelná matice práv** (`settings/perm`, editor pro managera, pravidla čtou matici, přehled „kdo co smí“) – **publikovat firestore.rules** |
+| v20.6 | OM3 | Zúžení pravidel: už nepřijímají `kustod` ani `trener` ve staré roli správce – až po nasazení a testu OM1 a OM2 – **publikovat firestore.rules** |
+| v20.7 | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) |
 | v21.x | E | Modul Trénink |
 | poslední | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
 | později | M | Další tým = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) |
@@ -60,6 +63,7 @@ Pořadí fází je návrh – lze ho změnit. **Od 22. 10. 2026 (večer) seřaze
 ---
 
 ## Stav (aktualizováno 24. 10. 2026)
+- **v20.2.1 otestována (uživatel: „funguje“). Rozhodnuto pořadí celku OM (sekce „OM – role a práva po modulech“). v20.3 (OM0) dodáno, k testu:** okno ⚙️ přesunuto do `src/views/settings-view.js` a rozdělené do sbalitelných sekcí; rozbalená sekce se pamatuje v zařízení. Práva, data ani pravidla se nemění. **Další: v20.4 – OM1 (nové role a převod).**
 - **v20.2 nasazena (uživatel: „funguje to“), nález: náhled role Hráčka + hráčka 🎟 jen ukázal hlášku a nespustil se (matoucí). v20.2.1 dodáno, k testu:** výběr hráčky přepne roli Hráčka ↔ Hostující sám (náhled i Členové týmu). Pravidla beze změny. **Další: v20.3 – OM1.**
 - **v19.8 nasazena a otestována (24. 10. 2026). v19.9 + v20.0 + v20.1 + v20.2 dodány najednou v jednom zipu (požadavek uživatele „udělej zaráz“), k testu.** Rozhodnutí uživatele: **HG1** – hostující hráčka bez účtu se chová jako každá jiná a počítá se i v souhrnech (jen značka 🎟, příznak `players.guest` zapíná trenér); **HG2** – hostující s účtem „nemá přístup k nikomu jinému, jen sama k sobě a vidí formace při události, kde je přihlášena“ → role `host`, pravidla `isTeam()` / `isHost()`, veřejné `evpub` + `lineuppub` (jen jména), zapisuje aplikace trenéra / kustoda (`views/auto-sync.js`), Blaze ani Cloud Functions nejsou potřeba; **Z** – ruší trenér + kustod (lze vrátit), úplné smazání i s úhradami jen vývojář, trenér / kustod smaže jen prázdnou událost; **W + NP** – podle návrhu (otázky 24, 26, 27, 58–60): vyřizuje trenér + kustod, lhůta do začátku, schválení zapíše docházku, nepřítomnost přepíše i Jdu / Nejistá (s náhledem), nemoc vidí jen člen a trenér / kustod, za člena zadá trenér / kustod. HG2 vydána jako v20.2 (ne v20.4) – OM posunuto na v20.3 / v20.4. **Publikovat firestore.rules před kódem, po testu 🔒 Vyžadovat verzi v20.2. Další: v20.3 – OM1.**
 - **v19.7 nasazena (24. 10. 2026, uživatel: „změny vidím“), bez nálezu. v19.8 (DO) dodáno, k testu:** 🚫 nedorazila bez omluvy. Otázky DO rozhodnuty uživatelem: značka **jen u odpovědi ✅ Jdu** (ne bez odpovědi), zapisuje a ruší **trenér a kustod**, zápis **v detailu uplynulé události** (tlačítko 🚫 u hráčky, jen po začátku), v 📊 Docházce **nový sloupec 🚫 a „Jdu“ se značkou se do účasti ani procenta nepočítá**. Data: `attendance.nos = true` (merge, zrušení smaže pole); změna odpovědi trenérem (set dokumentu) značku zruší; hráčka odpověď se značkou nezmění (aplikace i pravidla). Realizační tým tlačítko nemá (výpočet by ho zvládl). Výpočty `src/domain/attendance.js` (`NOS_KEY`, `isNos`, `canNos`, `nosPatch`, `nosCount`, `startMs` exportován, `attSummary` s `nos`) + `tests/attendance-nos.test.js` (5 testů, celkem 192). Pravidla `attendance`: `nosKeep()` – hráčka značku nezaloží, nezmění ani nesmaže (ani smazáním dokumentu). **Publikovat firestore.rules (kdykoli – před i po kódu), 🔒 Vyžadovat verzi ne. Test v19.6.3 (náhled živého zápasu) zatím neproběhl. Další: v19.9 – HG1.**
@@ -232,8 +236,52 @@ Nejdřív události a docházka, pak modulární práva, nakonec notifikace, Tr�
 ### HG2 – v20.2 hostující s účtem (✅ dodáno 24. 10. 2026, k testu)
 - Role `host` (+ `pid` hráčky 🎟); záložky 🏠 / Události / Moje platby; `evpub` a `lineuppub` (místo dřívějšího návrhu `matchpub` s Cloud Functions) zapisuje aplikace trenéra / kustoda – jen rozdíly, jen s aktivní hostující, události od dneška − 14 dní. Pravidla `isTeam()` pro všechna týmová čtení, `hostGoing()` pro formaci.
 
-### OM1 / OM2 – v20.3 / v20.4 modulární práva
-- Podrobné zadání a otázky doplnit při práci na fázi (v repozitáři zatím nejsou). Pozor: role `host` už existuje – OM ji musí zachovat (`isTeam()` / `isHost()`).
+### OM – v20.3 až v20.6 modulární práva
+- Zadání, rozhodnutí a pořadí verzí: sekce „OM – role a práva po modulech (24. 10. 2026)“ níže. Role `host` zůstává beze změny (`isTeam()` / `isHost()`).
+
+
+## OM – role a práva po modulech (24. 10. 2026)
+Náhrada fáze O. Cíl: role **manager / trener / asistent / hracka / host** a nastavitelná matice práv po modulech (číst / upravovat / rušit / mazat).
+
+### Role
+- **manager** – vlastník týmu (výhledově manager týmu při více týmech). Smí vše včetně správy práv, členů a ✋ žádostí o přijetí, účtů pro QR, brány verze a obnovy ze zálohy. Práva **nejdou omezit**. Managerů může být víc, **aspoň jeden musí vždy zůstat** (posledního nejde odebrat ani snížit).
+- **trener** – výchozí práva = dnešní trenér **jen ve sportu** (zápasy, události, docházka, soupeři, formace, soupiska, realizační tým). Členy, ✋ žádosti o přijetí, obnovu ze zálohy, návrh účtů pro QR a bránu verze má jen manager.
+- **asistent** – nahradí kustoda, výchozí práva = dnešní kustod beze změny.
+- **hracka** – výchozí práva = dnešní hráčka; v matici jde přidat nebo odebrat (např. Statistiky, Soupeři, 📊 Docházka ostatních). Vlastní data (svoje odpověď, Moje platby, žádosti, nepřítomnost) jsou **pevné minimum**.
+- **host** – hostující beze změny (pevná práva, mimo matici).
+- **Pokladník** = příznak `cash: true` u kterékoli role kromě host, **pevná práva** (mimo matici): pokladna, předpisy, úhrady, vyúčtování, příspěvky, platy, měsíce, rozpočet, žádosti o změnu placení. 4 oči u účtů pro QR: návrh podá manager, potvrdí jiný správce pokladny.
+- Převod: `trener` → `manager` (účet vývojáře a koho určí uživatel) nebo `trener`; `kustod` → `asistent`. Během přechodu aplikace i pravidla přijímají staré i nové hodnoty.
+
+### Moduly matice (pro trener, asistent, hracka)
+Události a tréninky (série, sraz) · Zápasy (nominace, sestava, živý zápis, opravy) · Docházka za ostatní (odpovědi, 🚫, ✋ změny účasti, nepřítomnost za člena) · Pětky a základní formace · Soupiska hráček · Realizační tým · Soupeři · Statistiky a Zápis utkání (jen číst) · 📊 Docházka přehled (jen číst) · Členové týmu a ✋ žádosti o přijetí · Pokladna (pevně podle příznaku) · Rozpočet · Nastavení aplikace a data. Akce: číst / upravovat (založit i změnit) / rušit (jen události a zápasy – pole `cancelled`) / mazat.
+- Uložení `settings/perm = {v, roles: {trener: {modul: {r, e, c, d}}, asistent: {…}, hracka: {…}}, by, at}`; čtou členové kromě host, zapisuje jen manager; chybějící dokument nebo pole = výchozí hodnoty z kódu (dnešní chování).
+- Jediné místo pravdy `src/domain/permissions.js` (`DEFAULT_PERMS`, `MODULES`, `ACTIONS`, `permOf`, `permError`); tabulka `CAN` v `storage.js` se z ní odvodí, dnešní akce `can("sport")` atd. zůstanou jako zkratky.
+- Pravidla: `can(mod, act)` přes `get(/settings/perm)` s náhradou výchozích hodnot; hlídat limit 10 get/exists na zápis a 20 v dávce (vyúčtování, převody).
+- Srovnávací test: `DEFAULT_PERMS` dávají přesně dnešní tabulku `CAN` (trener→manager, trener, kustod→asistent, hracka, host, pokladník).
+
+### Okno ⚙️ (v20.3 OM0)
+Sbalitelné sekce, nahoře vždy účet, rozbalená sekce se pamatuje v zařízení: 👤 Účet (e-mail, role, odhlásit, verze, Načíst novou verzi) · 👥 Tým a členové (✋ žádosti o přijetí s počtem, seznam členů, „+ Přidat člena ručně“ až po rozkliknutí) · 🔐 Práva rolí (přibude ve v20.5) · 📅 Události · 💰 Pokladna · 💾 Data (záloha, CSV, obnova, kontrola dat a převody) · 🔒 Aplikace (brána verze) · 🛠 Vývojář (👁 náhled role). Sbalená sekce ukazuje stav v záhlaví (např. „✋ 2 žádosti“, „⚠️ minimální verze není nastavená“).
+
+### Pořadí verzí
+- **v20.3 OM0** – reorganizace ⚙️ bez změny práv, dat a pravidel (**hotovo, k testu**).
+- **v20.4 OM1** – nové role, `domain/permissions.js`, pravidla přijímají staré i nové role, převod `members.role` v ⚙️ → 💾 Data (náhled, záloha, idempotentně), náhled role a volba role při přijetí s novými rolemi; po testu 🔒 Vyžadovat verzi.
+- **v20.5 OM2** – `settings/perm`, editor matice pro managera, pravidla čtou matici, UI se řídí maticí, přehled „kdo co smí“ v ⚙️ i v nápovědě.
+- **v20.6 OM3** – zúžení pravidel (bez `kustod` a staré role `trener` jako správce).
+- Potom N (v20.7), E, P2.
+
+### Otázky a odpovědi (24. 10. 2026)
+| # | Otázka | Odpověď uživatele |
+|---|---|---|
+| OM-1 | Kdo bude manager, může jich být víc? | Víc managerů, aspoň jeden vždy |
+| OM-2 | Trenér ve výchozím stavu: členy, ✋ žádosti o přijetí, obnova ze zálohy, návrh účtu pro QR? | **Jen sport** – členy, žádosti, obnova i účty jen manager |
+| OM-3 | Asistent = dnešní kustod beze změny? | Ano |
+| OM-4 | Seznam modulů a akcí | Souhlas |
+| OM-5 | Hráčka: přidávat / odebírat v matici, vlastní data pevná? | Ano |
+| OM-6 | Pokladník: pevně podle příznaku, nebo řádek v matici? | Pevně podle příznaku |
+| OM-7 | Zástupce (dřívější otázka 23) | Nepotřeba – stačí víc managerů nebo trenérů |
+| OM-8 | Pořadí verzí a sekce ⚙️ | Souhlas |
+| OM-9 | Více týmů: jen připravit názvy a strukturu, bez `teams/{id}` | Souhlas (M zůstává „později“) |
+| OM-10 | Trenér a pokladna: dnes je trenér vždy správce pokladny; podle OM-2 a OM-6 má pokladnu jen s příznakem. | **Návrh vývojáře (potvrdit ve v20.4):** převod nastaví `cash: true` každému `trener`, který zůstane trenérem, aby se po převodu nic nezměnilo; manager je správce pokladny vždy. |
 
 ## NP – 🏖 Nepřítomnost člena od–do (požadavek uživatele 23. 10. 2026; návrh spolu s W)
 **Porovnání s dneškem:** omluvu („Nejdu“ s důvodem) zadává člen ke každé události zvlášť; po uzávěrce přihlašování ji změní jen trenér / kustod ručně (žádost o změnu účasti řeší až fáze W); hromadná nepřítomnost neexistuje.

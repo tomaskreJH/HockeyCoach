@@ -1,56 +1,62 @@
 Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/HockeyCoach, větev main; JavaScript bez frameworku, PWA, Firebase Firestore + přihlášení Google). Piš vždy česky.
 
 ## 1. Start (šetři limit – čti cíleně)
-1. Stáhni aktuální repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
-2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v20.2.1.
-3. Přečti jen: docs/KONVENCE.md (celý – programovací řád); z docs/plan-v18.md jen tabulku nahoře, první dva body sekce „Stav“, celou sekci „Nové pořadí 23. 10. 2026 – Události, docházka, modulární práva“ (HG1, Z, W + NP, HG2 hotové; OM); z CHANGELOG.md jen nejnovější záznam. Další soubory otevírej až podle potřeby, cíleně (grep -n, výřezy řádků). Velké soubory (storage.js 59 kB, events.js 47 kB, plán 142 kB) nečti celé a nic nečti dvakrát.
-4. Spusť npm test (Node 22, bez instalace balíčků). Testy musí projít už před prací (211 testů); pokud ne, nejdřív to ohlas.
+1. Stáhni repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
+2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v20.3.
+3. Přečti jen:
+   - docs/KONVENCE.md celý,
+   - z docs/plan-v18.md tabulku nahoře, první dva body sekce „Stav“ a celou sekci „OM – role a práva po modulech (24. 10. 2026)“ (rozhodnutí OM-1 až OM-10),
+   - z CHANGELOG.md jen nejnovější záznam.
+   Dál čti cíleně (grep -n, výřezy): v src/data/storage.js tabulku CAN, ROLES, STAFF, PID_ROLES, isStaff / isCash, boot() a sekci „Rozhraní pro okno ⚙️“ (HK.cfg); src/views/settings-view.js (okno ⚙️, 23 kB); celý firestore.rules (17 kB); tests/permissions.test.js a tests/support/can-probe.mjs; src/views/join-view.js jen místo s volbou role při přijetí (JOIN_ROLES v domain/join-requests.js). Velké soubory (storage.js 46 kB, events.js 47 kB, plán 150 kB) nečti celé a nic nečti dvakrát.
+4. Spusť npm test (Node 22, bez instalace balíčků). Musí projít 211 testů ještě před prací; pokud ne, nejdřív to ohlas.
 
-## 2. Kde projekt stojí (24. 10. 2026, po v20.2)
-- v19.8 nasazena a otestována. v19.6.3 (👁 náhled živého zápasu) a v19.5.2 (schválení rozpočtu) nasazené, zatím netestované.
-- **v19.9 HG1 + v20.0 Z + v20.1 W + NP + v20.2 HG2 dodány najednou v jednom zipu, k testu:** 🎟 hostující hráčka (`players.guest`, počítá se jako ostatní); ❌ zrušení události (`cancelled`, mimo Docházku, 🧨 úplné smazání jen vývojář, trenér / kustod smaže jen prázdnou); ✋ žádosti o změnu účasti (`requests` kind `att`) a 🏖 nepřítomnost (`absence`, `attendance.abs`); role **Hostující** (`members.role = "host"`) vidí jen sebe – veřejné `evpub` / `lineuppub` zapisuje aplikace trenéra / kustoda (`views/auto-sync.js`). **Publikovat firestore.rules před kódem, po testu 🔒 Vyžadovat verzi v20.2.** Nález = oprava jako samostatná verze (v20.2.1 …).
-- **v20.2 nasazena („funguje to“); v20.2.1** (výběr hráčky 🎟 sám přepne roli na Hostující v náhledu a ve Členech) dodáno, k testu – pravidla beze změny.
-- **Pořadí:** **v20.3 OM1 / v20.4 OM2** (modulární práva) → v20.5 N → v21.x E (Trénink) → P2 poslední. (HG2 vydána dřív jako v20.2 – čísla verzí musí růst kvůli bráně verze.)
-- Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v19.9 – v20.2 (a zda jsou publikovaná pravidla), pokud ho nenapíšu sám. Nález = oprava jako další číslo verze (další fáze se posunou – upravit plán).
-- Čísla do v20.2 se už znovu nepoužívají. Každá další změna má nové číslo verze.
+## 2. Kde projekt stojí (24. 10. 2026, po v20.3)
+- v20.2.1 otestována („funguje“). **v20.3 OM0** (okno ⚙️ přesunuté do `src/views/settings-view.js`, sbalitelné sekce 👤 Účet · 👥 Tým a členové · 📅 Události · 💰 Pokladna · 💾 Data · 🔒 Aplikace · 🛠 Vývojář, stav v záhlaví, „+ Přidat člena ručně“ až po rozkliknutí) je dodaná, k testu – práva, data ani pravidla se nezměnila. Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v20.3, pokud ho nenapíšu sám. Nález = oprava v20.3.1 dřív než OM1.
+- Dnešní role v `members/{email}.role`: `trener` (vše), `kustod` (sport; u hráčky jen stav), `hracka` (+ `pid`), `host` (hostující 🎟 – vidí jen sebe, `isTeam()` / `isHost()`, veřejné `evpub` / `lineuppub`). Příznak `cash: true` = pokladník (`isCash`).
+- Oprávnění v aplikaci jen přes `HK.can(akce)`: `sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`. Okno ⚙️ dostává volby a popisky rolí přes `HK.cfg` (kontroly rolí zůstávají v storage.js). V pravidlech `isCoach`, `isStaff`, `isCash`, `isPlayer`, `isHost`, `isTeam`.
+- Vývojář = `DEV_EMAILS` v src/config/team-config.js (👁 náhled role, 🧨 úplné smazání). Zůstává nad všemi rolemi.
+- Brána verze `settings/app.minVer` – čísla verzí musí jen růst. Další volné číslo je v20.4, cache `hokej-v77`.
 
-## 3. Odložené drobnosti
-1. Fáze Z je hotová: úplné smazání (vývojář) maže i důvody v attnote a žádosti; smazání hráčky ponechá její žádosti v requests a nepřítomnosti v absence (osiřelé, čte jen správce / trenér) – doplnit, až bude potřeba.
-2. 🚫 u realizačního týmu se zatím nezapisuje (výpočet `attSummary` by ho zvládl) – případně později na přání.
-3. Notifikace o zrušení události, nové žádosti o účast a vyřízení žádosti přijdou s fází N (zatím jen značky v aplikaci).
-4. Po každé verzi aktualizuj tento prompt (docs/prompt-dalsi-vlakno.md) na nový stav.
+## 3. Rozhodnutí OM (plán, sekce „OM – role a práva po modulech“)
+- **manager** – vlastník, smí vše (práva, členové, ✋ žádosti o přijetí, účty pro QR, brána verze, obnova); práva nejdou omezit; managerů víc, aspoň jeden musí zůstat.
+- **trener** – výchozí jen sport (zápasy, události, docházka, soupeři, formace, soupiska, realizační tým); členy, žádosti o přijetí, obnovu, účty pro QR a bránu verze má jen manager.
+- **asistent** = dnešní kustod beze změny. **hracka** – v matici přidat / odebrat (Statistiky, Soupeři, 📊 Docházka), vlastní data pevná. **host** beze změny.
+- **Pokladník** pevně podle příznaku `cash` (mimo matici). Zástupce nepotřeba. Více týmů jen připravit názvy.
+- **OM-10 (potvrdit s uživatelem na začátku v20.4):** převod nastaví `cash: true` každému `trener`, který zůstane trenérem, aby se pokladna po převodu nezměnila; manager je správce pokladny vždy.
+- Moduly matice a uložení `settings/perm` viz plán.
 
-## 4. Další fáze: OM1 – v20.3 modulární práva (plán, sekce „Nové pořadí 23. 10. 2026“, starší návrh fáze O)
-- Podrobné zadání a otázky zatím v repozitáři nejsou – před začátkem je od uživatele krátce potvrď (moduly, kdo co smí, zástupce, 4 oči u účtů, převod rolí trenér / kustod).
-- Zachovat roli `host` (hostující – `isTeam()` / `isHost()` v pravidlech, `HK.can("guest")`) a `HK.can("wipe")`.
-- Čisté funkce v domain/ + testy. Data jen přidávat (merge). Pravidla: rozšířit → převést → zúžit.
-- Neměnit: živý zápis, pokladnu, čas a sraz událostí, 🚫 docházku, zrušení událostí, žádosti a nepřítomnost.
+## 4. Další verze: v20.4 OM1 – nové role a převod
+- role manager / trener / asistent (+ hracka, host) v `ROLES`, náhledu role, Členech týmu (⚙️ → 👥) a volbě role při přijetí žádosti,
+- nový `src/domain/permissions.js` s `DEFAULT_PERMS`, `MODULES`, `ACTIONS`, `permOf`, `permError` (výchozí hodnoty = dnešní chování); tabulka `CAN` se z něj odvodí; srovnávací test proti dnešní tabulce CAN (trener→manager, trener, kustod→asistent, hracka, host, pokladník),
+- pravidla rozšířit tak, aby přijímala staré i nové role (**publikovat firestore.rules před kódem**),
+- převod `members.role` v ⚙️ → 💾 Data s náhledem „co se změní“, zálohou a idempotentně; posledního managera nejde odebrat ani snížit,
+- po testu 🔒 Vyžadovat verzi.
+- Potom v20.5 OM2 (matice `settings/perm`, editor, sekce 🔐 Práva rolí v ⚙️), v20.6 OM3 (zúžení pravidel), v20.7 N.
 
-## 5. Pravidla práce (povinná)
-1. Výstup = vždy JEDEN ZIP se všemi změněnými a novými soubory ve struktuře repozitáře (rozbalit přímo do kořene HockeyCoach). Jednotlivé soubory zvlášť neposílej. Soubory musí být celé od prvního do posledního řádku – žádné zkracování („… zbytek kódu …“), žádné úpravy typu NAJDI / NAHRAĎ.
-2. Nový soubor nesmí mít stejný název jako existující soubor jinde v projektu.
-3. Struktura souboru: Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty. Sekce označ // ===== Název =====. Stručné české komentáře u složitější logiky. Hlavička 1–5 řádků o současném stavu (historie patří jen do CHANGELOG).
-4. Neměň nesouvisející funkčnost: živý zápis (střely, góly, časomíra, tresty), pokladnu, statistiky, docházku. Když úkol vyžaduje zásah jinde, nejdřív upozorni a zeptej se. Změna peněz nebo pravidel = v CHANGELOG označit „⚠️ SAHÁ NA PLATBY“.
-5. Data jen přidávej (merge), stará pole maž až o verzi později. Pravidla v pořadí: rozšířit → převést → zúžit. U každé verze napiš, zda a kdy publikovat firestore.rules a zda nastavit 🔒 Vyžadovat verzi.
-6. Vydání verze – vždy vše najednou:
-   - src/core/app-version.js (APP_VERSION, APP_DATE),
-   - package.json (version),
-   - sw.js (hokej-vNN +1; teď je v75, další v76),
-   - CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny),
-   - README.md (řádek „Aktuální verze“),
-   - src/views/help.js (při změně ovládání),
-   - docs/plan-v18.md (Stav a tabulka).
+## 5. Odložené drobnosti (neřešit, jen nezapomenout)
+1. Smazání hráčky ponechá její žádosti v `requests` a nepřítomnosti v `absence` (osiřelé).
+2. 🚫 u realizačního týmu se nezapisuje.
+3. Notifikace o zrušení události a o žádostech přijdou s fází N.
+4. Po každé verzi aktualizuj docs/prompt-dalsi-vlakno.md na nový stav.
+
+## 6. Pravidla práce (povinná)
+1. Výstup = vždy JEDEN ZIP se všemi změněnými a novými soubory ve struktuře repozitáře (rozbalit přímo do kořene HockeyCoach). Soubory celé od prvního do posledního řádku – žádné zkracování, žádné NAJDI / NAHRAĎ.
+2. Nový soubor nesmí mít stejný název jako existující soubor jinde v projektu (hlídá tests/d1-structure.test.js).
+3. Struktura souboru: Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty, sekce `// ===== Název =====`, stručné české komentáře, hlavička 1–5 řádků o současném stavu (historie jen v CHANGELOG).
+4. Neměň nesouvisející funkčnost: živý zápis, pokladnu, statistiky, docházku, zrušení událostí, žádosti, nepřítomnost, hostující. Když úkol vyžaduje zásah jinde, nejdřív upozorni a zeptej se. Změna peněz nebo pravidel pokladny = v CHANGELOG „⚠️ SAHÁ NA PLATBY“.
+5. Data jen přidávej (merge), stará pole maž až o verzi později. Pravidla v pořadí rozšířit → převést → zúžit. U každé verze napiš, zda a kdy publikovat firestore.rules a zda nastavit 🔒 Vyžadovat verzi.
+6. Vydání verze – vždy vše najednou: src/core/app-version.js, package.json, sw.js (hokej-vNN +1; teď v76, další v77), CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny), README.md (řádek „Aktuální verze“ a tabulka rolí), src/views/help.js, docs/KONVENCE.md (mapa souborů, HK.can, pravidla), docs/plan-v18.md.
 7. Ověření před odevzdáním:
-   - npm test projde celý, nová logika v domain/ má nové testy,
-   - kouřový test v jsdom MIMO repozitář (scratchpad, npm i jsdom) pro dotčené role: start bez chyb, dotčené obrazovky, zápisy jdou jen tam, kam mají (aplikace se vykreslí až po načtení kolekcí players, matches, staff, opponents, events, attendance – v `__fb.data` je zadej aspoň prázdné; záložka Události má klíč `S.tab = "ev"`; zástupce Firebase z tests/support neumí dotazy `where` – pro hostujícího / hráčku si v scratchpadu udělej kopii zástupce s filtrováním a vlastní hooks; `MutationObserver` vezmi z jsdom),
-   - do CHANGELOG napiš, co bylo ověřeno.
-8. Aplikace musí po každé verzi zůstat funkční. Malé verze, po každé následuje můj test na Androidu.
+   - npm test celý zelený, nová logika v domain/ má testy, srovnávací test výchozích práv proti dnešní tabulce CAN.
+   - Kouřový test v jsdom MIMO repozitář (scratchpad, `npm i jsdom`) pro všechny role (manager, trener, asistent, hracka, host, pokladník, vývojář): start bez chyb, ⚙️ sekce (`[data-acc]`), zápisy jdou jen tam, kam mají. Aplikace se vykreslí až po načtení kolekcí players, matches, staff, opponents, events, attendance – v `__fb.data` je zadej aspoň prázdné. Do globálního prostoru zkopíruj vlastnosti okna jsdom (`window`, `history`, `MutationObserver` …). Zástupce Firebase z tests/support neumí `where` ani `getDocs` členů – v scratchpadu si udělej kopii zástupce s filtrováním a vlastní hooks. `location.reload` (náhled role) v jsdom hlásí „navigation not implemented“ – to není chyba aplikace.
+   - Do CHANGELOG napiš, co bylo ověřeno.
+8. Aplikace musí po každé verzi zůstat funkční. Malé verze, po každé můj test na Androidu.
 
-## 6. Šetření limitu
+## 7. Šetření limitu
 - Žádní subagenti, žádné opakované čtení stejných souborů, žádné výpisy celých souborů do odpovědi.
-- Hledej přes grep -n, čti jen výřezy, upravuj cílenými editacemi. Testy pouštěj s filtrem (grep -E "^not ok|# (pass|fail)").
-- Ptej se jen na kritická rozhodnutí; jinak platí návrh v plánu.
+- grep -n, výřezy, cílené editace; testy s filtrem (`grep -E "^not ok|# (pass|fail)"`).
+- Ptej se jen na kritická rozhodnutí, jinak platí návrh.
 - Odpověď na konci: načtená verze, nová verze, zip, postup nasazení v několika bodech, výsledek testů. Bez dlouhého vysvětlování.
 
-## 7. Úkol
-Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v19.9 – v20.2 (pokud není uvedeno) a pak pokračuj další verzí v pořadí (OM1 – v20.3 modulární práva).
+## 8. Úkol
+Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v20.3 a potvrzení OM-10 (pokud není uvedeno) a pokračuj verzí v20.4 OM1.
