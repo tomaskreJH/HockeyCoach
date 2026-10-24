@@ -4,6 +4,20 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.2.1 (24. 10. 2026) – oprava: výběr hostující hráčky přepne roli sám
+> **Nasazení:** 1) Nahrát kód (jen změněné soubory, nic se nemaže). 2) **firestore.rules beze změny – nepublikovat.** 3) Na telefonu ⚙️ → Načíst novou verzi, ověřit v20.2.1. 4) Test: ⚙️ → 👁 Náhled role → role Hráčka → vybrat hráčku 🎟 → role se sama přepne na Hostující → Spustit náhled.
+> **🔒 Vyžadovat verzi: ne** (jen ovládání v ⚙️). Návrat na v20.2: nahrát předchozí zip.
+
+**Opraveno**
+- Nález z testu v20.2: v 👁 Náhledu role s rolí Hráčka a vybranou hráčkou 🎟 náhled jen ukázal krátkou hlášku „Hostující hráčku 🎟 propoj s rolí Hostující“ a nespustil se (matoucí). Nově výběr hráčky přepne roli podle značky 🎟 sám (Hráčka ↔ Hostující) – v náhledu i v ⚙️ → Členové týmu (role Hostující jen u trenéra). Kontrola `pidRoleErr` zůstává jako pojistka.
+
+**Změněno**
+- `src/data/storage.js` (`pidRoleOf`, obsluha výběru hráčky), `src/views/help.js`, `README.md`, `docs/plan-v18.md`, `docs/prompt-dalsi-vlakno.md`, verze (`app-version.js`, `package.json`, `sw.js` → `hokej-v75`).
+
+**Beze změny**
+- Vše ostatní, pravidla databáze, data.
+- Ověřeno: `npm test`; kouřový test v jsdom (vývojář): náhled – role Hráčka + hráčka 🎟 → role Hostující; zpět na hráčku bez 🎟 → Hráčka; náhled se spustí s rolí Hostující.
+
 ## v20.2 (24. 10. 2026) – HG2: hostující hráčky s účtem – vidí jen sebe (`evpub`, `lineuppub`)
 > **Nasazení (dodáno spolu s v19.9, v20.0 a v20.1 – jeden zip, nasazuje se najednou):** 1) Záloha: zip současného repozitáře a ⚙️ → Stáhnout zálohu (data se jen doplňují). 2) **Publikovat firestore.rules – před nahráním kódu** (nová pravidla starým verzím nevadí: role trenér / kustod / hráčka čtou dál vše jako dnes; bez nich nová verze nezapíše nepřítomnost, žádosti o účast ani veřejné dokumenty – jen hláška v konzoli). 3) Nahrát kód: nové soubory `src/domain/guests.js`, `src/domain/event-cancel.js`, `src/domain/att-requests.js`, `src/domain/absence.js`, `src/views/auto-sync.js`, `src/views/att-request-view.js`, `src/views/absence-view.js`, `tests/guests.test.js`, `tests/event-cancel.test.js`, `tests/att-absence.test.js`; nic se nemaže. 4) Na telefonu ⚙️ → Načíst novou verzi, ověřit v20.2 v záhlaví. 5) Test podle bodů u v19.9 – v20.2 níže. 6) Po otestování na všech zařízeních trenér ⚙️ → **🔒 Vyžadovat verzi v20.2** (starší verze neznají zrušení události a nepřítomnost – mohly by zapsat odpověď do zrušené události).
 > **Test HG2:** trenér – Team → hráčka → Upravit → 🎟 Hostující = Ano; ⚙️ → Členové týmu → e-mail testovacího účtu, role **Hostující**, vybrat hráčku 🎟; počkat pár sekund (aplikace trenéra zapíše `evpub` / `lineuppub`). Testovací účet: záložky jen 🏠 / Události / Moje platby, v Událostech bez počtů ostatních a bez 📊 Docházky, v detailu jen vlastní řádek; po ✅ Jdu a rozdělení do pětek trenérem vidí pětky / formaci. Také 👁 Náhled role → Hostující.

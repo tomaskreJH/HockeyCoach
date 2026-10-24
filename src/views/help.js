@@ -170,7 +170,7 @@ const SECTIONS = [
 </ul>`},
   {t: "13. Záloha a nastavení účtu (⚙️)", h: `
 <ul>
-<li><b>Členové týmu – role Hostující</b> (jen trenér): e-mail, role Hostující a hráčka označená 🎟. Hostující nemůže být pokladníkem ani členem realizačního týmu a vidí jen svá data a formace událostí, kam je přihlášená (vynucují pravidla databáze).</li>
+<li><b>Členové týmu – role Hostující</b> (jen trenér): e-mail, role Hostující a hráčka označená 🎟. Výběr hráčky s 🎟 přepne roli na Hostující sám (stejně v 👁 Náhledu role). Hostující nemůže být pokladníkem ani členem realizačního týmu a vidí jen svá data a formace událostí, kam je přihlášená (vynucují pravidla databáze).</li>
 <li><b>Stáhnout zálohu (JSON):</b> záloha všech načtených dat (trenér a kustod) včetně důvodů omluv, platů a plateb hráček, pokud je účet smí číst (trenér vše). Dělej ji pravidelně.</li>
 <li><b>Soupiska (CSV):</b> export pro Excel.</li>
 <li><b>Obnovit ze zálohy</b> (jen trenér): <b>Sloučit s daty</b> přidá/přepíše položky, <b>Nahradit vším</b> nahradí obsah kolekcí ze zálohy (potvrzení druhým klepnutím do 4 s, jinak se tlačítko vrátí). Vyžaduje internet.</li>

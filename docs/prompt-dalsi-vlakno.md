@@ -2,13 +2,14 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 
 ## 1. Start (šetři limit – čti cíleně)
 1. Stáhni aktuální repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
-2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v20.2.
+2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v20.2.1.
 3. Přečti jen: docs/KONVENCE.md (celý – programovací řád); z docs/plan-v18.md jen tabulku nahoře, první dva body sekce „Stav“, celou sekci „Nové pořadí 23. 10. 2026 – Události, docházka, modulární práva“ (HG1, Z, W + NP, HG2 hotové; OM); z CHANGELOG.md jen nejnovější záznam. Další soubory otevírej až podle potřeby, cíleně (grep -n, výřezy řádků). Velké soubory (storage.js 59 kB, events.js 47 kB, plán 142 kB) nečti celé a nic nečti dvakrát.
 4. Spusť npm test (Node 22, bez instalace balíčků). Testy musí projít už před prací (211 testů); pokud ne, nejdřív to ohlas.
 
 ## 2. Kde projekt stojí (24. 10. 2026, po v20.2)
 - v19.8 nasazena a otestována. v19.6.3 (👁 náhled živého zápasu) a v19.5.2 (schválení rozpočtu) nasazené, zatím netestované.
 - **v19.9 HG1 + v20.0 Z + v20.1 W + NP + v20.2 HG2 dodány najednou v jednom zipu, k testu:** 🎟 hostující hráčka (`players.guest`, počítá se jako ostatní); ❌ zrušení události (`cancelled`, mimo Docházku, 🧨 úplné smazání jen vývojář, trenér / kustod smaže jen prázdnou); ✋ žádosti o změnu účasti (`requests` kind `att`) a 🏖 nepřítomnost (`absence`, `attendance.abs`); role **Hostující** (`members.role = "host"`) vidí jen sebe – veřejné `evpub` / `lineuppub` zapisuje aplikace trenéra / kustoda (`views/auto-sync.js`). **Publikovat firestore.rules před kódem, po testu 🔒 Vyžadovat verzi v20.2.** Nález = oprava jako samostatná verze (v20.2.1 …).
+- **v20.2 nasazena („funguje to“); v20.2.1** (výběr hráčky 🎟 sám přepne roli na Hostující v náhledu a ve Členech) dodáno, k testu – pravidla beze změny.
 - **Pořadí:** **v20.3 OM1 / v20.4 OM2** (modulární práva) → v20.5 N → v21.x E (Trénink) → P2 poslední. (HG2 vydána dřív jako v20.2 – čísla verzí musí růst kvůli bráně verze.)
 - Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v19.9 – v20.2 (a zda jsou publikovaná pravidla), pokud ho nenapíšu sám. Nález = oprava jako další číslo verze (další fáze se posunou – upravit plán).
 - Čísla do v20.2 se už znovu nepoužívají. Každá další změna má nové číslo verze.
@@ -34,7 +35,7 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 6. Vydání verze – vždy vše najednou:
    - src/core/app-version.js (APP_VERSION, APP_DATE),
    - package.json (version),
-   - sw.js (hokej-vNN +1; teď je v74, další v75),
+   - sw.js (hokej-vNN +1; teď je v75, další v76),
    - CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny),
    - README.md (řádek „Aktuální verze“),
    - src/views/help.js (při změně ovládání),

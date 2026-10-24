@@ -406,6 +406,8 @@ const dropTxt = k => k ? " (" + k + " důvodů omluv ze staré zálohy se nepře
 const playerOpts = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
   .map(([id, p]) => `<option value="${esc(id)}">${esc((p.num ? "#" + p.num + " " : "") + p.name + (isGuest(p) ? " 🎟" : ""))}</option>`).join("");
 // Kontrola propojení role a hráčky: vrací text chyby, nebo null
+// Role, která k hráčce patří: hostující 🎟 → host, ostatní → hracka (výběr hráčky v náhledu a ve Členech role sám přepne)
+const pidRoleOf = pp => (data.players[pp] && isGuest(data.players[pp]) ? "host" : "hracka");
 const pidRoleErr = (rl, pp) => { const p = data.players[pp]; if (!p) return "Vyber hráčku"; if (rl === "host" && !isGuest(p)) return "Role Hostující patří jen hráčce označené 🎟 (Team → Upravit → Hostující)"; if (rl === "hracka" && isGuest(p)) return "Hostující hráčku 🎟 propoj s rolí Hostující"; return null; };
 // Členové realizačního týmu pro výběr při propojení účtu (podle jména)
 const staffOpts = () => Object.entries(data.staff).sort((a, b) => (a[1].name || "").localeCompare(b[1].name || "", "cs"))
@@ -422,6 +424,7 @@ function bindPv(q) {
   // Výběr hráčky jen u role Hráčka / Hostující; trenér je vždy správce pokladny, hostující pokladníkem není (volba se skryje)
   const sync = () => { const r = q("#pvr").value; q("#pvp").style.display = PID_ROLES.includes(r) ? "" : "none"; q("#pvc").style.display = r === "trener" || r === "host" ? "none" : ""; q("#pvt").style.display = r === "host" ? "none" : ""; };
   q("#pvr").onchange = sync; sync();
+  q("#pvp").onchange = () => { const p = q("#pvp").value; if (p && PID_ROLES.includes(q("#pvr").value)) { q("#pvr").value = pidRoleOf(p); sync(); } };
   q("#pvs").onclick = () => {
     const r = q("#pvr").value, p = q("#pvp").value, pid_ = PID_ROLES.includes(r);
     if (pid_ && !p) return say("Vyber hráčku");
@@ -493,7 +496,10 @@ function openCfg() {
   if (q("#cjr")) q("#cjr").onclick = () => { close(); if (HK.openJoin) HK.openJoin(); };
   // Výběr hráčky se ukáže jen u role Hráčka; člen týmu je volitelný u každé role (hráčka může být i členem týmu)
   // Hostující: jen hráčka 🎟, bez člena týmu a bez pokladníka
-  q("#cmr").onchange = () => { const r = q("#cmr").value; q("#cmp").style.display = PID_ROLES.includes(r) ? "" : "none"; q("#cmt").style.display = q("#cmc").style.display = r === "host" ? "none" : ""; };
+  const cmSync = () => { const r = q("#cmr").value; q("#cmp").style.display = PID_ROLES.includes(r) ? "" : "none"; q("#cmt").style.display = q("#cmc").style.display = r === "host" ? "none" : ""; };
+  q("#cmr").onchange = cmSync;
+  // Výběr hráčky přepne roli Hráčka ↔ Hostující podle značky 🎟 (role Hostující je jen u trenéra)
+  q("#cmp").onchange = () => { const p = q("#cmp").value, r = pidRoleOf(p); if (p && PID_ROLES.includes(q("#cmr").value) && q("#cmr").querySelector('option[value="' + r + '"]')) { q("#cmr").value = r; cmSync(); } };
   q("#cma").onclick = async () => {
     const em = q("#cme").value.trim().toLowerCase(), rl = q("#cmr").value, pp = q("#cmp").value, tt = q("#cmt").value, cc = q("#cmc").value === "1";
     if (!/^\S+@\S+\.\S+$/.test(em)) return say("Zadej platný e-mail");
