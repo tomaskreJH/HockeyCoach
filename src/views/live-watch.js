@@ -56,7 +56,7 @@ function viewHtml(m) {
 <div class="cd"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">Průběh</h2>
 <label class="mu" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="hwsh"${shotsOn ? " checked" : ""}> Střely</label></div>
 ${feedHtml(list)}</div>
-<div class="mu" style="text-align:center;margin:6px 0 12px">Sestavy a čas na ledě vidí trenér a kustod. Celý průběh najdeš v detailu zápasu po jeho uzavření.</div></div>`;
+<div class="mu" style="text-align:center;margin:6px 0 12px">Sestavy a čas na ledě vidí manager, trenér a asistent. Celý průběh najdeš v detailu zápasu po jeho uzavření.</div></div>`;
 }
 
 // ===== Eventy =====

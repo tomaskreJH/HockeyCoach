@@ -1,5 +1,5 @@
 // Čtecí pomocníci nad stavem: hráčky, nominace, skóre, střely, aktuální zápas.
-import {COLS, LN, POS, SL} from "../config/constants.js";
+import {COLS, KIND_OLD, LN, POS, SL} from "../config/constants.js";
 import {S} from "./state.js";
 import {esc, norm} from "./utils.js";
 
@@ -11,6 +11,8 @@ export const pri=p=>isG(p)?0:p.pos===POS[1]?1:p.pos===POS[0]?2:3;
 export const PG=["Brankářky","Obránkyně","Útočnice","Neurčeno"];
 export const stOf=p=>p.st||"act";
 export const pl=id=>S.pl.find(p=>p.id===id);
+// Funkce člena realizačního týmu k zobrazení (stará „Kustod“ = Asistent), prázdná = ""
+export const kindOf=t=>{const k=String((t&&t.kind)||"");return KIND_OLD[k]||k};
 // Přihlášené hráčky (odpověď „Jdu“) na událost; id události = id zápasu nebo tréninku. Do nominace zápasu smí jen ony.
 export const goingOf=eid=>[...new Set(S.at.filter(a=>a.eid===eid&&a.st==="yes").map(a=>a.pid))].filter(id=>pl(id));
 // Člen realizačního týmu (trenér, kustod…) podle id

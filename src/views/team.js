@@ -10,7 +10,7 @@
 // Hostující hráčka (players.guest, značka 🎟 – domain/guests.js) se zakládá zaškrtnutím „Hostující“; počítá se všude jako ostatní.
 import {KIND,POS,ST} from "../config/constants.js";
 import {confirm2,saveDef} from "../core/actions.js";
-import {PG,isG,pl,pn,pri,stOf} from "../core/selectors.js";
+import {PG,isG,kindOf,pl,pn,pri,stOf} from "../core/selectors.js";
 import {makeDrag} from "../core/drag.js";
 import {S} from "../core/state.js";
 import {$,clone,esc,toast} from "../core/utils.js";
@@ -46,8 +46,8 @@ a.innerHTML=`${coach?`<div class="cd"><h2>Přidat hráče</h2><div class="row"><
 <div class="mu" style="margin:6px 0 4px">${({act:"Aktivní",inj:"Zranění",end:"Ukončili",all:"Všichni"})[S.pf]} · ${S.pq==="all"?"všechny pozice":S.pq===""?"Neurčeno":S.pq}</div>
 ${S.fo?`<h3>Pozice</h3><div class="chips">${[["all","Všechny"],...POS.map(x=>[x,x+" ("+S.pl.filter(p=>p.pos===x&&(S.pf==="all"||stOf(p)===S.pf)).length+")"]),["","Neurčeno"]].map(([k,t])=>`<button class="chip ${S.pq===k?"on":""}" data-pq="${k}">${t}</button>`).join("")}</div><h3>Stav</h3><div class="chips">${[["act","Aktivní ("+cnt("act")+")"],["inj","Zranění ("+cnt("inj")+")"],["end","Ukončili ("+cnt("end")+")"],["all","Všichni ("+S.pl.length+")"]].map(([k,t])=>`<button class="chip ${S.pf===k?"on":""}" data-pf="${k}">${t}</button>`).join("")}</div>`:""}
 ${l.length?l.map((p,i)=>(S.pq==="all"&&(i===0||pri(l[i-1])!==pri(p))?`<h3>${PG[pri(p)]}</h3>`:"")+`<div class="it"><div><b>${pn(p.id)}</b><div class="mu">${esc(p.pos||"")}${p.alt?" / "+esc(p.alt):""}${isG(p)||!cashier?"":` · <span class="tag">${GRP[grpOf(p)]}${exOf(p)?" · osvobozená":""}${fxOf(p)!==1?" · "+fxPct(fxOf(p)):""}</span>`}${stOf(p)!=="act"?` · <span class="tag ${stOf(p)==="inj"?"sh":"red"}">${ST[stOf(p)]}</span>`:""}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${edit?`<button class="s" data-e="${p.id}" style="padding:8px 12px">Upravit</button>`:""}${coach?`<button class="d" data-d="${p.id}" style="padding:8px 12px;${S.cf===p.id?"background:var(--no);color:#fff":""}">${S.cf===p.id?"Opravdu smazat?":"Smazat"}</button>`:""}</div></div>`).join(""):'<div class="msg">V tomto výběru nikdo není.</div>'}</div>
-<div class="cd"><h2>Realizační tým (${T.length})</h2><div class="mu" style="margin-bottom:8px">Trenéři a další členové týmu se zapisují do docházky na události. Neplatí a nenominují se do zápasu. Spravuje trenér.</div>
-${T.length?T.map(t=>`<div class="it"><div><b>${esc(t.name)}</b><div class="mu">${esc(t.kind||"")}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${coach||cashier?`<button class="s" data-te="${t.id}" style="padding:8px 12px">Upravit</button>`:""}${coach?`<button class="d" data-td="${t.id}" style="padding:8px 12px;${S.cf==="t"+t.id?"background:var(--no);color:#fff":""}">${S.cf==="t"+t.id?"Opravdu smazat?":"Smazat"}</button>`:""}</div></div>`).join(""):'<div class="msg">Zatím nikdo.</div>'}
+<div class="cd"><h2>Realizační tým (${T.length})</h2><div class="mu" style="margin-bottom:8px">Trenéři a další členové týmu se zapisují do docházky na události. Neplatí a nenominují se do zápasu. Přidává a maže manager nebo trenér, funkce má stejné názvy jako role (Manager, Trenér, Asistent).</div>
+${T.length?T.map(t=>`<div class="it"><div><b>${esc(t.name)}</b><div class="mu">${esc(kindOf(t))}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${coach||cashier?`<button class="s" data-te="${t.id}" style="padding:8px 12px">Upravit</button>`:""}${coach?`<button class="d" data-td="${t.id}" style="padding:8px 12px;${S.cf==="t"+t.id?"background:var(--no);color:#fff":""}">${S.cf==="t"+t.id?"Opravdu smazat?":"Smazat"}</button>`:""}</div></div>`).join(""):'<div class="msg">Zatím nikdo.</div>'}
 ${coach?`<div class="row" style="margin-top:10px"><div style="flex:3"><label>Jméno</label><input id="stn"></div><div><label>Funkce</label><select id="stk">${KIND.map(k=>`<option>${k}</option>`).join("")}</select></div></div>
 <button class="p w" id="stadd">Přidat do realizačního týmu</button>`:""}</div>`;
 $("#ft").onclick=()=>{S.fo=!S.fo;render()};
@@ -62,7 +62,7 @@ a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e)
 a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"));S.db.doc(PPAY_COLL+"/"+id).delete()})});
 // Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka, důvody a plat ve staffpay)
 Q2("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast("Uložení se nepovedlo"))};
-a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:t.kind||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
+a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:kindOf(t)||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
 a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>{S.db.doc("attendance/"+x.id).delete();if(S.an[x.id])S.db.doc(NOTE_COLL+"/"+x.id).delete()});S.db.doc(SPAY_COLL+"/"+id).delete();S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))})})}
 
 // ===== Přepínač režimů, základní formace a náhradnice =====
@@ -71,7 +71,7 @@ export function formV(a){
 if(S.tm!=="team"&&cashPanel(a,modeChips())){bindChips(a);return}
 S.tm="team";
 const lu=S.def.lu||{},B=benchOrder(),r=ro();
-a.innerHTML=`${modeChips()}${r?'<div class="cd mu">Formace, soupiska a realizační tým jsou pro tebe jen ke čtení. Upravuje je trenér a kustod.</div>':""}<div class="cd"><h2>Základní formace</h2><div class="mu" style="margin-bottom:10px">Tato sestava se zkopíruje do každého nového zápasu, kde ji můžeš upravit.</div>${r?"":'<div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo. Podržením a přetažením ji přesuneš na jiné místo nebo mezi náhradnice (obsazené místo se prohodí).</div>'}<div class="tw">${luEditor(lu,0,"d:")}</div></div>
+a.innerHTML=`${modeChips()}${r?'<div class="cd mu">Formace, soupiska a realizační tým jsou pro tebe jen ke čtení. Formace upravuje manager, trenér a asistent, soupisku a realizační tým manager a trenér.</div>':""}<div class="cd"><h2>Základní formace</h2><div class="mu" style="margin-bottom:10px">Tato sestava se zkopíruje do každého nového zápasu, kde ji můžeš upravit.</div>${r?"":'<div class="mu" style="margin-bottom:6px">Klepnutím vybereš hráčku na místo. Podržením a přetažením ji přesuneš na jiné místo nebo mezi náhradnice (obsazené místo se prohodí).</div>'}<div class="tw">${luEditor(lu,0,"d:")}</div></div>
 <div class="cd"><h2>Náhradnice (${B.length})</h2>${r?"":'<div class="mu" style="margin-bottom:8px">Nezařazené hráčky. Přetažením je dáš na místo v sestavě, nebo je prohodíš mezi sebou. Sestavu sem můžeš vrátit přetažením místa na tuto plochu.</div>'}<div class="bz" data-bz="1">${B.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny hráčky jsou v sestavě.</span>'}</div></div>
 <div id="plw"></div>`;
 bindChips(a);

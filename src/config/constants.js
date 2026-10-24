@@ -7,7 +7,8 @@ export const REA=["Hákování","Držení","Podražení","Vysoká hůl","Hrubost
 export const SIT={E:"5 na 5",PP:"Přesilovka",SH:"Oslabení"};
 export const ST={act:"Aktivní",inj:"Zraněný",end:"Ukončil"};
 // Funkce člena realizačního týmu (kolekce staff); trenéři a kustodi se zapisují do docházky, neplatí a nenominují se
-export const KIND=["Trenér","Asistent","Kustod","Jiný"];
+export const KIND=["Manager","Trenér","Asistent","Jiný"];                 // funkce člena realizačního týmu (staff.kind) – názvy jako role
+export const KIND_OLD={"Kustod":"Asistent"};                              // starší uložené funkce → zobrazení podle nových rolí (data se nepřepisují)
 export const COLS=["LK","C","PK","LO","PO"];
 // jednotky pro přesilovku / oslabení
 export const UK=["PP1","PP2","SH1","SH2","SH3","SH4"];

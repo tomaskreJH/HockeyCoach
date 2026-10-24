@@ -76,7 +76,7 @@ test("approvePlan: existující hráčka, realizační tým s / bez propojení, 
   assert.match(approvePlan(open, {role: "hracka", target: "p2"}, {...ctx, label: "Bára"}).ops[2][2].note, /hráčka Bára$/);
   const s = {...open, kind: "staff"};
   const b = approvePlan(s, {role: "asistent", target: "new"}, ctx);
-  assert.deepEqual(b.ops[0], ["set", "staff/NEW", {name: "Kačka", kind: "Kustod"}]);
+  assert.deepEqual(b.ops[0], ["set", "staff/NEW", {name: "Kačka", kind: "Asistent"}]);
   assert.deepEqual(b.member, {role: "asistent", rv: 2, addedBy: "trener@x.cz", tid: "NEW"});
   const c = approvePlan(s, {role: "trener", target: "none"}, ctx);
   assert.deepEqual(c.member, {role: "trener", rv: 2, addedBy: "trener@x.cz"});

@@ -67,7 +67,7 @@ export function absModal() {
 <label>Druh</label><div class="chips">${Object.entries(ABS_KINDS).map(([k, t]) => `<button class="chip ${f.kind === k ? "on" : ""}" data-abk="${k}">${t}</button>`).join("")}</div>
 <div class="row"><div><label>Od</label><input type="date" id="abfr" value="${esc(f.from)}"></div><div><label>Do</label><input type="date" id="abto" value="${esc(f.to)}"></div></div>
 <label>Poznámka (nepovinná)</label><input id="abnt" maxlength="300" value="${esc(f.note)}">
-<div class="mu" style="margin-bottom:6px">${f.kind === "sick" ? "Druh „Nemoc“ vidí jen trenér, kustod a ty." : "Druh a poznámku vidí jen trenér, kustod a ty; ostatní uvidí jen ❌ Nejdu."}</div>
+<div class="mu" style="margin-bottom:6px">${f.kind === "sick" ? "Druh „Nemoc“ vidí jen manager, trenér, asistent a ty." : "Druh a poznámku vidí jen manager, trenér, asistent a ty; ostatní uvidí jen ❌ Nejdu."}</div>
 <div id="abpv">${previewHtml(f)}</div>
 <div class="row" style="margin-top:10px"><button class="p" id="absv">${armed("absv") ? "Opravdu uložit? Klepni znovu" : "Uložit"}</button><button class="s" id="abx">Zavřít</button></div></div></div>`;
 }

@@ -5,6 +5,7 @@
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
+import {kindOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -93,7 +94,7 @@ function targetOpts(r, role) {
     const ps = freePlayers(S.pl, members, r.num);
     return `<option value="new">➕ Založit novou hráčku „${esc(r.nick)}“${r.num ? " #" + esc(r.num) : ""}</option>` + ps.map(p => `<option value="${esc(p.id)}">${esc((p.num ? "#" + p.num + " " : "") + p.name)}${r.num && String(p.num) === String(r.num) ? " · shoda čísla" : ""}</option>`).join("");
   }
-  return `<option value="none">— bez propojení s realizačním týmem —</option><option value="new">➕ Založit člena realizačního týmu „${esc(r.nick)}“</option>` + freeStaff(S.tr, members).map(t => `<option value="${esc(t.id)}">🎓 ${esc(t.name || "?")}${t.kind ? " (" + esc(t.kind) + ")" : ""}</option>`).join("");
+  return `<option value="none">— bez propojení s realizačním týmem —</option><option value="new">➕ Založit člena realizačního týmu „${esc(r.nick)}“</option>` + freeStaff(S.tr, members).map(t => `<option value="${esc(t.id)}">🎓 ${esc(t.name || "?")}${kindOf(t) ? " (" + esc(kindOf(t)) + ")" : ""}</option>`).join("");
 }
 // Výchozí volba pro žádost: role podle druhu; hráčka se shodou čísla se nabídne rovnou, jinak nová hráčka / bez propojení
 function resetChoice(r) {

@@ -25,6 +25,7 @@
    protože pravidla databáze je už zapsat nedovolí. */
 
 // ===== Importy =====
+import {KIND_OLD} from "../config/constants.js";
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
 import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.js";
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
@@ -414,7 +415,7 @@ const playerList = () => Object.entries(data.players).filter(([, p]) => (p.st ||
   .map(([id, p]) => ({id, label: (p.num ? "#" + p.num + " " : "") + p.name + (isGuest(p) ? " 🎟" : "")}));
 // Členové realizačního týmu pro výběr při propojení účtu (podle jména)
 const staffList = () => Object.entries(data.staff).sort((a, b) => (a[1].name || "").localeCompare(b[1].name || "", "cs"))
-  .map(([id, t]) => ({id, label: (t.name || "?") + (t.kind ? " (" + t.kind + ")" : "")}));
+  .map(([id, t]) => ({id, label: (t.name || "?") + (t.kind ? " (" + (KIND_OLD[t.kind] || t.kind) + ")" : "")}));
 // Role, která k hráčce patří: hostující 🎟 → host, ostatní → hracka (výběr hráčky v náhledu a ve Členech role sám přepne)
 const pidRoleOf = pp => (data.players[pp] && isGuest(data.players[pp]) ? "host" : "hracka");
 // Kontrola propojení role a hráčky: vrací text chyby, nebo null

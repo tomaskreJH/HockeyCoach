@@ -1,8 +1,8 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v20.5 (24. 10. 2026)** – OM2: 🔐 **nastavitelná matice práv** (`settings/perm`) – editor pro managera v ⚙️ → 🔐 Práva rolí (náhled „Co se změní“, výchozí hodnoty), přehled „kdo co smí“ v ⚙️ i v nápovědě; aplikace i pravidla databáze se řídí maticí (události upravit / zrušit / smazat, zápasy zrušit / smazat, soupeři, statistiky, 📊 docházka). **firestore.rules publikovat PŘED nahráním kódu.** Bez uložené matice platí stejná práva jako ve v20.4. Další: v20.6 – OM3 zúžení pravidel.
+**Aktuální verze: v20.5.1 (24. 10. 2026)** – oprava: funkce v **realizačním týmu** mají názvy jako role (Manager, Trenér, Asistent, Jiný; dřívější Kustod se zobrazuje jako Asistent), texty „trenér a kustod“ nahrazeny novými rolemi. **firestore.rules beze změny.** Předtím v20.5 – OM2: 🔐 nastavitelná matice práv (`settings/perm`). Další: v20.6 – OM3 zúžení pravidel.
 
-Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
+Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
 
 | Dokument | Obsah |

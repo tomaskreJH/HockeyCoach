@@ -34,7 +34,7 @@
 // ===== Importy =====
 import {POS} from "../config/constants.js";
 import {armed, confirm2, upd} from "../core/actions.js";
-import {PG, isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
+import {PG, isG, kindOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, dlBeforeStart, dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -98,8 +98,8 @@ const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "
 
 // ===== Pomocné funkce =====
 const pad = n => String(n).padStart(2, "0");
-const staff = () => HK.can("sport");                                    // trenér / kustod (přihlášený uživatel)
-const cashMgr = () => HK.can("money");                                   // správce pokladny (trenér / pokladník)
+const staff = () => HK.can("sport");                                    // manager / trenér / asistent (přihlášený uživatel)
+const cashMgr = () => HK.can("money");                                   // správce pokladny (manager / pokladník)
 const isPl = () => HK.can("onlyOwn");                           // přihlášená hráčka nebo hostující (omezený přístup)
 const guest = () => HK.can("guest");                            // hostující s účtem: vidí jen sebe
 const dayOf = s => new Date(s + "T00:00:00");
@@ -172,7 +172,7 @@ function answer(eid, pid, st) {
   if (isLocked(ev) && !staff()) return toast("Přihlašování je uzavřeno");
   const cur = (atMap()[eid] || {})[pid];
   // 🚫 nedorazila bez omluvy: odpověď se značkou mění jen trenér a kustod (změna odpovědi značku zruší)
-  if (isNos(cur) && !staff()) return toast("Trenér označil 🚫 nedorazila bez omluvy – odpověď už změní jen trenér nebo kustod.");
+  if (isNos(cur) && !staff()) return toast("Trenér označil 🚫 nedorazila bez omluvy – odpověď už změní jen manager, trenér nebo asistent.");
   // Blokace „Jdu“: neuhrazený předpis po splatnosti bez výjimky (správce pokladny smí zapisovat vždy a výjimky uděluje).
   // Vlastní předpisy jsou v zařízení (S.ch); za jiného člena rozhoduje veřejný souhrn debtors (S.dt) – kustod cizí předpisy nevidí.
   if (st === "yes" && !(cur && cur.st === "yes") && !cashMgr() && memberBlocked(S.ch, S.dt, pid, Date.now())) {
@@ -288,7 +288,7 @@ function linesHtml(ev, A, P, T, ro) {
   const row = (key, label) => ro
     ? `<div class="pr"><div>${label}</div><div>${L[key] ? `<span class="evl L${L[key]}">${L[key]}. pětka</span>` : '<span class="mu">–</span>'}</div></div>`
     : `<div class="pr"><div>${label}</div><div class="evln">${[0, ...LINE_NOS].map(n => `<button class="chip ${(L[key] || 0) === n ? (n ? "L" + n : "on") : ""}" data-ln="${key}|${n}">${n || "–"}</button>`).join("")}</div></div>`;
-  const trH = goT.length ? '<div class="lnl">Realizační tým</div>' + goT.map(t => row(trKey(t.id), "🎓 " + esc(t.name) + (t.kind ? ` <span class="mu">${esc(t.kind)}</span>` : ""))).join("") : "";
+  const trH = goT.length ? '<div class="lnl">Realizační tým</div>' + goT.map(t => row(trKey(t.id), "🎓 " + esc(t.name) + (kindOf(t) ? ` <span class="mu">${esc(kindOf(t))}</span>` : ""))).join("") : "";
   return `<div class="cd"><h2>Rozdělení do pětek</h2><div class="mu" style="margin-bottom:8px">Z hráček, které jdou (bez brankářek), a přihlášeného realizačního týmu. Barvy jako v živém zápisu.</div>
 <div style="margin-bottom:10px">${LINE_NOS.map(n => `<span class="evl L${n}">${n}. pětka: ${c.pl[n]}${c.tr[n] ? " + 🎓" + c.tr[n] : ""}</span>`).join("")}<span class="evl L0">bez pětky: ${c.free}</span></div>
 ${ro ? "" : '<div class="row" style="margin-bottom:8px"><button class="s" id="evlb">↻ Podle základní formace</button><button class="s" id="evlc">Vymazat</button></div>'}
@@ -318,8 +318,8 @@ function detail(a, ev) {
   const can = !cn && (!lk || staff()), T = trs(), st0 = startMs(ev.date, ev.time), now = Date.now(), nn = nosCount(A, P.map(p => p.id));
   const rows = P.map((p, i) => {
     const x = A[p.id], mine = p.id === me, nos = isNos(x), ok = can && (!ownP || mine) && (!nos || staff());   // hráčka mění jen svůj řádek, 🚫 jen trenér
-    const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen trenér a kustod
-    // 🚫 tlačítko: trenér / kustod u odpovědi „Jdu“ po začátku události (ne u zrušené)
+    const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen manager, trenér a asistent
+    // 🚫 tlačítko: manager / trenér / asistent u odpovědi „Jdu“ po začátku události (ne u zrušené)
     const nb = !ownP && !cn && canNos(x, st0, now) ? `<button class="evns ${nos ? "on" : ""}" data-nos="${p.id}" title="Nedorazila bez omluvy">🚫</button>` : "";
     return (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") +
       `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
@@ -328,7 +328,7 @@ function detail(a, ev) {
   const trRows = T.map((t, i) => {
     const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP;
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
-      `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(t.kind || "")}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
+      `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(kindOf(t))}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
   // Tlačítka trenéra / kustoda: otevřít zápas, úprava, zrušit / obnovit, smazat prázdnou, série; vývojář smazat úplně
   // Matice práv (⚙️ → 🔐): úprava, zrušení a smazání podle modulu Události / Zápasy
@@ -361,7 +361,7 @@ ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   bindPay(a, ev);
   bindAttReqAdmin(a);
   bindAttReqBox(a, ev, reqMid);
-  if (ownP) return;                                                   // zbytek jsou správcovské akce (jen trenér a kustod)
+  if (ownP) return;                                                   // zbytek jsou správcovské akce (jen manager, trenér a asistent)
   a.querySelectorAll("[data-nos]").forEach(b => b.onclick = () => toggleNos(ev, b.dataset.nos));
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };

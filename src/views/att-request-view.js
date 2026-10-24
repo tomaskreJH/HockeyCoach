@@ -70,7 +70,7 @@ export function attReqBox(ev, mid) {
   const can = Object.keys(WANT).some(w => !attReqError(e, mid, w, cur, S.rq, now, today));
   if (!can) return lastH ? `<div class="cd">${lastH}</div>` : "";
   const f = S.aq && S.aq.eid === ev.id ? S.aq : {eid: ev.id, want: "", reason: ""};
-  return `<div class="cd"><h2>✋ Požádat o změnu účasti</h2>${lastH}<div class="mu" style="margin-bottom:8px">Přihlašování je uzavřené. Trenér nebo kustod žádost schválí, nebo zamítne.</div>
+  return `<div class="cd"><h2>✋ Požádat o změnu účasti</h2>${lastH}<div class="mu" style="margin-bottom:8px">Přihlašování je uzavřené. Manager, trenér nebo asistent žádost schválí, nebo zamítne.</div>
 <div class="chips">${Object.entries(WANT).filter(([k]) => k !== cur).map(([k, t]) => `<button class="chip ${f.want === k ? "on" : ""}" data-aqw="${k}">${t}</button>`).join("")}</div>
 <input id="aqrs" placeholder="Důvod (u Nejdu povinný)" maxlength="300" value="${esc(f.reason)}"><button class="p w" id="aqsend" style="margin-top:8px">✋ Odeslat žádost</button></div>`;
 }

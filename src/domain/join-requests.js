@@ -13,8 +13,8 @@ export const JOIN_KINDS = {hracka: "Hráčka", staff: "Realizační tým"};  // 
 export const JOIN_ROLES = {hracka: "Hráčka", asistent: "Asistent", trener: "Trenér", manager: "Manager"};   // role při přijetí (určuje manager)
 export const RESEND_MS = 24 * 60 * 60 * 1000;                          // nová žádost po vyřízení nejdřív za 24 h
 export const NICK_MAX = 40, NOTE_MAX = 300;
-// Druh člena realizačního týmu (pole kind v staff) podle role při přijetí
-const STAFF_KIND = {manager: "Jiný", trener: "Trenér", asistent: "Kustod", hracka: "Jiný"};
+// Funkce člena realizačního týmu (pole kind v staff) podle role při přijetí – stejné názvy jako role
+const STAFF_KIND = {manager: "Manager", trener: "Trenér", asistent: "Asistent", hracka: "Jiný"};
 
 // ===== Pomocné funkce =====
 const str = v => String(v == null ? "" : v).trim();

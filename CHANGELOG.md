@@ -4,6 +4,25 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.5.1 (24. 10. 2026) – oprava: realizační tým podle nových rolí
+> **Nasazení:** 1) Zip současného repozitáře. 2) Nahrát kód (nový soubor `tests/staff-kind.test.js`, nic se nemaže). 3) **firestore.rules beze změny – nepublikovat.** 4) Na telefonu ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.5.1. 5) Test: Tým → Realizační tým – Funkce nabízí Manager / Trenér / Asistent / Jiný, dřívější „Kustod“ se ukazuje jako Asistent (Upravit → Uložit ji tak i zapíše); detail události a ✋ žádost o přijetí (Asistent → funkce Asistent).
+> **🔒 Vyžadovat verzi: ne** (tvar dat se nemění, v20.5 funguje dál). Návrat na v20.5: nahrát předchozí zip.
+
+**Opraveno**
+- Přidání a úprava člena **realizačního týmu** nabízely staré funkce (Trenér / Asistent / Kustod / Jiný): funkce mají teď stejné názvy jako role – **Manager / Trenér / Asistent / Jiný** (`KIND` v `src/config/constants.js`). Dřívější funkce **Kustod** se všude zobrazuje jako **Asistent** (`KIND_OLD`, `kindOf` v `src/core/selectors.js`) – v seznamu Team, v detailu a docházce události, ve výběru při propojení účtu (⚙️ Členové) a při vyřízení ✋ žádosti; uložená data se nepřepisují, změní se až uložením v okně Upravit. Funkce je jen popis, práva dává role účtu.
+- Přijetí ✋ žádosti člena realizačního týmu zakládá funkci podle role: Manager → Manager, Trenér → Trenér, Asistent → Asistent (dříve Jiný / Kustod) – `src/domain/join-requests.js`.
+- Texty „trenér a kustod“ → nové role: Team (kdo upravuje formace, soupisku a realizační tým), náhled živého zápasu, 🏖 nepřítomnost, ✋ žádost o změnu účasti, hláška 🚫 v události, nápověda (Realizační tým – přidává manager nebo trenér, plat správce pokladny); komentáře v `src/views/events.js`. README úvodní věta.
+
+**Změněno**
+- Verze `app-version.js`, `package.json`, `sw.js` → `hokej-v79`; `README.md`, `docs/KONVENCE.md` (mapa souborů), `docs/plan-v18.md` (stav: v20.5 nasazena, převod rolí a 🔒 v20.5 hotové), `docs/prompt-dalsi-vlakno.md`, `tests/join-requests.test.js` (funkce Asistent).
+
+**Přidáno**
+- `tests/staff-kind.test.js` (2): funkce bez Kustoda, `kindOf` (Kustod = Asistent, ostatní beze změny, prázdná).
+
+**Beze změny**
+- Práva, matice `settings/perm`, pravidla databáze, převod rolí, živý zápis, pokladna a platy realizačního týmu, statistiky, docházka, zrušení událostí, žádosti, nepřítomnost, hostující.
+- Ověřeno: `npm test` (238/238); kouřový test v jsdom (Manager, Trenér s 💰 i bez, Asistent, Hráčka, Hostující, stará role trener bez `rv` a kustod; realizační tým s uloženou funkcí „Kustod“): start bez chyb, Team → Realizační tým ukazuje „Asistent“ místo „Kustod“, výběr Funkce Manager / Trenér / Asistent / Jiný jen u managera a trenéra, Upravit / Smazat podle práv beze změny, detail události bez „Kustod“.
+
 ## v20.5 (24. 10. 2026) – OM2: 🔐 nastavitelná matice práv rolí
 > **Nasazení (pořadí je důležité):** 1) Záloha (⚙️ → 💾 Data → Stáhnout zálohu) a zip současného repozitáře. 2) **Publikovat firestore.rules PŘED nahráním kódu** – bez dokumentu `settings/perm` dávají stejná práva jako v20.4 (v20.4 s nimi funguje beze změny). 3) Nahrát kód (nové soubory `src/views/perm-view.js`, `tests/perm-matrix.test.js`, `tests/support/perm-probe.mjs`; nic se nemaže). 4) Na telefonu ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.5. 5) Test: ⚙️ → 🔐 Práva rolí (manager: editor, ostatní: přehled „kdo co smí“), změna práva → náhled „Co se změní“ → 💾 Uložit (2× klepnout) → 👁 Náhled role Trenér / Asistent / Hráčka (skrytá tlačítka a záložky) → ↩ Výchozí hodnoty → Uložit. 6) Po testu na všech zařízeních **🔒 Vyžadovat verzi v20.5** (doporučeno – v20.4 matici nezná a ukáže tlačítka, jejichž zápis pravidla odmítnou).
 > **Převod rolí (🔁, z v20.4) zatím nebyl potvrzen** – matice platí i pro staré role (kustod = asistent, trenér bez převodu = manager); před v20.6 musí být převod hotový. Návrat na v20.4: nahrát předchozí zip; pravidla mohou zůstat (bez `settings/perm` = v20.4), případně ⚙️ uložená matice zůstane v databázi a v20.4 ji ignoruje (pravidla ji ale vynucují – před návratem uložit ↩ Výchozí hodnoty).
