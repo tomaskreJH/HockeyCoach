@@ -1,6 +1,6 @@
 // Soupeři a vzájemné zápasy.
 // Struktura: Importy -> Pomocné funkce -> Vzájemné zápasy (h2h, i pro kartu zápasu) -> Seznam soupeřů -> Detail soupeře -> Eventy.
-// Záložku Soupeři vidí všichni členové týmu (hráčky jen ke čtení – bez přidávání, přejmenování a mazání).
+// Záložku Soupeři vidí členové týmu s právem „číst“ (matice ⚙️ → 🔐); přidat, přejmenovat a smazat podle matice (hráčky jen ke čtení).
 // Seznam ukazuje rovnou bilanci se soupeřem (V–R–P, skóre, počet zápasů). V detailu je seznam uzavřených zápasů;
 // klepnutím na zápas se otevře zápis utkání s kompletním vývojem zápasu (renderReport s id zápasu v S.rp).
 
@@ -14,8 +14,9 @@ import {renderReport} from "./report.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
-// Správu soupeřů (přidat, přejmenovat, smazat) má jen trenér a kustod
-const canEdit = () => HK.can("sport");
+// Správa soupeřů podle matice práv (⚙️ → 🔐 Práva rolí): přidat a přejmenovat = opp e, smazat = opp d
+const canEdit = () => HK.perm("opp", "e");
+const canDel = () => HK.perm("opp", "d");
 // Bilance uzavřených zápasů se soupeřem: výhry, remízy, prohry, góly
 function balance(L) {
   let w = 0, d = 0, l = 0, gf = 0, ga = 0;
@@ -66,13 +67,13 @@ export function oppsView(a) {
 function oppDetail(a, o) {
   const n = S.ma.filter(x => norm(x.opp) === norm(o.name)).length;
   const edit = canEdit() ? `<div class="cd"><label>Název soupeře</label><div class="row" style="flex-wrap:nowrap"><input id="rn2" value="${esc(o.name)}" style="margin:0"><button class="s" id="rs" style="flex:none">Přejmenovat</button></div></div>` : `<h2 style="margin:0 0 10px">${esc(o.name)}</h2>`;
-  const del = canEdit() ? `<button class="d w" id="od" style="${S.cf === o.id ? "background:var(--no);color:#fff" : ""}">${n ? "Soupeř má zápasy – nelze smazat" : S.cf === o.id ? "Opravdu smazat? Klepni znovu" : "Smazat soupeře"}</button>` : "";
+  const del = canDel() ? `<button class="d w" id="od" style="${S.cf === o.id ? "background:var(--no);color:#fff" : ""}">${n ? "Soupeř má zápasy – nelze smazat" : S.cf === o.id ? "Opravdu smazat? Klepni znovu" : "Smazat soupeře"}</button>` : "";
   a.innerHTML = `<button class="s" id="bk" style="margin-bottom:12px">← Soupeři</button>${edit}<div class="cd">${h2h(o.name, null, "Vzájemné zápasy")}</div>${del}`;
 
   // ===== Eventy =====
   $("#bk").onclick = () => { S.oid = null; render(); };
   bindH2h(a);
+  if (canDel()) $("#od").onclick = () => { if (n) return; confirm2(o.id, () => { S.db.doc("opponents/" + o.id).delete(); S.oid = null; }); };
   if (!canEdit()) return;
   $("#rs").onclick = () => { const nn = $("#rn2").value.trim(); if (!nn) return; const old = o.name; S.db.doc("opponents/" + o.id).set({name: nn}); if (norm(nn) !== norm(old)) S.ma.filter(m => norm(m.opp) === norm(old)).forEach(m => save({...clone(m), opp: nn})); toast("Přejmenováno"); };
-  $("#od").onclick = () => { if (n) return; confirm2(o.id, () => { S.db.doc("opponents/" + o.id).delete(); S.oid = null; }); };
 }

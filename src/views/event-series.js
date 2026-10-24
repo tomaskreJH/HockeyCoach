@@ -145,9 +145,9 @@ export function serLine(ev) {
   const all = S.ev.filter(e => e.ser && e.ser.id === s.id).sort((x, y) => x.ser.i - y.ser.i), k = all.findIndex(e => e.id === ev.id) + 1;
   return `<div class="mu" style="margin-top:4px">🔁 Série: ${k}. z ${all.length}${s.x ? " · upravená ručně" : ""}</div>`;
 }
-// Tlačítko smazání „tato a další budoucí“ (jen trénink ze série, jen trenér / kustod)
+// Tlačítko smazání „tato a další budoucí“ (jen trénink ze série, jen s právem mazat události – matice ⚙️ → 🔐)
 export function serDelBtn(ev) {
-  if (!ev.raw || !ev.raw.ser || !HK.can("sport")) return "";
+  if (!ev.raw || !ev.raw.ser || !HK.can("sport") || !HK.perm("events", "d")) return "";
   const key = "evs" + ev.id, on = armed(key);
   return `<button class="d" id="evds" style="${on ? "background:var(--no);color:#fff" : ""}">${on ? "Opravdu smazat? Klepni znovu" : "🗑 Tato a další"}</button>`;
 }

@@ -24,6 +24,35 @@ service cloud.firestore {
     function myPid() { return get(memberPath()).data.pid; }
     // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
+    // ===== Práva po modulech (matice settings/perm, OM2) =====
+    // Účinná role jako v aplikaci (domain/permissions.js roleOf): stará kustod = asistent, trener bez rv 2 (před převodem) = manager.
+    function roleFix(m) { return m.role == 'kustod' ? 'asistent' : ((m.role == 'trener' && m.get('rv', 0) != 2) ? 'manager' : m.role); }
+    function myRole() { return roleFix(get(memberPath()).data); }
+    function isMgr() { return isMember() && myRole() == 'manager'; }
+    // Matice settings/perm = {v, roles: {trener|asistent|hracka: {modul: {r, e, c, d}}}, by, at}; chybějící dokument nebo hodnota = výchozí.
+    // Výchozí matice = DEFAULT_PERMS z domain/permissions.js (shodu hlídá test tests/perm-matrix.test.js).
+    function permPath() { return /databases/$(database)/documents/settings/perm; }
+    function permDef() { return {
+      'trener': {'events': {'r': true, 'e': true, 'c': true, 'd': true}, 'matches': {'r': true, 'e': true, 'c': true, 'd': true}, 'att': {'r': true, 'e': true, 'c': false, 'd': true}, 'lines': {'r': true, 'e': true, 'c': false, 'd': true}, 'roster': {'r': true, 'e': true, 'c': false, 'd': true}, 'staff': {'r': true, 'e': true, 'c': false, 'd': true}, 'opp': {'r': true, 'e': true, 'c': false, 'd': true}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': true, 'e': false, 'c': false, 'd': false}},
+      'asistent': {'events': {'r': true, 'e': true, 'c': true, 'd': true}, 'matches': {'r': true, 'e': true, 'c': true, 'd': true}, 'att': {'r': true, 'e': true, 'c': false, 'd': true}, 'lines': {'r': true, 'e': true, 'c': false, 'd': true}, 'roster': {'r': true, 'e': false, 'c': false, 'd': false}, 'staff': {'r': true, 'e': false, 'c': false, 'd': false}, 'opp': {'r': true, 'e': true, 'c': false, 'd': true}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': true, 'e': false, 'c': false, 'd': false}},
+      'hracka': {'events': {'r': true, 'e': false, 'c': false, 'd': false}, 'matches': {'r': true, 'e': false, 'c': false, 'd': false}, 'att': {'r': false, 'e': false, 'c': false, 'd': false}, 'lines': {'r': true, 'e': false, 'c': false, 'd': false}, 'roster': {'r': true, 'e': false, 'c': false, 'd': false}, 'staff': {'r': true, 'e': false, 'c': false, 'd': false}, 'opp': {'r': true, 'e': false, 'c': false, 'd': false}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': false, 'e': false, 'c': false, 'd': false}}
+    }; }
+    function permSet(r, mod, act) { return exists(permPath()) ? get(permPath()).data.get(['roles', r, mod, act], null) : null; }
+    function permVal(v, r, mod, act) { return v is bool ? v : permDef()[r][mod][act]; }
+    function canAs(r, mod, act) { return r == 'manager' || (r in ['trener', 'asistent', 'hracka'] && permVal(permSet(r, mod, act), r, mod, act)); }
+    // Smí přihlášený člen akci v modulu (r číst, e upravovat, c rušit, d mazat)? Manager vždy, hostující nikdy.
+    function can(mod, act) { return isMember() && canAs(myRole(), mod, act); }
+    // Úprava události / zápasu: pole cancelled = rušit (c), jen pole lines (pětky tréninku) = formace, ostatní pole = upravovat (e)
+    function chKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function evUpdate(mod) {
+      return (can(mod, 'e') && !chKeys().hasAny(['cancelled'])) || (can(mod, 'c') && chKeys().hasOnly(['cancelled']))
+        || (can('lines', 'e') && chKeys().hasOnly(['lines']));
+    }
+    // Zápis matice: jen manager, tvar {v, roles, by, at}, role jen trener / asistent / hracka, by = jeho e-mail
+    function permSettingsOk() {
+      return isMgr() && request.resource.data.keys().hasOnly(['v', 'roles', 'by', 'at']) && request.resource.data.roles is map
+        && request.resource.data.roles.keys().hasOnly(['trener', 'asistent', 'hracka']) && request.resource.data.get('by', mail()) == mail();
+    }
     // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno); náklady a vyúčtování jsou v evcash.
     function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss']); }
     // Stará citlivá pole (dnes v soukromých kolekcích plpay, staffpay, attnote): nový dokument je nesmí obsahovat,
@@ -95,35 +124,44 @@ service cloud.firestore {
       allow update: if isCoach() && keepOut(['pay']);
     }
 
-    // ===== Zápasy, soupeři: trenér i kustod; u zápasu smí pokladník měnit jen příznak ss. Číst smí členové týmu (statistiky jsou pro celý tým) =====
-    // Zrušení (pole cancelled) zapisuje trenér a kustod jako každou úpravu zápasu / tréninku.
+    // ===== Zápasy, soupeři: podle matice práv (výchozí trenér i asistent); u zápasu smí pokladník měnit jen příznak ss. Číst smí členové týmu =====
+    // Zrušení (pole cancelled) = akce rušit, smazání = mazat, ostatní změny = upravovat (evUpdate).
     match /matches/{id} {
       allow read: if isTeam();
-      allow create, delete: if isStaff();
-      allow update: if isStaff() || (isCash() && cashFieldsOnly());
+      allow create: if can('matches', 'e');
+      allow delete: if can('matches', 'd');
+      allow update: if evUpdate('matches') || (isCash() && cashFieldsOnly());
     }
-    match /opponents/{id} { allow read: if isTeam(); allow write: if isStaff(); }
+    match /opponents/{id} {
+      allow read: if isTeam();
+      allow create, update: if can('opp', 'e');
+      allow delete: if can('opp', 'd');
+    }
 
-    // ===== Nastavení: základní formace trenér a kustod, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení;
-    // settings/app (brána verze) jen trenér; čtou členové týmu, hostující jen cash (účet pro QR), events (sraz) a app. settings/cash ani settings/app nejde smazat =====
+    // ===== Nastavení: základní formace trenér a asistent, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení;
+    // settings/app (brána verze) manager a do v20.6 trenér; settings/perm (matice práv) jen manager; čtou členové týmu (ne hostující),
+    // hostující jen cash (účet pro QR), events (sraz) a app. settings/cash ani settings/app nejde smazat =====
     match /settings/{id} {
       allow read: if isTeam() || (isHost() && id in ['cash', 'events', 'app']);
-      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : isStaff());
-      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : isStaff());
-      allow delete: if id != 'cash' && id != 'app' && isStaff();
+      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : isStaff()));
+      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : isStaff()));
+      allow delete: if id != 'cash' && id != 'app' && (id == 'perm' ? isMgr() : isStaff());
     }
 
-    // ===== Tréninky (události): čtou všichni členové, spravuje trenér a kustod; pokladník jen příznak ss =====
+    // ===== Tréninky (události): čtou členové týmu, spravuje se podle matice práv (výchozí trenér a asistent); pokladník jen příznak ss =====
+    // Zrušení (pole cancelled) = rušit, pětky (jen pole lines) = formace, smazání = mazat, ostatní změny = upravovat.
     match /events/{id} {
       allow read: if isTeam();
-      allow create, delete: if isStaff();
-      allow update: if isStaff() || (isCash() && cashFieldsOnly());
+      allow create: if can('events', 'e');
+      allow delete: if can('events', 'd');
+      allow update: if evUpdate('events') || (isCash() && cashFieldsOnly());
     }
 
-    // ===== Série tréninků (definice opakování): čtou členové, zapisuje trenér a kustod; události série jsou v events (pole ser) =====
+    // ===== Série tréninků (definice opakování): čtou členové, zapisuje kdo smí upravovat události; události série jsou v events (pole ser) =====
     match /series/{id} {
       allow read: if isTeam();
-      allow write: if isStaff();
+      allow create, update: if can('events', 'e');
+      allow delete: if can('events', 'd');
     }
 
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====

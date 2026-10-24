@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v20.4 (24. 10. 2026)** – OM1: nové role **Manager / Trenér / Asistent** (+ Hráčka, Hostující), výchozí práva z `src/domain/permissions.js` (= chování před OM), převod rolí v ⚙️ → 💾 Data s náhledem a zálohou, ochrana posledního managera. **firestore.rules publikovat PŘED nahráním kódu** (přijímají staré i nové role); po testu 🔒 Vyžadovat verzi v20.4, potom převod rolí. Další: v20.5 – OM2 matice práv `settings/perm` a editor.
+**Aktuální verze: v20.5 (24. 10. 2026)** – OM2: 🔐 **nastavitelná matice práv** (`settings/perm`) – editor pro managera v ⚙️ → 🔐 Práva rolí (náhled „Co se změní“, výchozí hodnoty), přehled „kdo co smí“ v ⚙️ i v nápovědě; aplikace i pravidla databáze se řídí maticí (události upravit / zrušit / smazat, zápasy zrušit / smazat, soupeři, statistiky, 📊 docházka). **firestore.rules publikovat PŘED nahráním kódu.** Bez uložené matice platí stejná práva jako ve v20.4. Další: v20.6 – OM3 zúžení pravidel.
 
 Aplikace pro trenéry, kustody a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -46,6 +46,7 @@ Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrá
 | staré `trener` bez `rv` / `kustod` | do převodu rolí (⚙️ → 💾 Data): trener = manager, kustod = asistent; pravidla přijímají staré i nové hodnoty, zúží se ve v20.6 |
 | `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; Moje platby jen své předpisy |
 | `host` (+ `pid` hráčky 🎟) | hostující: čte jen sebe (svou hráčku, docházku, předpisy, žádosti, nepřítomnosti) a veřejné hlavičky `evpub`; formaci `lineuppub` jen u události se svým ✅ Jdu |
+| matice `settings/perm` | práva Trenér / Asistent / Hráčka po modulech (číst / upravovat / rušit / mazat), mění jen manager v ⚙️ → 🔐 Práva rolí; chybějící dokument = výchozí práva (tabulka výše); pevné zůstává sport (zápasy, docházka, formace), soupiska, členové, pokladna (příznak `cash`) a nastavení |
 | příznak `cash: true` | pokladník: předpisy, pohyby, vyúčtování, nastavení pokladny; **členy jen s rolí Hráčka a ne vlastní účet** |
 
 Účet bez `members` smí jen založit / zrušit vlastní žádost `joinreq/{email}` (vyřizuje manager). Pravidla databáze (`firestore.rules`) jsou skutečná ochrana – skrytí v rozhraní nestačí. Známé mezery (důvody omluv, platy trenérů a platební pole soupisky čitelné všemi členy; uzávěrka přihlašování jen v aplikaci) řeší fáze S a W v plánu.

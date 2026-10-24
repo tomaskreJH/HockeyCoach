@@ -2,6 +2,7 @@
    pamatuje se v zařízení (localStorage, jen pohodlí). Sbalená sekce ukazuje stav v záhlaví (žádosti, minimální verze, kontrola dat).
    Jen vykreslení a obsluha – údaje a zápisy dává datová vrstva přes HK.cfg, oprávnění HK.can (kontroly rolí jsou v storage.js).
    Otevírá se tlačítkem ⚙️ (HK.openCfg z main.js); zavírá Zavřít, klepnutí mimo okno a Zpět. 💾 Data obsahuje i převod rolí (náhled, volba managerů).
+   🔐 Práva rolí (views/perm-view.js): přehled „kdo co smí“ pro členy kromě hostující, editor matice jen pro managera.
    Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Sekce -> Hlavní logika -> Eventy -> Export. */
 
 // ===== Importy =====
@@ -9,6 +10,7 @@ import {APP_VERSION} from "../core/app-version.js";
 import {armed, confirm2} from "../core/actions.js";
 import {LS, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {permStatus, renderPerm, resetPermWork} from "./perm-view.js";
 
 // ===== Konstanty a stav =====
 const OPEN_KEY = "hk-cfg-open";      // id rozbalené sekce v localStorage
@@ -163,12 +165,13 @@ async function renderRoles(el, close) {
 }
 // Otevře okno ⚙️ podle oprávnění přihlášeného účtu (v náhledu podle role náhledu)
 function openSettings() {
-  const el = document.getElementById("cfg"), coach = HK.can("admin"), cashier = HK.can("members"), staff = HK.can("sport"), dev = C().isDev();
+  const el = document.getElementById("cfg"), coach = HK.can("admin"), cashier = HK.can("members"), staff = HK.can("sport"), dev = C().isDev(), team = !HK.can("guest");
   const q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
-  pendingImport = null; seq++;
+  pendingImport = null; seq++; resetPermWork();
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
  ${accountHtml(coach, staff)}
  ${cashier ? teamHtml(coach) : ""}
+ ${team ? sec("perm", "🔐 Práva rolí", '<div id="cpm"></div>', permStatus()) : ""}
  ${staff ? eventsHtml() : ""}
  ${cashier ? cashHtml() : ""}
  ${staff ? dataHtml(coach) : ""}
@@ -183,6 +186,7 @@ function openSettings() {
   if (dev) bindPv(q);
   if (cashier) renderMembers(el);
   if (coach && staff) renderRoles(el, close);
+  if (team) renderPerm(el, arm2);
 }
 
 // ===== Eventy =====

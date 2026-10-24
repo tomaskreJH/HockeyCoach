@@ -28,7 +28,7 @@ a.innerHTML=`<button class="p w" id="nw" style="margin-bottom:12px">+ Nový záp
 $("#nw").onclick=()=>{S.M={k:"NEW",date:td(),opp:"",home:true};modal()};
 a.querySelectorAll(".it").forEach(i=>i.onclick=()=>{S.mid=i.dataset.id;S.showLu=false;S.showNom=false;S.step=1;render()})}
 export function detail(a,m){const[g,o]=score(m);const ev=(m.events||[]).map((e,i)=>({e,i})).sort((x,y)=>y.e.per-x.e.per||(y.e.time||"").localeCompare(x.e.time||"")||y.i-x.i).map(x=>x.e);const gk=m.gk||(m.lineup||{}).G1,ge=m.events||[];const tm=e=>e.per+". tř."+(e.time?" "+esc(e.time):"");
-const dmE=isEmptyEvent(m.id,m,{attendance:Object.fromEntries(S.at.map(x=>[x.id,x])),evcash:Object.fromEntries(S.ec.filter(x=>x.settle).map(x=>[x.id,x])),charges:Object.fromEntries(S.ch.map(x=>[x.id,x]))}),dmOk=dmE||HK.can("wipe");
+const dmE=isEmptyEvent(m.id,m,{attendance:Object.fromEntries(S.at.map(x=>[x.id,x])),evcash:Object.fromEntries(S.ec.filter(x=>x.settle).map(x=>[x.id,x])),charges:Object.fromEntries(S.ch.map(x=>[x.id,x]))}),dmOk=(dmE&&HK.perm("matches","d"))||HK.can("wipe");   // smazat prázdný zápas podle matice práv (⚙️ → 🔐), s daty jen vývojář
 const lu=m.lineup||{},nom=nomOf(m),GO=goingOf(m.id),lk=!!m.closed,st=S.step||1,NM=["Zápas","Sestava","Zápas živě"],R0=readiness(m),SU=signupState(GO),BM=benchM(m),ph=m.live||lk?"lu":(!R0.nom.ok?"nom":(S.ph||"lu"));
 // Postup přípravy: přihlášky (událost) → nominace z přihlášených → sestava → uzavření sestavy → zahájení. Dokud přihlášky nestačí na nominaci (1 + 5), karta vede do detailu události.
 const suCard=()=>`<div class="ev"><div class="b">${SU.ok?"✅":"⏳"} ${SU.txt}<div class="mu">${m.dl?"Uzávěrka přihlášek: "+esc(dlText(m.dl)):"Termín přihlašování není nastaven – nastav ho v Událostech (✏️ Upravit)."}</div></div></div>`;

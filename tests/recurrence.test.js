@@ -95,11 +95,12 @@ test("seriesOps: události s ser = {id, i}, relativní termín, šablona pokladn
   assert.deepEqual(r.series, {rule: {days: [3], every: 1, from: "2026-11-04", to: "2026-11-11", skip: []}, d: {title: "Led", time: "18:00", place: "Hala", note: "", dl: {d: 1, t: "18:00"}, tpl: "extra"}, n: 2, by: "t@x.cz", at: "T"});
   assert.equal(seriesOps({...o, tpl: "train"}).ops.length, 2);
 });
-test("pravidla: kolekce series čtou členové týmu (ne hostující), zapisuje trenér a kustod", () => {
+test("pravidla: kolekce series čtou členové týmu (ne hostující), zapisuje kdo smí upravovat události (matice)", () => {
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   const m = rules.match(/match \/series\/\{id\} \{([\s\S]*?)\n    \}/);
   assert.ok(m, "chybí pravidlo pro series");
   assert.match(m[1], /allow read: if isTeam\(\);/);
-  assert.match(m[1], /allow write: if isStaff\(\);/);
+  assert.match(m[1], /allow create, update: if can\('events', 'e'\);/);
+  assert.match(m[1], /allow delete: if can\('events', 'd'\);/);
   assert.equal(SERIES_COLL, "series");
 });

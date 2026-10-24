@@ -11,7 +11,8 @@
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
    Minimum nastavuje jen manager (⚙️ → 🔒 Aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
-   Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; staré kustod = asistent, trener bez rv = manager).
+   Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; staré kustod = asistent, trener bez rv = manager);
+   matice práv settings/perm (zapisuje jen manager, ⚙️ → 🔐 Práva rolí) se předává do HK.can a HK.perm – chybějící dokument = výchozí práva.
    Účet Google bez členství vidí formulář ✋ žádosti o přijetí (joinreq/{e-mail}, views/join-view.js), manager ji vyřídí v okně z 🏠 / ⚙️.
    Pokladník (bez role manager) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze).
    Role Hostující (host, jen manager ji přiřadí hráčce označené 🎟): vidí jen sebe – vlastní hráčku, docházku, předpisy a veřejné
@@ -35,7 +36,7 @@ import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL, isGuest} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
 import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
-import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf, keepsManager, managerCount, roleLabel, roleOf, rolePlan} from "../domain/permissions.js";
+import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf, keepsManager, managerCount, permClean, permDoc, permOf, roleLabel, roleOf, rolePlan} from "../domain/permissions.js";
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
@@ -62,6 +63,7 @@ const PV_KEY = "hk-preview";                                            // klí�
 const RO_MSG = "V náhledu se nezapisuje";
 const OLD_MSG = "Starší verze aplikace – zápis je zablokovaný. Načti novou verzi (⚙️ → Načíst novou verzi).";
 const APP_DOC = "app";                                                  // settings/app = brána verze {minVer, minBy, minAt}
+const PERM_DOC = "perm";                                                // settings/perm = matice práv {v, roles, by, at} (zapisuje jen manager)
 const CLEAN_MIN = "19.1.1";                                             // úklid starých citlivých polí až při minimální verzi aspoň této
 const ROLE_MIN = "20.4";                                                // převod rolí až při minimální verzi aspoň této (starší verze nové role neznají)
 
@@ -90,22 +92,27 @@ const say = m => toast(m);
 const errTxt = e => (e && (e.code || e.message)) || String(e);
 const isStaff = () => STAFF.includes(role);
 const isCash = () => actOf(role, cash, "money");               // správce pokladny: manager nebo pokladník (příznak cash)
+// Matice práv ze settings/perm (jen upravitelné buňky); chybějící dokument nebo hostující (nečte ho) = výchozí práva
+const permRaw = () => (data.settings || {})[PERM_DOC] || null;
+const perms = () => permClean((permRaw() || {}).roles);
 // ===== Oprávnění (jediné místo) =====
 // Akce → kdo ji smí (podle účinné role přihlášeného účtu, v náhledu role podle náhledu). Pohledy se ptají jen přes HK.can(akce);
-// tabulka se odvozuje z výchozí matice domain/permissions.js (actOf). Pravidla databáze (firestore.rules) vynucují totéž na serveru.
+// tabulka se odvozuje z matice domain/permissions.js (actOf + settings/perm). Pravidla databáze (firestore.rules) vynucují totéž na serveru.
 const CAN = {
-  sport: () => actOf(role, cash, "sport"),        // zápasy, sestavy, události, soupeři, docházka za ostatní: manager, trenér, asistent
-  money: () => actOf(role, cash, "money"),        // pokladna, platby, předpisy, Měsíce, nastavení pokladny: manager, pokladník
-  members: () => actOf(role, cash, "members"),    // ⚙️ Členové týmu: manager (všichni), pokladník (jen hráčky)
-  roster: () => actOf(role, cash, "roster"),      // přidat a smazat hráčku, spravovat realizační tým: manager, trenér
-  accounts: () => actOf(role, cash, "accounts"),  // navrhnout změnu účtu pro QR platby: manager
-  admin: () => actOf(role, cash, "admin"),        // obnova ze zálohy, brána verze, role členů, ✋ žádosti o přijetí, převod rolí: manager
-  onlyOwn: () => actOf(role, cash, "onlyOwn"),    // hráčka a hostující: vidí a mění jen své (odpověď, Moje platby), Team jen ke čtení
-  guest: () => actOf(role, cash, "guest"),        // hostující s účtem: jen vlastní data a veřejné dokumenty (evpub, lineuppub)
-  wipe: () => actOf(role, cash, "wipe", isDev() && !pv)   // úplné smazání události se vším (testovací data): jen vývojář mimo náhled
+  sport: () => actOf(role, cash, "sport", false, perms()),        // zápasy, sestavy, události, docházka za ostatní: manager, trenér, asistent
+  money: () => actOf(role, cash, "money", false, perms()),        // pokladna, platby, předpisy, Měsíce, nastavení pokladny: manager, pokladník
+  members: () => actOf(role, cash, "members", false, perms()),    // ⚙️ Členové týmu: manager (všichni), pokladník (jen hráčky)
+  roster: () => actOf(role, cash, "roster", false, perms()),      // přidat a smazat hráčku, spravovat realizační tým: manager, trenér
+  accounts: () => actOf(role, cash, "accounts", false, perms()),  // navrhnout změnu účtu pro QR platby: manager
+  admin: () => actOf(role, cash, "admin", false, perms()),        // obnova ze zálohy, brána verze, role členů, ✋ žádosti, převod rolí, matice práv: manager
+  onlyOwn: () => actOf(role, cash, "onlyOwn", false, perms()),    // hráčka a hostující: vidí a mění jen své (odpověď, Moje platby), Team jen ke čtení
+  guest: () => actOf(role, cash, "guest", false, perms()),        // hostující s účtem: jen vlastní data a veřejné dokumenty (evpub, lineuppub)
+  wipe: () => actOf(role, cash, "wipe", isDev() && !pv, perms())  // úplné smazání události se vším (testovací data): jen vývojář mimo náhled
 };
 // Smí přihlášený účet akci? Neznámá akce je chyba programu (výjimka), ne tiché „ne“.
 const can = a => { const f = CAN[a]; if (!f) throw new Error("Neznámá akce oprávnění: " + a); return f(); };
+// Smí přihlášený účet akci v modulu matice (modul a akce z domain/permissions.js MODULES / ACTIONS)? Neznámý modul = výjimka.
+const perm = (mod, act) => permOf(role, mod, act, perms());
 const configOk = () => !!FIREBASE_CONFIG.apiKey && !/^VLOZ/.test(FIREBASE_CONFIG.apiKey) && !!FIREBASE_CONFIG.projectId && !/^VLOZ/.test(FIREBASE_CONFIG.projectId);
 const splitPath = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slice(i + 1)]; };
 
@@ -552,6 +559,16 @@ async function runRoleConvert(mgr, close) {
     if (mine && mine.to !== "manager") setTimeout(() => location.reload(), 1500);
   } catch (e) { say("Převod se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
 }
+// ===== Matice práv (⚙️ → 🔐 Práva rolí, zapisuje jen manager) =====
+// Stav pro okno: platná matice (jen upravitelné buňky), kdo a kdy ji naposledy změnil, zda jde měnit
+const permState = () => { const r = permRaw(); return {perms: perms(), set: !!r, by: r ? r.by || "" : "", at: r ? r.at || "" : "", edit: can("admin")}; };
+// Uložení matice (celý dokument settings/perm, jen rozdíly od výchozích hodnot). roles = {} obnoví výchozí práva. Vrací true po uložení.
+async function savePerms(roles) {
+  if (!can("admin")) { say("Práva rolí mění jen manager"); return false; }
+  if (blocked()) return false;
+  try { await setDoc(fsDoc(fs, "settings", PERM_DOC), permDoc(roles, meEmail(), new Date().toISOString())); return true; }
+  catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); return false; }
+}
 // Manager zvýší minimální verzi na tuto (po potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
 async function raiseMinVer(close) {
   if (blocked()) return;
@@ -596,6 +613,7 @@ async function commitOps(ops) {
 // Při „Nahradit vším“ se mažou jen kolekce, které záloha obsahuje (stará záloha bez událostí, docházky, týmu a pokladny je nesmaže).
 // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
 // Brána verze settings/app se ze zálohy neobnovuje ani nemaže (stará záloha nesmí snížit požadovanou verzi; pravidla mazání nedovolí).
+// Matice práv settings/perm se ze zálohy také neobnovuje ani nemaže (je to nastavení týmu, mění ji jen manager v ⚙️ → 🔐 Práva rolí).
 // Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
 // návrhem a potvrzením (vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
 const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
@@ -616,8 +634,8 @@ async function importData(obj, replace) {
   COLL.forEach(c => {
     if (c === "audit") return;
     const src = bk[c] || {};
-    if (replace && bk[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC)) && !(c === BUDGET_COLL && data[c][id].approved)) ops.push(["del", c, id]); });
-    Object.entries(src).forEach(([id, d]) => { if (c === "settings" && id === APP_DOC) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : c === BUDGET_COLL ? keepBudget(id, d) : d]); });
+    if (replace && bk[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC || id === PERM_DOC)) && !(c === BUDGET_COLL && data[c][id].approved)) ops.push(["del", c, id]); });
+    Object.entries(src).forEach(([id, d]) => { if (c === "settings" && (id === APP_DOC || id === PERM_DOC)) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : c === BUDGET_COLL ? keepBudget(id, d) : d]); });
   });
   // Předpisy po obnově (pro přepočet souhrnu dlužníků): nahrazení = jen ze zálohy, sloučení = stávající + ze zálohy
   const chSrc = bk.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
@@ -629,7 +647,7 @@ async function importData(obj, replace) {
 // ===== Exporty a spuštění =====
 // Okno ⚙️ vykresluje views/settings-view.js (napojeno v main.js jako HK.openCfg)
 document.getElementById("gear").onclick = () => { if (isReady && HK.openCfg) HK.openCfg(); };
-export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, can, pid: () => pid, tid: () => tid, user: () => user, openCash: null, openJoin: null, openEvSet: null, openCfg: null,
+export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, can, perm, pid: () => pid, tid: () => tid, user: () => user, openCash: null, openJoin: null, openEvSet: null, openCfg: null,
   // Úplné smazání události (vývojář; wipePreview = jen plán s počty) a tichý zápis odvozených dokumentů
   wipeEvent, wipePreview, syncOps,
   // Účty members [{email, role, pid, tid, cash}] – okno žádostí o přijetí (manager)
@@ -639,6 +657,6 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení
   cfg: {acct, isDev, pvInfo, runPreview, endPreview, logout, PV_ROLES, memberRoles, needsPid, cashOk, staffOk, pidRoleOf, pidRoleErr, playerList, staffList,
     joinCount, memberRows, memberInfo, canRemove, removeMember, saveMember, rebuildDebtors, rebuildPrices, backupCounts,
-    exPlan, runExFix, privState, runPrivFix, runPrivClean, gateInfo, raiseMinVer, roleState, rolePreview, runRoleConvert, roleLabel, online: () => navigator.onLine}};
+    exPlan, runExFix, privState, runPrivFix, runPrivClean, gateInfo, raiseMinVer, roleState, rolePreview, runRoleConvert, roleLabel, permState, savePerms, online: () => navigator.onLine}};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

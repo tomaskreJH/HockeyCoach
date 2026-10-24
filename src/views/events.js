@@ -18,9 +18,10 @@
 // realizačního týmu (klíč "t:" + id v events.lines).
 // Přepínač „Docházka“ (S.evm = "att") – přehled docházky pro všechny členy (views/attendance.js, výpočet domain/attendance.js);
 // v detailu události má dlužnice po splatnosti u jména značku ⛓ (výjimka 🔓) podle veřejného souhrnu debtors (bez částek).
-// Zrušení (domain/event-cancel.js): trenér / kustod událost zruší s důvodem (pole cancelled) nebo zrušení vrátí; zrušená zůstává v seznamu
-// přeškrtnutá, přihlašování je zamčené pro všechny a zápas nejde otevřít. Smazat smí trenér / kustod jen prázdnou událost (bez odpovědí
-// a vyúčtování), vývojář (HK.can("wipe")) i událost s daty – úplně se vším (HK.wipeEvent).
+// Zrušení (domain/event-cancel.js): trenér / asistent událost zruší s důvodem (pole cancelled) nebo zrušení vrátí; zrušená zůstává v seznamu
+// přeškrtnutá, přihlašování je zamčené pro všechny a zápas nejde otevřít. Smazat smí trenér / asistent jen prázdnou událost (bez odpovědí
+// a vyúčtování), vývojář (HK.can("wipe")) i událost s daty – úplně se vším (HK.wipeEvent). Úpravu, zrušení, smazání, + Trénink,
+// 📊 Docházku a 📋 Zápis utkání řídí matice práv (HK.perm: events / matches e·c·d, attview r, stats r – ⚙️ → 🔐 Práva rolí).
 // Po uzávěrce člen žádá o změnu účasti (views/att-request-view.js); trenér / kustod má nahoře pruh ✋ s oknem vyřízení.
 // Hostující (HK.can("guest")) vidí jen sebe: bez počtů ostatních, bez Docházky; formaci události z lineuppub (S.lu) jen s odpovědí „Jdu“.
 // Důvod omluvy je v samostatné kolekci attnote/{eid}_{mid} (čte vlastník a trenér / kustod) – zapisuje se v jedné dávce s odpovědí;
@@ -227,7 +228,7 @@ function list(a) {
   if (S.evp && !P.some(p => p.id === S.evp) && !isTr(S.evp)) S.evp = null;
   // Dřívější režimy pokladny (pay / cash / mon) jsou v záložce Team; tady zůstávají Nadcházející, Minulé, Kalendář a Docházka
   // Hostující nemá přehled Docházky (vidí jen sebe)
-  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(guest() ? [] : [["att", "📊 Docházka"]])];
+  const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(guest() || !HK.perm("attview", "r") ? [] : [["att", "📊 Docházka"]])];
   const mode = modes.some(([k]) => k === S.evm) ? S.evm : "up";
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
@@ -240,7 +241,7 @@ function list(a) {
   // Hlavička: hráčka bez propojení dostane upozornění; správce tlačítka pro založení události
   const head = pl_
     ? (S.evp ? "" : '<div class="cd" style="color:var(--no)">Tvůj účet není propojen s aktivní hráčkou. Požádej trenéra.</div>')
-    : `<div class="row" style="margin-bottom:12px"><button class="p" id="evnt">+ Trénink</button><button class="s" id="evnm">+ Zápas</button></div>`;
+    : `<div class="row" style="margin-bottom:12px">${HK.perm("events", "e") ? '<button class="p" id="evnt">+ Trénink</button>' : ""}<button class="s" id="evnm">+ Zápas</button></div>`;
   a.innerHTML = CSS + `<div id="evw">${errH}
 ${mineBanner()}
 ${attReqBanner()}
@@ -330,11 +331,13 @@ function detail(a, ev) {
       `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(t.kind || "")}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
   // Tlačítka trenéra / kustoda: otevřít zápas, úprava, zrušit / obnovit, smazat prázdnou, série; vývojář smazat úplně
-  const key = "ev" + ev.id, ku = "evu" + ev.id, kw = "evw" + ev.id, empty = isEmptyEvent(ev.id, ev.raw, emptySrc()), blk = cancelBlock(ev.raw, mt);
+  // Matice práv (⚙️ → 🔐): úprava, zrušení a smazání podle modulu Události / Zápasy
+  const pm = mt ? "matches" : "events", canE = HK.perm(pm, "e"), canC = HK.perm(pm, "c"), canD = HK.perm(pm, "d");
+  const key = "ev" + ev.id, ku = "evu" + ev.id, kw = "evw" + ev.id, empty = isEmptyEvent(ev.id, ev.raw, emptySrc()), blk = cancelBlock(ev.raw, mt) || (canC ? null : "bez práva rušit");
   const wipeB = HK.can("wipe") && !empty ? `<button class="d" id="evwp" style="${armed(kw) ? "background:var(--no);color:#fff" : ""}">${armed(kw) ? "Smazat VŠE (" + esc(wipeText(HK.wipePreview(mt ? "matches" : "events", ev.id))) + ")? Klepni znovu" : "🧨 Smazat úplně (vývojář)"}</button>` : "";
-  const delB = empty ? `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : ev.raw.ser ? "🗑 Jen tato" : "🗑 Smazat"}</button>` : "";
-  const cnB = cn ? `<button class="s" id="evun" style="${armed(ku) ? "background:var(--wa);color:#fff" : ""}">${armed(ku) ? "Obnovit událost? Klepni znovu" : "↩ Obnovit událost"}</button>` : blk ? "" : '<button class="d" id="evcx">❌ Zrušit</button>';
-  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt && !cn ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>${cnB}${delB}${mt ? "" : serDelBtn(ev)}${wipeB}</div>`;
+  const delB = empty && canD ? `<button class="d" id="evd" style="${S.cf === key ? "background:var(--no);color:#fff" : ""}">${S.cf === key ? "Opravdu smazat? Klepni znovu" : ev.raw.ser ? "🗑 Jen tato" : "🗑 Smazat"}</button>` : "";
+  const cnB = cn ? (!canC ? "" : `<button class="s" id="evun" style="${armed(ku) ? "background:var(--wa);color:#fff" : ""}">${armed(ku) ? "Obnovit událost? Klepni znovu" : "↩ Obnovit událost"}</button>`) : blk ? "" : '<button class="d" id="evcx">❌ Zrušit</button>';
+  const btns = ownP ? "" : `<div class="row" style="margin-top:10px">${mt && !cn ? '<button class="p" id="evo">🏒 Otevřít zápas</button>' : ""}${canE ? `<button class="s" id="eve">✏️ ${mt ? "Čas, místo, termín" : "Upravit"}</button>` : ""}${cnB}${delB}${mt || !canD ? "" : serDelBtn(ev)}${wipeB}</div>`;
   const stats = g ? "" : `<div class="grid3" style="margin-top:10px"><div class="stat"><b>${c.yes}</b>jdou</div><div class="stat"><b>${c.maybe}</b>nejistí</div><div class="stat"><b>${c.no}</b>nejdou</div></div>${c.none ? `<div class="mu">Bez odpovědi: ${c.none}</div>` : ""}${nn ? `<div class="mu">🚫 Nedorazilo bez omluvy: ${nn}</div>` : ""}<div class="mu" style="margin-top:6px">Přihlášeno: ${rosterLine(roster(ev, AT))}</div>`;
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
@@ -344,7 +347,7 @@ ${cancelHtml(ev, mt)}
 ${attReqBanner()}
 <div class="cd"><h2>Docházka</h2>${lk && !cn ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." + (st0 <= now ? " 🚫 = přihlášená hráčka nedorazila bez omluvy (klepni znovu pro zrušení)." : "") : "Přihlašování je uzavřeno." + (reqMid && st0 > now ? " O změnu můžeš požádat níže." : "")}</div>` : ""}${ownP && !g ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div>
 ${cn ? "" : attReqBox(ev, reqMid)}
-${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div><button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>${matchStatsHtml(ev.raw)}</div>` : ""}
+${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${HK.perm("stats", "r") ? '<button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>' + matchStatsHtml(ev.raw) : ""}</div>` : ""}
 ${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, T, ownP)}
 ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   // Eventy detailu
@@ -363,7 +366,8 @@ ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   const eo = a.querySelector("#evo");
   if (eo) eo.onclick = () => { S.mid = ev.id; S.showLu = false; S.showNom = false; S.step = 1; S.evid = null; render(); window.scrollTo(0, 0); };
   // Úprava: konec uložený, jinak automaticky začátek + délka; sraz uložený, jinak výchozí podle typu
-  a.querySelector("#eve").onclick = () => {
+  const eb = a.querySelector("#eve");
+  if (eb) eb.onclick = () => {
     const endSet = !mt && okTime(ev.raw.end) && endOk(ev.time, ev.raw.end);
     S.evf = {id: ev.id, type: ev.type, title: ev.title, date: ev.date, time: ev.time, end: endSet ? ev.raw.end : defEnd(ev.time, defs()), endAuto: !endSet, meet: meetOf(ev, defs()), place: ev.place, dl: ev.dl || defDl(ev.date), note: ev.note, dlAuto: !ev.dl, ser: mt ? null : ev.raw.ser || null, scope: "one"}; render();
   };

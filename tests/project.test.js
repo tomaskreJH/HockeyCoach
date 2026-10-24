@@ -71,11 +71,12 @@ test("pravidla: pokladník spravuje jen členy s rolí hracka a ne vlastní doku
   assert.ok(!m.includes("!= 'trener'"), "stará podmínka „jen ne trenér“ zmizela");
 });
 
-test("pravidla: settings/app (brána verze) zapisuje jen trenér a nejde smazat", () => {
+test("pravidla: settings/app (brána verze) zapisuje jen manager / trenér a nejde smazat; settings/perm jen manager", () => {
   const rules = read("firestore.rules"), s = ruleBlock(rules, "match /settings/{id}");
   assert.match(rules, /function appSettingsOk\(\) \{\s+return isCoach\(\)/);
   assert.match(s, /id == 'app' \? appSettingsOk\(\)/);
-  assert.match(s, /allow delete: if id != 'cash' && id != 'app' && isStaff\(\);/);
+  assert.match(s, /allow delete: if id != 'cash' && id != 'app' && \(id == 'perm' \? isMgr\(\) : isStaff\(\)\);/);
+  assert.match(s, /id == 'perm' \? permSettingsOk\(\)/);
 });
 
 test("pravidla: kolekce, které aplikace čte, mají pravidlo", () => {
