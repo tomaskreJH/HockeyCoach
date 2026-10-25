@@ -54,8 +54,9 @@
 | v21.2 | E2b | 📥 základní sada cvičení a 📄 import z CSV, ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (`trtpl`), 📊 pokrytí dovedností, kontrola použití cvičení před smazáním – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.3 | E3 | ⏱ živý trénink (`trlive`, společné hodiny, Moje stanoviště, upozornění, Wake Lock), rozdělení do pětek s výběrem způsobu a ⚔ poměrem postů, ⭐ výkonnost hráček (`plevel`), bloky plánu podle postů – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.4 | E3b | ⏲ stopky a výsledky měření (`trms`, modul matice `treval`, výsledky vidí celý tým), ⌚ oznámení živého tréninku i na hodinky (akce ⏸ / ⏭ pro řídícího), ⏱ čas cvičení v plánu jen pro trénink (rychlá volba, délka z banky) – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
-| v21.5 – v21.6 | E | 🏒 **Modul Trénink**: E4 hodnocení, E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
-| v21.7 | K | 🖐 **Komfort zadávání, ovládání a přehledu** (priorita uživatele 25. 10. 2026): průchod hlavních toků na telefonu – méně klepnutí, výchozí hodnoty, rychlé akce, přehledy na jedné obrazovce – podrobně `docs/plan-trenink.md` kap. 4 |
+| v21.5 | K1 | 🖐 **Komfort I** (přednost před E4): na telefonu jen svislý posun (oprava ujíždění plánu tréninku do šířky, globálně v CSS, výjimka tabulky statistik), jednodušší úprava plánu (další volby schované), ✨ Připravit trénink jedním tlačítkem, stopky jako doplněk – `docs/plan-trenink.md` kap. 4 |
+| v21.6 – v21.7 | E | 🏒 **Modul Trénink**: E4 hodnocení, E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
+| v21.8 | K2 | 🖐 **Komfort II – zadávání, ovládání a přehled** celé aplikace: průchod hlavních toků na telefonu – méně klepnutí, výchozí hodnoty, rychlé akce, přehledy na jedné obrazovce |
 | v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky; oznámení i na hodinky) – posunuto za Trénink a K |
 | potom | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
 | potom | G | ⌚ **Aplikace pro hodinky Garmin** (Connect IQ): živý trénink na hodinkách – odpočet kola, co teď / co potom, vibrace, ⏸ / ⏭, stopky – samostatná část projektu, nejdřív ověření (`docs/plan-trenink.md` kap. 4) |
@@ -78,7 +79,8 @@
 - **v20.7 (D4) dodáno, k testu:** úklid před modulem Trénink – odstraněny hotové jednorázové převody (⚙️ Kontrola dat – pole `ex`, převod a úklid soukromí, 🔁 převod rolí), stará role `kustod` / `trener` bez `rv` se už nepřevádí (stejně jako v pravidlech v20.6), komentáře „kustod“ → asistent, `LINE_NOS` na jednom místě, `main.js` rozepsaný do bloků, plán zkrácen (dokončené fáze v archivu). Bez změny chování ostatních modulů.
 - **Rozhodnutí 24. 10. 2026:** modul Trénink (E) před notifikacemi (N); odpovědi T1 – T5 v `docs/plan-trenink.md` kap. 6.
 - v20.6 (OM3) dodána – výsledek testu a publikování `firestore.rules` uživatel zatím nehlásil.
-- Další: **v21.5 E4 – ⭐ hodnocení** (`docs/plan-trenink.md`).
+- **Zadání 25. 10. 2026 (po v21.4):** při tvorbě tréninku stránka na telefonu ujíždí do šířky – vše má být na šířku obrazovky, posun jen nahoru / dolů (výjimka statistiky). Zásada: aplikace je pomocník, trenér trénuje, ne obsluhuje aplikaci. Návod pro trenéry vznikl jako dokument Claude Docs.
+- Další: **v21.5 K1 – telefon a příprava tréninku**, pak v21.6 E4 hodnocení (`docs/plan-trenink.md`).
 
 ## H – později: Souběžné tresty a chybějící hráčka při vyrovnané hře (myšlenka, přidáno 22. 10. 2026)
 Zatím jen zamyšlení – nezařazeno do verze, rozhodne se po v18.6.

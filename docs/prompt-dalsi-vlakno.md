@@ -21,15 +21,22 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 - Oprávnění v aplikaci: zkratky `HK.can(akce)` (`sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`) a jemná práva `HK.perm(modul, akce)` z matice `settings/perm` (upravitelné jen buňky `EDITABLE`). Moduly Tréninku: `drills` (v21.0), `trplan` (v21.1), `treval` (v21.4 – měření; E4 hodnocení) – nový modul se přidá do `MODULES`, `DEFAULT_PERMS`, `permDef` v pravidlech a do `can(modul, akce)`.
 - Pravidla (v21.4): `isMgr`, `isRoster`, `isStaff`, `isCash`, `isTeam`, `can(modul, akce)` (moduly matice včetně `drills`, `trplan`), `drillOk`, `imgOk` (`drillimg`), `trplanOk`, `trtplOk` (`trtpl` – čte i zapisuje `can('trplan', 'e')`), `trliveOk` (`trlive` – čte `trplan r`, zapisuje `trplan e`, `sAt == request.time`, `ctl == mail()`), `plevelOk` (`plevel` – `isStaff`), `trmsOk` (`trms` – čte `trplan r`, zapisuje `treval e`) – shodu s `actOf` hlídá `tests/rules-narrow.test.js`.
 - Vývojář = `DEV_EMAILS` v src/config/team-config.js (👁 náhled role, 🧨 úplné smazání jen s rolí manager).
-- Brána verze `settings/app.minVer` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) – čísla verzí musí jen růst. Další volné číslo je v21.5, cache `hokej-v88`.
+- Brána verze `settings/app.minVer` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) – čísla verzí musí jen růst. Další volné číslo je v21.5, cache `hokej-v88` (každá další verze +1).
 
 ## 3. Rozhodnutí OM (hotovo)
 - manager vše (aspoň jeden), trener sport + soupiska a realizační tým, asistent = dřívější kustod, hracka podle matice (vlastní data pevná), host beze změny, pokladník pevně podle `cash`. Další buňky matice lze odemknout jen tak, že je zároveň řídí aplikace i pravidla.
 
-## 4. Další verze: v21.5 E4 – ⭐ hodnocení
+## 4. Další práce (delší vlákno – víc verzí za sebou, důraz na kvalitu a šetření limitu)
+### v21.5 K1 – telefon a příprava tréninku (přednost před E4)
+- **Zásada (trvalá):** aplikace je pomocník – trenér trénuje svěřence, ne aplikaci. Příprava doma, na ledě minimum ovládání. Když je něco komplikované, upozorni mě. Uživatelský návod: dokument „HockeyCoach – Trénink: návod pro trenéry“ (Claude Docs) – při změně ovládání napiš, co v něm upravit.
+- **Chyba:** při tvorbě tréninku (✏️ úprava plánu) stránka na telefonu ujíždí do šířky. Na telefonu má být vše na šířku obrazovky, posun jen nahoru / dolů; výjimka jen široké tabulky statistik (posun uvnitř karty `.tw`). Podezření: `select` s dlouhým názvem cvičení (v `styles/main.css` chybí `max-width:100%` / `min-width:0` pro `select`, `input`, flex položky) a řádky `flex-wrap:nowrap` v `trplan-view.js`, `trplan-reuse.js`, `line-split-view.js`, `events.js`. Oprav globálně v CSS a projdi všechny obrazovky; jsdom rozložení neumí – pokud jde nainstalovat Playwright s Chromium, změř na šířce 360 px `document.documentElement.scrollWidth <= 360` na hlavních obrazovkách, jinak zkontroluj styly ručně.
+- **Jednodušší úprava plánu:** u bloku vidět jen cvičení, ⏱ čas a skupiny; režim, podle postů, točení, trenéři a souběžné linky pod „Další volby“ (otevřené, když jsou použité).
+- **✨ Připravit trénink** v detailu tréninku: jedním tlačítkem rozdělit pětky posledním způsobem, nabídnout poslední šablonu / předchozí trénink a otevřít plán k uložení.
+- **Stopky jako doplněk:** ověř ovládání jednou rukou (velké cíle), v nápovědě doporuč měření svěřit jednomu člověku.
+### v21.6 E4 – ⭐ hodnocení
 - Plán: **docs/plan-trenink.md** – kap. 3 (`treval/{eid}`), kap. 4 řádek E4, kap. 6 (T5, E3b).
 - E4: po bloku rychlé hodnocení cvičení stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc · 😴 vůbec se nesnaží + poznámka, volitelně u hráček; doplnění i po tréninku (seznam neohodnocených bloků); hodnocení i z ⏱ živého tréninku na konci kola. Data `treval/{eid}` jen pro realizační tým (`treval r` / `e`, hráčka nečte – T2); měření zůstává v `trms` (vidí celý tým).
-- Pak v21.6 E5 přehled (tabulky výsledků měření s porovnáním i pro hráčky), v21.7 K komfort zadávání / ovládání / přehledu (nejdřív návrh seznamu ke schválení), v22.x N notifikace (i se zamčeným telefonem; pozor na tarif Spark), P2, G aplikace pro hodinky Garmin (nejdřív ověření G0), M jiný klub úplně poslední.
+- Pak v21.7 E5 přehled (tabulky výsledků měření s porovnáním i pro hráčky), v21.8 K2 komfort celé aplikace (nejdřív návrh seznamu ke schválení), v22.x N notifikace (i se zamčeným telefonem; pozor na tarif Spark), P2, G aplikace pro hodinky Garmin (nejdřív ověření G0), M jiný klub úplně poslední.
 - Poslech `events` / `attendance` jen aktuální sezóny (D4-8) – zeptat se před změnou.
 
 ## 5. Odložené drobnosti (neřešit, jen nezapomenout)
@@ -66,4 +73,4 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 - Odpověď na konci: načtená verze, nová verze, zip, postup nasazení v několika bodech, výsledek testů. Bez dlouhého vysvětlování.
 
 ## 8. Úkol
-Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v21.3 (pokud není uvedeno) a pokračuj verzí v21.4 E3b (bod 4). Drobné úpravy od uživatele nedávej do samostatné verze – přidej je k nejbližší větší verzi.
+Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek testu v21.4 a v21.3 (pokud není uvedeno) a pokračuj podle bodu 4: v21.5 K1, pak v21.6 E4 (a dál, pokud zbude čas). Každá verze zvlášť: vlastní číslo, CHANGELOG, testy a vlastní ZIP, aby šla nasadit a otestovat samostatně; kvalita má přednost před množstvím. Šetři limit (bod 7). Drobné úpravy od uživatele nedávej do samostatné verze – přidej je k nejbližší větší verzi.

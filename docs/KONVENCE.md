@@ -68,6 +68,10 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 | `TEAM_NAME`, `APP_NAME`, `DEV_EMAILS` | `config/team-config.js` | Název týmu a aplikace, účty vývojáře. Výjimky: `index.html`, `manifest.webmanifest` a značka zálohy `app: "hokej-zapasy"` (nemění se). |
 | `playerStats(matches, {match})` | `domain/player-stats.js` | Statistiky hráček a brankářek pro jeden zápas (`match: true` – bruslařky sestavy, +/- bez brankářek) i souhrn (gp, +/- všem, góly v PP, body doma / venku, tým). |
 
+### Rozložení na telefonu (zásada od 25. 10. 2026)
+- Aplikace je pomocník – trenér trénuje svěřence, ne aplikaci: nastavování patří před trénink, na ledě velká tlačítka na pevných místech a minimum klepnutí. Novou volbu přidávej jen tehdy, když ušetří víc práce, než přidá; méně častou schovej pod „Další volby“.
+- Na šířce 360 px **jen svislý posun**: žádný prvek nesmí přetéct šířku obrazovky (`select`, `input`, dlouhé názvy, řádky s `flex-wrap:nowrap`). Výjimka: široké tabulky (statistiky) se posouvají jen uvnitř své karty (`.tw`), nikdy celá stránka.
+
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` – tam je strážce `blocked()` (náhled role jen ke čtení, starší verze aplikace). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá.
 - Úpravy existujícího dokumentu zapisovat přes `merge`, ne `set` celého dokumentu – starší klient by jinak smazal nová pole a souběžná změna jiného pole by se přepsala. Jeden dokument: `S.db.doc(cesta).merge({pole})` (zapíše jen uvedená pole, vnořený objekt nahradí celý, `undefined` / `"__del"` pole smaže, `"__now"` = čas serveru `serverTimestamp`; nečeká na server). V dávce: `S.db.batch().merge(cesta, {pole})` (hluboké sloučení, `"__del"` smaže pole). `set` jen pro nový dokument nebo dokument, který aplikace celý vlastní (zápas, `evcash`).
