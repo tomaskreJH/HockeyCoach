@@ -31,6 +31,7 @@ import {BUDGET_COLL} from "../domain/budget.js";
 import {exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
+import {DRILL_COLL} from "../domain/drills.js";
 import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL, isGuest} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
@@ -54,7 +55,8 @@ const VERSION = APP_LABEL;                                              // čís
 // series = definice sérií tréninků (domain/recurrence.js); v záloze, pokud se v zařízení načetla (manager / trenér / asistent)
 // budget = rozpočty sezón (domain/budget.js); v záloze, pokud se v zařízení načetla (správce pokladny)
 // absence = nepřítomnosti členů od – do (domain/absence.js); v záloze, pokud se v zařízení načetla (manager / trenér / asistent všechny)
-const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash", NOTE_COLL, SPAY_COLL, PPAY_COLL, SERIES_COLL, BUDGET_COLL, ABS_COLL];
+// drills = 📚 banka cvičení modulu Trénink (domain/drills.js); v záloze, pokud se v zařízení načetla (kdo smí číst modul drills)
+const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash", NOTE_COLL, SPAY_COLL, PPAY_COLL, SERIES_COLL, BUDGET_COLL, ABS_COLL, DRILL_COLL];
 const ROLES = ROLE_LABELS;                                              // popisy rolí v members/{email} (domain/permissions.js)
 const PID_ROLES = PID_ROLE_KEYS;                                        // role, které vstupují jen s propojenou hráčkou (pid)
 const STAFF = STAFF_ROLE_KEYS;                                          // role s přístupem do celé aplikace (manager, trener, asistent)

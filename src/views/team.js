@@ -1,6 +1,7 @@
 // Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování a správa pokladny.
 // Struktura: Importy -> Pomocné funkce -> players (soupiska a realizační tým) -> formV (přepínač režimů, základní formace) -> teamDrag (přetahování).
-// Přepínač nahoře (jen správce pokladny): Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet (stav S.tm); režimy pokladny vykresluje cashPanel() z events.js.
+// Přepínač nahoře (stav S.tm): Team | 📚 Cvičení (kdo smí číst banku cvičení – views/drills-view.js) | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet
+// (režimy pokladny jen správce pokladny, vykresluje je cashPanel() z events.js); s jediným režimem se přepínač nevykresluje.
 // Hráčka s příznakem pokladník vidí formaci a náhradnice jen ke čtení (bez přetahování); u hráček a realizačního týmu mění jen platby
 // (okno Platby / Plat v modal.js – ostatní pole dokumentu zůstanou, pravidla databáze jí víc nedovolí).
 // Role: přidávat a mazat hráčky a spravovat realizační tým smí jen manager a trenér; asistent u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
@@ -20,14 +21,17 @@ import {GRP,exOf,fxOf,fxPct,grpOf,pctToFx} from "../domain/cash.js";
 import {NOTE_COLL,PPAY_COLL,SPAY_COLL,plPayDoc} from "../domain/private-data.js";
 import {luEditor} from "./lineup-editor.js";
 import {modal} from "./modal.js";
+import {drillsView} from "./drills-view.js";
 import {CASH_MODES,cashPanel} from "./events.js";
 import {render} from "./shell.js";
 
 // ===== Pomocné funkce =====
 // Pohled jen ke čtení (přihlášená hráčka; do Teamu se dostane jen jako pokladník)
 const ro=()=>HK.can("onlyOwn");
-// Přepínač režimů záložky Team; pro uživatele bez práv pokladny se nevykresluje
-const modeChips=()=>HK.can("money")?`<div class="chips">${[["team","Team"],...CASH_MODES].map(([k,t])=>`<button class="chip ${S.tm===k?"on":""}" data-tm="${k}">${t}</button>`).join("")}</div>`:"";
+// Režimy záložky Team podle práv: 📚 Cvičení (modul drills), pokladna (správce pokladny)
+const modes=()=>[["team","Team"],...(HK.perm("drills","r")?[["drills","📚 Cvičení"]]:[]),...(HK.can("money")?CASH_MODES:[])];
+// Přepínač režimů záložky Team; s jediným režimem se nevykresluje
+const modeChips=()=>{const m=modes();return m.length>1?`<div class="chips">${m.map(([k,t])=>`<button class="chip ${S.tm===k?"on":""}" data-tm="${k}">${t}</button>`).join("")}</div>`:""};
 const bindChips=a=>a.querySelectorAll("[data-tm]").forEach(b=>b.onclick=()=>{S.tm=b.dataset.tm;S.cf=null;render();window.scrollTo(0,0)});
 
 // ===== Soupiska a realizační tým =====
@@ -67,6 +71,8 @@ a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;
 
 // ===== Přepínač režimů, základní formace a náhradnice =====
 export function formV(a){
+// Režim 📚 Cvičení (banka cvičení) – vykreslí drills-view.js
+if(S.tm==="drills"&&HK.perm("drills","r")){drillsView(a,modeChips());bindChips(a);return}
 // Režim pokladny (Platby / Pokladna / Měsíce / Rozpočet) – vykreslí events.js; jinak formace a soupiska
 if(S.tm!=="team"&&cashPanel(a,modeChips())){bindChips(a);return}
 S.tm="team";

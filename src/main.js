@@ -6,6 +6,7 @@
 //  - manager / trenér / asistent (HK.can("sport")): celé týmové kolekce, důvody omluv, nepřítomnosti, série, veřejné dokumenty hostujících
 //    (views/auto-sync.js je udržuje) a žádosti o změnu účasti; zakládání soupeřů a oprava uzavřených zápasů (syncOps, fixClosed),
 //  - správce pokladny (HK.can("money")): předpisy, pokladna, audit, vyúčtování, platební pole, platy, všechny žádosti a rozpočty,
+//  - 📚 banka cvičení (drills): kdo smí číst modul drills (HK.perm – výchozí manager, trenér, asistent),
 //  - ostatní členové: týmové kolekce a jen své předpisy, důvody, nepřítomnosti, žádosti a svůj dokument plpay/{pid},
 //  - hostující (HK.can("guest")): jen svou hráčku, evpub místo events / matches, svou docházku, předpisy, žádosti, nepřítomnosti,
 //    ceny na hlavu, settings cash / events / app a formace (lineuppub) událostí, kde má „Jdu“.
@@ -21,6 +22,7 @@ import {initTableSort} from "./core/table-sort.js";
 import {ABS_COLL} from "./domain/absence.js";
 import {ATT_KIND} from "./domain/att-requests.js";
 import {BUDGET_COLL} from "./domain/budget.js";
+import {DRILL_COLL} from "./domain/drills.js";
 import {PRICE_COLL} from "./domain/economy.js";
 import {EVPUB_COLL, LUPUB_COLL, fromPub} from "./domain/guests.js";
 import {JOIN_COLL} from "./domain/join-requests.js";
@@ -147,6 +149,8 @@ function staffData(db) {
     ownIds().forEach(id => db.collection(NOTE_COLL).where("mid", id).onSnapshot(onNotes, erP(NOTE_COLL)));
     ownIds().forEach(id => db.collection(ABS_COLL).where("mid", id).onSnapshot(onAbs, erP(ABS_COLL)));
   }
+  // 📚 Banka cvičení (Team → 📚 Cvičení): chyba = nepublikovaná pravidla – pohled ukáže hlášku, zbytek aplikace běží
+  if (HK.perm("drills", "r")) db.collection(DRILL_COLL).onSnapshot(s => { S.dr = rows(s); S.drErr = null; render(); }, e => { S.drErr = e.code || e.message; erP(DRILL_COLL)(e); render(); });
 }
 
 // ===== Hlavní logika: peníze (správce pokladny) a vlastní předpisy a žádosti =====

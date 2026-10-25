@@ -49,7 +49,8 @@
 | v20.6 | OM3 | 🔒 **Zúžení pravidel databáze** podle rolí: členy, ✋ žádosti o přijetí, bránu verze, návrh účtů pro QR a mazání rozpočtu jen manager; pokladna manager nebo 💰 pokladník; soupiska a realizační tým manager a trenér; bez staré role `kustod` a výjimky pro trenéra bez `rv` – **hotovo, k testu** (24. 10. 2026) – **publikovat firestore.rules PO kódu** |
 | v20.7 | D4 | Úklid před Tréninkem: hotové převody pryč, stará role se nepřevádí, „kustod“ v komentářích, `LINE_NOS`, `main.js`, zkrácení plánu (poslech jen sezóny odložen do E2) – **hotovo, k testu** (24. 10. 2026), pravidla beze změny – podrobně `docs/plan-trenink.md` |
 | v20.7.1 | oprava | Stav skóre u každého gólu v průběhu zápasu (detail zápasu → krok 3) – **hotovo, k testu** (25. 10. 2026), pravidla beze změny |
-| v21.0 – v21.5 | E | 🏒 **Modul Trénink** (zařazeno 24. 10. 2026 před notifikace): E1 banka cvičení, E2 plán tréninku (dresy, časová osa, stanoviště, trenéři, pokrytí dovedností), E3 živý trénink (společné hodiny, Moje stanoviště, upozornění), E3b stopky, E4 hodnocení, E5 přehled a analýza – **podrobně `docs/plan-trenink.md`** |
+| v21.0 | E1 | 📚 Banka cvičení (Team → 📚 Cvičení), kolekce `drills`, modul matice `drills` – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
+| v21.1 – v21.5 | E | 🏒 **Modul Trénink** (zařazeno 24. 10. 2026 před notifikace): E1 banka cvičení, E2 plán tréninku (dresy, časová osa, stanoviště, trenéři, pokrytí dovedností), E3 živý trénink (společné hodiny, Moje stanoviště, upozornění), E3b stopky, E4 hodnocení, E5 přehled a analýza – **podrobně `docs/plan-trenink.md`** |
 | v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) – posunuto za Trénink |
 | poslední | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
 | později | M | Další tým = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) |
@@ -60,6 +61,7 @@
 ---
 
 ## Stav (aktualizováno 25. 10. 2026)
+- **v21.0 (E1) dodáno, k testu:** 📚 banka cvičení v Team (přepínač 📚 Cvičení), nová kolekce `drills` a modul matice `drills` (trenér vše, asistent bez mazání, hráčka nic). Pravidla publikovat před kódem. v20.7.1 nasazena, netestována.
 - **v20.7.1 dodáno, k testu:** stav skóre (naše : soupeř) u každého gólu v průběhu zápasu v detailu zápasu. v20.7 nasazena, částečně otestována bez nálezu.
 - **v20.7 (D4) dodáno, k testu:** úklid před modulem Trénink – odstraněny hotové jednorázové převody (⚙️ Kontrola dat – pole `ex`, převod a úklid soukromí, 🔁 převod rolí), stará role `kustod` / `trener` bez `rv` se už nepřevádí (stejně jako v pravidlech v20.6), komentáře „kustod“ → asistent, `LINE_NOS` na jednom místě, `main.js` rozepsaný do bloků, plán zkrácen (dokončené fáze v archivu). Bez změny chování ostatních modulů.
 - **Rozhodnutí 24. 10. 2026:** modul Trénink (E) před notifikacemi (N); odpovědi T1 – T5 v `docs/plan-trenink.md` kap. 6.

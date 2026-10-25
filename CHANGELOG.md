@@ -4,6 +4,26 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v21.0 (25. 10. 2026) – E1: 📚 banka cvičení (modul Trénink)
+> **Nasazení (pořadí je důležité):** 1) Záloha (⚙️ → 💾 Data → Stáhnout zálohu) a zip současného repozitáře. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nová kolekce `drills` a modul `drills` v matici – jen rozšíření, stará verze aplikace s novými pravidly funguje beze změny). 3) Nahrát kód (nové soubory `src/config/skills.js`, `src/domain/drills.js`, `src/views/drills-view.js`, `tests/drills.test.js`; nic se nemaže). 4) Na zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v21.0. 5) Test: Team → přepínač **📚 Cvičení** (manager, trenér, asistent): ➕ Nové cvičení, uložení, hledání a filtry, ⭐ oblíbené, ✏️ Upravit, ⧉ Kopie, 🗄 Vyřadit → filtr 🗄 Vyřazená → ↩ Vrátit / 🗑 Smazat (asistent bez 🗑); hráčka přepínač nevidí; ⚙️ → 🔐 Práva rolí – nový řádek 📚 Banka cvičení. **🔒 Vyžadovat verzi: ne** (stávající data se nemění, jen nová kolekce).
+> Pokud se pravidla nepublikují, 📚 Cvičení ukáže hlášku „Banku cvičení se nepodařilo načíst“ a zbytek aplikace běží. Návrat: nahrát zip v20.7.1 (pravidla v21.0 mohou zůstat).
+
+**Přidáno**
+- **📚 Banka cvičení** v záložce Team (přepínač Team | 📚 Cvičení | pokladna …; `src/views/drills-view.js`): seznam aktivních cvičení s hledáním (název, pomůcky, popis – bez diakritiky), filtr kategorie / dovednost / úroveň / ⭐ jen oblíbená / 🗄 vyřazená (s počty), detail klepnutím (dovednosti, vhodné pro, pomůcky, ⏲ měření, popis, ▶ odkaz na video, kdo a kdy upravil), formulář ➕ Nové / ✏️ Upravit (název, kategorie, dovednosti, úroveň, vhodné pro, délka 1–60 min, pomůcky, popis, odkaz, měření pro stopky – jednotka a „nižší je lepší“), ⧉ Kopie, 🗄 Vyřadit / ↩ Vrátit, 🗑 Smazat jen vyřazené (druhým klepnutím). ⭐ oblíbená jsou osobní a pamatují se v zařízení.
+- `src/config/skills.js` – kategorie (část tréninku), 11 dovedností, úrovně, vhodné skupiny, jednotky měření.
+- `src/domain/drills.js` – `drillError`, `drillDoc`, `drillBlank`, `drillFilter`, `drillCounts`, `drillCopy`, `drillCanDelete`, `fold`; `tests/drills.test.js` (doména, výchozí práva, srovnání zkratek `HK.can`, pravidla).
+- Kolekce **`drills/{id}`** = {name, cat, sk, lvl, dur, grp, eq, desc, url, meas, by, at, arch}; poslech v `main.js` jen s právem číst, v záloze (`storage.js` COLL).
+- Modul matice **`drills`** (📚 Banka cvičení: číst / upravovat / mazat): výchozí Trenér vše, Asistent číst + upravovat, Hráčka nic; v ⚙️ → 🔐 jde měnit upravovat a mazat u Trenéra a Asistenta (číst je pevné).
+- `firestore.rules`: `drillOk` (jen známá pole, název 1–80 znaků, délka 1–60 min) a `match /drills/{id}` podle `can('drills', …)`, `permDef` doplněno o `drills`.
+
+**Změněno**
+- `src/views/team.js` – přepínač režimů se ukáže, když má uživatel víc než jeden režim (📚 Cvičení a / nebo pokladna); `src/core/state.js` (`S.dr`, `S.drf`, `S.dre`, `S.dro`, `S.drErr`), `src/domain/permissions.js`, `src/data/storage.js`, `src/main.js`.
+- `src/views/help.js` (Team → 📚 Cvičení, rychlý přehled), verze `app-version.js`, `package.json`, `sw.js` → `hokej-v83`, `README.md`, `docs/KONVENCE.md`, `docs/plan-v18.md`, `docs/plan-trenink.md`, `docs/prompt-dalsi-vlakno.md`.
+
+**Beze změny**
+- Zkratky `HK.can` všech rolí (srovnávací testy `perm-matrix`, `rules-narrow`, `drills`), živý zápis, statistiky, docházka, pokladna, události, žádosti, nepřítomnost, hostující, stávající pravidla kolekcí.
+- Ověřeno: `npm test` (244/244); kouřový test v jsdom (Manager, Trenér s 💰 i bez, Trenér bez `rv`, Asistent, Hráčka s 💰 i bez, Hostující, stará role Kustod, vývojář; bez matice i s `settings/perm`): start bez chyb, přepínač 📚 Cvičení jen u rolí s právem číst, ➕ Nové zapíše jen `drills/…` se známými poli, 🗑 Smazat jen u vyřazeného a jen s právem mazat (asistent bez, s maticí ano), trenér s maticí bez úprav nevidí ➕ ani ✏️; sekce ⚙️ stejné jako ve v20.7.1.
+
 ## v20.7.1 (25. 10. 2026) – stav skóre u gólů v průběhu zápasu
 > **Nasazení:** 1) Zip současného repozitáře. 2) Nahrát kód (nový soubor `tests/goal-score.test.js`, nic se nemaže). 3) **firestore.rules beze změny – nepublikovat.** 4) Na zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.7.1. 5) Test: Zápasy → detail zápasu → krok 3 Zápas živě → Průběh – u každého gólu štítek „Stav 2:1“ (naše : soupeř) vedle situace (5 na 5 / Přesilovka / Oslabení). **🔒 Vyžadovat verzi: ne** (tvar dat se nemění). Návrat: nahrát zip v20.7.
 

@@ -66,6 +66,7 @@ const SECTIONS = [
 <li><b>Realizační tým:</b> členy přidává a maže manager nebo trenér; funkce mají stejné názvy jako role – Manager, Trenér, Asistent, Jiný (dřívější funkce Kustod se zobrazuje jako Asistent a uloží se tak při nejbližší úpravě). Funkce je jen popis v seznamu, práva dává role účtu v ⚙️ → 👥 Tým a členové. Plat (měsíčně / za událost) nastavuje správce pokladny (Upravit → Plat), vidí ho jen správce pokladny a člen sám.</li>
 <li><b>Soukromí plateb:</b> skupinu plateb, osvobození, koeficient a poznámku k platbám vidí jen trenér a pokladník (a hráčka svoje) – ostatním se štítek plateb u hráčky nezobrazuje.</li>
 <li><b>Správa pokladny:</b> trenér a pokladník mají nahoře v Teamu přepínač <b>Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet</b>. Hráčka-pokladník vidí formaci jen ke čtení; u hráček a realizačního týmu mění jen platby (skupina, osvobozená, koeficient, poznámka, plat).</li>
+<li><b>📚 Cvičení</b> (manager, trenér, asistent; přepínač nahoře v Teamu): banka cvičení pro tréninky. <b>➕ Nové</b> = název, kategorie (část tréninku), dovednosti, úroveň, pro koho se hodí, délka, pomůcky, popis, odkaz na video a ⏲ měření pro stopky. Hledání a <b>Filtry</b> (kategorie, dovednost, úroveň, ⭐ jen oblíbená, 🗄 vyřazená). Klepnutím na cvičení se otevře detail: ⭐ oblíbené (jen v tomto zařízení), ✏️ Upravit, ⧉ Kopie, 🗄 Vyřadit. Cvičení se nemaže, ale vyřazuje (plány tréninků na něj mohou odkazovat); 🗑 Smazat jde jen u vyřazeného. Kdo smí upravovat a mazat, nastaví manager v ⚙️ → 🔐 Práva rolí (výchozí: trenér vše, asistent bez mazání).</li>
 <li><b>Rotace dvou hráček na jednom místě:</b> pod každou pětkou je řádek <b>⇄ rotace</b>. Hlavní hráčka nastupuje první, pořadí změníš přetažením. V živém zápisu je partnerka malé tlačítko <b>⇄ číslo jméno</b> pod hráčkou ve frontě – viz kapitola 5.</li>
 </ul>`},
   {t: "5. Nový zápas (3 kroky)", h: `
@@ -212,6 +213,7 @@ ${defTable()}`},
 <tr><td>Výchozí sraz a délka tréninku</td><td>⚙️ → 📅 Události → ⏰ Nastavení událostí</td></tr>
 <tr><td>Přidat hráčku</td><td>Team → Soupiska (trenér)</td></tr>
 <tr><td>Nastavit pětky</td><td>Team → Základní formace</td></tr>
+<tr><td>Banka cvičení</td><td>Team → 📚 Cvičení</td></tr>
 <tr><td>Vybrat nominaci</td><td>Zápas → krok 2 → A Nominace</td></tr>
 <tr><td>Spustit živý zápis</td><td>Zahájit zápas (krok 1 nebo 3)</td></tr>
 <tr><td>Střídání / střela</td><td>Klepnout na hráčku ve frontě / na ledě</td></tr>

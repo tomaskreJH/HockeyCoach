@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v20.7.1 (25. 10. 2026)** – u každého gólu v průběhu zápasu (detail zápasu → krok 3) je vidět **stav skóre po gólu**. **firestore.rules beze změny.** Předtím v20.7 – D4: **úklid před modulem Trénink** – odstraněny hotové jednorázové převody (⚙️ Kontrola dat, převod soukromí, 🔁 převod rolí), stará role Kustod se už nepřevádí (stejně jako v pravidlech databáze), přehlednější `main.js`, plán zkrácen. **firestore.rules beze změny.** Předtím v20.6 – zúžení pravidel podle rolí. Další: v21.0 – 🏒 modul Trénink, E1 banka cvičení ([docs/plan-trenink.md](docs/plan-trenink.md)); notifikace (N) až po něm.
+**Aktuální verze: v21.0 (25. 10. 2026)** – E1: **📚 banka cvičení** (Team → 📚 Cvičení) – první část modulu Trénink. **firestore.rules: publikovat před kódem** (nová kolekce `drills`). Předtím v20.7.1 – stav skóre u gólů v průběhu zápasu; v20.7 – D4: **úklid před modulem Trénink** – odstraněny hotové jednorázové převody (⚙️ Kontrola dat, převod soukromí, 🔁 převod rolí), stará role Kustod se už nepřevádí (stejně jako v pravidlech databáze), přehlednější `main.js`, plán zkrácen. **firestore.rules beze změny.** Předtím v20.6 – zúžení pravidel podle rolí. Další: v21.0 – 🏒 modul Trénink, E1 banka cvičení ([docs/plan-trenink.md](docs/plan-trenink.md)); notifikace (N) až po něm.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -41,10 +41,10 @@ Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrá
 | Role (`members/{email}.role`) | Smí |
 |---|---|
 | `manager` (+ `rv: 2`) | vše (členové a ✋ žádosti o přijetí do týmu, soupiska, zápasy, události, docházka, pokladna vždy, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze); managerů víc, aspoň jeden zůstává vždy |
-| `trener` (+ `rv: 2`) | sport: zápasy a živý zápis, události, docházka, soupeři, formace, soupiska a realizační tým; pokladna jen s příznakem `cash` (převod ho dá každému trenérovi, který nebude managerem) |
-| `asistent` (+ `rv: 2`) | dřívější kustod: zápasy a živý zápis, soupeři, formace, události (i ❌ zrušení), docházka za kohokoli, ✋ žádosti o změnu účasti; u hráčky jen stav |
+| `trener` (+ `rv: 2`) | sport: zápasy a živý zápis, události, docházka, soupeři, formace, soupiska a realizační tým, 📚 banka cvičení; pokladna jen s příznakem `cash` (převod ho dá každému trenérovi, který nebude managerem) |
+| `asistent` (+ `rv: 2`) | dřívější kustod: zápasy a živý zápis, soupeři, formace, události (i ❌ zrušení), docházka za kohokoli, ✋ žádosti o změnu účasti; u hráčky jen stav; 📚 banka cvičení – číst, zakládat a upravovat (mazat podle matice) |
 | jiná hodnota role (např. stará `kustod`) | bez přístupu – přihlášení ukáže „neplatná role“, manager ji změní v ⚙️ → 👥 Tým a členové; `trener` bez `rv` = Trenér |
-| `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; Moje platby jen své předpisy |
+| `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; banku cvičení nevidí; Moje platby jen své předpisy |
 | `host` (+ `pid` hráčky 🎟) | hostující: čte jen sebe (svou hráčku, docházku, předpisy, žádosti, nepřítomnosti) a veřejné hlavičky `evpub`; formaci `lineuppub` jen u události se svým ✅ Jdu |
 | matice `settings/perm` | práva Trenér / Asistent / Hráčka po modulech (číst / upravovat / rušit / mazat), mění jen manager v ⚙️ → 🔐 Práva rolí; chybějící dokument = výchozí práva (tabulka výše); pevné zůstává sport (zápasy, docházka, formace), soupiska, členové, pokladna (příznak `cash`) a nastavení |
 | příznak `cash: true` | pokladník: předpisy, pohyby, vyúčtování, nastavení pokladny; **členy jen s rolí Hráčka a ne vlastní účet** |
