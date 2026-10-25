@@ -40,6 +40,7 @@ import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf,
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
+import {TRTPL_COLL} from "../domain/plan-reuse.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -83,9 +84,9 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // joinreq = žádosti o přijetí do týmu (čte jen manager a uchazeč; výsledek je v members, soupisce a auditu),
 // evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta)
 const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL];
-// Kolekce Tréninku, které se v zařízení nečtou celé (plán jen u otevřeného tréninku, obrázky cvičení na vyžádání):
+// Kolekce Tréninku, které se v zařízení nečtou celé (plán jen u otevřeného tréninku, obrázky cvičení a šablony plánu na vyžádání):
 // do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
-const FETCH = [TRPLAN_COLL, DRILLIMG_COLL];
+const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL];
 [...COLL, ...EXTRA, ...FETCH].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
@@ -301,7 +302,9 @@ const db = {
     part: id => ({onSnapshot: (cb, er) => listenPart(c, id, cb, er)}),
     add: async d => { const id = fsDoc(fsCol(fs, c)).id; writeDoc(c, id, d); return {id}; },
     // Nové id dokumentu (bez zápisu) – pro založení hráčky a jejích platebních polí v jedné dávce
-    newId: () => fsDoc(fsCol(fs, c)).id
+    newId: () => fsDoc(fsCol(fs, c)).id,
+    // Jednorázové čtení celé kolekce [{id, ...data}] (šablony plánu, kontrola použití cvičení); chyba (práva, offline bez kopie) = výjimka
+    getAll: async () => (await getDocs(fsCol(fs, c))).docs.map(d => ({id: d.id, ...clone(d.data())}))
   }),
   doc: p => {
     const [c, id] = splitPath(p);

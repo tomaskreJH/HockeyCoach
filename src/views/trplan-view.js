@@ -3,6 +3,7 @@
 // (pětky 1–4 z rozdělení + 🥅 brankářky); u stanovišť rozpis točení po kolech. Čte se jen pro otevřený trénink (jeden poslech).
 // Práva: číst / upravovat podle modulu trplan (HK.perm); hráčka vidí celý plán se zvýrazněnou svou skupinou, bez upozornění pro trenéry.
 // Cvičení klepnutím otevře okno s obrázky (přes celou obrazovku) a popisem; výpočty v domain/training-plan.js.
+// ⧉ kopie z předchozího tréninku, 📑 šablony a 📊 pokrytí dovedností: views/trplan-reuse.js.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Načtení plánu -> Vykreslení (karta, okno cvičení, úprava) -> Eventy -> Exporty.
 
 // ===== Importy =====
@@ -14,6 +15,7 @@ import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {GK, MODES, PLAN_MAX, TRPLAN_COLL, blockBlank, clock, grpLabel, hm2min, isFixedLane, laneBlank, laneOf, moveBlock, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, rotation} from "../domain/training-plan.js";
 import {bindThumbs, thumbsHtml} from "./drill-media.js";
+import {bindCover, bindReuse, coverHtml, reuseHtml} from "./trplan-reuse.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -140,7 +142,7 @@ function cardHtml(ctx) {
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
   else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do pětek.</div><button class="p w" id="tpnew" style="min-height:48px">➕ Vytvořit plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
-  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${body}</div>` + drillSheetHtml(p, X, D);
+  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${body}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
 
 // ===== Vykreslení: úprava plánu =====
@@ -174,7 +176,8 @@ function editorHtml(ctx) {
 <div class="cd"><h2>✏️ Plán tréninku</h2><div class="mu">${esc(ev.title)} · ${esc(ev.time || "")}${ctx.end ? "–" + esc(ctx.end) : ""}${X.total ? " (" + X.total + " min)" : ""} · naplánováno <b>${used} min</b></div>
 <label>🎯 Téma tréninku (nepovinné)</label><input id="tpg" maxlength="${PLAN_MAX.goal}" value="${esc(p.goal || "")}" placeholder="např. Přihrávky v pohybu">
 <div class="mu" style="font-size:13px">Skupiny: ${gl || "zatím nikdo"}${free ? ` · bez pětky ${free}` : ""}. Rozdělení do pětek upravíš v detailu tréninku (i ⚖ vyrovnaně).</div>
-${issuesHtml(p, X, D)}${(S.dr || []).length ? "" : '<div class="msg">Banka cvičení je prázdná nebo se nenačetla – cvičení přidej v Team → 📚 Cvičení.</div>'}</div>
+${issuesHtml(p, X, D)}${(S.dr || []).length ? "" : '<div class="msg">Banka cvičení je prázdná nebo se nenačetla – cvičení přidej v Team → 📚 Cvičení.</div>'}
+${reuseHtml(ev.id)}${coverHtml(ev.id, X)}</div>
 ${p.blocks.map((b, bi) => blockEditHtml(b, bi, T[bi], X, D, p.blocks.length)).join("")}
 ${p.blocks.length < PLAN_MAX.blocks ? `<div class="row" style="margin-bottom:12px"><button class="s" data-tpadd="all">+ 👥 Společně</button><button class="s" data-tpadd="st">+ 🔄 Stanoviště</button></div>` : ""}
 <div class="tpsv"><div class="row"><button class="p" id="tpok" style="flex:2;min-height:52px">💾 Uložit plán</button>${had ? `<button class="d" id="tpdel" style="flex:1;${armed(kd) ? "background:var(--no);color:#fff" : ""}">${armed(kd) ? "Opravdu smazat?" : "🗑 Smazat plán"}</button>` : ""}</div></div></div>`;
@@ -219,11 +222,15 @@ function bindEditor(a, ctx) {
     toast(err ? "Plán uložen – pozor, má " + err + " " + (err === 1 ? "chybu" : "chyby") + " (⛔)" : "Plán tréninku uložen");
     S.tpe = null; render(); window.scrollTo(0, 0);
   };
+  // ⧉ / 📑 převzetí plánu (nahradí rozpracovaný) a 📊 pokrytí
+  bindReuse(a, eid, X, D, p => { const g = a.querySelector("#tpg"); E.p = {...p, goal: p.goal || (g ? g.value : "")}; E.dirty = true; render(); window.scrollTo(0, 0); }, () => E.p);
+  bindCover(a, eid, X, D);
   const del = a.querySelector("#tpdel");
   if (del) del.onclick = () => confirm2("tpdel" + eid, () => { S.db.doc(TRPLAN_COLL + "/" + eid).delete(); S.tp[eid] = null; S.tpe = null; toast("Plán smazán"); render(); });
 }
 function bindCard(a, ctx) {
   const eid = ctx.ev.id, open = p => { S.tpe = {eid, p, dirty: false}; render(); window.scrollTo(0, 0); };
+  bindCover(a, eid, derive(ctx), drillMap());
   const nw = a.querySelector("#tpnew");
   if (nw) nw.onclick = () => open(planBlank());
   const ed = a.querySelector("#tped");

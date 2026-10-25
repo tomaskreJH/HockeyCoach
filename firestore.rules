@@ -198,6 +198,18 @@ service cloud.firestore {
       allow delete: if can('trplan', 'e');
     }
 
+    // ===== 📑 Šablony plánu tréninku trtpl/{id}: sdílené pro tým, čte a spravuje ten, kdo smí upravovat plán (modul trplan, e) =====
+    // Dokument jako plán (bez trenérů a skupin stanovišť) + název 1–60 znaků.
+    function trtplOk(d) {
+      return d.keys().hasOnly(['v', 'name', 'goal', 'blocks', 'by', 'at']) && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.blocks is list && d.blocks.size() <= 30 && (!('goal' in d) || (d.goal is string && d.goal.size() <= 200));
+    }
+    match /trtpl/{id} {
+      allow read: if can('trplan', 'e');
+      allow create, update: if can('trplan', 'e') && trtplOk(request.resource.data);
+      allow delete: if can('trplan', 'e');
+    }
+
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
     match /evcash/{id} { allow read, write: if isCash(); }
     // Cena uzavřené události na hlavu evprice/{id} = {ym, date, tpl, head: {monthly, single, exempt}} (před koeficientem, 0 = skupina neplatí):

@@ -3,6 +3,8 @@
 // Práva: číst / upravovat / mazat podle modulu drills matice (HK.perm); pravidla databáze vynucují totéž.
 // ⭐ oblíbená jsou osobní a pamatují se v tomto zařízení (localStorage). Výpočty a kontrola formuláře: domain/drills.js.
 // 📷 Obrázky (nejvýš 3, zmenšené v zařízení) se ukládají spolu s cvičením v jedné dávce do drillimg/{id}; 📄 PDF jen jako odkaz.
+// 🗑 smazání vyřazeného cvičení jen, když ho nepoužívá žádný plán tréninku ani šablona (jednorázové čtení trplan a trtpl); smaže i jeho obrázky.
+// 📥 Základní sada a 📄 import z tabulky: views/drill-import-view.js.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Vykreslení (seznam, detail, formulář) -> Eventy -> Exporty.
 
 // ===== Importy =====
@@ -12,7 +14,10 @@ import {S} from "../core/state.js";
 import {$, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {DRILLIMG_COLL, DRILL_COLL, DRILL_MAX, DUR_MAX, DUR_MIN, IMG_MAX, drillBlank, drillCanDelete, drillCopy, drillCounts, drillDoc, drillError, drillFilter, imgChanges, imgDoc} from "../domain/drills.js";
+import {TRTPL_COLL} from "../domain/plan-reuse.js";
+import {TRPLAN_COLL, drillUsage} from "../domain/training-plan.js";
 import {bindThumbs, imgForget, imgRemember, imgSrc, loadImgs, shrinkImage, thumbsHtml} from "./drill-media.js";
+import {bindImportBtns, importBtnsHtml, importOpen, importView} from "./drill-import-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -41,6 +46,27 @@ const measText = m => m ? UNITS[m.u] + (m.low ? " · nižší je lepší" : " ·
 const draft = (id, d) => ({id, d, orig: id ? [...(d.img || [])] : [], nw: []});
 // Překreslení po načtení obrázku: ve formuláři nejdřív převzít rozepsané hodnoty
 const redraw = () => { if (document.getElementById("dfn")) readForm(); render(); };
+// Použití cvičení v plánech tréninků a šablonách (S.dru): načte se jednou při otevření vyřazeného cvičení s právem mazat.
+// Plány musí jít přečíst (jinak se mazat nedá); šablony jen, když na ně uživatel má právo (jinak se nepočítají).
+function loadUsage() {
+  if (S.dru) return;
+  const R = S.dru = {st: "load", m: {}};
+  const tpl = S.db.collection(TRTPL_COLL).getAll().catch(() => []);
+  Promise.all([S.db.collection(TRPLAN_COLL).getAll(), tpl])
+    .then(([p, t]) => { if (S.dru === R) { R.m = drillUsage([...p, ...t]); R.st = "ok"; render(); } })
+    .catch(e => { if (S.dru === R) { R.st = "err"; R.err = (e && (e.code || e.message)) || "chyba"; render(); } });
+}
+// Řádek se smazáním vyřazeného cvičení: podle použití v plánech tlačítko, nebo vysvětlení, proč smazat nejde
+function deleteHtml(d) {
+  if (!canD() || !d.arch) return "";
+  loadUsage();
+  const U = S.dru, k = "dr-del:" + d.id;
+  if (U.st === "load") return '<div class="mu" style="font-size:12px">Ověřuji, zda cvičení nepoužívá nějaký plán…</div>';
+  if (U.st === "err") return `<div class="mu" style="font-size:12px;color:var(--wa)">Použití v plánech nejde ověřit (${esc(U.err)}) – smazat teď nejde.</div>`;
+  const used = U.m[d.id] || 0;
+  if (!drillCanDelete(d, used)) return `<div class="mu" style="font-size:12px">Používá ho ${used} ${used === 1 ? "plán tréninku nebo šablona" : used < 5 ? "plány tréninků nebo šablony" : "plánů tréninků nebo šablon"} – smazat nejde, zůstává vyřazené.</div>`;
+  return `<button class="d" data-ddl="${esc(d.id)}" style="flex:none;${armed(k) ? "background:var(--no);color:#fff" : ""}">${armed(k) ? "Opravdu smazat?" : "🗑 Smazat"}</button>`;
+}
 
 // ===== Vykreslení: seznam =====
 function itemHtml(d, F) {
@@ -52,7 +78,7 @@ ${open ? detailHtml(d, F) : ""}</div></div>`;
 }
 function listHtml() {
   const F = favs(), l = drillFilter(S.dr, S.drf, F);
-  return l.length ? l.map(d => itemHtml(d, F)).join("") : `<div class="msg">${S.dr.length ? "V tomto výběru nic není." : "Banka je zatím prázdná."}</div>`;
+  return l.length ? l.map(d => itemHtml(d, F)).join("") : `<div class="msg">${S.dr.length ? "V tomto výběru nic není." : (canE() ? "Banka je zatím prázdná – začni tlačítkem 📥 Základní sada." : "Banka je zatím prázdná.")}</div>`;
 }
 function filterHtml() {
   const f = S.drf, c = drillCounts(S.dr);
@@ -67,7 +93,7 @@ ${foOpen ? `<h3>Kategorie</h3><div class="chips">${Object.entries(CATS).map(([k,
 
 // ===== Vykreslení: detail =====
 function detailHtml(d, F) {
-  const e = canE(), del = canD() && drillCanDelete(d), k = "dr-del:" + d.id;
+  const e = canE();
   return `<div style="margin-top:8px" data-stop="1">
 ${d.arch ? '<div><span class="tag red">🗄 Vyřazené</span></div>' : ""}
 ${(d.sk || []).length ? `<div class="mu">Dovednosti: ${esc(d.sk.map(x => SKILLS[x] || x).join(", "))}</div>` : ""}
@@ -83,7 +109,7 @@ ${d.pdf ? `<div><a href="${esc(d.pdf)}" target="_blank" rel="noopener">📄 PDF 
 <button class="s" data-fav="${esc(d.id)}" style="flex:none">${F.has(d.id) ? "☆ Odebrat z oblíbených" : "⭐ Oblíbené"}</button>
 ${e && !d.arch ? `<button class="s" data-ded="${esc(d.id)}" style="flex:none">✏️ Upravit</button><button class="s" data-dcp="${esc(d.id)}" style="flex:none">⧉ Kopie</button>` : ""}
 ${e ? `<button class="s" data-dar="${esc(d.id)}" style="flex:none">${d.arch ? "↩ Vrátit do banky" : "🗄 Vyřadit"}</button>` : ""}
-${del ? `<button class="d" data-ddl="${esc(d.id)}" style="flex:none;${armed(k) ? "background:var(--no);color:#fff" : ""}">${armed(k) ? "Opravdu smazat?" : "🗑 Smazat"}</button>` : ""}
+${deleteHtml(d)}
 </div>${e && !d.arch ? '<div class="mu" style="font-size:12px;margin-top:4px">Cvičení se nemaže, ale vyřazuje – plány tréninků na něj mohou odkazovat. Smazat jde jen vyřazené.</div>' : ""}</div>`;
 }
 
@@ -150,9 +176,18 @@ async function addImage(file) {
   } catch (e) { toast((e && e.message) || "Obrázek se nepodařilo přidat"); }
   render();
 }
+// Smazání vyřazeného a nepoužitého cvičení v jedné dávce i s jeho obrázky (drillimg)
+function removeDrill(id) {
+  const d = byId(id), b = S.db.batch();
+  (d && d.img || []).forEach(x => { b.delete(DRILLIMG_COLL + "/" + x); imgForget(x); });
+  b.delete(DRILL_COLL + "/" + id);
+  b.commit();
+  S.dro = null; toast("Cvičení smazáno");
+}
 function archToggle(id) {
   const d = byId(id);
   if (!d) return;
+  S.dru = null;                                    // po vyřazení se použití v plánech ověří znovu
   S.db.doc(DRILL_COLL + "/" + id).merge({arch: !d.arch, ...stamp()}).catch(() => toast("Uložení se nepovedlo"));
   toast(d.arch ? "Cvičení je zpět v bance" : "Cvičení je vyřazené (najdeš ho ve filtru 🗄 Vyřazená)");
 }
@@ -187,13 +222,14 @@ function bindList(a) {
   bindItems(a);
 }
 function bindItems(a) {
-  a.querySelectorAll("[data-dro]").forEach(b => b.onclick = e => { if (e.target.closest("[data-stop]")) return; S.dro = S.dro === b.dataset.dro ? null : b.dataset.dro; render(); });
+  // Otevření cvičení; u vyřazeného se použití v plánech načte znovu (mohlo se změnit)
+  a.querySelectorAll("[data-dro]").forEach(b => b.onclick = e => { if (e.target.closest("[data-stop]")) return; S.dro = S.dro === b.dataset.dro ? null : b.dataset.dro; if (S.dro && (byId(S.dro) || {}).arch) S.dru = null; render(); });
   a.querySelectorAll("[data-fav]").forEach(b => b.onclick = () => { favToggle(b.dataset.fav); render(); });
   a.querySelectorAll("[data-ded]").forEach(b => b.onclick = () => { const d = byId(b.dataset.ded); if (d) { S.dre = draft(d.id, drillDoc(d)); render(); window.scrollTo(0, 0); } });
   a.querySelectorAll("[data-dcp]").forEach(b => b.onclick = () => { const d = byId(b.dataset.dcp); if (d) { S.dre = draft(null, drillCopy(d)); render(); window.scrollTo(0, 0); } });
   bindThumbs(a);
   a.querySelectorAll("[data-dar]").forEach(b => b.onclick = () => archToggle(b.dataset.dar));
-  a.querySelectorAll("[data-ddl]").forEach(b => b.onclick = () => { const id = b.dataset.ddl; confirm2("dr-del:" + id, () => { S.dro = null; S.db.doc(DRILL_COLL + "/" + id).delete(); }); });
+  a.querySelectorAll("[data-ddl]").forEach(b => b.onclick = () => { const id = b.dataset.ddl; confirm2("dr-del:" + id, () => removeDrill(id)); });
 }
 
 // ===== Exporty =====
@@ -201,9 +237,12 @@ function bindItems(a) {
 export function drillsView(a, head) {
   if (S.dre && !canE()) S.dre = null;
   if (S.dre) { a.innerHTML = head + formHtml(S.dre); bindForm(a); return; }
+  if (importOpen()) { importView(a, head); return; }
   const act = S.dr.filter(d => !d.arch).length;
   a.innerHTML = `${head}<div class="cd"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📚 Banka cvičení (${act})</h2>${canE() ? '<button class="p" id="drnew" style="flex:none">➕ Nové</button>' : ""}</div>
+${importBtnsHtml()}
 ${S.drErr ? `<div class="msg">Banku cvičení se nepodařilo načíst (${esc(S.drErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>` : ""}
 ${filterHtml()}<div id="drl">${listHtml()}</div></div>`;
   bindList(a);
+  bindImportBtns(a);
 }
