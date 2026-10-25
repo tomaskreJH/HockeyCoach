@@ -3,7 +3,7 @@
 // Přepínač nahoře (jen správce pokladny): Team | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet (stav S.tm); režimy pokladny vykresluje cashPanel() z events.js.
 // Hráčka s příznakem pokladník vidí formaci a náhradnice jen ke čtení (bez přetahování); u hráček a realizačního týmu mění jen platby
 // (okno Platby / Plat v modal.js – ostatní pole dokumentu zůstanou, pravidla databáze jí víc nedovolí).
-// Role: přidávat a mazat hráčky a spravovat realizační tým smí jen trenér; kustod u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
+// Role: přidávat a mazat hráčky a spravovat realizační tým smí jen manager a trenér; asistent u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
 // Tlačítka, na která role nemá právo, se nezobrazují (práva navíc vynucují pravidla databáze).
 // Soukromí: platební pole hráčky jsou v plpay/{pid} a plat člena týmu ve staffpay/{tid} (čtou jen správci pokladny) – štítek plateb
 // u hráčky vidí jen správce pokladny; nová hráčka se zakládá v jedné dávce s dokumentem plpay, se smazáním zmizí i plpay / staffpay.
@@ -36,7 +36,7 @@ const Q2=s=>document.querySelector(s)||{};
 export function players(a){const cnt=k=>S.pl.filter(p=>stOf(p)===k).length;const l=S.pl.filter(p=>(S.pf==="all"||stOf(p)===S.pf)&&(S.pq==="all"||(p.pos||"")===S.pq)).sort((x,y)=>pri(x)-pri(y)||x.name.localeCompare(y.name,"cs"));
 const T=[...S.tr].sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs"));
 // Oprávnění přihlášeného uživatele
-// Upravit hráčku: trenér, kustod (stav) a správce pokladny (pole plateb – i hráčka s příznakem pokladník); sestavu a přetahování hráčka-pokladník nemění
+// Upravit hráčku: trenér, asistent (stav) a správce pokladny (pole plateb – i hráčka s příznakem pokladník); sestavu a přetahování hráčka-pokladník nemění
 const coach=HK.can("roster"),cashier=HK.can("money"),edit=!ro()||cashier;
 a.innerHTML=`${coach?`<div class="cd"><h2>Přidat hráče</h2><div class="row"><div style="flex:3"><label>Přezdívka / jméno</label><input id="n"></div><div><label>Číslo</label><input id="c" inputmode="numeric"></div></div>
 <div class="row"><div><label>Pozice</label><select id="p">${POS.map(x=>`<option>${x}</option>`).join("")}<option value="">Neurčeno</option></select></div><div><label>Alternativní pozice</label><select id="q"><option value="">–</option>${POS.map(x=>`<option>${x}</option>`).join("")}</select></div></div>
@@ -75,7 +75,7 @@ a.innerHTML=`${modeChips()}${r?'<div class="cd mu">Formace, soupiska a realizač
 <div class="cd"><h2>Náhradnice (${B.length})</h2>${r?"":'<div class="mu" style="margin-bottom:8px">Nezařazené hráčky. Přetažením je dáš na místo v sestavě, nebo je prohodíš mezi sebou. Sestavu sem můžeš vrátit přetažením místa na tuto plochu.</div>'}<div class="bz" data-bz="1">${B.map(id=>`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`).join("")||'<span class="mu">Všechny hráčky jsou v sestavě.</span>'}</div></div>
 <div id="plw"></div>`;
 bindChips(a);
-// Přetahování a výběr na místo jen pro trenéra a kustoda (pohled jen ke čtení je bez obsluhy)
+// Přetahování a výběr na místo jen pro managera, trenéra a asistenta (pohled jen ke čtení je bez obsluhy)
 if(!r)teamDrag(a);
 players($("#plw"))}
 

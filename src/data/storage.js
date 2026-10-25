@@ -4,14 +4,14 @@
    a collection(c).where(pole, hodnota) pro členy, kteří smí číst jen své předpisy, collection(c).one(id) pro jediný vlastní dokument
    (hráčka: plpay/{pid}). Ceny událostí na hlavu evprice doplní ⚙️ → Pokladna (domain/economy.js pricePlan). Struktura: Importy -> Konstanty a stav
    -> Pomocné funkce -> Náhled role -> Data (poslech, zápis, kontrola mazání) -> Přihlášení a role -> Rozhraní pro okno ⚙️ (HK.cfg;
-   vykreslení je v views/settings-view.js) -> Kontrola dat -> Zálohy -> Exporty.
+   vykreslení je v views/settings-view.js) -> Matice práv a brána verze -> Zálohy -> Exporty.
    Náhled role: vývojář (DEV_EMAILS) si v ⚙️ zvolí roli, hráčku / člena týmu a příznak pokladníka; volba je jen v paměti
    zařízení (sessionStorage), po znovunačtení stránky platí jako role účtu (main.js podle ní poslouchá jen povolená data).
    Výchozí je jen ke čtení – každý zápis (doc.set, add, delete, dávka, členové, obnova zálohy) skončí hláškou „V náhledu se nezapisuje“.
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
    Minimum nastavuje jen manager (⚙️ → 🔒 Aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
-   Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; staré kustod = asistent, trener bez rv = manager – jen v aplikaci, pravidla databáze staré role neznají);
+   Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; jiná hodnota role, např. stará kustod, nemá přístup – stejně jako v pravidlech databáze);
    matice práv settings/perm (zapisuje jen manager, ⚙️ → 🔐 Práva rolí) se předává do HK.can a HK.perm – chybějící dokument = výchozí práva.
    Účet Google bez členství vidí formulář ✋ žádosti o přijetí (joinreq/{e-mail}, views/join-view.js), manager ji vyřídí v okně z 🏠 / ⚙️.
    Pokladník (bez role manager) spravuje jen členy s rolí Hráčka a nemění vlastní účet (stejně vynucují pravidla databáze).
@@ -19,10 +19,8 @@
    dokumenty evpub / lineuppub (main.js poslouchá jen ty); collection(c).part(id) = poslech jednoho dokumentu, výsledky se sčítají.
    Úplné smazání události se vším souvisejícím (wipeEvent, domain/event-cancel.js) smí jen vývojář s rolí manager mimo náhled.
    syncOps = tichý zápis odvozených dokumentů (veřejné dokumenty hostujících, automatické omluvy z nepřítomnosti) bez hlášek.
-   Soukromí: citlivá data jsou v kolekcích attnote (důvody omluv), staffpay (platy týmu) a plpay (platební pole hráček) – jsou v záloze;
-   ⚙️ → Kontrola dat je převede ze starých polí (náhled, záloha, idempotentně) a po 🔒 Vyžadovat verzi stará pole smaže
-   (domain/private-data.js: privacyPlan, cleanPlan). Obnova staré zálohy rozdělí stará pole do nových kolekcí (splitLegacy),
-   protože pravidla databáze je už zapsat nedovolí. */
+   Soukromí: citlivá data jsou v kolekcích attnote (důvody omluv), staffpay (platy týmu) a plpay (platební pole hráček) – jsou v záloze.
+   Obnova staré zálohy rozdělí stará pole do nových kolekcí (splitLegacy), protože pravidla databáze je už zapsat nedovolí. */
 
 // ===== Importy =====
 import {KIND_OLD} from "../config/constants.js";
@@ -30,16 +28,16 @@ import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
 import {APP_LABEL, APP_VERSION, canRaise, isOutdated} from "../core/app-version.js";
 import {csv, downloadFile, esc, toast} from "../core/utils.js";
 import {BUDGET_COLL} from "../domain/budget.js";
-import {exFixPlan, exOf, fxOf} from "../domain/cash.js";
+import {exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
 import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL, isGuest} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
 import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
-import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf, isLegacy, keepsManager, managerCount, permClean, permDoc, permOf, roleLabel, roleOf, rolePlan} from "../domain/permissions.js";
+import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf, keepsManager, permClean, permDoc, permOf, roleLabel, roleOf} from "../domain/permissions.js";
 import {REQ_COLL} from "../domain/requests.js";
-import {NOTE_COLL, PPAY_COLL, SPAY_COLL, cleanPlan, legacyLeft, privacyPlan, splitLegacy, withPlPay} from "../domain/private-data.js";
+import {NOTE_COLL, PPAY_COLL, SPAY_COLL, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -53,9 +51,9 @@ const VERSION = APP_LABEL;                                              // čís
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
 // výjimkách, stornech, příspěvcích a platech, evcash = náklady a vyúčtování událostí (jen správci pokladny; v dokumentu události je jen příznak ss),
 // attnote = důvody omluv, staffpay = platy realizačního týmu, plpay = platební pole hráček (soukromé kolekce, jsou v záloze)
-// series = definice sérií tréninků (domain/recurrence.js); v záloze, pokud se v zařízení načetla (trenér / kustod)
+// series = definice sérií tréninků (domain/recurrence.js); v záloze, pokud se v zařízení načetla (manager / trenér / asistent)
 // budget = rozpočty sezón (domain/budget.js); v záloze, pokud se v zařízení načetla (správce pokladny)
-// absence = nepřítomnosti členů od – do (domain/absence.js); v záloze, pokud se v zařízení načetla (trenér / kustod všechny)
+// absence = nepřítomnosti členů od – do (domain/absence.js); v záloze, pokud se v zařízení načetla (manager / trenér / asistent všechny)
 const COLL = ["players", "matches", "opponents", "settings", "events", "attendance", "staff", "charges", "cash", "audit", "evcash", NOTE_COLL, SPAY_COLL, PPAY_COLL, SERIES_COLL, BUDGET_COLL, ABS_COLL];
 const ROLES = ROLE_LABELS;                                              // popisy rolí v members/{email} (domain/permissions.js)
 const PID_ROLES = PID_ROLE_KEYS;                                        // role, které vstupují jen s propojenou hráčkou (pid)
@@ -65,10 +63,8 @@ const RO_MSG = "V náhledu se nezapisuje";
 const OLD_MSG = "Starší verze aplikace – zápis je zablokovaný. Načti novou verzi (⚙️ → Načíst novou verzi).";
 const APP_DOC = "app";                                                  // settings/app = brána verze {minVer, minBy, minAt}
 const PERM_DOC = "perm";                                                // settings/perm = matice práv {v, roles, by, at} (zapisuje jen manager)
-const CLEAN_MIN = "19.1.1";                                             // úklid starých citlivých polí až při minimální verzi aspoň této
-const ROLE_MIN = "20.4";                                                // převod rolí až při minimální verzi aspoň této (starší verze nové role neznají)
 
-// role = účinná role (domain/permissions.js roleOf), stored = role a rv uložené v members (popis „čeká na převod“),
+// role = účinná role (domain/permissions.js roleOf), stored = role a rv uložené v members (popis neplatné role v ⚙️),
 // pid = hráčka propojená s účtem, tid = člen realizačního týmu propojený s účtem, cash = pokladník (příznak navíc k roli)
 let fs = null, auth = null, user = null, role = null, pid = null, tid = null, cash = false, isReady = false, readyP = null;
 let stored = {role: null, rv: null}, memCache = [];          // memCache = poslední načtený seznam members (ochrana posledního managera)
@@ -82,7 +78,7 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // evprice = ceny uzavřených událostí na hlavu (odvozují se z evcash, po obnově se doplní v ⚙️ → Pokladna),
 // requests = žádosti členů (průběh vyřízení; výsledek schválení je v plpay a v auditu),
 // joinreq = žádosti o přijetí do týmu (čte jen manager a uchazeč; výsledek je v members, soupisce a auditu),
-// evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace trenéra / kustoda)
+// evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta)
 const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL];
 [...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
 
@@ -105,7 +101,7 @@ const CAN = {
   members: () => actOf(role, cash, "members", false, perms()),    // ⚙️ Členové týmu: manager (všichni), pokladník (jen hráčky)
   roster: () => actOf(role, cash, "roster", false, perms()),      // přidat a smazat hráčku, spravovat realizační tým: manager, trenér
   accounts: () => actOf(role, cash, "accounts", false, perms()),  // navrhnout změnu účtu pro QR platby: manager
-  admin: () => actOf(role, cash, "admin", false, perms()),        // obnova ze zálohy, brána verze, role členů, ✋ žádosti, převod rolí, matice práv: manager
+  admin: () => actOf(role, cash, "admin", false, perms()),        // obnova ze zálohy, brána verze, role členů, ✋ žádosti, matice práv: manager
   onlyOwn: () => actOf(role, cash, "onlyOwn", false, perms()),    // hráčka a hostující: vidí a mění jen své (odpověď, Moje platby), Team jen ke čtení
   guest: () => actOf(role, cash, "guest", false, perms()),        // hostující s účtem: jen vlastní data a veřejné dokumenty (evpub, lineuppub)
   wipe: () => actOf(role, cash, "wipe", isDev() && !pv, perms())  // úplné smazání události se vším (testovací data): jen vývojář mimo náhled
@@ -119,16 +115,14 @@ const splitPath = p => { const i = p.indexOf("/"); return [p.slice(0, i), p.slic
 
 // ===== Náhled role =====
 const isDev = () => !!(user && DEV_EMAILS.includes(user.email.toLowerCase()));
-// Uložená volba náhledu; stará hodnota kustod se čte jako asistent
-const pvRead = () => { try { const o = JSON.parse(sessionStorage.getItem(PV_KEY) || "null"); if (o) o.role = roleOf(o.role, ROLE_VER); return o && o.role && (!PID_ROLES.includes(o.role) || o.pid) ? o : null; } catch (e) { return null; } };
+// Uložená volba náhledu (jen platná role, u hráčky / hostující s hráčkou)
+const pvRead = () => { try { const o = JSON.parse(sessionStorage.getItem(PV_KEY) || "null"); if (o) o.role = roleOf(o.role); return o && o.role && (!PID_ROLES.includes(o.role) || o.pid) ? o : null; } catch (e) { return null; } };
 const pvWrite = o => { try { if (o) sessionStorage.setItem(PV_KEY, JSON.stringify(o)); else sessionStorage.removeItem(PV_KEY); } catch (e) {} };
 // Náhled jen ke čtení?
 const ro = () => !!(pv && !pv.write);
 // Brána verze: požadované minimum ze settings/app (načítá se s ostatním nastavením) a test, zda je tato verze starší
 const minVer = () => ((data.settings || {})[APP_DOC] || {}).minVer || "";
 const outdated = () => isOutdated(APP_VERSION, minVer());
-// Smí proběhnout úklid starých citlivých polí? Jen když starší verze aplikace (které stará pole ještě zapisují) už nesmí zapisovat.
-const cleanGate = () => !!minVer() && !isOutdated(minVer(), CLEAN_MIN);
 // Strážce zápisu: starší verze aplikace nebo náhled jen ke čtení vrátí true a ukáže hlášku (nejvýš jednou za 3 s, aby se hlášky nehromadily)
 function blocked() {
   const old = outdated();
@@ -234,7 +228,7 @@ function removeDoc(c, id) {
 // Předpisy jako seznam {id, ...data} a test člena realizačního týmu (pro souhrn dlužníků)
 const chList = () => Object.entries(data.charges).map(([id, d]) => ({id, ...d}));
 const isStaffId = mid => !!data.staff[mid];
-// Hráčky s připojenými platebními poli z plpay (nové místo má přednost, jinak staré pole v players) – Kontrola dat a CSV soupisky
+// Hráčky s připojenými platebními poli z plpay (nové místo má přednost, jinak staré pole v players) – CSV soupisky
 const plMerged = () => Object.fromEntries(Object.entries(data.players).map(([id, p]) => [id, withPlPay(p, data[PPAY_COLL][id])]));
 // Zápis plánu dlužníků po jednotlivých dokumentech (mazání předpisů u události také není jedna dávka)
 function writeDebtors(plan) {
@@ -379,8 +373,8 @@ async function boot() {
       if (g === "out") { await signOut(auth); user = null; }
       continue;
     }
-    // Účinná role: stará hodnota kustod = asistent, trener bez rv = manager; neznámá hodnota zůstane (přístup se nepovolí)
-    stored = {role: r.role, rv: r.rv}; role = roleOf(r.role, r.rv) || r.role; pid = r.pid; tid = r.tid; cash = r.cash;
+    // Účinná role: jen platná hodnota; neplatná (např. stará kustod) zůstane a přístup se nepovolí
+    stored = {role: r.role, rv: r.rv}; role = roleOf(r.role) || r.role; pid = r.pid; tid = r.tid; cash = r.cash;
     // Manager, trenér a asistent vstupují vždy; hráčka a hostující jen tehdy, když je manager propojil s hráčkou v soupisce
     if (STAFF.includes(role) || (PID_ROLES.includes(role) && pid)) {
       // Náhled role: jen účet vývojáře; role náhledu nahradí roli účtu ještě před poslechem dat (main.js)
@@ -393,6 +387,9 @@ async function boot() {
     if (!role) {
       const g = await joinFlow();
       if (g === "ok") continue;
+    } else if (!PID_ROLES.includes(role)) {
+      // Neplatná role v members (např. stará kustod): manager ji musí změnit v ⚙️ → Členové týmu
+      await screen("Přístup zatím není povolen", "Účet <b>" + esc(user.email) + "</b> má neplatnou roli „" + esc(role) + "“. Požádej managera týmu, ať ti nastaví roli (⚙️ → Členové týmu).", [["out", "Odhlásit jiným účtem", "p"]]);
     } else {
       await screen("Přístup zatím není povolen", "Účet <b>" + esc(user.email) + "</b> zatím není propojen s hráčkou v soupisce. Požádej managera týmu, ať ho propojí (⚙️ → Členové týmu).", [["out", "Odhlásit jiným účtem", "p"]]);
     }
@@ -408,9 +405,8 @@ async function boot() {
 // kontroly rolí a jejich popisky zůstávají tady, okno se ptá přes HK.cfg a HK.can.
 const meEmail = () => (user ? user.email.toLowerCase() : "");
 // Přihlášený účet pro záhlaví ⚙️: e-mail, popis role, náhled, pokladník, propojená hráčka / člen týmu
-const acct = () => ({email: user ? user.email : "", label: pv ? ROLES[role] || role || "?" : roleLabel(stored.role, stored.rv), preview: !!pv, cash: cash && role !== "manager",
-  player: PID_ROLES.includes(role) && data.players[pid] ? data.players[pid].name : "", staff: isStaff() && tid && data.staff[tid] ? data.staff[tid].name || "" : "",
-  legacy: !pv && isLegacy(stored.role, stored.rv)});   // účet se starou rolí (kustod, trener bez rv) – pravidla mu od v20.6 nedají správcovská práva
+const acct = () => ({email: user ? user.email : "", label: pv ? ROLES[role] || role || "?" : roleLabel(stored.role), preview: !!pv, cash: cash && role !== "manager",
+  player: PID_ROLES.includes(role) && data.players[pid] ? data.players[pid].name : "", staff: isStaff() && tid && data.staff[tid] ? data.staff[tid].name || "" : ""});
 // Hráčky pro výběr při propojení účtu (bez ukončených), seřazené podle jména; hostující mají značku 🎟
 const playerList = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
   .map(([id, p]) => ({id, label: (p.num ? "#" + p.num + " " : "") + p.name + (isGuest(p) ? " 🎟" : "")}));
@@ -432,16 +428,16 @@ const staffOk = r => r !== "host";
 const joinCount = () => openJoins(Object.entries(data[JOIN_COLL]).map(([id, d]) => ({id, ...d}))).length;
 // Účty members seřazené podle e-mailu {email, role, rv, pid, tid, cash}; poslední seznam se pamatuje (ochrana posledního managera)
 async function memberRows() { return rowsOf(await memberDocs()); }
-// Všechny dokumenty members jako {e-mail: data} (záloha před převodem rolí)
+// Všechny dokumenty members jako {e-mail: data}
 async function memberDocs() { const s = await getDocs(fsCol(fs, "members")); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
 function rowsOf(docs) {
   memCache = Object.entries(docs).map(([email, d]) => ({email, role: d.role, rv: d.rv || null, pid: d.pid, tid: d.tid, cash: d.cash === true})).sort((a, b) => a.email.localeCompare(b.email));
   return memCache;
 }
-// Popis propojení pro seznam členů (stará role dostane poznámku „čeká na převod“)
+// Popis propojení pro seznam členů (neplatná role dostane poznámku „bez přístupu“)
 const memberInfo = r => {
   const p = r.pid && data.players[r.pid], t = r.tid && data.staff[r.tid];
-  return {label: roleLabel(r.role, r.rv), player: PID_ROLES.includes(r.role) ? (p ? (p.num ? "#" + p.num + " " : "") + p.name : null) : undefined, staff: r.tid ? (t ? t.name || "" : null) : undefined};
+  return {label: roleLabel(r.role), player: PID_ROLES.includes(r.role) ? (p ? (p.num ? "#" + p.num + " " : "") + p.name : null) : undefined, staff: r.tid ? (t ? t.name || "" : null) : undefined};
 };
 // Odebrat smí: nikdy vlastní účet ani posledního managera; pokladník (bez role manager) jen členy s rolí Hráčka
 const canRemove = r => r.email !== meEmail() && (can("admin") || r.role === "hracka") && keepsManager(memCache, r.email, null);
@@ -462,7 +458,7 @@ async function saveMember(em, rl, pp, tt, cc) {
   // Pokladník bez role manager: jen role Hráčka a ne vlastní účet (pravidla databáze by zápis odmítla)
   if (!can("admin") && (rl !== "hracka" || em === meEmail())) { say("Pokladník spravuje jen jiné členy s rolí Hráčka"); return false; }
   if (blocked()) return false;
-  // Nová role zapisuje rv (role po převodu); pokladník jen u rolí, které ho nemají vždy (manager je správce pokladny vždy)
+  // Nová role zapisuje rv (verze rolí ROLE_VER); pokladník jen u rolí, které ho nemají vždy (manager je správce pokladny vždy)
   const d = {role: rl, rv: ROLE_VER, addedBy: user.email};
   if (needsPid(rl)) d.pid = pp;
   if (tt && staffOk(rl)) d.tid = tt;
@@ -488,79 +484,6 @@ const backupCounts = obj => { const d = (obj && obj.data) || {}; return COLL.map
 // Brána verze pro ⚙️: požadované minimum, kdo a kdy ho nastavil, zda je tato verze starší a zda ji jde vyžadovat
 const gateInfo = () => { const a = data.settings[APP_DOC] || {}; return {min: a.minVer || "", by: a.minBy || "", at: a.minAt ? String(a.minAt).slice(0, 10) : "", old: outdated(), raise: canRaise(APP_VERSION, minVer())}; };
 
-// ===== Kontrola dat: pole ex u hráček =====
-// Plán doplnění (kolik hráček nemá pole ex a co dostanou); hráčky s připojenými poli z plpay (ex může být v novém i starém místě)
-const exPlan = () => exFixPlan(plMerged());
-// Doplnění pole ex (jen manager, po potvrzení druhým klepnutím): před zápisem se stáhne záloha; lze spustit znovu (doplní jen chybějící).
-// Zapisuje se do nového místa plpay (jen pole ex a fx u starého tvaru osvobozené) – ostatní platební pole zůstanou.
-async function runExFix(close) {
-  if (blocked()) return;
-  const plan = exPlan();
-  if (!plan.length) { say("Není co doplnit"); close(); return; }
-  exportJSON();
-  try { await commitOps(plan.map(x => ["merge", PPAY_COLL, x.id, x.ex ? {ex: true, fx: 1} : {ex: false}])); say("Pole ex doplněno u " + plan.length + " hráček"); close(); }
-  catch (e) { say("Doplnění se nepovedlo: " + errTxt(e) + " – je publikováno firestore.rules?"); }
-}
-// ===== Kontrola dat: soukromí (převod citlivých dat do samostatných kolekcí) =====
-// Zdroj plánu: aktuální data v zařízení (manager poslouchá všechny dotčené kolekce)
-const privSrc = () => ({players: data.players, plpay: data[PPAY_COLL], staff: data.staff, staffpay: data[SPAY_COLL], attendance: data.attendance, attnote: data[NOTE_COLL]});
-// Stav soukromí pro ⚙️: načtené kolekce, plán převodu, zbylá stará pole, plán úklidu a zda úklid smí proběhnout (brána verze)
-function privState() {
-  const loaded = [NOTE_COLL, SPAY_COLL, PPAY_COLL].every(c => first[c]);
-  if (!loaded) return {loaded};
-  return {loaded, plan: privacyPlan(privSrc()), left: legacyLeft(privSrc()), clean: cleanPlan(privSrc()), gate: cleanGate(), cleanMin: CLEAN_MIN};
-}
-// Převod (jen manager, po potvrzení druhým klepnutím): záloha, pak zápis po dávkách. Stará pole zůstávají (smažou se v další verzi).
-async function runPrivFix(close) {
-  if (blocked()) return;
-  const plan = privacyPlan(privSrc());
-  if (!plan.ops.length) { say("Není co převést"); close(); return; }
-  exportJSON();
-  try { await commitOps(plan.ops); say("Převedeno: platby " + plan.pp.length + ", platy " + plan.sp.length + ", důvody " + plan.an.length); close(); }
-  catch (e) { say("Převod se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
-}
-// Úklid starých polí (jen manager, po potvrzení druhým klepnutím): záloha, pak mazání polí po dávkách. Plán se počítá znovu
-// z aktuálních dat (mezitím mohl někdo zapsat); bez převodu nebo brány verze se nic nesmaže.
-async function runPrivClean(close) {
-  if (blocked()) return;
-  if (!cleanGate()) { say("Nejdřív nastav 🔒 Vyžadovat verzi v" + CLEAN_MIN + " nebo novější"); return; }
-  if (privacyPlan(privSrc()).ops.length) { say("Nejdřív převeď citlivá data"); return; }
-  const c = cleanPlan(privSrc());
-  if (!c.ops.length) { say("Není co smazat"); close(); return; }
-  exportJSON();
-  try { await commitOps(c.ops); say("Smazáno: platby " + c.pp + ", platy " + c.sp + ", důvody " + c.an + ". Publikuj firestore.rules."); close(); }
-  catch (e) { say("Smazání se nepovedlo: " + errTxt(e)); }
-}
-// ===== Převod rolí (⚙️ → 💾 Data, jen manager) =====
-// Staré hodnoty members.role → nové podle domain/permissions.js rolePlan: trener → manager (vybraní) nebo trener + pokladník, kustod → asistent.
-// Až při minimální verzi aspoň ROLE_MIN (starší verze nové role neznají a účet by nepustily dál). Před zápisem se stáhne záloha members.
-const roleGate = () => !!minVer() && !isOutdated(minVer(), ROLE_MIN);
-// Stav pro náhled: seznam members, dnešní trenéři před převodem (výchozí manager = přihlášený účet a účty vývojáře), plán s výchozí volbou
-async function roleState() {
-  const rows = await memberRows();
-  const trainers = rows.filter(r => r.role === "trener" && r.rv !== ROLE_VER).map(r => ({email: r.email, def: r.email === meEmail() || DEV_EMAILS.includes(r.email)}));
-  return {gate: roleGate(), min: ROLE_MIN, rows, trainers, managers: managerCount(rows), plan: rolePlan(rows, trainers.filter(t => t.def).map(t => t.email))};
-}
-// Náhled plánu pro zvolené managery (bez zápisu)
-const rolePreview = (rows, mgr) => rolePlan(rows, mgr);
-// Převod (po potvrzení druhým klepnutím): seznam se načte znovu, záloha members, zápis jednou dávkou + záznam do auditu
-async function runRoleConvert(mgr, close) {
-  if (blocked()) return;
-  if (!can("admin")) { say("Převod rolí smí jen manager"); return; }
-  if (!roleGate()) { say("Nejdřív nastav 🔒 Vyžadovat verzi v" + ROLE_MIN + " nebo novější"); return; }
-  try {
-    const docs = await memberDocs(), plan = rolePlan(rowsOf(docs), mgr);
-    if (!plan.ok) { say(plan.err); return; }
-    if (!plan.ops.length) { say("Není co převést"); close(); return; }
-    downloadFile("hokej-clenove-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", kind: "members", exported: new Date().toISOString(), members: docs}, null, 1), "application/json");
-    const note = "Převod rolí: " + plan.list.map(l => l.email + " " + l.from + " → " + l.to + (l.cash ? " + pokladník" : "")).join(", ");
-    await commitOps([...plan.ops, ["set", "audit", "roles-" + Date.now(), {ts: new Date().toISOString(), by: meEmail(), eid: "", act: "roles", note: note.slice(0, 1500)}]]);
-    const mine = plan.list.find(l => l.email === meEmail());
-    say("Role převedeny (" + plan.list.length + "), managerů: " + plan.managers + (mine && mine.to !== "manager" ? ". Tvoje role je teď " + ROLES[mine.to] + " – aplikace se načte znovu." : ""));
-    close();
-    if (mine && mine.to !== "manager") setTimeout(() => location.reload(), 1500);
-  } catch (e) { say("Převod se nepovedl: " + errTxt(e) + " – je publikováno firestore.rules?"); }
-}
 // ===== Matice práv (⚙️ → 🔐 Práva rolí, zapisuje jen manager) =====
 // Stav pro okno: platná matice (jen upravitelné buňky), kdo a kdy ji naposledy změnil, zda jde měnit
 const permState = () => { const r = permRaw(); return {perms: perms(), set: !!r, by: r ? r.by || "" : "", at: r ? r.at || "" : "", edit: can("admin")}; };
@@ -588,7 +511,7 @@ async function refresh() {
 }
 
 // ===== Zálohy =====
-// Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (kustod tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo);
+// Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (asistent tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo);
 // soukromé kolekce attnote, staffpay a plpay jsou v ní, pokud je role smí číst (manager všechny)
 function exportJSON() {
   const out = {};
@@ -659,6 +582,6 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení
   cfg: {acct, isDev, pvInfo, runPreview, endPreview, logout, PV_ROLES, memberRoles, needsPid, cashOk, staffOk, pidRoleOf, pidRoleErr, playerList, staffList,
     joinCount, memberRows, memberInfo, canRemove, removeMember, saveMember, rebuildDebtors, rebuildPrices, backupCounts,
-    exPlan, runExFix, privState, runPrivFix, runPrivClean, gateInfo, raiseMinVer, roleState, rolePreview, runRoleConvert, roleLabel, permState, savePerms, online: () => navigator.onLine}};
+    gateInfo, raiseMinVer, roleLabel, permState, savePerms, online: () => navigator.onLine}};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

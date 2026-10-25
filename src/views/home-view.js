@@ -1,7 +1,7 @@
 // 🏠 Domů – úvodní přehled (výchozí záložka po spuštění, vidí každý člen): běžící zápas, příští zápas, nadcházející události 7 dní
 // s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow);
 // trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js). Klepnutí na běžící zápas otevře členům
-// bez práva zápisu 👁 náhled jen ke čtení (views/live-watch.js, stav S.hw), trenér / kustod jde do živého zápisu.
+// bez práva zápisu 👁 náhled jen ke čtení (views/live-watch.js, stav S.hw), manager / trenér / asistent jde do živého zápisu.
 // Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
 // Karta 🏖 Nepřítomnost (views/absence-view.js) je jediné místo s formulářem – zapisuje nepřítomnost a omluvy. Zrušená událost má značku ❌.
 // Hostující (HK.can("guest")) nevidí počty přihlášených ostatních (vidí jen sebe).
@@ -58,7 +58,7 @@ function flowOf() {
 }
 
 // ===== Vykreslení karet =====
-// 🔴 Běžící zápas: trenér / kustod rovnou do živého zápisu, ostatní klepnutím do 👁 náhledu (jen ke čtení)
+// 🔴 Běžící zápas: manager / trenér / asistent rovnou do živého zápisu, ostatní klepnutím do 👁 náhledu (jen ke čtení)
 function liveHtml(L) {
   if (!L) return "";
   const names = L.home ? esc(TEAM_NAME) + " – " + esc(L.opp) : esc(L.opp) + " – " + esc(TEAM_NAME), sc = L.home ? L.us + " : " + L.them : L.them + " : " + L.us;
@@ -106,7 +106,7 @@ function bind(a, L) {
   a.querySelectorAll("[data-hpay]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "pay"; S.mid = null; S.evid = null; }));
   a.querySelectorAll("[data-hjr]").forEach(b => b.onclick = () => openJoinWindow());
   a.querySelectorAll("[data-hbud]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "bud"; S.mid = null; S.evid = null; }));
-  // Trenér / kustod: otevře kartu běžícího zápasu a v ní živý zápis (stejně jako ▶ Pokračovat v živém zápisu)
+  // Manager / trenér / asistent: otevře kartu běžícího zápasu a v ní živý zápis (stejně jako ▶ Pokračovat v živém zápisu)
   // Ostatní členové: 👁 náhled běžícího zápasu jen ke čtení
   a.querySelectorAll("[data-hwt]").forEach(b => b.onclick = go(() => { if (L) S.hw = L.id; }));
   a.querySelectorAll("[data-hlv]").forEach(b => b.onclick = () => { if (!L || !HK.can("sport")) return; S.tab = "ev"; S.evid = null; S.mid = L.id; S.step = 3; S.lv = true; render(); });

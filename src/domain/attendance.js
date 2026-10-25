@@ -3,7 +3,7 @@
 // Vstupy:
 //  - tréninky (kolekce events): {id, date "RRRR-MM-DD", time?}
 //  - zápasy (kolekce matches): {id, date, time?, home} – home pravdivé = domácí zápas, jinak venkovní (stejně jako v detailu události)
-//  - odpovědi (kolekce attendance): {eid, pid, st: "yes" | "no" | "maybe", nos?: true} – nos = 🚫 nedorazila bez omluvy (jen u „Jdu“, zapisuje trenér / kustod)
+//  - odpovědi (kolekce attendance): {eid, pid, st: "yes" | "no" | "maybe", nos?: true} – nos = 🚫 nedorazila bez omluvy (jen u „Jdu“, zapisuje manager / trenér / asistent)
 // Pravidla přehledu (rozhodnutí 7): počítají se jen UPLYNULÉ události ve zvoleném období (výchozí zimní sezóna 1. 8. – 1. 7. dalšího roku);
 // účast = odpověď „Jdu“ bez 🚫, procento = účasti / počet uplynulých událostí daného typu v období; 🚫, „Nejsem jistý“ a bez odpovědi se do účasti nepočítají.
 // Zrušená událost (pole cancelled) se do přehledu nepočítá vůbec (ani do počtu událostí, ani do procenta).

@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v20.6 (24. 10. 2026)** – OM3: **zúžení pravidel databáze** podle rolí – členy, ✋ žádosti o přijetí, 🔒 bránu verze, návrh účtů pro QR a mazání rozpočtu smí jen Manager, pokladnu manager nebo 💰 pokladník, soupisku a realizační tým manager a trenér; pravidla bez staré role Kustod. **firestore.rules publikovat PO nahrání kódu.** Předtím v20.5.1 – realizační tým podle nových rolí. Další: v20.7 – N (notifikace).
+**Aktuální verze: v20.7 (24. 10. 2026)** – D4: **úklid před modulem Trénink** – odstraněny hotové jednorázové převody (⚙️ Kontrola dat, převod soukromí, 🔁 převod rolí), stará role Kustod se už nepřevádí (stejně jako v pravidlech databáze), přehlednější `main.js`, plán zkrácen. **firestore.rules beze změny.** Předtím v20.6 – zúžení pravidel podle rolí. Další: v21.0 – 🏒 modul Trénink, E1 banka cvičení ([docs/plan-trenink.md](docs/plan-trenink.md)); notifikace (N) až po něm.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
@@ -10,9 +10,9 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlas
 | [docs/KONVENCE.md](docs/KONVENCE.md) | programovací řád, mapa souborů, verze, testy, postup nasazení – **vstupní bod pro vývoj** |
 | [CHANGELOG.md](CHANGELOG.md) | historie verzí a postup nasazení každé verze |
 | [docs/plan-v18.md](docs/plan-v18.md) | plán dalších verzí, rozhodnutí, otevřené otázky |
+| [docs/plan-trenink.md](docs/plan-trenink.md) | modul Trénink (v21.x) a úklid D4 před ním – kontrola kódu, datový model, fáze, otázky |
 | [docs/prompt-dalsi-vlakno.md](docs/prompt-dalsi-vlakno.md) | prompt pro nové vlákno s Claude (start, stav, pravidla práce, šetření limitu) |
-| [docs/archiv-plan-v18.md](docs/archiv-plan-v18.md) | dokončené fáze v18.0 – v18.7.1 |
-| [docs/archiv-readme-v18.7.1.md](docs/archiv-readme-v18.7.1.md) | původní podrobné README (technický popis funkcí) |
+| [docs/archiv-plan-v18.md](docs/archiv-plan-v18.md) | dokončené fáze v18.0 – v20.6 (popisy, rozhodnutí, kontroly) |
 | Nápověda v aplikaci (❓) | ovládání aplikace – jediný uživatelský návod (`src/views/help.js`) |
 
 ## Spuštění a testy
@@ -40,10 +40,10 @@ Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrá
 ## Role a ochrana dat (stručně)
 | Role (`members/{email}.role`) | Smí |
 |---|---|
-| `manager` (+ `rv: 2`) | vše (členové a ✋ žádosti o přijetí do týmu, převod rolí, soupiska, zápasy, události, docházka, pokladna vždy, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze); managerů víc, aspoň jeden zůstává vždy |
+| `manager` (+ `rv: 2`) | vše (členové a ✋ žádosti o přijetí do týmu, soupiska, zápasy, události, docházka, pokladna vždy, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze); managerů víc, aspoň jeden zůstává vždy |
 | `trener` (+ `rv: 2`) | sport: zápasy a živý zápis, události, docházka, soupeři, formace, soupiska a realizační tým; pokladna jen s příznakem `cash` (převod ho dá každému trenérovi, který nebude managerem) |
-| `asistent` (+ `rv: 2`) | dřívější kustod beze změny: zápasy a živý zápis, soupeři, formace, události (i ❌ zrušení), docházka za kohokoli, ✋ žádosti o změnu účasti; u hráčky jen stav |
-| staré `trener` bez `rv` / `kustod` | od v20.6 bez správcovských práv v databázi (trener bez `rv` jen jako Trenér, kustod nic); aplikace v ⚙️ upozorní – převést v ⚙️ → 💾 Data → 🔁 Převod rolí |
+| `asistent` (+ `rv: 2`) | dřívější kustod: zápasy a živý zápis, soupeři, formace, události (i ❌ zrušení), docházka za kohokoli, ✋ žádosti o změnu účasti; u hráčky jen stav |
+| jiná hodnota role (např. stará `kustod`) | bez přístupu – přihlášení ukáže „neplatná role“, manager ji změní v ⚙️ → 👥 Tým a členové; `trener` bez `rv` = Trenér |
 | `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; Moje platby jen své předpisy |
 | `host` (+ `pid` hráčky 🎟) | hostující: čte jen sebe (svou hráčku, docházku, předpisy, žádosti, nepřítomnosti) a veřejné hlavičky `evpub`; formaci `lineuppub` jen u události se svým ✅ Jdu |
 | matice `settings/perm` | práva Trenér / Asistent / Hráčka po modulech (číst / upravovat / rušit / mazat), mění jen manager v ⚙️ → 🔐 Práva rolí; chybějící dokument = výchozí práva (tabulka výše); pevné zůstává sport (zápasy, docházka, formace), soupiska, členové, pokladna (příznak `cash`) a nastavení |

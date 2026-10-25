@@ -4,6 +4,29 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.7 (24. 10. 2026) – D4: úklid před modulem Trénink
+> **Nasazení:** 1) Zip současného repozitáře. 2) Nahrát kód; **smazat** `tests/ex-fix.test.js` a `docs/archiv-readme-v18.7.1.md` (nový soubor `docs/plan-trenink.md`). 3) **firestore.rules beze změny – nepublikovat.** 4) Na zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.7. 5) Test: spuštění pro Manager, Trenér, Asistent, Hráčka, Hostující (👁 Náhled role); ⚙️ → 💾 Data (jen záloha, CSV, obnova – bez Kontroly dat a 🔁 Převodu rolí); ⚙️ → 👥 Členové (seznam rolí); Události, docházka, pokladna, živý zápis beze změny.
+> **Podmínka:** všechny účty mají novou roli (🔁 převod rolí proveden ve v20.5). Účet se starou rolí Kustod se po v20.7 do aplikace nedostane (hláška „neplatná role“) – manager mu nastaví roli v ⚙️ → 👥 Tým a členové. **🔒 Vyžadovat verzi: ne** (tvar dat se nemění). Návrat na v20.6: nahrát předchozí zip.
+
+**Odstraněno (hotové jednorázové převody)**
+- ⚙️ → 💾 Data → **Kontrola dat**: doplnění pole `ex` (`exPlan`, `runExFix`, `exFixPlan` v `domain/cash.js`), převod a úklid citlivých polí (`privState`, `runPrivFix`, `runPrivClean`, `privacyPlan`, `legacyLeft`, `cleanPlan` v `domain/private-data.js`), **🔁 Převod rolí** (`roleState`, `rolePreview`, `runRoleConvert`, `rolePlan`, `isLegacy`), upozornění na starou roli v 👤 Účet (`acct().legacy`). Obnova staré zálohy dál rozdělí stará pole (`splitLegacy` zůstává).
+- Nepoužitý export `GUEST_TAG` (`domain/guests.js`), druhá kopie `LINE_NOS` (guests.js importuje z `domain/event-helpers.js`).
+- `docs/archiv-readme-v18.7.1.md` (zastaralé), `tests/ex-fix.test.js` (kontrola `exOf` / `fxOf` přesunuta do `tests/d3-cleanup.test.js`).
+
+**Změněno**
+- `src/domain/permissions.js`: `roleOf` uznává jen role `ROLE_KEYS` – stará `kustod` = bez přístupu, `trener` bez `rv` = Trenér (dříve v aplikaci asistent / manager; pravidla databáze to tak mají od v20.6). `roleLabel` u neplatné role připíše „bez přístupu“.
+- `src/data/storage.js`: přihlášení s neplatnou rolí ukáže „Účet má neplatnou roli … požádej managera“ (dříve se aplikace spustila s právy, která databáze odmítla).
+- `src/main.js` rozepsán do bloků (hostující, týmové kolekce, sport a správa členů, peníze) se stejnými posluchači – bez změny chování.
+- Komentáře v kódu „kustod“ → asistent / manager, trenér, asistent (26 souborů, jen komentáře), odkaz `views/guest-sync.js` → `views/auto-sync.js`.
+- `src/views/settings-view.js` (💾 Data bez Kontroly dat a převodu rolí), `src/views/help.js` (bez Kontroly dat a 🔁 Převodu rolí, neplatná role).
+- Dokumentace: `docs/plan-v18.md` zkrácen na otevřené fáze (dokončené v18.8 – v20.6 přesunuty do `docs/archiv-plan-v18.md` beze změny obsahu), nový `docs/plan-trenink.md` (kontrola kódu, D4, modul Trénink E1 – E6, rozhodnutí T1 – T5), `docs/KONVENCE.md`, `docs/prompt-dalsi-vlakno.md`, `README.md`; verze `app-version.js`, `package.json`, `sw.js` → `hokej-v81`.
+- Testy: přihlášení testů jako `manager` (dříve stará role `trener` = manager), oprávnění bez starých rolí (`tests/permissions.test.js`, `tests/role-perms.test.js`, `tests/perm-matrix.test.js`), `tests/privacy.test.js` bez testů převodu (rozdělení staré zálohy zůstává).
+
+**Beze změny**
+- Pravidla databáze, tvar dat, živý zápis, statistiky, docházka, pokladna (jen odstraněn nepoužívaný převod `exFixPlan`; výpočty beze změny – srovnávací testy `d1-baseline` zelené), události, žádosti, nepřítomnost, hostující, matice práv.
+- Odloženo do E2: poslech `events` / `attendance` jen aktuální sezóny (D4-8 – mění, co je vidět ve starších obdobích).
+- Ověřeno: `npm test` (231/231, srovnávací testy beze změny výstupů); kouřový test v jsdom (Manager, Trenér s 💰 i bez, Trenér bez `rv`, Asistent, Hráčka s 💰 i bez, Hostující, stará role Kustod): start bez chyb, záložky a sekce ⚙️ stejné jako ve v20.6, 💾 Data bez Kontroly dat a Převodu rolí; Trenér bez `rv` má práva Trenéra, Kustod dostane hlášku „neplatná role“. Hostující se v zástupci databáze chová stejně jako ve v20.6.
+
 ## v20.6 (24. 10. 2026) – OM3: zúžení pravidel databáze podle rolí ⚠️ SAHÁ NA PLATBY (pravidla pokladny: kdo je správce pokladny a kdo navrhuje účty)
 > **Nasazení (pořadí je důležité):** 1) Záloha (⚙️ → 💾 Data → Stáhnout zálohu) a zip současného repozitáře. 2) Nahrát kód (nový soubor `tests/rules-narrow.test.js`, nic se nemaže). 3) Na všech zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.6. 4) **Publikovat firestore.rules AŽ PO nahrání kódu** (zúžení – starší pravidla s novým kódem fungují beze změny). 5) Test na telefonu: Manager (členové, ✋ žádosti o přijetí, 🔒 brána verze, pokladna), Trenér s 💰 (pokladna, soupiska, realizační tým), Trenér bez 💰 (soupiska, realizační tým, události; ⚙️ bez pokladny a členů), Asistent (docházka, 🤕 stav hráčky, formace), Hráčka, Hostující (👁 Náhled role i skutečné účty). 6) **🔒 Vyžadovat verzi v20.6** (doporučeno).
 > **Podmínka:** 🔁 převod rolí hotový (ověř v ⚙️ → 💾 Data: „✅ Role jsou převedené“). Účet se starou rolí ukáže v ⚙️ → 👤 Účet upozornění a databáze mu nedovolí správu ani zápis za tým. Návrat: pravidla vrátit z historie v konzoli Firebase (*Firestore → Rules*), pak nahrát zip v20.5.1.

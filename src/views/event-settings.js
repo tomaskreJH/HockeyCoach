@@ -1,4 +1,4 @@
-// Okno ⏰ Nastavení událostí (trenér a kustod): výchozí sraz tréninku a zápasu (minuty před začátkem) a výchozí délka tréninku.
+// Okno ⏰ Nastavení událostí (manager, trenér a asistent): výchozí sraz tréninku a zápasu (minuty před začátkem) a výchozí délka tréninku.
 // Ukládá se přes merge do settings/events = {meetT, meetM, len, by, at}; čtou všichni členové (S.es). Výchozí hodnoty platí pro nové
 // události a pro události bez vlastního srazu / konce; u jednotlivé události se sraz i konec mění v jejím formuláři.
 // Celoobrazovkové okno #evset se vytváří za běhu (stejně jako nastavení pokladny), otevírá se z ⚙️ (HK.openEvSet).
@@ -58,7 +58,7 @@ function bind(e) {
 }
 
 // ===== Export =====
-// Otevření okna (jen trenér a kustod)
+// Otevření okna (jen manager, trenér a asistent)
 export function openEventSettings() {
   if (!HK.can("sport")) return;
   let e = el();

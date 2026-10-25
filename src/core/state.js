@@ -9,7 +9,7 @@
 // Pokladna: ch = předpisy (charges; správce vidí všechny, ostatní jen své), cs = příjmy a výdaje (cash, jen správci), au = audit (jen správci),
 // ec = vyúčtování událostí (evcash: náklady, kdo platí, snapshot; jen správci), cc = nastavení pokladny (settings/cash), payErr = chyba načtení.
 // Docházka a dlužníci: evm "att" = přehled docházky, ao = volby přehledu {from, to, kind}, dt = souhrn dlužníků (kolekce debtors, bez částek), dtErr = chyba načtení.
-// Soukromí: an = důvody omluv (kolekce attnote, mapa id → {eid, mid, reason}; trenér a kustod všechny, ostatní jen své). V at, pl a tr jsou
+// Soukromí: an = důvody omluv (kolekce attnote, mapa id → {eid, mid, reason}; manager, trenér a asistent všechny, ostatní jen své). V at, pl a tr jsou
 // důvody, platební pole a platy už připojené (domain/private-data.js), proto pohledy čtou at[].reason, pl[].grp…, tr[].pay jako dřív.
 // Měsíční příspěvky jsou předpisy v ch (kind "contrib"), platy jsou výdaje v cs (id sal_RRRR-MM_tid).
 // Moje platby: pr = ceny uzavřených událostí na hlavu (kolekce evprice, čte každý člen), mk = pohled {v: "list" | "mon", day – sezóna, open – rozbalený měsíc,
@@ -17,7 +17,7 @@
 
 // Výchozí hodnoty událostí: es = settings/events {meetT, meetM, len} – sraz tréninku a zápasu, délka tréninku (domain/event-time.js).
 // Zrušení události: evx = id události s otevřeným formulářem zrušení, evxr = rozepsaný důvod. Žádost o změnu účasti: aq = rozepsaná žádost
-// {eid, want, reason}, aqo = otevřená žádost v okně trenéra. Nepřítomnost: ab = kolekce absence (trenér / kustod všechny, ostatní své),
+// {eid, want, reason}, aqo = otevřená žádost v okně trenéra. Nepřítomnost: ab = kolekce absence (manager / trenér / asistent všechny, ostatní své),
 // abf = formulář 🏖 {id?, mid, kind, from, to, note} (null = zavřený). Hostující: lu = formace událostí (lineuppub, jen u „Jdu“);
-// pubMap / pubOk = uložené veřejné dokumenty evpub / lineuppub a zda se načetly (trenér / kustod, views/auto-sync.js).
+// pubMap / pubOk = uložené veřejné dokumenty evpub / lineuppub a zda se načetly (manager / trenér / asistent, views/auto-sync.js).
 export const S={pl:[],ma:[],def:{},es:{},tab:"home",mid:null,ready:false,err:null,db:null,M:null,pick:null,showLu:false,per:1,cf:null,pf:"act",pq:"all",fo:false,pickAll:false,showNom:false,showOp:false,op:[],oid:null,step:1,lv:false,qa:null,lmenu:false,rpShots:true,rpSubs:true,lsub:null,rp:false,ed:null,injp:null,wd:{},wl:null,ev:[],at:[],tr:[],ch:[],cs:[],au:[],ec:[],cc:{},payErr:null,evErr:null,evid:null,evp:null,evm:"up",evc:null,evd:null,evf:null,evr:null,evBack:null,tm:"team",ao:null,dt:[],dtErr:null,an:{},pr:[],mk:null,rq:[],rqo:null,bd:[],hw:null,evx:null,evxr:"",aq:null,aqo:null,ab:[],abf:null,lu:{},pubMap:{evpub:{},lineuppub:{}},pubOk:{}};

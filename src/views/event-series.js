@@ -2,7 +2,7 @@
 // šablona pokladny, náhled termínů s vynecháním dnů) a volby v detailu události ze série (úprava a smazání „jen tato / tato a další“).
 // Výpočty jsou v domain/recurrence.js; formulář a detail události vykresluje views/events.js a volá funkce z tohoto souboru.
 // Konec tréninku (end) a ⏰ sraz (meet) se přenášejí do všech událostí série i do definice série (domain/event-time.js).
-// Data: události série mají ser = {id, i, x?} (x = ručně upravená, „tato a další“ ji vynechá), definice série je v series/{id} (zapisuje trenér / kustod).
+// Data: události série mají ser = {id, i, x?} (x = ručně upravená, „tato a další“ ji vynechá), definice série je v series/{id} (zapisuje manager / trenér / asistent).
 // Smazat „tato a další budoucí“ jde jen události bez odpovědí v docházce a bez vyúčtování – ostatní zůstanou a ukáže je hláška.
 
 // ===== Importy =====

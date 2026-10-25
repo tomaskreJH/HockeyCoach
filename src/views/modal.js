@@ -51,7 +51,7 @@ $("#cl").onclick=()=>{S.M=null;modal()};$("#bg").onclick=e=>{if(e.target.id==="b
 // Přepsání polí formuláře do stavu (pole plateb jsou jen u správce pokladny)
 const rd=()=>{if($("#en")){M.name=$("#en").value;M.num=$("#ec").value;M.pos=$("#ep").value;M.alt=$("#eq").value}if($("#enp"))M.note=$("#enp").value;if($("#efx"))M.pct=$("#efx").value};
 el.querySelectorAll("[data-es]").forEach(b=>b.onclick=()=>{rd();M.st=b.dataset.es;modal()});
-// Hostující (jen trenér – kustod smí měnit jen stav): zapnutí zapíše guest: true, vypnutí pole smaže
+// Hostující (jen manager a trenér – asistent smí měnit jen stav): zapnutí zapíše guest: true, vypnutí pole smaže
 el.querySelectorAll("[data-eg]").forEach(b=>b.onclick=()=>{rd();M.guest=b.dataset.eg==="1";modal()});
 el.querySelectorAll("[data-ey]").forEach(b=>b.onclick=()=>{rd();M.grp=b.dataset.ey;modal()});
 el.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{rd();M.pct=b.dataset.ex;modal()});
@@ -67,7 +67,7 @@ $("#ok").onclick=()=>{rd();
 if(payOnly){const pd=payDoc();if(!pd)return toast("Zadej koeficient 0–100 %");if(!S.pl.some(p=>p.id===M.id))return;
 S.db.batch().merge(PPAY_COLL+"/"+M.id,pd).commit().then(done);return}
 const n=M.name.trim();if(!n)return toast("Zadej jméno");const d={name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st};if(HK.can("roster"))Object.assign(d,guestPatch(M.guest));
-// Trenér: soupiska i platební pole v jedné dávce; kustod jen soupiska (pravidla mu povolí jen stav)
+// Trenér: soupiska i platební pole v jedné dávce; asistent jen soupiska (pravidla mu povolí jen stav)
 if(HK.can("money")){const pd=payDoc();if(!pd)return toast("Zadej koeficient 0–100 %");S.db.batch().merge("players/"+M.id,d).merge(PPAY_COLL+"/"+M.id,pd).commit().then(done);return}
 S.db.doc("players/"+M.id).merge(d).then(done).catch(()=>toast("Uložení se nepovedlo"))};return}
 

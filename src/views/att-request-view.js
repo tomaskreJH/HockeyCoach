@@ -1,4 +1,4 @@
-// ✋ Žádosti o změnu účasti po uzávěrce (requests, kind "att"): pruh a okno vyřízení pro trenéra / kustoda (v Událostech)
+// ✋ Žádosti o změnu účasti po uzávěrce (requests, kind "att"): pruh a okno vyřízení pro managera / trenéra / asistenta (v Událostech)
 // a rámeček v detailu události pro člena (podání žádosti, stav, zrušení otevřené žádosti). Výpočty: domain/att-requests.js.
 // Schválení je jedna dávka: žádost (st, reply, doneBy, doneAt) + odpověď v docházce (jako ruční změna trenérem) + důvod v attnote;
 // u vyúčtované události okno upozorní, že předpisy se nepřepočítají samy. Žádost vzniklá z 🏖 nepřítomnosti nese abs.
@@ -35,7 +35,7 @@ const evLine = e => e ? esc(e.title) + " · " + esc(fd(e.date)) + (e.time ? " " 
 // Současná odpověď člena k události
 const curOf = (eid, mid) => { const a = S.at.find(x => x.eid === eid && x.pid === mid); return a ? a.st || null : null; };
 
-// ===== Vykreslení: trenér / kustod =====
+// ===== Vykreslení: manager / trenér / asistent =====
 // Pruh v Událostech: počet otevřených žádostí a tlačítko ke každé
 export function attReqBanner() {
   if (!HK.can("sport")) return "";
@@ -76,7 +76,7 @@ export function attReqBox(ev, mid) {
 }
 
 // ===== Hlavní logika =====
-// Vyřízení v jedné dávce: žádost + docházka + důvod (bez auditu – kustod do auditu zapisovat nesmí)
+// Vyřízení v jedné dávce: žádost + docházka + důvod (bez auditu – asistent do auditu zapisovat nesmí)
 function decide(r, ok) {
   if (r.st !== "open") return;
   const at = new Date().toISOString(), plan = attDecidePlan(r, ok, reply, me(), at), b = S.db.batch().merge(REQ_COLL + "/" + r.id, plan.req);

@@ -1,9 +1,8 @@
 // Testy soukromí v databázi: důvody omluv (attnote), platy realizačního týmu (staffpay), platební pole hráček (plpay).
-// Ověřuje připojení nových kolekcí k záznamům v paměti s náhradou ze starých polí, nezměněné výpočty pokladny, plán převodu
-// (jen chybějící hodnoty, lze spustit znovu), úklid starých polí (jen co je v novém místě), rozdělení staré zálohy,
+// Ověřuje připojení nových kolekcí k záznamům v paměti s náhradou ze starých polí, nezměněné výpočty pokladny, rozdělení staré zálohy,
 // blokaci „Jdu“ přes souhrn debtors, zálohu a obnovu nových kolekcí a text pravidel (stará pole už nejde zapsat).
-// Struktura: Importy -> Pomocné funkce a data -> Připojení k záznamům -> Výpočty pokladny beze změny -> Zápis -> Plán převodu
-// -> Úklid starých polí -> Obnova staré zálohy -> Blokace „Jdu“ -> Záloha a obnova -> Pravidla databáze.
+// Struktura: Importy -> Pomocné funkce a data -> Připojení k záznamům -> Výpočty pokladny beze změny -> Zápis
+// -> Obnova staré zálohy -> Blokace „Jdu“ -> Záloha a obnova -> Pravidla databáze.
 
 // ===== Importy =====
 import {test} from "node:test";
@@ -12,7 +11,7 @@ import {readFileSync} from "node:fs";
 import {resolveObjectURL} from "node:buffer";
 import {exOf, fxOf, grpOf, salaryRows} from "../src/domain/cash.js";
 import {memberBlocked} from "../src/domain/debtors.js";
-import {NOTE_COLL, PPAY_COLL, SPAY_COLL, attDoc, cleanPlan, joinAttNotes, joinPlPay, joinStaffPay, legacyLeft, noteDoc, plPayDoc, privacyPlan, splitLegacy, staffPayDoc, withPlPay} from "../src/domain/private-data.js";
+import {NOTE_COLL, PPAY_COLL, SPAY_COLL, attDoc, joinAttNotes, joinPlPay, joinStaffPay, noteDoc, plPayDoc, splitLegacy, staffPayDoc, withPlPay} from "../src/domain/private-data.js";
 import {HK} from "../src/data/storage.js";
 
 // ===== Pomocné funkce a data =====
@@ -27,12 +26,6 @@ function ruleBlock(rules, head) {
     if (rules[j] === "}" && --depth === 0) return rules.slice(i, j + 1);
   }
   return "";
-}
-// Použití operací plánu na zdrojová data (simulace zápisu do databáze)
-function apply(src, ops) {
-  const o = JSON.parse(JSON.stringify(src));
-  ops.forEach(([t, c, id, d]) => { o[c] = o[c] || {}; o[c][id] = t === "merge" ? {...(o[c][id] || {}), ...d} : {...d}; });
-  return o;
 }
 const SRC = {
   players: {
@@ -80,12 +73,11 @@ test("attnote: dokument důvodu má přednost (i prázdný), jinak starý attend
 });
 
 // ===== Výpočty pokladny beze změny (domain/cash.js se nemění) =====
-test("pokladna: po převodu dávají připojená data stejné exOf / fxOf / grpOf jako stará pole", () => {
-  const plan = privacyPlan(SRC), after = apply(SRC, plan.ops);
+test("pokladna: po rozdělení staré zálohy dávají připojená data stejné exOf / fxOf / grpOf jako stará pole", () => {
+  const after = splitLegacy(SRC).data;
   const before = Object.entries(SRC.players).map(([id, p]) => ({id, ...p}));
-  // Hráčky po převodu: v players už platební pole nejsou (stav po úklidu), vše je v plpay
-  const stripped = before.map(p => ({id: p.id, name: p.name}));
-  const joined = joinPlPay(stripped, after.plpay);
+  // Hráčky po rozdělení: v players už platební pole nejsou, vše je v plpay
+  const joined = joinPlPay(Object.entries(after.players).map(([id, p]) => ({id, ...p})), after.plpay);
   before.filter(p => p.id !== "d").forEach((p, i) => {
     const j = joined.find(x => x.id === p.id);
     assert.deepEqual([exOf(j), fxOf(j), grpOf(j)], [exOf(p), fxOf(p), grpOf(p)], "hráčka " + p.id + " (" + i + ")");
@@ -109,61 +101,6 @@ test("zápis: odpověď bez důvodu, důvod jen neprázdný, platební pole jen 
   assert.deepEqual(noteDoc("e1", "a", "  Nemoc "), {eid: "e1", mid: "a", reason: "Nemoc"});
   assert.equal(noteDoc("e1", "a", "  "), null);
   assert.deepEqual(plPayDoc({grp: "single", fx: 0.5, ex: false, note: "", name: "X", st: "act"}), {grp: "single", fx: 0.5, ex: false, note: ""});
-});
-
-// ===== Plán převodu =====
-test("převod: zkopíruje jen chybějící hodnoty, novější nepřepíše, jiný tvar id přeskočí", () => {
-  const plan = privacyPlan(SRC);
-  assert.deepEqual(plan.pp, [{id: "a", d: {grp: "single", fx: 0.5, ex: false, note: "kompenzace"}}, {id: "b", d: {grp: "monthly", fx: 1, ex: true}}, {id: "d", d: {fx: 0.8}}]);
-  assert.deepEqual(plan.sp, [{id: "t1", d: {m: "month", amt: 3000}}], "t3 už má staffpay (250) – nepřepsat");
-  assert.deepEqual(plan.an, [{id: "e1_a", d: {eid: "e1", mid: "a", reason: "Nemoc"}}], "prázdný důvod a už převedený se přeskočí");
-  assert.deepEqual(plan.skip, ["old1"]);
-  assert.deepEqual(plan.ops.map(x => x.slice(0, 3)), [["merge", PPAY_COLL, "a"], ["merge", PPAY_COLL, "b"], ["merge", PPAY_COLL, "d"], ["set", SPAY_COLL, "t1"], ["set", NOTE_COLL, "e1_a"]]);
-});
-
-test("převod: je idempotentní (druhé spuštění nic nenajde), prázdná data", () => {
-  const after = apply(SRC, privacyPlan(SRC).ops);
-  const again = privacyPlan(after);
-  assert.deepEqual([again.pp, again.sp, again.an, again.ops], [[], [], [], []]);
-  assert.deepEqual(again.skip, ["old1"], "nepřevoditelné id se jen hlásí");
-  assert.deepEqual(privacyPlan(null).ops, []);
-  assert.deepEqual(legacyLeft(SRC), {pp: 3, sp: 2, an: 3}, "stará pole zůstávají až do úklidu");
-});
-
-// ===== Úklid starých polí =====
-// Použití úklidu na data: "__del" smaže pole
-function applyClean(src, ops) {
-  const o = JSON.parse(JSON.stringify(src));
-  ops.forEach(([, c, id, d]) => Object.entries(d).forEach(([k, v]) => { if (v === "__del") delete o[c][id][k]; }));
-  return o;
-}
-
-test("úklid: po převodu smaže jen pole, která jsou v novém místě (prázdná také); bez protějšku nechá", () => {
-  const after = apply(SRC, privacyPlan(SRC).ops), c = cleanPlan(after);
-  assert.deepEqual(c.ops, [
-    ["merge", "players", "a", {grp: "__del", fx: "__del", ex: "__del", note: "__del"}],
-    ["merge", "players", "b", {grp: "__del", fx: "__del", ex: "__del"}],
-    ["merge", "players", "d", {grp: "__del", fx: "__del"}],
-    ["merge", "staff", "t1", {pay: "__del"}],
-    ["merge", "staff", "t3", {pay: "__del"}],
-    ["merge", "attendance", "e1_a", {reason: "__del"}],
-    ["merge", "attendance", "e1_b", {reason: "__del"}],
-    ["merge", "attendance", "e2_a", {reason: "__del"}]
-  ]);
-  assert.deepEqual([c.pp, c.sp, c.an, c.keep], [3, 2, 3, {pp: 0, sp: 0, an: 1}], "důvod s jiným tvarem id (old1) zůstane");
-  // Po úklidu: stará pole pryč (kromě nepřevoditelného), výpočty pokladny z připojených dat stejné jako před převodem
-  const clean = applyClean(after, c.ops);
-  assert.deepEqual(legacyLeft(clean), {pp: 0, sp: 0, an: 1});
-  const joined = joinPlPay(Object.entries(clean.players).map(([id, p]) => ({id, ...p})), clean.plpay);
-  ["a", "b", "c"].forEach(id => { const o = {id, ...SRC.players[id]}, j = joined.find(x => x.id === id); assert.deepEqual([exOf(j), fxOf(j), grpOf(j)], [exOf(o), fxOf(o), grpOf(o)], id); });
-  assert.deepEqual(cleanPlan(clean).ops, [], "druhé spuštění nic nenajde");
-});
-
-test("úklid: bez převodu nic nesmaže (hodnota by se ztratila)", () => {
-  const c = cleanPlan({players: {a: {name: "A", grp: "single", note: ""}}, staff: {t: {pay: {m: "month", amt: 1}}, u: {pay: null}}, attendance: {e_a: {eid: "e", pid: "a", reason: "Nemoc"}}});
-  assert.deepEqual(c.ops, [["merge", "players", "a", {note: "__del"}], ["merge", "staff", "u", {pay: "__del"}]], "jen prázdné hodnoty");
-  assert.deepEqual(c.keep, {pp: 1, sp: 1, an: 1});
-  assert.deepEqual(cleanPlan(null).ops, []);
 });
 
 // ===== Obnova staré zálohy =====
@@ -205,7 +142,7 @@ test("blokace Jdu: za jiného člena podle souhrnu debtors (kustod nevidí cizí
 
 // ===== Záloha a obnova =====
 test("záloha a obnova obsahují nové kolekce attnote, staffpay, plpay", async () => {
-  globalThis.__fb = {user: {email: "coach@test.cz", uid: "u1"}, members: {"coach@test.cz": {role: "trener"}}, writes: [],
+  globalThis.__fb = {user: {email: "coach@test.cz", uid: "u1"}, members: {"coach@test.cz": {role: "manager", rv: 2}}, writes: [],
     data: {players: {a: {name: "A"}}, plpay: {a: {grp: "single", fx: 1, ex: false}}, staffpay: {t1: {m: "month", amt: 100}}, attnote: {e1_a: {eid: "e1", mid: "a", reason: "Nemoc"}}}};
   const db = await HK.ready();
   ["players", NOTE_COLL, SPAY_COLL, PPAY_COLL].forEach(c => db.collection(c).onSnapshot(() => {}));

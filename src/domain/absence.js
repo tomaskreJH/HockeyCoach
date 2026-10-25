@@ -1,5 +1,5 @@
 // Doména: 🏖 nepřítomnost člena od – do (kolekce absence; čisté funkce bez DOM).
-// absence/{id} = {mid, kind: "vac" | "sick" | "other", from, to, note, by, at}; čte vlastník a trenér / kustod (druh „nemoc“ je zdravotní údaj).
+// absence/{id} = {mid, kind: "vac" | "sick" | "other", from, to, note, by, at}; čte vlastník a manager / trenér / asistent (druh „nemoc“ je zdravotní údaj).
 // Uložení: v otevřených událostech období zapíše „❌ Nejdu“ s důvodem „Nepřítomnost: …“ (i místo „Jdu“ / „Nejistá“, s náhledem),
 // docházka nese abs = id nepřítomnosti; u událostí po uzávěrce (do začátku) vznikne žádost o změnu účasti (domain/att-requests.js).
 // Události založené později v období dostanou omluvu automaticky, jen když člen ještě neodpověděl (absAuto).

@@ -1,6 +1,6 @@
 // Seznam zápasů a detail zápasu (průvodce kroky).
 // Nominace: jen hráčky přihlášené na událost (odpověď „Jdu“ v záložce Události); uzavření zápasu automaticky vytvoří vyúčtování plateb.
-// Smazání zápasu: trenér / kustod jen prázdný zápas (bez odpovědí, zápisu a vyúčtování – domain/event-cancel.js), jinak se zápas ruší v detailu
+// Smazání zápasu: manager / trenér / asistent jen prázdný zápas (bez odpovědí, zápisu a vyúčtování – domain/event-cancel.js), jinak se zápas ruší v detailu
 // události (❌ Zrušit); vývojář (HK.can("wipe")) smaže i zápas s daty – úplně se vším (HK.wipeEvent).
 // Příprava zápasu: událost (zveřejněná při vytvoření) → přihlášky hráček → nominace z přihlášených → sestava → uzavření sestavy → živý zápis; dokud přihlášky nestačí (1 + 5), karta vede do detailu události.
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";

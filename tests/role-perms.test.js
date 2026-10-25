@@ -1,12 +1,12 @@
-// Testy domain/permissions.js: účinná role ze starých hodnot, výchozí matice = chování před OM (srovnání s tabulkou CAN),
-// permOf / permError, plán převodu rolí (OM-10: trenér, který zůstane trenérem, dostane příznak pokladník) a ochrana posledního managera.
+// Testy domain/permissions.js: účinná role (jen nové role), výchozí matice = chování před OM (srovnání s tabulkou CAN),
+// permOf / permError a ochrana posledního managera.
 // Struktura: Importy -> Data -> Testy.
 
 // ===== Importy =====
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {ACTIONS, CAN_ACTS, DEFAULT_PERMS, MATRIX_ROLES, MODULES, ROLE_KEYS, ROLE_VER, actOf, cashOf, isLegacy, keepsManager, managerCount, permError, permOf, roleLabel, roleOf, rolePlan} from "../src/domain/permissions.js";
+import {ACTIONS, CAN_ACTS, DEFAULT_PERMS, MATRIX_ROLES, MODULES, ROLE_KEYS, ROLE_VER, actOf, cashOf, keepsManager, managerCount, permError, permOf, roleLabel, roleOf} from "../src/domain/permissions.js";
 
 // ===== Data =====
 const T = true, F = false;
@@ -20,31 +20,22 @@ const OLD = {
   "host,false": [F, F, F, F, F, F, T, T]
 };
 const ACTS8 = CAN_ACTS.filter(a => a !== "wipe");
-const rows = [
-  {email: "boss@x.cz", role: "trener"},
-  {email: "coach@x.cz", role: "trener", cash: false},
-  {email: "kasa@x.cz", role: "trener", cash: true},
-  {email: "kust@x.cz", role: "kustod", cash: true},
-  {email: "anna@x.cz", role: "hracka", pid: "p1"},
-  {email: "host@x.cz", role: "host", pid: "p2"}
-];
 
 // ===== Testy =====
-test("roleOf: kustod = asistent, trener bez rv = manager, nové role beze změny", () => {
-  assert.equal(roleOf("kustod"), "asistent");
-  assert.equal(roleOf("trener"), "manager");
-  assert.equal(roleOf("trener", ROLE_VER), "trener");
-  ROLE_KEYS.filter(r => r !== "trener").forEach(r => assert.equal(roleOf(r), r));
+test("roleOf: platí jen nové role, stará kustod a neznámá hodnota = bez přístupu", () => {
+  ROLE_KEYS.forEach(r => assert.equal(roleOf(r), r));
+  assert.equal(roleOf("kustod"), null);
   assert.equal(roleOf("boss"), null);
   assert.equal(roleOf(undefined), null);
-  assert.ok(isLegacy("kustod") && isLegacy("trener") && !isLegacy("trener", 2) && !isLegacy("manager"));
-  assert.match(roleLabel("trener"), /Manager, čeká na převod/);
-  assert.equal(roleLabel("trener", 2), "Trenér");
-  assert.equal(roleLabel("asistent", 2), "Asistent");
+  assert.equal(roleLabel("trener"), "Trenér");
+  assert.equal(roleLabel("asistent"), "Asistent");
+  assert.match(roleLabel("kustod"), /neplatná role – bez přístupu/);
+  assert.equal(roleLabel(""), "?");
 });
-test("srovnání: výchozí práva dávají tabulku CAN před OM (trener→manager, kustod→asistent, hracka, host, pokladník)", () => {
+test("srovnání: výchozí práva dávají tabulku CAN před OM (dřívější trenér = manager, kustod = asistent, hracka, host, pokladník)", () => {
+  const NEW = {trener: "manager", kustod: "asistent"};
   for (const [k, exp] of Object.entries(OLD)) {
-    const [raw, c] = k.split(","), cash = c === "true", role = roleOf(raw);
+    const [raw, c] = k.split(","), cash = c === "true", role = roleOf(NEW[raw] || raw);
     assert.deepEqual(ACTS8.map(a => actOf(role, cash, a)), exp, k);
   }
   // Nové role se zapsaným rv: manager = dřívější trenér, asistent = dřívější kustod
@@ -82,37 +73,14 @@ test("výchozí matice: všechny role matice mají všechny moduly a akce jako b
   MATRIX_ROLES.forEach(r => Object.keys(MODULES).forEach(m => Object.keys(ACTIONS).forEach(a => assert.equal(typeof DEFAULT_PERMS[r][m][a], "boolean", r + "." + m + "." + a))));
   assert.ok(Object.isFrozen(DEFAULT_PERMS.trener.events));
 });
-test("rolePlan: vybraní trenéři → manager, ostatní trenér + pokladník (OM-10), kustod → asistent; idempotentní", () => {
-  const p = rolePlan(rows, ["BOSS@x.cz"]);
-  assert.equal(p.ok, true);
-  assert.deepEqual(p.ops, [
-    ["merge", "members", "boss@x.cz", {role: "manager", rv: 2}],
-    ["merge", "members", "coach@x.cz", {role: "trener", rv: 2, cash: true}],
-    ["merge", "members", "kasa@x.cz", {role: "trener", rv: 2}],
-    ["merge", "members", "kust@x.cz", {role: "asistent", rv: 2}]
-  ]);
-  assert.equal(p.managers, 1);
-  assert.deepEqual(p.list.map(l => l.to), ["manager", "trener", "trener", "asistent"]);
-  // Po převodu není co převádět
-  const after = rows.map(r => { const o = p.ops.find(x => x[2] === r.email); return o ? {...r, ...o[3]} : r; });
-  assert.deepEqual(rolePlan(after, []).ops, []);
-  assert.equal(managerCount(after), 1);
-});
-test("rolePlan: bez managera se nepřevádí; existující manager stačí", () => {
-  const p = rolePlan(rows, []);
-  assert.equal(p.ok, false);
-  assert.match(p.err, /Manager/);
-  const withMgr = [...rows, {email: "m@x.cz", role: "manager", rv: 2}];
-  assert.equal(rolePlan(withMgr, []).ok, true);
-  assert.equal(rolePlan([{email: "a@x.cz", role: "hracka"}], []).ok, true, "není co převést = bez chyby");
-});
 test("keepsManager: posledního managera nejde odebrat ani snížit", () => {
   const one = [{email: "m@x.cz", role: "manager", rv: 2}, {email: "t@x.cz", role: "trener", rv: 2}];
   assert.equal(keepsManager(one, "m@x.cz", null), false);
   assert.equal(keepsManager(one, "m@x.cz", "trener"), false);
   assert.equal(keepsManager(one, "m@x.cz", "manager"), true);
   assert.equal(keepsManager(one, "t@x.cz", null), true);
-  assert.equal(keepsManager([...one, {email: "old@x.cz", role: "trener"}], "m@x.cz", null), true, "trenér před převodem se počítá jako manager");
+  assert.equal(keepsManager([...one, {email: "old@x.cz", role: "trener"}], "m@x.cz", null), false, "trenér bez rv není manager");
+  assert.equal(managerCount([...one, {email: "m2@x.cz", role: "manager"}]), 2);
   assert.equal(keepsManager(one, "novy@x.cz", "hracka"), true);
 });
 test("pravidla databáze přijímají jen nové role (zúženo ve v20.6)", () => {

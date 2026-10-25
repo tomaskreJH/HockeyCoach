@@ -1,15 +1,15 @@
 // Role a práva po modulech: jediné místo pravdy (čisté funkce bez DOM). Role manager / trener / asistent / hracka / host,
 // výchozí matice práv DEFAULT_PERMS (= chování před OM), zkratky aplikace (sport, money, …) odvozené z matice v actOf.
 // Manager smí vše (nejde omezit), host má pevná práva mimo matici, pokladník = příznak cash (pevně, mimo matici).
-// Staré hodnoty members.role: kustod = asistent; trener bez rv = trenér před převodem (smí vše jako manager).
-// Struktura: Konstanty -> Pomocné funkce a výchozí matice -> Práva -> Převod rolí (exporty přímo u funkcí).
+// Platí jen role ROLE_KEYS (stará hodnota kustod nemá přístup – stejně jako v pravidlech databáze); rv se zapisuje u každého nového člena.
+// Struktura: Konstanty -> Pomocné funkce a výchozí matice -> Práva -> Ochrana posledního managera (exporty přímo u funkcí).
 
 // ===== Konstanty =====
 export const ROLE_VER = 2;                                                // members.rv: verze rolí (2 = role po OM1)
-export const ROLE_KEYS = ["manager", "trener", "asistent", "hracka", "host"];   // platné role po převodu
+export const ROLE_KEYS = ["manager", "trener", "asistent", "hracka", "host"];   // platné role
 export const MATRIX_ROLES = ["trener", "asistent", "hracka"];             // role, jejichž práva jde měnit v matici (settings/perm)
 export const PERM_VER = 1;                                                // settings/perm.v: verze tvaru matice
-export const ROLE_LABELS = {manager: "Manager", trener: "Trenér", asistent: "Asistent", hracka: "Hráčka", host: "Hostující", kustod: "Kustod"};
+export const ROLE_LABELS = {manager: "Manager", trener: "Trenér", asistent: "Asistent", hracka: "Hráčka", host: "Hostující"};
 export const PID_ROLE_KEYS = ["hracka", "host"];                          // role propojené s hráčkou (pid)
 export const STAFF_ROLE_KEYS = ["manager", "trener", "asistent"];         // role s přístupem do celé aplikace
 // Akce matice: číst / upravovat (založit i změnit) / rušit (pole cancelled – jen události a zápasy) / mazat
@@ -37,7 +37,7 @@ export const CAN_ACTS = ["sport", "money", "members", "roster", "accounts", "adm
 const row = s => ({r: s.includes("r"), e: s.includes("e"), c: s.includes("c"), d: s.includes("d")});
 const deepFreeze = o => { Object.values(o).forEach(v => { if (v && typeof v === "object") deepFreeze(v); }); return Object.freeze(o); };
 // Výchozí práva = chování před OM: trenér = sport (bez členů, žádostí, obnovy, účtů a brány verze),
-// asistent = dnešní kustod (u hráčky jen stav – to není „upravovat“ soupisku), hráčka čte týmové moduly a nic za ostatní nezapisuje.
+// asistent = dřívější kustod (u hráčky jen stav – to není „upravovat“ soupisku), hráčka čte týmové moduly a nic za ostatní nezapisuje.
 export const DEFAULT_PERMS = deepFreeze({
   trener: {events: row("recd"), matches: row("recd"), att: row("red"), lines: row("red"), roster: row("red"), staff: row("red"), opp: row("red"),
     stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row("r")},
@@ -54,20 +54,10 @@ const STAFF_EDIT = ["events.e", "events.c", "events.d", "matches.c", "matches.d"
 export const EDITABLE = deepFreeze({trener: [...STAFF_EDIT], asistent: [...STAFF_EDIT], hracka: ["opp.r", "stats.r", "attview.r"]});
 
 // ===== Práva =====
-// Účinná role z members: kustod → asistent; trener bez rv (před převodem) → manager; neznámá hodnota → null
-export function roleOf(raw, rv) {
-  if (raw === "kustod") return "asistent";
-  if (raw === "trener" && rv !== ROLE_VER) return "manager";
-  return ROLE_KEYS.includes(raw) ? raw : null;
-}
-// Je účet před převodem (stará hodnota role)?
-export const isLegacy = (raw, rv) => raw === "kustod" || (raw === "trener" && rv !== ROLE_VER);
-// Popis role pro seznamy: stará hodnota dostane poznámku, jak se dnes chová
-export function roleLabel(raw, rv) {
-  if (raw === "kustod") return "Kustod (= Asistent, čeká na převod)";
-  if (raw === "trener" && rv !== ROLE_VER) return "Trenér (= Manager, čeká na převod)";
-  return ROLE_LABELS[raw] || raw || "?";
-}
+// Účinná role z members: jen platná role ROLE_KEYS, jiná hodnota (i stará kustod) → null (bez přístupu)
+export const roleOf = raw => ROLE_KEYS.includes(raw) ? raw : null;
+// Popis role pro seznamy; neplatná hodnota dostane poznámku, že účet nemá přístup
+export const roleLabel = raw => ROLE_LABELS[raw] || (raw ? raw + " (neplatná role – bez přístupu)" : "?");
 // Smí role akci v modulu? manager vždy, host nikdy (pevná práva mimo matici), ostatní podle matice (chybějící hodnota = výchozí).
 // Neznámý modul nebo akce = chyba programu.
 export function permOf(role, mod, act, perms) {
@@ -146,32 +136,11 @@ export function permOverview(perms) {
 // Dokument settings/perm k zápisu: {v, roles (jen rozdíly od výchozích), by, at}
 export const permDoc = (roles, by, at) => ({v: PERM_VER, roles: permClean(roles), by: String(by || "").toLowerCase(), at: String(at || "")});
 
-// ===== Převod rolí =====
-// Je účet (po převodu) manager? Stará role trener bez rv se počítá jako manager.
-export const isManager = r => !!r && roleOf(r.role, r.rv) === "manager";
+// ===== Ochrana posledního managera =====
+// Je účet manager?
+export const isManager = r => !!r && roleOf(r.role) === "manager";
 // Počet managerů v seznamu members [{email, role, rv}]
 export const managerCount = rows => (rows || []).filter(isManager).length;
-// Plán převodu members.role. rows = [{email, role, rv, cash}], mgr = e-maily, které se mají stát managerem (jen z dnešních trenérů).
-// trener → manager (vybraní) nebo trener s rv a cash: true (pokladna se nezmění, OM-10); kustod → asistent; ostatní beze změny.
-// Vrací {ok, err, ops: [[druh, kolekce, id, data]], list: [{email, from, to, cash}], managers} – idempotentní (druhé spuštění = nic).
-export function rolePlan(rows, mgr) {
-  const pick = new Set((mgr || []).map(e => String(e).toLowerCase())), ops = [], list = [];
-  (rows || []).forEach(r => {
-    if (r.role === "trener" && r.rv !== ROLE_VER) {
-      const toMgr = pick.has(r.email), d = {role: toMgr ? "manager" : "trener", rv: ROLE_VER};
-      if (!toMgr && r.cash !== true) d.cash = true;
-      ops.push(["merge", "members", r.email, d]);
-      list.push({email: r.email, from: "trener", to: d.role, cash: !!d.cash});
-    } else if (r.role === "kustod") {
-      ops.push(["merge", "members", r.email, {role: "asistent", rv: ROLE_VER}]);
-      list.push({email: r.email, from: "kustod", to: "asistent", cash: false});
-    }
-  });
-  const after = (rows || []).map(r => { const x = list.find(l => l.email === r.email); return x ? {role: x.to, rv: ROLE_VER} : r; });
-  const managers = managerCount(after);
-  if (ops.length && !managers) return {ok: false, err: "Aspoň jeden člen musí zůstat Manager – zaškrtni ho", ops: [], list, managers};
-  return {ok: true, err: "", ops, list, managers};
-}
 // Zůstane po změně aspoň jeden manager? rows = dnešní members, em = měněný účet, next = nová role (null = odebrání)
 export function keepsManager(rows, em, next) {
   const e = String(em || "").toLowerCase(), cur = (rows || []).find(r => r.email === e);

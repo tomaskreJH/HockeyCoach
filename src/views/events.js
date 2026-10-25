@@ -1,14 +1,14 @@
 // Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku.
 // Záložka Události řeší jen události (Nadcházející / Minulé / Kalendář / Docházka); správce odklikává docházku v detailu události;
-// rychlá tlačítka na kartě platí za přihlášenou hráčku, nebo za trenéra / kustoda propojeného s realizačním týmem (jinak se na kartě nezobrazí).
+// rychlá tlačítka na kartě platí za přihlášenou hráčku, nebo za managera / trenéra / asistenta propojeného s realizačním týmem (jinak se na kartě nezobrazí).
 // Režimy Platby, Pokladna, Měsíce a Rozpočet jsou v záložce Team (vykresluje je cashPanel() z tohoto souboru, volá ho views/team.js).
 // V detailu události je pokladna (vyúčtování) až na konci stránky, nahoře jsou údaje pro trénink a hokej.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
 // Data: kolekce "events" (tréninky); zápasy se berou z "matches" (čas, místo a termín přihlašování jsou v polích time, place, dl zápasu);
 // odpovědi jsou v kolekci "attendance" (id dokumentu = {eventId}_{memberId}), členem je hráčka nebo člen realizačního týmu (kolekce "staff").
-// Role: trenér a kustod spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.can("onlyOwn")) vidí události, mění jen svoji odpověď
-// a jen do termínu přihlašování. Kartu zápasu má jen trenér a kustod.
-// Trenér / kustod propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se přihlašuje jedním klepnutím přímo na kartě události.
+// Role: manager, trenér a asistent spravují vše a zapisují odpovědi za kohokoli; hráčka (HK.can("onlyOwn")) vidí události, mění jen svoji odpověď
+// a jen do termínu přihlašování. Kartu zápasu má jen manager, trenér a asistent.
+// Manager / trenér / asistent propojený s členem realizačního týmu (members/{email}.tid, ⚙️ → Členové týmu) se přihlašuje jedním klepnutím přímo na kartě události.
 // Náklady a platby vidí jen správci pokladny (HK.can("money"): trenér a pokladník); data jsou v kolekci evcash (e.cx), ostatním zůstává jen příznak raw.ss. Člen s dluhem po splatnosti se nemůže přihlásit „Jdu“. Pokladna u události: views/payments.js, domain/cash.js;
 // přehled plateb a dluhů: views/finance.js (Team → „💰 Platby“); pohyby pokladny: views/cashbook.js (Team → „🏦 Pokladna“);
 // příspěvky, platy, hospodaření po měsících a CSV: views/money.js (Team → „📅 Měsíce“, F4); rozpočet sezóny: views/budget-view.js (Team → „📊 Rozpočet“).
@@ -22,14 +22,14 @@
 // přeškrtnutá, přihlašování je zamčené pro všechny a zápas nejde otevřít. Smazat smí trenér / asistent jen prázdnou událost (bez odpovědí
 // a vyúčtování), vývojář (HK.can("wipe")) i událost s daty – úplně se vším (HK.wipeEvent). Úpravu, zrušení, smazání, + Trénink,
 // 📊 Docházku a 📋 Zápis utkání řídí matice práv (HK.perm: events / matches e·c·d, attview r, stats r – ⚙️ → 🔐 Práva rolí).
-// Po uzávěrce člen žádá o změnu účasti (views/att-request-view.js); trenér / kustod má nahoře pruh ✋ s oknem vyřízení.
+// Po uzávěrce člen žádá o změnu účasti (views/att-request-view.js); manager / trenér / asistent má nahoře pruh ✋ s oknem vyřízení.
 // Hostující (HK.can("guest")) vidí jen sebe: bez počtů ostatních, bez Docházky; formaci události z lineuppub (S.lu) jen s odpovědí „Jdu“.
-// Důvod omluvy je v samostatné kolekci attnote/{eid}_{mid} (čte vlastník a trenér / kustod) – zapisuje se v jedné dávce s odpovědí;
+// Důvod omluvy je v samostatné kolekci attnote/{eid}_{mid} (čte vlastník a manager / trenér / asistent) – zapisuje se v jedné dávce s odpovědí;
 // S.at má důvod už připojený (main.js). Blokace „Jdu“ za jiného člena se ověřuje i podle souhrnu debtors (cizí předpisy nejsou v zařízení).
 // Série tréninků (🔁 Opakovat, úprava a smazání „jen tato / tato a další“): views/event-series.js, výpočty domain/recurrence.js.
 // Čas od – do (konec tréninku events.end) a ⏰ sraz (pole meet = minuty před začátkem, trénink i zápas) – výpočty domain/event-time.js,
 // výchozí hodnoty settings/events (S.es, ⚙️ → ⏰ Nastavení událostí). Rychlá tlačítka na kartě ukazují počty ✅ / ❌ / ❓.
-// 🚫 Nedorazila bez omluvy: trenér / kustod v detailu po začátku události označí hráčku s odpovědí „Jdu“ (attendance.nos, merge; hráčka ji nezmění).
+// 🚫 Nedorazila bez omluvy: manager / trenér / asistent v detailu po začátku události označí hráčku s odpovědí „Jdu“ (attendance.nos, merge; hráčka ji nezmění).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -111,12 +111,12 @@ const isLocked = ev => { const t = dlMs(ev.dl); return (t != null && Date.now() 
 // Výchozí termín: den před událostí v 18:00 (core/utils.js – stejný i pro nový zápas v modal.js)
 const defDl = dlDefault;
 const activePl = () => S.pl.filter(p => stOf(p) !== "end").sort((x, y) => pri(x) - pri(y) || x.name.localeCompare(y.name, "cs"));
-// Členové realizačního týmu (trenéři, kustodi…) seřazení podle jména; zapisují se do docházky, neplatí a nenominují se
+// Členové realizačního týmu (trenéři, asistenti…) seřazení podle jména; zapisují se do docházky, neplatí a nenominují se
 const trs = () => [...S.tr].sort((x, y) => (x.name || "").localeCompare(y.name || "", "cs"));
 const isTr = id => S.tr.some(t => t.id === id);
 // Jméno člena pro výpis (hráčka s číslem, nebo člen týmu s ikonou)
 const who = id => { const t = S.tr.find(x => x.id === id); return pl(id) ? pn(id) : t ? "🎓 " + esc(t.name) : "?"; };
-// Vlastní záznam přihlášeného trenéra / kustoda v realizačním týmu (propojení members/{email}.tid), nebo null
+// Vlastní záznam přihlášeného managera / trenéra / asistenta v realizačním týmu (propojení members/{email}.tid), nebo null
 const myTr = () => { const t = isPl() ? null : HK.tid(); return t && isTr(t) ? S.tr.find(x => x.id === t) : null; };
 // Sjednocený seznam událostí: tréninky (events) + zápasy (matches)
 function allEvents() {
@@ -162,7 +162,7 @@ const delNote = (b, id) => { if (S.an[id]) b.delete(NOTE_COLL + "/" + id); retur
 // Zrušení odpovědi: odpověď i důvod v jedné dávce
 const clearAt = (eid, pid) => { const id = noteId(eid, pid); delNote(S.db.batch().delete("attendance/" + id), id).commit(); };
 // Změna odpovědi: „Jdu“ se zapíše hned (opakované klepnutí ji zruší), „Nejdu“ a „Nejsem jistý“ otevřou okno s důvodem.
-// Hráčka smí měnit jen svoji odpověď a jen do termínu; trenér a kustod kdykoli a za kohokoli (i za člena realizačního týmu).
+// Hráčka smí měnit jen svoji odpověď a jen do termínu; manager, trenér a asistent kdykoli a za kohokoli (i za člena realizačního týmu).
 function answer(eid, pid, st) {
   const ev = allEvents().find(x => x.id === eid);
   if (!ev) return;
@@ -171,10 +171,10 @@ function answer(eid, pid, st) {
   if (isPl() && pid !== HK.pid()) return toast("Můžeš měnit jen svoji odpověď");
   if (isLocked(ev) && !staff()) return toast("Přihlašování je uzavřeno");
   const cur = (atMap()[eid] || {})[pid];
-  // 🚫 nedorazila bez omluvy: odpověď se značkou mění jen trenér a kustod (změna odpovědi značku zruší)
+  // 🚫 nedorazila bez omluvy: odpověď se značkou mění jen manager, trenér a asistent (změna odpovědi značku zruší)
   if (isNos(cur) && !staff()) return toast("Trenér označil 🚫 nedorazila bez omluvy – odpověď už změní jen manager, trenér nebo asistent.");
   // Blokace „Jdu“: neuhrazený předpis po splatnosti bez výjimky (správce pokladny smí zapisovat vždy a výjimky uděluje).
-  // Vlastní předpisy jsou v zařízení (S.ch); za jiného člena rozhoduje veřejný souhrn debtors (S.dt) – kustod cizí předpisy nevidí.
+  // Vlastní předpisy jsou v zařízení (S.ch); za jiného člena rozhoduje veřejný souhrn debtors (S.dt) – asistent cizí předpisy nevidí.
   if (st === "yes" && !(cur && cur.st === "yes") && !cashMgr() && memberBlocked(S.ch, S.dt, pid, Date.now())) {
     const own = pid === HK.pid() || pid === HK.tid();
     return toast(own ? "Máš neuhrazený předpis po splatnosti – přihlášení je zablokováno. Zaplať (Moje platby), nebo požádej pokladníka o výjimku."
@@ -185,7 +185,7 @@ function answer(eid, pid, st) {
   render();
 }
 // Uložení rozdělení do pětek u tréninku (pole lines: {hráčka: číslo pětky, "t:" + člen týmu: číslo pětky}); merge zapíše jen pole lines
-// 🚫 nedorazila bez omluvy: přepnutí značky u odpovědi „Jdu“ po začátku události (jen trenér a kustod, merge jen pole nos)
+// 🚫 nedorazila bez omluvy: přepnutí značky u odpovědi „Jdu“ po začátku události (jen manager, trenér a asistent, merge jen pole nos)
 function toggleNos(ev, pid) {
   if (!staff() || isCancelled(ev)) return;
   const cur = (atMap()[ev.id] || {})[pid];
@@ -222,7 +222,7 @@ ${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" s
 function list(a) {
   const P = activePl(), AT = atMap(), evs = allEvents(), today = td(), pl_ = isPl();
   if (!S.evc) { const n = new Date(); S.evc = {y: n.getFullYear(), m: n.getMonth()}; }
-  // Za koho platí rychlá tlačítka na kartě: hráčka vždy sama za sebe; trenér / kustod jen když je propojen s realizačním týmem
+  // Za koho platí rychlá tlačítka na kartě: hráčka vždy sama za sebe; manager / trenér / asistent jen když je propojen s realizačním týmem
   if (pl_) S.evp = HK.pid();
   else { const me = myTr(); S.evp = me ? me.id : null; }
   if (S.evp && !P.some(p => p.id === S.evp) && !isTr(S.evp)) S.evp = null;
@@ -303,7 +303,7 @@ function pubLinesHtml(ev, A) {
 }
 // Zdroj pro test prázdné události (docházka, vyúčtování, předpisy ze zařízení)
 const emptySrc = () => ({attendance: Object.fromEntries(S.at.map(x => [x.id, x])), evcash: Object.fromEntries(S.ec.filter(x => x.settle).map(x => [x.id, x])), charges: Object.fromEntries(S.ch.map(x => [x.id, x]))});
-// Řádek zrušení / formulář zrušení / upozornění na vyúčtování (trenér a kustod)
+// Řádek zrušení / formulář zrušení / upozornění na vyúčtování (manager, trenér a asistent)
 function cancelHtml(ev, mt) {
   const cn = isCancelled(ev), settled = !!(ev.raw.ss || (ev.cx || {}).settle);
   const warn = settled && staff() ? '<div class="mu" style="margin-top:6px;color:var(--wa)">⚠️ Událost je vyúčtovaná – předpisy zůstávají. Storno proveď ručně: Pokladna u události → Znovu otevřít, pak nezaplacené předpisy smazat.</div>' : "";
@@ -324,13 +324,13 @@ function detail(a, ev) {
     return (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") +
       `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
   }).join("");
-  // Realizační tým: odpovědi mění jen trenér a kustod, hráčka je vidí jen ke čtení (bez důvodů)
+  // Realizační tým: odpovědi mění jen manager, trenér a asistent, hráčka je vidí jen ke čtení (bez důvodů)
   const trRows = T.map((t, i) => {
     const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP;
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
       `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(kindOf(t))}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
-  // Tlačítka trenéra / kustoda: otevřít zápas, úprava, zrušit / obnovit, smazat prázdnou, série; vývojář smazat úplně
+  // Tlačítka managera / trenéra / asistenta: otevřít zápas, úprava, zrušit / obnovit, smazat prázdnou, série; vývojář smazat úplně
   // Matice práv (⚙️ → 🔐): úprava, zrušení a smazání podle modulu Události / Zápasy
   const pm = mt ? "matches" : "events", canE = HK.perm(pm, "e"), canC = HK.perm(pm, "c"), canD = HK.perm(pm, "d");
   const key = "ev" + ev.id, ku = "evu" + ev.id, kw = "evw" + ev.id, empty = isEmptyEvent(ev.id, ev.raw, emptySrc()), blk = cancelBlock(ev.raw, mt) || (canC ? null : "bez práva rušit");
@@ -383,7 +383,7 @@ ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   if (xo) xo.onclick = () => confirm2("evx" + ev.id, () => { S.db.doc(path).merge(cancelPatch(by, new Date().toISOString(), S.evxr)); S.evx = null; S.evxr = ""; toast("Událost zrušena"); render(); });
   const un = a.querySelector("#evun");
   if (un) un.onclick = () => confirm2(ku, () => { S.db.doc(path).merge(uncancelPatch()); toast("Zrušení vráceno – přihlašování platí podle termínu"); render(); });
-  // Smazání prázdné události (bez odpovědí a vyúčtování): trenér / kustod; datová vrstva ještě zkontroluje vyúčtování (HK.canDelete)
+  // Smazání prázdné události (bez odpovědí a vyúčtování): manager / trenér / asistent; datová vrstva ještě zkontroluje vyúčtování (HK.canDelete)
   const ed = a.querySelector("#evd");
   if (ed) ed.onclick = () => {
     confirm2(key, () => {

@@ -1,9 +1,9 @@
 // Kostra aplikace: záložky a hlavní vykreslení.
 // První záložka 🏠 Domů (úvodní přehled, views/home-view.js) je výchozí po spuštění a vidí ji každý člen.
 // Záložka Události obsahuje zápasy i tréninky: je-li otevřený zápas (S.mid), zobrazí se jeho karta, jinak seznam událostí.
-// Přihlášená hráčka (role "hracka") vidí záložky Domů, Události, Statistiky, Soupeři (jen ke čtení) a Moje platby; karta zápasu je jen pro trenéra a kustoda.
+// Přihlášená hráčka (role "hracka") vidí záložky Domů, Události, Statistiky, Soupeři (jen ke čtení) a Moje platby; karta zápasu je jen pro managera, trenéra a asistenta.
 // Hostující (HK.can("guest")) vidí jen Domů, Události a Moje platby (statistiky, soupeři a tým nejsou její data).
-// Team vidí trenér a kustod; hráčka s příznakem pokladník (HK.can("money")) ho vidí také – formaci jen ke čtení, u soupisky a realizačního týmu jen platby, plus Platby / Pokladna / Měsíce.
+// Team vidí manager, trenér a asistent; hráčka s příznakem pokladník (HK.can("money")) ho vidí také – formaci jen ke čtení, u soupisky a realizačního týmu jen platby, plus Platby / Pokladna / Měsíce.
 // Statistiky a Soupeři vidí členové týmu, jejichž role má v matici práv (⚙️ → 🔐 Práva rolí) „číst“ (HK.perm stats / opp).
 // Záložka Moje platby je pro každého, kdo má v účtu propojenou hráčku nebo člena týmu (pid / tid).
 // Náhled role: při aktivním náhledu je v horní liště nad záložkami stálý pruh „Náhled: … · Ukončit náhled“

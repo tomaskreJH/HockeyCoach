@@ -6,7 +6,7 @@ export const SL=["LK","C","PK","LO","PO"];
 export const REA=["Hákování","Držení","Podražení","Vysoká hůl","Hrubost","Zdržování hry","Příliš mnoho hráčů","Nesportovní chování","Jiné"];
 export const SIT={E:"5 na 5",PP:"Přesilovka",SH:"Oslabení"};
 export const ST={act:"Aktivní",inj:"Zraněný",end:"Ukončil"};
-// Funkce člena realizačního týmu (kolekce staff); trenéři a kustodi se zapisují do docházky, neplatí a nenominují se
+// Funkce člena realizačního týmu (kolekce staff); trenéři a asistenti se zapisují do docházky, neplatí a nenominují se
 export const KIND=["Manager","Trenér","Asistent","Jiný"];                 // funkce člena realizačního týmu (staff.kind) – názvy jako role
 export const KIND_OLD={"Kustod":"Asistent"};                              // starší uložené funkce → zobrazení podle nových rolí (data se nepřepisují)
 export const COLS=["LK","C","PK","LO","PO"];

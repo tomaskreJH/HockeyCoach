@@ -9,6 +9,7 @@ import {readFileSync, readdirSync, statSync} from "node:fs";
 import {join} from "node:path";
 import {fileURLToPath} from "node:url";
 import {HK} from "../src/data/storage.js";
+import {exOf, fxOf} from "../src/domain/cash.js";
 
 // ===== Pomocné funkce =====
 const ROOT = fileURLToPath(new URL("../", import.meta.url)), SRC = join(ROOT, "src");
@@ -18,15 +19,22 @@ const files = (d = SRC) => readdirSync(d).flatMap(f => { const p = join(d, f); r
 const grep = re => files().filter(p => re.test(readFileSync(p, "utf8"))).map(p => p.slice(SRC.length + 1).replace(/\\/g, "/")).sort();
 let db = null;
 before(async () => {
-  globalThis.__fb = {user: {email: "coach@test.cz", uid: "u1"}, members: {"coach@test.cz": {role: "trener"}}, data: {}, writes: []};
+  globalThis.__fb = {user: {email: "coach@test.cz", uid: "u1"}, members: {"coach@test.cz": {role: "manager", rv: 2}}, data: {}, writes: []};
   db = await HK.ready();
 });
 const last = () => globalThis.__fb.writes[globalThis.__fb.writes.length - 1];
 
 // ===== Mazání =====
-test("D3: starý tvar osvobozené (legacyEx) je pryč, převod zůstává jen v ⚙️ → Kontrola dat", () => {
+test("D3 + D4: starý tvar osvobozené (legacyEx) i jeho převod (exFixPlan) jsou pryč", () => {
   assert.deepEqual(grep(/legacyEx/), []);
-  assert.deepEqual(grep(/exFixPlan\b/), ["data/storage.js", "domain/cash.js"]);
+  assert.deepEqual(grep(/exFixPlan\b/), []);
+});
+test("exOf / fxOf: starý tvar (fx 0 bez ex) se nečte jako osvobozená", () => {
+  assert.equal(exOf({fx: 0}), false);
+  assert.equal(fxOf({fx: 0}), 0);
+  assert.equal(exOf({fx: 1, ex: true}), true);
+  assert.equal(exOf({fx: 0, ex: false}), false);
+  assert.equal(fxOf({}), 1);
 });
 test("D3: pravidla bez kolekce coach a bez poznámek o payments", () => {
   const rules = read("firestore.rules");

@@ -1,7 +1,7 @@
 // Doména: zrušení a úplné smazání události (čisté funkce bez DOM).
 // Zrušení: pole cancelled = {by, at, reason} v dokumentu tréninku (events) nebo zápasu (matches) – událost zůstává v historii,
 // přihlašování je zamčené, do Docházky se nepočítá a zápas nejde zahájit; zrušení lze vrátit (pole se smaže).
-// Prázdnou událost (bez odpovědí, bez vyúčtování, u zápasu bez zápisu) smaže trenér / kustod; událost s daty smaže úplně
+// Prázdnou událost (bez odpovědí, bez vyúčtování, u zápasu bez zápisu) smaže manager / trenér / asistent; událost s daty smaže úplně
 // jen vývojář – i s docházkou, důvody, předpisy, úhradami v pokladně, vyúčtováním, cenou a žádostmi (wipePlan). Audit se nemaže.
 
 // ===== Konstanty =====
@@ -34,7 +34,7 @@ export function cancelText(raw) {
   return "❌ Zrušeno" + (day ? " " + day : "") + (c.reason ? " · " + c.reason : "");
 }
 
-// ===== Prázdná událost (smazání trenérem / kustodem) =====
+// ===== Prázdná událost (smazání managerem / trenérem / asistentem) =====
 // Událost bez dat: žádná odpověď v docházce, žádné vyúčtování ani předpis a u zápasu bez zápisu (události, živý zápis, uzavření)
 export function isEmptyEvent(id, raw, src) {
   const s = src || {}, r = raw || {};

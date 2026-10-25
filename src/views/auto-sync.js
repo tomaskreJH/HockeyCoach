@@ -1,8 +1,8 @@
 // Automatická synchronizace odvozených dat (bez obrazovky, tichý zápis přes HK.syncOps – v náhledu a ve starší verzi se nezapisuje):
-//  1) veřejné dokumenty pro hostující evpub / lineuppub (domain/guests.js pubPlan) – zapisuje jen trenér / kustod a jen rozdíly,
+//  1) veřejné dokumenty pro hostující evpub / lineuppub (domain/guests.js pubPlan) – zapisuje jen manager / trenér / asistent a jen rozdíly,
 //     a jen když se oba dokumenty načetly (jinak by nepublikovaná pravidla vedla ke zbytečným zápisům),
 //  2) automatická omluva z 🏖 nepřítomnosti (domain/absence.js absAuto) u otevřených událostí, kde člen ještě neodpověděl –
-//     trenér / kustod za všechny, ostatní za sebe (pravidla jim víc nedovolí).
+//     manager / trenér / asistent za všechny, ostatní za sebe (pravidla jim víc nedovolí).
 // Spouští ho main.js po změně dat; běží nejdřív 1,5 s po poslední změně, zápisy čekající na potvrzení se neopakují.
 
 // ===== Importy =====

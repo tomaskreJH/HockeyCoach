@@ -1,7 +1,7 @@
-// 🏖 Nepřítomnost od – do: karta v 🏠 Domů (vlastní nepřítomnosti, u trenéra / kustoda i nepřítomnosti týmu) a okno formuláře
+// 🏖 Nepřítomnost od – do: karta v 🏠 Domů (vlastní nepřítomnosti, u managera / trenéra / asistenta i nepřítomnosti týmu) a okno formuláře
 // s náhledem „co se změní“ (S.abf). Výpočty: domain/absence.js, žádosti po uzávěrce: domain/att-requests.js.
 // Uložení je jedna dávka: absence/{id} + u otevřených událostí odpověď „Nejdu“ (abs = id) a důvod v attnote; po uzávěrce (do začátku)
-// člen pošle žádost o změnu účasti, trenér / kustod zapíše odpověď rovnou. Zrušení smaže nepřítomnost a jí zapsané omluvy
+// člen pošle žádost o změnu účasti, manager / trenér / asistent zapíše odpověď rovnou. Zrušení smaže nepřítomnost a jí zapsané omluvy
 // u otevřených budoucích událostí. Úprava = zrušení staré a uložení nové v jedné dávce.
 
 // ===== Importy =====
@@ -28,7 +28,7 @@ const items = () => [...S.ev.map(e => ({id: e.id, title: e.title || "Trénink", 
   ...S.ma.map(m => ({id: m.id, title: "Zápas – " + (m.opp || ""), date: m.date || "", time: m.time || "", dl: m.dl || "", cancelled: m.cancelled || null}))];
 const evById = id => items().find(e => e.id === id);
 const whoH = mid => pn(mid, {staff: true});
-// Členové pro výběr (trenér / kustod): aktivní hráčky a realizační tým
+// Členové pro výběr (manager / trenér / asistent): aktivní hráčky a realizační tým
 const memberOpts = sel => [...S.pl.filter(p => (p.st || "act") !== "end").sort((a, b) => a.name.localeCompare(b.name, "cs")).map(p => [p.id, nm(p.id)]),
   ...[...S.tr].sort((a, b) => (a.name || "").localeCompare(b.name || "", "cs")).map(t => [t.id, "🎓 " + (t.name || "?")])]
   .map(([id, t]) => `<option value="${esc(id)}"${id === sel ? " selected" : ""}>${esc(t)}</option>`).join("");
@@ -36,7 +36,7 @@ const memberOpts = sel => [...S.pl.filter(p => (p.st || "act") !== "end").sort((
 const absRow = (a, who) => `<div class="hmr" style="cursor:default"><div>${who ? "<b>" + whoH(a.mid) + "</b> · " : ""}${esc(ABS_KINDS[a.kind] || "")} <b>${esc(absRange(a))}</b>${a.note ? `<div class="mu">${esc(a.note)}</div>` : ""}</div><div class="row" style="flex:none;flex-wrap:nowrap"><button class="s" data-abe="${esc(a.id)}" style="padding:6px 10px">✏️</button><button class="d" data-abd="${esc(a.id)}" style="padding:6px 10px">${armed("abd" + a.id) ? "Zrušit?" : "🗑"}</button></div></div>`;
 
 // ===== Vykreslení =====
-// Karta 🏖 v 🏠 Domů: vlastní platné nepřítomnosti a u trenéra / kustoda nepřítomnosti týmu
+// Karta 🏖 v 🏠 Domů: vlastní platné nepřítomnosti a u managera / trenéra / asistenta nepřítomnosti týmu
 export function absCardHtml() {
   const mid = myMid(), today = td(), act = activeAbs(S.ab, today);
   if (!mid && !staff()) return "";
@@ -94,7 +94,7 @@ function save() {
   const p = absPlan(a, items(), S.at.filter(x => !rev.has(x.id)), S.rq, Date.now(), today), reason = absReason(a);
   b.set(ABS_COLL + "/" + id, d);
   p.write.forEach(x => putNo(b, x.eid, f.mid, id, reason, at));
-  // Po uzávěrce: trenér / kustod zapíše rovnou, člen pošle žádost
+  // Po uzávěrce: manager / trenér / asistent zapíše rovnou, člen pošle žádost
   p.req.forEach(x => { if (staff()) putNo(b, x.eid, f.mid, id, reason, at); else b.set(REQ_COLL + "/" + S.db.collection(REQ_COLL).newId(), attReqDoc(x.eid, f.mid, "no", reason, me(), at, id)); });
   b.commit();
   S.abf = null;

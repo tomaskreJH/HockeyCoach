@@ -15,7 +15,7 @@ export const pl=id=>S.pl.find(p=>p.id===id);
 export const kindOf=t=>{const k=String((t&&t.kind)||"");return KIND_OLD[k]||k};
 // Přihlášené hráčky (odpověď „Jdu“) na událost; id události = id zápasu nebo tréninku. Do nominace zápasu smí jen ony.
 export const goingOf=eid=>[...new Set(S.at.filter(a=>a.eid===eid&&a.st==="yes").map(a=>a.pid))].filter(id=>pl(id));
-// Člen realizačního týmu (trenér, kustod…) podle id
+// Člen realizačního týmu (trenér, asistent…) podle id
 const trOf=id=>S.tr.find(t=>t.id===id);
 // Jméno osoby jedinou funkcí ve dvou podobách: pn = HTML (číslo, jméno, značka 🎟 hostující, 🤕 zraněná / ⛔ skončila), nm = čistý text (číslo a jméno; CSV, časová osa, hlášky).
 // Volby: staff = najít i člena realizačního týmu (v HTML s 🎓), fb = text pro neznámé id (výchozí „?“).

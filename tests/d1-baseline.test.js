@@ -100,9 +100,9 @@ const noTs = ops => JSON.parse(JSON.stringify(ops, (k, v) => (k === "ts" ? "<ts>
 // ===== Zachycení výstupů =====
 const out = {};
 before(async () => {
-  // Přihlášení trenéra přes zástupce Firebase (role trener = sportovní i pokladní práva)
+  // Přihlášení managera přes zástupce Firebase (sportovní i pokladní práva)
   S.pl = roster();
-  globalThis.__fb = {user: {email: "coach@test.cz", uid: "u1"}, members: {"coach@test.cz": {role: "trener"}}, data: {players: Object.fromEntries(S.pl.map(p => { const {id, ...d} = p; return [id, d]; }))}};
+  globalThis.__fb = {user: {email: "coach@test.cz", uid: "u1"}, members: {"coach@test.cz": {role: "manager", rv: 2}}, data: {players: Object.fromEntries(S.pl.map(p => { const {id, ...d} = p; return [id, d]; }))}};
   const db = await HK.ready();
   db.collection("players").onSnapshot(() => {});
 

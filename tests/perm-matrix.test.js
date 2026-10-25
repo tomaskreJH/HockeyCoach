@@ -101,8 +101,8 @@ test("aplikace: matice se projeví v HK.perm, zkratky HK.can se nemění, pevné
   assert.equal(t.perm["matches.e"], true, "pevná buňka zůstává");
   assert.equal(t.perm["members.e"], false, "pevná buňka zůstává");
   assert.equal(t.state.set, true); assert.equal(t.state.by, "boss@test.cz");
-  const k = probe("kustod", false, 0, roles);
-  assert.equal(k.perm["matches.d"], false, "stará role kustod = asistent");
+  const k = probe("asistent", false, 2, roles);
+  assert.equal(k.perm["matches.d"], false, "asistent podle matice");
   assert.equal(k.can.sport, true);
   const h = probe("hracka", false, 0, roles);
   assert.equal(h.perm["stats.r"], false); assert.equal(h.perm["attview.r"], false); assert.equal(h.perm["opp.r"], true);
@@ -110,8 +110,8 @@ test("aplikace: matice se projeví v HK.perm, zkratky HK.can se nemění, pevné
   assert.ok(Object.values(s.perm).every(v => v === false), "hostující nemá nic z matice");
 });
 
-test("aplikace: manager (i starý trenér bez rv) smí vše a matici uloží jen s upravitelnými rozdíly", () => {
-  ["manager|2", "trener|"].forEach(x => {
+test("aplikace: manager smí vše a matici uloží jen s upravitelnými rozdíly", () => {
+  ["manager|2", "manager|"].forEach(x => {
     const [role, rv] = x.split("|"), m = probe(role, false, rv, {trener: {events: {e: false}}});
     assert.ok(Object.values(m.perm).every(v => v === true), role + " smí vše");
     assert.equal(m.saved, true);

@@ -77,7 +77,7 @@ export function debtorState(doc, now) {
 
 // ===== Blokace „Jdu“ =====
 // Má člen zablokované přihlášení „Jdu“? Vlastní předpisy v zařízení (ch – hráčka a správce pokladny je vidí) NEBO veřejný souhrn
-// debtors (dt = seznam dokumentů {id, dues}) – trenér / kustod bez práv pokladny cizí předpisy nevidí, souhrn ano. Stejné pravidlo jako debtOf.
+// debtors (dt = seznam dokumentů {id, dues}) – manager / trenér / asistent bez práv pokladny cizí předpisy nevidí, souhrn ano. Stejné pravidlo jako debtOf.
 export function memberBlocked(ch, dt, mid, now) {
   if (debtOf(ch, [mid]).blocked) return true;
   const st = debtorState((dt || []).find(x => x.id === mid), now);

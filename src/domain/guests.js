@@ -1,19 +1,18 @@
 // Doména: hostující hráčky (čisté funkce bez DOM). Hostující = hráčka v soupisce s příznakem players.guest = true; počítá se
 // všude jako každá hráčka (docházka, statistiky, platby), jen nese značku 🎟. S účtem (role host v members) vidí jen sebe:
 // úzké veřejné dokumenty evpub/{id} (hlavička události bez odpovědí a bez statistik) a lineuppub/{id} (pětky tréninku / formace zápasu
-// jako jména), které zapisuje aplikace trenéra / kustoda (pubPlan → views/guest-sync.js). Formaci smí host číst jen u události,
+// jako jména), které zapisuje aplikace managera / trenéra / asistenta (pubPlan → views/auto-sync.js). Formaci smí host číst jen u události,
 // kde má odpověď „Jdu“ (vynucují pravidla databáze).
 
 // ===== Importy =====
 import {LN, SL} from "../config/constants.js";
+import {LINE_NOS} from "./event-helpers.js";
 
 // ===== Konstanty =====
 export const GUEST_KEY = "guest";                    // příznak v players: hostující hráčka
-export const GUEST_TAG = "🎟";                       // značka u jména
 export const EVPUB_COLL = "evpub";                   // veřejná hlavička události pro hostující
 export const LUPUB_COLL = "lineuppub";               // formace / pětky události pro hostující (jen jména)
 export const PUB_PAST_DAYS = 14;                     // jak dlouho po události zůstávají veřejné dokumenty
-const LINE_NOS = [1, 2, 3, 4];
 
 // ===== Pomocné funkce =====
 const str = v => (v == null ? "" : String(v));
