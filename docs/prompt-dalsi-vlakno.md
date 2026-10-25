@@ -2,35 +2,35 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 
 ## 1. Start (šetři limit – čti cíleně)
 1. Stáhni repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
-2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v21.3.
+2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v21.4.
 3. Přečti jen:
    - docs/KONVENCE.md celý,
    - z docs/plan-v18.md tabulku nahoře a první dva body sekce „Stav“; docs/plan-trenink.md celý,
    - z CHANGELOG.md jen nejnovější záznam.
    Dál čti cíleně (grep -n, výřezy): sw.js, src/main.js (spuštění, poslech kolekcí), src/data/storage.js (boot, `HK.cfg`, `can`), src/views/settings-view.js (sekce ⚙️), firestore.rules (pomocné funkce a dotčené kolekce). Velké soubory (storage.js, events.js, plán 150 kB) nečti celé a nic nečti dvakrát.
-4. Spusť npm test (Node 22, bez instalace balíčků). Musí projít 301 testů ještě před prací; pokud ne, nejdřív to ohlas.
+4. Spusť npm test (Node 22, bez instalace balíčků). Musí projít 310 testů ještě před prací; pokud ne, nejdřív to ohlas.
 
-## 2. Kde projekt stojí (25. 10. 2026, po v21.3)
-- **v21.3 E3 dodána, k testu** – ⏱ živý trénink (`src/views/trlive-view.js`, `src/domain/training-live.js`; kolekce `trlive/{eid}` = {v, st run/pause/end, e0, wAt, sAt = čas serveru přes značku `"__now"` v `merge`, ctl, by, at}; řídí `trplan e`, převzetí druhým klepnutím; Moje stanoviště, co následuje, vibrace + zvuk 60 / 10 s, Wake Lock, odhad posunu hodin z čerstvých změn); rozdělení do pětek s výběrem způsobu (`src/domain/line-split.js`, `src/views/line-split-view.js`: ⚖ vyrovnaně, 📶 podle výkonnosti, 🔀 střídavě, 📋 základní formace, ⚔ poměr útok / obrana); ⭐ výkonnost 1–5 (`plevel/team`, jen `isStaff`); bloky plánu podle postů (`by: "pos"`, skupiny "F" / "D" / "G"). Pravidla v21.3 publikovat PŘED kódem. Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v21.3 (a zda jsou pravidla publikovaná), pokud to nenapíšu sám. Nález = oprava v21.3.1 dřív než E3b.
+## 2. Kde projekt stojí (25. 10. 2026, po v21.4)
+- **v21.4 E3b dodána, k testu** – ⏲ stopky a výsledky měření (`src/domain/stopwatch.js`, `src/views/stopwatch-view.js`; kolekce `trms/{eid}` = {v, r: {blok_linka: {d, dn, u, low, ms: {pid: [pokusy]}}}, by, at}, zápis dávkou s hlubokým sloučením; čte `trplan r` – výsledky vidí celý tým, zapisuje nový modul matice `treval e`); ⌚ systémová oznámení živého tréninku „co teď / co potom“ (`liveNote`, Android je zrcadlí na hodinky, akce ⏸ / ⏭ přes `sw.js` jen řídícímu; skrytá aplikace – okno `alertsDue(…, win)`); v plánu ⏱ čas bloku s rychlou volbou a převzetím délky z banky (`bankDur`, ruční změna `S.tpe.man`). Pravidla v21.4 publikovat PŘED kódem. Nejdřív se jednou krátkou otázkou zeptej na výsledek testu v21.4 a v21.3 (živý trénink ještě netestován) a zda jsou pravidla publikovaná, pokud to nenapíšu sám. Nález = oprava v21.4.1 dřív než E4.
+- **v21.3 E3 nasazena** (živý trénink zatím neotestován) – ⏱ živý trénink (`trlive/{eid}`, řídí `trplan e`), rozdělení do pětek s výběrem způsobu, ⭐ výkonnost (`plevel/team`), bloky plánu podle postů.
 - **v21.2 E2b nasazena** – 📥 základní sada a 📄 import cvičení, ⧉ kopie a 📑 šablony plánu (`trtpl`), 📊 pokrytí dovedností.
 - **v21.1 E2a nasazena** – 📋 plán tréninku (`trplan/{eid}`, karta v detailu tréninku), 📷 obrázky cvičení (`drillimg`) a 📄 PDF, ⚖ vyrovnaně do 2–4 pětek.
 - **v21.0 E1 nasazena a otestována** – 📚 banka cvičení (Team → 📚 Cvičení).
 - **v20.7.1 / v20.7** nasazeny – stav skóre v detailu zápasu (krok 3), úklid D4.
 - Role v `members/{email}`: `role` (manager / trener / asistent / hracka / host) + `rv: 2`. Jiná hodnota = bez přístupu (`roleOf`). Příznak `cash: true` = pokladník (manager je správce pokladny vždy). Posledního managera nejde odebrat ani snížit (`keepsManager`).
-- Oprávnění v aplikaci: zkratky `HK.can(akce)` (`sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`) a jemná práva `HK.perm(modul, akce)` z matice `settings/perm` (upravitelné jen buňky `EDITABLE`). Moduly Tréninku: `drills` (v21.0), `trplan` (v21.1), `treval` (E4) – nový modul se přidá do `MODULES`, `DEFAULT_PERMS`, `permDef` v pravidlech a do `can(modul, akce)`.
-- Pravidla (v21.3): `isMgr`, `isRoster`, `isStaff`, `isCash`, `isTeam`, `can(modul, akce)` (moduly matice včetně `drills`, `trplan`), `drillOk`, `imgOk` (`drillimg`), `trplanOk`, `trtplOk` (`trtpl` – čte i zapisuje `can('trplan', 'e')`), `trliveOk` (`trlive` – čte `trplan r`, zapisuje `trplan e`, `sAt == request.time`, `ctl == mail()`), `plevelOk` (`plevel` – `isStaff`) – shodu s `actOf` hlídá `tests/rules-narrow.test.js`.
+- Oprávnění v aplikaci: zkratky `HK.can(akce)` (`sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`) a jemná práva `HK.perm(modul, akce)` z matice `settings/perm` (upravitelné jen buňky `EDITABLE`). Moduly Tréninku: `drills` (v21.0), `trplan` (v21.1), `treval` (v21.4 – měření; E4 hodnocení) – nový modul se přidá do `MODULES`, `DEFAULT_PERMS`, `permDef` v pravidlech a do `can(modul, akce)`.
+- Pravidla (v21.4): `isMgr`, `isRoster`, `isStaff`, `isCash`, `isTeam`, `can(modul, akce)` (moduly matice včetně `drills`, `trplan`), `drillOk`, `imgOk` (`drillimg`), `trplanOk`, `trtplOk` (`trtpl` – čte i zapisuje `can('trplan', 'e')`), `trliveOk` (`trlive` – čte `trplan r`, zapisuje `trplan e`, `sAt == request.time`, `ctl == mail()`), `plevelOk` (`plevel` – `isStaff`), `trmsOk` (`trms` – čte `trplan r`, zapisuje `treval e`) – shodu s `actOf` hlídá `tests/rules-narrow.test.js`.
 - Vývojář = `DEV_EMAILS` v src/config/team-config.js (👁 náhled role, 🧨 úplné smazání jen s rolí manager).
-- Brána verze `settings/app.minVer` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) – čísla verzí musí jen růst. Další volné číslo je v21.4, cache `hokej-v87`.
+- Brána verze `settings/app.minVer` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) – čísla verzí musí jen růst. Další volné číslo je v21.5, cache `hokej-v88`.
 
 ## 3. Rozhodnutí OM (hotovo)
 - manager vše (aspoň jeden), trener sport + soupiska a realizační tým, asistent = dřívější kustod, hracka podle matice (vlastní data pevná), host beze změny, pokladník pevně podle `cash`. Další buňky matice lze odemknout jen tak, že je zároveň řídí aplikace i pravidla.
 
-## 4. Další verze: v21.4 E3b – ⏲ stopky
-- Plán: **docs/plan-trenink.md** – kap. 3 (`treval/{eid}`, pole `ms`), kap. 4 řádek E3b, kap. 6.
-- E3b: u měřeného cvičení (`drills.meas`) seznam hráček skupiny na lince (v ⏱ živém tréninku – `groupPids`), klepnutí na jméno = start / stop (více hráček souběžně, hromadný start skupiny), opakování, nejlepší výsledek; uložení do `treval.ms` (jeden dokument na trénink). Nový modul matice `treval` (r / e) – přidat do `MODULES`, `DEFAULT_PERMS`, `permDef` a pravidel; hráčka vidí jen své výsledky (T2) – zeptat se, jak to v pravidlech oddělit (vlastní dokument na hráčku, nebo jen aplikace).
-- Rozhodnuto: hráčka vidí celý plán (svou skupinu zvýrazněnou), své výsledky a co trénovala, ne hodnocení a poznámky trenérů; jednotné hodiny; hodnocení 4 úrovně (😃 super · 🙂 v pohodě · 😐 nic moc · 😴 vůbec se nesnaží). Poznámky trenérů nepatří do `trplan` (hráčka ho čte celý) – budou v `treval`.
+## 4. Další verze: v21.5 E4 – ⭐ hodnocení
+- Plán: **docs/plan-trenink.md** – kap. 3 (`treval/{eid}`), kap. 4 řádek E4, kap. 6 (T5, E3b).
+- E4: po bloku rychlé hodnocení cvičení stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc · 😴 vůbec se nesnaží + poznámka, volitelně u hráček; doplnění i po tréninku (seznam neohodnocených bloků); hodnocení i z ⏱ živého tréninku na konci kola. Data `treval/{eid}` jen pro realizační tým (`treval r` / `e`, hráčka nečte – T2); měření zůstává v `trms` (vidí celý tým).
+- Pak v21.6 E5 přehled (tabulky výsledků měření s porovnáním i pro hráčky), v21.7 K komfort zadávání / ovládání / přehledu (nejdřív návrh seznamu ke schválení), v22.x N notifikace (i se zamčeným telefonem; pozor na tarif Spark), P2, G aplikace pro hodinky Garmin (nejdřív ověření G0), M jiný klub úplně poslední.
 - Poslech `events` / `attendance` jen aktuální sezóny (D4-8) – zeptat se před změnou.
-- Pak v21.5 E4 hodnocení, v21.6 E5 přehled; notifikace (N) až po Tréninku, potom P2.
 
 ## 5. Odložené drobnosti (neřešit, jen nezapomenout)
 1. Smazání hráčky ponechá její žádosti v `requests` a nepřítomnosti v `absence` (osiřelé).
@@ -43,7 +43,8 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 8. Hlášky a nápověda u pokladny místy píší „trenér a pokladník“ (v nápovědě vysvětleno jako správce pokladny) – sjednotit při úklidu.
 9. Smazání tréninku ponechá jeho plán `trplan/{eid}` a hodiny `trlive/{eid}` (osiřelé, nevadí – čte se jen u existujícího tréninku); ✅ (v21.2) smazání cvičení maže i jeho obrázky `drillimg`.
 10. ✅ (v21.2) šablony plánu a kopírování hotové. Pokrytí dovedností počítá i hostující hráčku přihlášenou na trénink – zvážit, zda ji vynechat.
-11. ⭐ Výkonnost: hráčka smazaná ze soupisky zůstane v `plevel/team.lv` (nevadí, nečte se). Upozornění živého tréninku jen při otevřené obrazovce (bez serveru) – na zamčeném telefonu až s notifikacemi N.
+11. ⭐ Výkonnost: hráčka smazaná ze soupisky zůstane v `plevel/team.lv` (nevadí, nečte se). Upozornění živého tréninku jen při otevřeném živém tréninku (bez serveru) – se zhasnutým telefonem chodí ⌚ oznámení se zpožděním, spolehlivě až s notifikacemi N nebo aplikací G.
+12. ⏲ Výsledky měření: smazání tréninku ponechá `trms/{eid}` (osiřelé jako `trplan`); výsledky linky odstraněné z plánu zůstanou v kartě (bez ⏲ Měřit). Stopky běží jen v zařízení (zavření okna je zahodí – ptá se druhým klepnutím).
 
 ## 6. Pravidla práce (povinná)
 1. Výstup = vždy JEDEN ZIP se všemi změněnými a novými soubory ve struktuře repozitáře (rozbalit přímo do kořene HockeyCoach). Soubory celé od prvního do posledního řádku – žádné zkracování, žádné NAJDI / NAHRAĎ.

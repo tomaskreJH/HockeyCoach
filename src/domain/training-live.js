@@ -2,6 +2,7 @@
 // Dokument: {v, st ("run" | "pause" | "end"), e0 (s od začátku plánu v okamžiku zápisu), wAt (čas zařízení zapisujícího, ms),
 // sAt (čas serveru zápisu – serverTimestamp), ctl (e-mail řídícího), by, at}. Čas běží jen při st "run": e0 + (teď − sAt).
 // Posun hodin zařízení se dorovná odhadem skew (teď zařízení − čas serveru) z čerstvých změn dokumentu. Čisté funkce bez DOM.
+// Upozornění: vibrace a zvuk v aplikaci a volitelně systémové oznámení (zrcadlí se i na hodinky) s textem „co teď / co potom“ – liveNote.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Hodiny -> Poloha v plánu -> Řízení -> Upozornění -> Lidé na lince.
 
 // ===== Importy =====
@@ -100,11 +101,25 @@ export function liveCtl(kind, live, {now, skew = 0, me, sec} = {}) {
 }
 
 // ===== Upozornění =====
-// Hranice upozornění, které se překročily mezi dvěma odečty zbývajícího času téhož kola (prevLeft → left); jen čerstvé (do 3 s),
-// aby skok hodin (posun, otevření obrazovky) nespustil staré upozornění
-export function alertsDue(prevLeft, left, marks = ALERT_AT) {
+// Hranice upozornění, které se překročily mezi dvěma odečty zbývajícího času téhož kola (prevLeft → left); jen čerstvé (do win s,
+// výchozí 3 s), aby skok hodin (posun, otevření obrazovky) nespustil staré upozornění. Skrytá aplikace (zhasnutý telefon) tiká
+// řidčeji – volá se s větším oknem, aby oznámení na hodinky přišlo aspoň se zpožděním.
+export function alertsDue(prevLeft, left, marks = ALERT_AT, win = 3) {
   if (num(prevLeft) == null || num(left) == null || left >= prevLeft) return [];
-  return marks.filter(m => prevLeft > m && left <= m && left > m - 3);
+  const due = marks.filter(m => prevLeft > m && left <= m && left > m - win);
+  return due.length > 1 ? [due[due.length - 1]] : due;
+}
+// Text systémového oznámení (i na hodinkách – krátký titulek, podrobnosti v těle). kind = 60 | 10 | "switch" | "end";
+// cur / nxt = {where ("Stanoviště B", "Blok 2"), what (cvičení), who (skupiny)} | null; left = zbývající s v kole; till = konec kola „18:42“
+export function liveNote(kind, cur, nxt, left, till) {
+  const line = x => (x ? [x.where, x.what].filter(Boolean).join(" · ") + (x.who ? " (" + x.who + ")" : "") : "");
+  const next = nxt ? "Potom: " + line(nxt) : "Potom: konec plánu";
+  if (kind === "end") return {title: "✅ Plán tréninku skončil", body: cur ? "Poslední: " + line(cur) : ""};
+  if (kind === "switch") return {title: "▶ Teď: " + (cur ? [cur.where, cur.what].filter(Boolean).join(" · ") : "další kolo"),
+    body: [cur && cur.who ? cur.who : "", till ? "do " + till : "", next].filter(Boolean).join(" · ")};
+  const t = mmss(left);
+  if (kind === 10) return {title: "⏱ " + t + " → " + (nxt ? [nxt.where, nxt.what].filter(Boolean).join(" · ") : "konec"), body: (cur ? "Teď: " + line(cur) + " · " : "") + next};
+  return {title: "⏱ Ještě " + t + (cur && cur.what ? " · " + cur.what : ""), body: (cur ? "Teď: " + line(cur) + " · " : "") + next};
 }
 // Mm:ss pro odpočet (záporné = 0:00)
 export function mmss(sec) {

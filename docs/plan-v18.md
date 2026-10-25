@@ -53,17 +53,22 @@
 | v21.1 | E2a | 📋 Plán tréninku v detailu tréninku (bloky, stanoviště, točení, trenéři, brankářky, kontroly), kolekce `trplan`, modul matice `trplan`; 📷 obrázky (`drillimg`) a 📄 PDF u cvičení; ⚖ vyrovnané pětky; 🔒 Vyžadovat verzi v 👤 Účet; stav skóre v Zápisu utkání – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.2 | E2b | 📥 základní sada cvičení a 📄 import z CSV, ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (`trtpl`), 📊 pokrytí dovedností, kontrola použití cvičení před smazáním – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.3 | E3 | ⏱ živý trénink (`trlive`, společné hodiny, Moje stanoviště, upozornění, Wake Lock), rozdělení do pětek s výběrem způsobu a ⚔ poměrem postů, ⭐ výkonnost hráček (`plevel`), bloky plánu podle postů – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
-| v21.4 – v21.6 | E | 🏒 **Modul Trénink** (zařazeno 24. 10. 2026 před notifikace): E3b stopky, E4 hodnocení, E5 přehled a analýza – **podrobně `docs/plan-trenink.md`** |
-| v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) – posunuto za Trénink |
-| poslední | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
-| později | M | Další tým = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) |
+| v21.4 | E3b | ⏲ stopky a výsledky měření (`trms`, modul matice `treval`, výsledky vidí celý tým), ⌚ oznámení živého tréninku i na hodinky (akce ⏸ / ⏭ pro řídícího), ⏱ čas cvičení v plánu jen pro trénink (rychlá volba, délka z banky) – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
+| v21.5 – v21.6 | E | 🏒 **Modul Trénink**: E4 hodnocení, E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
+| v21.7 | K | 🖐 **Komfort zadávání, ovládání a přehledu** (priorita uživatele 25. 10. 2026): průchod hlavních toků na telefonu – méně klepnutí, výchozí hodnoty, rychlé akce, přehledy na jedné obrazovce – podrobně `docs/plan-trenink.md` kap. 4 |
+| v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky; oznámení i na hodinky) – posunuto za Trénink a K |
+| potom | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
+| potom | G | ⌚ **Aplikace pro hodinky Garmin** (Connect IQ): živý trénink na hodinkách – odpočet kola, co teď / co potom, vibrace, ⏸ / ⏭, stopky – samostatná část projektu, nejdřív ověření (`docs/plan-trenink.md` kap. 4) |
 | později | H | Souběžné tresty – přestavba formací, když hráčka chybí a hra je vyrovnaná (5 na 5, 4 na 4) – **jen myšlenka** |
 | později | F | Jeden zapisovatel živého zápisu – ochrana proti duplicitám a souběhu dvou zařízení |
 | později | E6 | Trénink – dlouhodobý plán, nákres cvičení, testovací baterie sezóny (`docs/plan-trenink.md`) |
+| **poslední** | M | Další tým / jiný klub = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) – stále úplně poslední (25. 10. 2026) |
 
 ---
 
 ## Stav (aktualizováno 25. 10. 2026)
+- **v21.4 (E3b) dodáno, k testu:** ⏲ stopky (klepnutí na jméno = start / stop, víc hráček souběžně, ▶ Start všech, pokusy, nejlepší, počty a body) z ⏱ živého tréninku i z karty plánu, ⏲ výsledky měření s pořadím v kartě plánu (`trms/{eid}`, vidí celý tým kromě hostující), modul matice `treval`; ⌚ systémová oznámení živého tréninku „co teď / co potom“ (Android je zrcadlí na hodinky Garmin), akce ⏸ / ⏭ pro řídícího; v plánu ⏱ čas cvičení jen pro trénink (rychlá volba, převzetí délky z banky). Kontrola kódu v21.3 – oprava upozornění se zhasnutým telefonem. Pravidla publikovat před kódem. **v21.3 nasazena, živý trénink zatím neotestován.**
+- **Rozhodnutí 25. 10. 2026:** měření není tajné – výsledky vidí celý tým (motivace, srovnání), během tréninku se jen zapisují; hodnocení a poznámky trenérů (E4) zůstávají jen realizačnímu týmu. Priorita: funkčnost a komfort zadávání, ovládání a přehledu (nová fáze K po E5); oznámení na hodinkách hned (v21.4), vlastní aplikace pro Garmin (G) později; jiný klub (M) stále úplně poslední.
 - **v21.3 (E3) dodáno, k testu:** ⏱ živý trénink z karty plánu (společné hodiny `trlive/{eid}` s časem serveru a dorovnáním posunu hodin zařízení, ▶ / ⏸ / ⏮ ⏭ / +1 / +5 min / ⏹, převzetí řízení, Moje stanoviště, co následuje, vibrace a zvuk 60 s / 10 s, Wake Lock); rozdělení do pětek s výběrem způsobu (⚖ vyrovnaně, 📶 podle výkonnosti, 🔀 střídavě, 📋 základní formace) a ⚔ poměrem útočnic / obránkyň; ⭐ výkonnost 1–5 (`plevel/team`, jen realizační tým); bloky plánu dělené podle postů (`by: "pos"`). Řízení hodin = `trplan e` (rozhodnutí 25. 10. 2026). Pravidla publikovat před kódem.
 - **v21.2 (E2b) nasazeno (25. 10. 2026).**
 - **v21.2 (E2b) dodáno, k testu:** 📥 základní sada cvičení (hráčky a brankářky) a 📄 import z tabulky CSV v bance, ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (kolekce `trtpl`, sdílené pro tým), 📊 pokrytí dovedností přihlášených hráček (14 / 30 / 60 dní), smazání cvičení jen nepoužitého (i s obrázky). Pravidla publikovat před kódem. Rozhodnutí: šablony i kopírování (obojí).
@@ -73,7 +78,7 @@
 - **v20.7 (D4) dodáno, k testu:** úklid před modulem Trénink – odstraněny hotové jednorázové převody (⚙️ Kontrola dat – pole `ex`, převod a úklid soukromí, 🔁 převod rolí), stará role `kustod` / `trener` bez `rv` se už nepřevádí (stejně jako v pravidlech v20.6), komentáře „kustod“ → asistent, `LINE_NOS` na jednom místě, `main.js` rozepsaný do bloků, plán zkrácen (dokončené fáze v archivu). Bez změny chování ostatních modulů.
 - **Rozhodnutí 24. 10. 2026:** modul Trénink (E) před notifikacemi (N); odpovědi T1 – T5 v `docs/plan-trenink.md` kap. 6.
 - v20.6 (OM3) dodána – výsledek testu a publikování `firestore.rules` uživatel zatím nehlásil.
-- Další: **v21.4 E3b – ⏲ stopky** (`docs/plan-trenink.md`).
+- Další: **v21.5 E4 – ⭐ hodnocení** (`docs/plan-trenink.md`).
 
 ## H – později: Souběžné tresty a chybějící hráčka při vyrovnané hře (myšlenka, přidáno 22. 10. 2026)
 Zatím jen zamyšlení – nezařazeno do verze, rozhodne se po v18.6.

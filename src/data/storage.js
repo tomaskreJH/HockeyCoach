@@ -43,6 +43,7 @@ import {SERIES_COLL} from "../domain/recurrence.js";
 import {TRTPL_COLL} from "../domain/plan-reuse.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {PLEVEL_COLL} from "../domain/line-split.js";
+import {TRMS_COLL} from "../domain/stopwatch.js";
 import {TRLIVE_COLL} from "../domain/training-live.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -87,9 +88,9 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta),
 // trlive = společné hodiny ⏱ živého tréninku (průběžný stav, poslech jen u otevřeného tréninku)
 const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL];
-// Kolekce Tréninku, které se v zařízení nečtou celé (plán jen u otevřeného tréninku, obrázky cvičení, šablony plánu a ⭐ výkonnost na vyžádání):
+// Kolekce Tréninku, které se v zařízení nečtou celé (plán a ⏲ výsledky měření jen u otevřeného tréninku, obrázky cvičení, šablony plánu a ⭐ výkonnost na vyžádání):
 // do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
-const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL];
+const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL];
 [...COLL, ...EXTRA, ...FETCH].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====

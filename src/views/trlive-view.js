@@ -2,7 +2,9 @@
 // Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e): ▶ start, ⏸ pauza, ⏮ / ⏭ kolo nebo blok, +1 min, ⏹ konec;
 // převzetí řízení od jiného trenéra druhým klepnutím. Každý vidí „Moje stanoviště“ (trenér své linky, hráčka linku své skupiny),
 // odpočet kola, hráčky na lince, co následuje; vibrace a zvuk 60 s a 10 s před koncem kola, obrazovka nezhasíná. Výpočty domain/training-live.js.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Zvuk a obrazovka -> Poslech -> Vykreslení (karta, obrazovka; tik mění jen čísla) -> Eventy -> Exporty.
+// ⌚ Oznámení (volitelně, hk-tl-ntf): systémové oznámení „co teď / co potom“ – Android ho zrcadlí na hodinky; řídící má v oznámení ⏸ / ⏭.
+// ⏲ Stopky u měřeného cvičení na mé lince (views/stopwatch-view.js, smí HK.perm("treval", "e")).
+// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Zvuk, oznámení a obrazovka -> Poslech -> Vykreslení (karta, obrazovka; tik mění jen čísla) -> Eventy -> Exporty.
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -10,13 +12,16 @@ import {nm} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {LIVE_ST, TRLIVE_COLL, alertsDue, coachLanes, groupPids, liveAt, liveCtl, liveSec, mmss, skewNext, skewObs, stepSec} from "../domain/training-live.js";
+import {laneMeas} from "../domain/stopwatch.js";
+import {LIVE_ST, TRLIVE_COLL, alertsDue, coachLanes, groupPids, liveAt, liveCtl, liveNote, liveSec, mmss, skewNext, skewObs, stepSec} from "../domain/training-live.js";
 import {DF, FW, GK, MODES, clock, grpLabel, isFixedLane, isPosBlock, laneOf, planTimes} from "../domain/training-plan.js";
 import {render} from "./shell.js";
+import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
 
 // ===== Konstanty a stav =====
 const LETTERS = ["A", "B", "C", "D"];
-const MUTE_KEY = "hk-tl-mute", SKEW_KEY = "hk-clk";
+const MUTE_KEY = "hk-tl-mute", SKEW_KEY = "hk-clk", NTF_KEY = "hk-tl-ntf";
+const HID_WIN = 70;                                      // skrytá aplikace tiká řidčeji: upozornění / točení se pozná až do 70 s zpětně
 const FRESH_MS = 5000;                                   // změny doručené až po 5 s poslechu jsou čerstvé (měří se z nich posun hodin)
 const SKEW_OK = 10 * 60 * 1000;                          // větší rozdíl doručení a času serveru = stará změna, neměří se
 const ICON = {[GK]: "🥅", [FW]: "⚔", [DF]: "🛡"};
@@ -46,6 +51,8 @@ const CSS = `<style>
 const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
 const canE = () => HK.perm("trplan", "e");
 const muted = () => { try { return localStorage.getItem(MUTE_KEY) === "1"; } catch (e) { return false; } };
+// ⌚ Oznámení zapnutá v zařízení a povolená systémem
+const ntfOn = () => { try { return localStorage.getItem(NTF_KEY) === "1" && typeof Notification !== "undefined" && Notification.permission === "granted"; } catch (e) { return false; } };
 const storedSkew = () => { try { const v = Number(localStorage.getItem(SKEW_KEY)); return isFinite(v) && localStorage.getItem(SKEW_KEY) != null ? v : null; } catch (e) { return null; } };
 // Odhad posunu hodin zařízení: z tohoto poslechu, jinak uložený z dřívějška, jinak 0
 const skew = () => (L.sess != null ? L.sess : storedSkew() || 0);
@@ -70,10 +77,50 @@ function beep(n, len = 160, f = 880) {
   } catch (e) { /* zvuk není k dispozici */ }
 }
 const buzz = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* bez vibrací */ } };
-function alarm(kind) {
+// Upozornění: vibrace + zvuk v aplikaci a ⌚ oznámení (kind 60 | 10 | "switch" | "end", at = poloha v plánu po změně)
+function alarm(kind, at) {
   if (kind === 60) { buzz([200, 100, 200]); beep(2); }
   else if (kind === 10) { buzz([300, 100, 300, 100, 300]); beep(3, 160, 1100); }
   else { buzz(800); beep(1, 700, 660); }
+  notify(kind, at);
+}
+// Kde jsem v kole (pro text oznámení): moje linka (trenér / skupina hráčky), jinak jediná linka bloku, jinak blok
+function spot(B, at, X) {
+  const b = B[at.bi], M = mine(b, at.round, X), T = tags(b);
+  const li = M && M.length ? (b.lanes || []).findIndex(l => l.id === M[0]) : (b.lanes || []).length === 1 ? 0 : -1;
+  const l = li >= 0 ? b.lanes[li] : null, d = l && X.D[l.drill], grp = l ? (at.round && at.round.lanes[l.id]) || l.grp || [] : [];
+  return {where: l && T[li] ? (T[li] === "🥅" ? "🥅 Brankářky" : "Stanoviště " + T[li]) : "Blok " + (at.bi + 1),
+    what: l ? (d ? d.name : l.dn || "") : MODES[b.mode].replace(/^\S+ /, ""), who: grp.map(g => grpLabel(g)).join(", ")};
+}
+// Systémové oznámení (zrcadlí se na hodinky): titulek = co se děje, tělo = co následuje; řídící má akce ⏸ / ⏭
+async function show(title, body) {
+  const v = L.live, ctlMe = canE() && v && v.ctl === me() && v.st !== "end";
+  const opt = {body, tag: "hk-tl", renotify: true, silent: muted(), vibrate: [300, 100, 300], icon: "icon-192.png", badge: "icon-192.png", data: {eid: L.eid},
+    actions: ctlMe ? [{action: "pause", title: v.st === "run" ? "⏸ Pauza" : "▶ Pokračovat"}, {action: "next", title: "⏭ Další"}] : []};
+  try {
+    const r = navigator.serviceWorker && (await navigator.serviceWorker.getRegistration());
+    if (r && r.showNotification) { await r.showNotification(title, opt); return; }
+  } catch (e) { /* bez service workeru zkusí přímé oznámení */ }
+  try { new Notification(title, {body, tag: opt.tag}); } catch (e) { /* oznámení nejdou */ }
+}
+function notify(kind, at) {
+  if (!ntfOn()) return;
+  const X = L.getX ? L.getX() : null, B = (X && X.plan && X.plan.blocks) || [];
+  if (!B.length) return;
+  const live = at && !at.done, cur = live ? spot(B, at, X) : null, n = live ? liveAt(B, at.b) : null, nxt = n && !n.done ? spot(B, n, X) : null;
+  const t = liveNote(kind, cur, nxt, live ? at.left : 0, live && X.start != null ? clock(X.start, at.b) : "");
+  show(t.title, t.body);
+}
+// ⌚ Zapnutí / vypnutí oznámení (zapnutí si řekne o povolení systému)
+async function toggleNtf() {
+  const save = v => { try { localStorage.setItem(NTF_KEY, v); } catch (e) { /* bez paměti */ } };
+  if (ntfOn()) { save("0"); toast("⌚ Oznámení vypnuta"); paint(); return; }
+  if (typeof Notification === "undefined") { toast("Tento prohlížeč oznámení neumí"); return; }
+  let p = Notification.permission;
+  if (p !== "granted") { try { p = await Notification.requestPermission(); } catch (e) { p = "denied"; } }
+  if (p !== "granted") { toast("Oznámení jsou zakázaná – povol je v nastavení telefonu (Aplikace → HockeyCoach / Chrome → Oznámení)"); return; }
+  save("1"); paint();
+  show("⌚ Oznámení zapnuta", "60 s a 10 s před koncem kola a při točení přijde, co je teď a co následuje – i na hodinky.");
 }
 async function wakeOn() {
   try { if (navigator.wakeLock && !L.wake && document.visibilityState === "visible") { L.wake = await navigator.wakeLock.request("screen"); L.wake.addEventListener("release", () => { L.wake = null; }); } } catch (e) { L.wake = null; }
@@ -110,10 +157,12 @@ function cardHtml(eid) {
 function laneHtml(b, l, tag, round, X, mine) {
   const d = X.D[l.drill], name = d ? d.name : l.dn || "— bez cvičení —", grp = (round && round.lanes[l.id]) || l.grp || [];
   const all = !grp.length && b.mode === "all", pids = all ? [] : groupPids(b, grp, X.roster);
+  const ms = mine && mayMeasure() ? laneMeas(b, l, X.D, msData(L.eid)) : null;
   const co = (l.co || []).map(id => "🎓 " + esc(staffName(X, id))).join(", ");
   return `<div class="tlln ${mine ? "me" : ""}">${tag ? `<span class="tlk">${tag}</span>` : ""}<div class="tldn">${esc(name)}</div>
 ${co ? `<div class="mu">${co}</div>` : ""}<div style="margin:4px 0">${all ? '<span class="mu">všichni</span>' : grp.map(chip).join("") || '<span class="mu">bez skupiny</span>'}</div>
 ${pids.length ? `<div style="font-size:14px">${pids.map(id => esc(nm(id))).join(", ")}</div>` : ""}
+${ms ? `<button class="p w" data-tsw="${esc(b.id)}|${esc(l.id)}" style="min-height:52px;margin:6px 0">⏲ Stopky – ${esc(ms.dn)}</button>` : ""}
 ${d && d.eq ? `<div class="mu" style="font-size:13px">Pomůcky: ${esc(d.eq)}</div>` : ""}${d && d.desc ? `<div class="mu" style="font-size:13px;white-space:pre-wrap">${esc(String(d.desc).slice(0, 240))}${String(d.desc).length > 240 ? "…" : ""}</div>` : ""}</div>`;
 }
 // Moje linky v kole: trenér = linky, které vede; hráčka = linka své skupiny; nikdo = null (ukážou se všechny)
@@ -153,7 +202,7 @@ function controlsHtml(v, at) {
 }
 function screenHtml() {
   const X = L.getX ? L.getX() : null, P = X && X.plan, B = (P && P.blocks) || [], v = L.live;
-  const head = `<div class="tlh"><button class="s" id="tlx" style="flex:none;min-height:48px">✕ Zavřít</button><h2>⏱ ${esc((X && X.ev && X.ev.title) || "Živý trénink")}</h2><button class="s" id="tlm" style="flex:none;min-height:48px">${muted() ? "🔕" : "🔔"}</button></div>`;
+  const head = `<div class="tlh"><button class="s" id="tlx" style="flex:none;min-height:48px">✕ Zavřít</button><h2>⏱ ${esc((X && X.ev && X.ev.title) || "Živý trénink")}</h2><button class="s" id="tln" style="flex:none;min-height:48px" title="Oznámení i na hodinky">${ntfOn() ? "⌚✓" : "⌚"}</button><button class="s" id="tlm" style="flex:none;min-height:48px">${muted() ? "🔕" : "🔔"}</button></div>`;
   if (!X || !B.length) return CSS + head + '<div class="msg">Plán tréninku je prázdný – nejdřív ho připrav v detailu tréninku.</div>';
   if (v === undefined) return CSS + head + '<div class="mu">Načítám hodiny…</div>';
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), st = v && LIVE_ST[v.st] ? v.st : null, T = planTimes(B);
@@ -184,10 +233,12 @@ function tick() {
   const X = L.getX ? L.getX() : null, B = (X && X.plan && X.plan.blocks) || [], v = L.live;
   if (!B.length || v === undefined) return;
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), run = v && v.st === "run";
+  // Skrytá aplikace (zhasnutý telefon) tiká řidčeji – hranice se poznají i později (oznámení na hodinky přijde se zpožděním)
+  const hid = document.visibilityState === "hidden", win = hid ? HID_WIN : 3, sw = hid ? HID_WIN : 1.5;
   if (run && L.prev && at && !at.done) {
-    if (L.prev.key === at.key) alertsDue(L.prev.left, at.left).forEach(alarm);
-    else if (L.prev.left <= 1.5) alarm("switch");
-  } else if (run && L.prev && at && at.done && !L.prev.done && L.prev.left <= 1.5) alarm("switch");
+    if (L.prev.key === at.key) alertsDue(L.prev.left, at.left, undefined, win).forEach(k => alarm(k, at));
+    else if (L.prev.left <= sw) alarm("switch", at);
+  } else if (run && L.prev && at && at.done && !L.prev.done && L.prev.left <= sw) alarm("end", at);
   L.prev = at && !at.done ? {key: at.key, left: at.left, done: false} : {key: "end", left: 0, done: true};
   if (shownKey() !== L.shown) { paint(); return; }
   const set = (id, t) => { const e = L.el.querySelector(id); if (e && e.textContent !== t) e.textContent = t; };
@@ -219,6 +270,16 @@ function bind() {
   const el = L.el;
   el.querySelector("#tlx").onclick = close;
   el.querySelector("#tlm").onclick = () => { try { localStorage.setItem(MUTE_KEY, muted() ? "0" : "1"); } catch (e) { /* bez paměti */ } paint(); if (!muted()) beep(1); };
+  el.querySelector("#tln").onclick = toggleNtf;
+  // ⏲ Stopky měřeného cvičení: hráčky linky v tomto kole (u Společně bez skupin všechny hráčky v poli)
+  el.querySelectorAll("[data-tsw]").forEach(b => b.onclick = () => {
+    const X = L.getX ? L.getX() : null, B = (X && X.plan && X.plan.blocks) || [], [bid, lid] = b.dataset.tsw.split("|");
+    const blk = B.find(x => x.id === bid), lane = blk && (blk.lanes || []).find(x => x.id === lid);
+    if (!lane) return;
+    const at = liveAt(B, liveSec(L.live, Date.now(), skew()) || 0), grp = (at && at.round && at.round.lanes[lid]) || lane.grp || [], R = X.roster || {};
+    const pids = grp.length ? groupPids(blk, grp, R) : (R.skaters || []).map(p => p.id);
+    openStopwatch(L.eid, laneMeas(blk, lane, X.D, msData(L.eid)), pids, [...(R.skaters || []).map(p => p.id), ...(R.goalies || [])]);
+  });
   el.querySelectorAll("[data-tl]").forEach(b => b.onclick = () => {
     const k = b.dataset.tl, v = L.live, other = v && v.ctl && v.ctl !== me() && v.st !== "end" && LIVE_ST[v.st];
     const run = () => {
@@ -256,6 +317,17 @@ function close() {
 }
 // Po návratu do aplikace znovu zamknout obrazovku proti zhasnutí (Wake Lock se při skrytí uvolní)
 document.addEventListener("visibilitychange", () => { if (L.el && document.visibilityState === "visible") wakeOn(); });
+// Akce z oznámení (⏸ / ⏭ na telefonu nebo hodinkách) – service worker je pošle otevřené aplikaci; jen řídící trenér
+function watchAct(act, eid) {
+  const v = L.live;
+  if (eid !== L.eid || !canE() || !v || !LIVE_ST[v.st] || v.st === "end") return;
+  if (v.ctl !== me()) { toast("Hodiny řídí jiný trenér"); return; }
+  if (act === "pause") ctl(v.st === "run" ? "pause" : "resume");
+  else if (act === "next") ctl("next");
+}
+try {
+  if (navigator.serviceWorker && navigator.serviceWorker.addEventListener) navigator.serviceWorker.addEventListener("message", e => { const m = e.data; if (m && m.hk === "tl") watchAct(m.act, m.eid); });
+} catch (e) { /* bez service workeru */ }
 
 // ===== Exporty =====
 // Řádek „⏱ Živý trénink“ se stavem hodin do karty plánu (jen s plánem); poslech trlive/{eid} otevřeného tréninku

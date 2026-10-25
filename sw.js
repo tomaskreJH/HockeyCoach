@@ -1,9 +1,10 @@
 // Service worker: síť má přednost, offline se použije uložená kopie. Moduly a styly se ukládají za běhu.
 // Firebase SDK (verzované neměnné adresy na gstatic.com) se ukládá také, aby aplikace šla spustit offline.
+// Oznámení ⏱ živého tréninku (i na hodinkách): klepnutí otevře aplikaci, akce ⏸ / ⏭ se pošlou otevřené aplikaci (řídí hodiny).
 
 // ===== Konstanty =====
 // Název cache se mění s každou verzí (hokej-vNN, číslo jen roste), aby se stará kopie aplikace zahodila; přiřazení k verzím je v CHANGELOG.md
-const C = "hokej-v86", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const C = "hokej-v87", CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/";
 
 // ===== Instalace a aktivace =====
@@ -29,4 +30,16 @@ self.addEventListener("fetch", e => {
     caches.open(C).then(c => c.put(e.request, cp));
     return r;
   }).catch(() => caches.match(e.request).then(r => r || caches.match("index.html"))));
+});
+
+// ===== Oznámení živého tréninku =====
+// Akce (pause / next) dostane otevřené okno aplikace zprávou {hk: "tl", act, eid}; bez akce se aplikace zobrazí (nebo otevře)
+self.addEventListener("notificationclick", e => {
+  const n = e.notification, act = e.action || "", d = n.data || {};
+  n.close();
+  e.waitUntil(self.clients.matchAll({type: "window", includeUncontrolled: true}).then(list => {
+    const c = list[0];
+    if (act) { if (c) c.postMessage({hk: "tl", act, eid: d.eid}); return null; }
+    return c ? c.focus() : self.clients.openWindow("./");
+  }));
 });

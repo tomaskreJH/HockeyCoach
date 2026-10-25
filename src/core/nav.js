@@ -33,6 +33,7 @@ import {render} from "../views/shell.js";
 const DOM_LAYERS = [
   "#imv #imx",                 // obrázek cvičení přes celou obrazovku (views/drill-media.js)
   "#hlp #hlx",                 // nápověda
+  "#tsw #tswx",                // ⏲ stopky (nad živým tréninkem; s běžícími stopkami se ptá druhým klepnutím)
   "#tlv #tlx",                 // ⏱ živý trénink přes celou obrazovku (views/trlive-view.js; hodiny běží dál ostatním)
   "#cpay #cpx",                // okno úhrady (pokladna u události)
   "#mkq #mkx",                 // QR platba (Moje platby, banner dluhu)
