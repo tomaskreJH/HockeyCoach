@@ -1,6 +1,6 @@
 # HockeyCoach (Hokej – zápasy)
 
-**Aktuální verze: v20.7 (24. 10. 2026)** – D4: **úklid před modulem Trénink** – odstraněny hotové jednorázové převody (⚙️ Kontrola dat, převod soukromí, 🔁 převod rolí), stará role Kustod se už nepřevádí (stejně jako v pravidlech databáze), přehlednější `main.js`, plán zkrácen. **firestore.rules beze změny.** Předtím v20.6 – zúžení pravidel podle rolí. Další: v21.0 – 🏒 modul Trénink, E1 banka cvičení ([docs/plan-trenink.md](docs/plan-trenink.md)); notifikace (N) až po něm.
+**Aktuální verze: v20.7.1 (25. 10. 2026)** – u každého gólu v průběhu zápasu (detail zápasu → krok 3) je vidět **stav skóre po gólu**. **firestore.rules beze změny.** Předtím v20.7 – D4: **úklid před modulem Trénink** – odstraněny hotové jednorázové převody (⚙️ Kontrola dat, převod soukromí, 🔁 převod rolí), stará role Kustod se už nepřevádí (stejně jako v pravidlech databáze), přehlednější `main.js`, plán zkrácen. **firestore.rules beze změny.** Předtím v20.6 – zúžení pravidel podle rolí. Další: v21.0 – 🏒 modul Trénink, E1 banka cvičení ([docs/plan-trenink.md](docs/plan-trenink.md)); notifikace (N) až po něm.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.

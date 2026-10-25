@@ -4,6 +4,21 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v20.7.1 (25. 10. 2026) – stav skóre u gólů v průběhu zápasu
+> **Nasazení:** 1) Zip současného repozitáře. 2) Nahrát kód (nový soubor `tests/goal-score.test.js`, nic se nemaže). 3) **firestore.rules beze změny – nepublikovat.** 4) Na zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.7.1. 5) Test: Zápasy → detail zápasu → krok 3 Zápas živě → Průběh – u každého gólu štítek „Stav 2:1“ (naše : soupeř) vedle situace (5 na 5 / Přesilovka / Oslabení). **🔒 Vyžadovat verzi: ne** (tvar dat se nemění). Návrat: nahrát zip v20.7.
+
+**Přidáno**
+- `src/domain/timeline.js`: `goalScores(m)` – stav skóre po každém gólu ve stejném pořadí jako časová osa (čas `at`, u starších zápisů odhad z třetiny a času; pak pořadí zápisu). Výsledek `Map` gól → „naše:soupeř“.
+- `tests/goal-score.test.js` – pořadí podle času, odhad času bez `at`, prázdný zápas.
+
+**Změněno**
+- `src/views/matches.js` (detail zápasu → Průběh): u gólu nový štítek **Stav X:Y** (naše : soupeř, stejně jako velké skóre nad průběhem). Dosud byl vidět jen počet hráček (5 na 5 / Přesilovka / Oslabení).
+- `src/views/help.js` (krok 3 – průběh se stavem skóre), verze `app-version.js`, `package.json`, `sw.js` → `hokej-v82`, `README.md`, `docs/KONVENCE.md`, `docs/plan-v18.md`, `docs/prompt-dalsi-vlakno.md`.
+
+**Beze změny**
+- Živý zápis (jeho průběh, 👁 náhled i zápis utkání už stav „(1:0)“ ukazují z `timeline()`), výpočet skóre, statistiky, pokladna, docházka, pravidla databáze, tvar dat.
+- Ověřeno: `npm test` (234/234, srovnávací testy beze změny výstupů); vykreslení detailu zápasu (krok 3) se třemi góly zapsanými mimo pořadí – štítky „Stav 2:1 · 1:1 · 1:0“ od nejnovějšího.
+
 ## v20.7 (24. 10. 2026) – D4: úklid před modulem Trénink
 > **Nasazení:** 1) Zip současného repozitáře. 2) Nahrát kód; **smazat** `tests/ex-fix.test.js` a `docs/archiv-readme-v18.7.1.md` (nový soubor `docs/plan-trenink.md`). 3) **firestore.rules beze změny – nepublikovat.** 4) Na zařízeních ⚙️ → 👤 Účet → Načíst novou verzi, ověřit v20.7. 5) Test: spuštění pro Manager, Trenér, Asistent, Hráčka, Hostující (👁 Náhled role); ⚙️ → 💾 Data (jen záloha, CSV, obnova – bez Kontroly dat a 🔁 Převodu rolí); ⚙️ → 👥 Členové (seznam rolí); Události, docházka, pokladna, živý zápis beze změny.
 > **Podmínka:** všechny účty mají novou roli (🔁 převod rolí proveden ve v20.5). Účet se starou rolí Kustod se po v20.7 do aplikace nedostane (hláška „neplatná role“) – manager mu nastaví roli v ⚙️ → 👥 Tým a členové. **🔒 Vyžadovat verzi: ne** (tvar dat se nemění). Návrat na v20.6: nahrát předchozí zip.

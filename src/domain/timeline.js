@@ -1,6 +1,6 @@
 // Doména: úplná časová osa zápasu a statistika střídání (bez DOM).
 // Položka gólu nese kind "G" a team (podsvícení v živém průběhu), ikona gólu 🥅.
-// Struktura: Importy -> Pomocné funkce -> Třetiny a čas -> Střídání (shiftsOf, shiftList, shiftStats) -> Časová osa (timeline) -> Exporty.
+// Struktura: Importy -> Pomocné funkce -> Třetiny a čas -> Střídání (shiftsOf, shiftList, shiftStats) -> Časová osa (timeline, goalScores) -> Exporty.
 // Společné pravidlo střídání – shiftList(m) používají všechny přehledy (statistiky zápasu, Čas na ledě v živém zápisu,
 // Střídání hráček v rozboru, celkové statistiky, vývoj zápasu):
 //   1) záznamy s délkou ≤ 0 se vynechají,
@@ -81,6 +81,16 @@ const evText = (e) => {
   if (e.k === "P") return `🚫 Vyloučení: ${e.team === "us" ? nm(e.pid) : "soupeř"} – ${e.min} min${e.reason ? ", " + e.reason : ""}`;
   return e.team === "us" ? `🏒 Střela: ${nm(e.shooter)}` : `🏒 Střela soupeře${e.gk ? " (brankářka " + nm(e.gk) + ")" : ""}`;
 };
+
+// Stav skóre po každém gólu ve stejném pořadí jako časová osa (čas, pak pořadí zápisu): Map gól → "naše:soupeř"
+export function goalScores(m) {
+  const out = new Map();
+  let us = 0, opp = 0;
+  (m.events || []).map((e, i) => ({e, i, t: estimate(m, e)})).filter(x => x.e.k === "G")
+    .sort((a, b) => a.t - b.t || a.i - b.i)
+    .forEach(({e}) => { if (e.team === "us") us++; else opp++; out.set(e, us + ":" + opp); });
+  return out;
+}
 
 // Časová osa: góly, tresty, střely, střídání, zranění, jednotky, konce třetin, návraty z trestů
 export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {

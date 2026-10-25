@@ -76,7 +76,7 @@ const SECTIONS = [
 <li><b>Krok 2A – Nominace:</b> nominovat jde jen hráčky přihlášené na událost (✅ Jdu). Minimum 1 brankářka a 5 bruslařek. Tlačítka Všechny přihlášené / Zrušit vše.</li>
 <li><b>Krok 2B – Sestava:</b> naplní se podle základní formace (jen z nominovaných). Uprav řady, náhradnice a jednotky přesilovek a oslabení (<b>Zkopírovat z posledního zápasu</b>). <b>✔ Uzavřít sestavu</b> umožní spustit živý zápis. Jakákoli změna sestavy uzavření zruší.</li>
 <li><b>Pravidlo jednotek:</b> hráčka smí být jen v jedné přesilovce (PP1/PP2) a jen v jednom oslabení téhož druhu (4 hráčky: SH1/SH2, 3 hráčky: SH3/SH4); v běžné řadě být může.</li>
-<li><b>Krok 3 – Zápas živě:</b> průběh, jmenné statistiky, zápis utkání, opravy a uzavření zápasu (u trenéra a pokladníka vznikne vyúčtování plateb).</li>
+<li><b>Krok 3 – Zápas živě:</b> průběh (u každého gólu <b>stav skóre</b> po gólu, naše : soupeř, a situace 5 na 5 / přesilovka / oslabení), jmenné statistiky, zápis utkání, opravy a uzavření zápasu (u trenéra a pokladníka vznikne vyúčtování plateb).</li>
 <li>Živý zápis jde spustit až po uzavření sestavy a splnění nominace. Po zahájení je zamčená nominace, soupeř, datum a doma/venku.</li>
 </ul>`},
   {t: "6. Živý zápis", h: `
