@@ -60,6 +60,11 @@ export function tplDoc(name, plan, drills) {
 }
 // Šablony seřazené podle názvu (česky)
 export const tplSort = list => [...(list || [])].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "cs"));
+// ✨ Připravit trénink: naposledy uložená šablona s bloky (podle času uložení at; bez času nejníž), null = žádná
+export function latestTpl(list) {
+  const L = (list || []).filter(t => t && (t.blocks || []).length);
+  return L.reduce((m, t) => (!m || String(t.at || "") > String(m.at || "") ? t : m), null);
+}
 // Krátký popis šablony / plánu: počet bloků a minut
 export function planSummary(p) {
   const B = (p && p.blocks) || [], min = B.reduce((s, b) => s + (+b.dur || 0), 0);

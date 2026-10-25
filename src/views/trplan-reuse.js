@@ -1,5 +1,6 @@
 // 📋 Plán tréninku – pomůcky pro trenéry: ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (trtpl, sdílené pro tým)
 // a 📊 pokrytí dovedností přihlášených hráček za posledních 14 / 30 / 60 dní (karta plánu i úprava; jen realizační tým).
+// ✨ Připravit trénink: nabídka posledního tréninku s plánem a naposledy uložené šablony (loadPrep).
 // Čte se jen na vyžádání: plány tréninků v období po jednom dokumentu (S.db.doc().get()), šablony jednorázově celé (getAll).
 // Použití kopie / šablony nahradí rozpracovaný plán (s bloky druhým klepnutím); uloží se až 💾 Uložit plán. Výpočty: domain/plan-reuse.js, domain/skill-coverage.js.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Načtení -> Vykreslení (kopie a šablony, pokrytí) -> Eventy -> Exporty.
@@ -11,13 +12,13 @@ import {nm} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {TPL_MAX, TRTPL_COLL, copySources, planCopy, planSummary, tplDoc, tplError, tplSort} from "../domain/plan-reuse.js";
+import {TPL_MAX, TRTPL_COLL, copySources, latestTpl, planCopy, planSummary, tplDoc, tplError, tplSort} from "../domain/plan-reuse.js";
 import {COVER_DAYS, COVER_DEF, COVER_LOW, coverWindow, skillCoverage} from "../domain/skill-coverage.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
-// S.tpr = {eid, kind: "copy" | "tpl" | "save", st: "load" | "ok" | "err", list, err, name}; S.tcv = {eid, days, st, res, err}
+// S.tpr = {eid, kind: "copy" | "tpl" | "save" | "prep", st: "load" | "ok" | "err", list, err, name}; u prep navíc c = předchozí trénink s plánem, t = poslední šablona; S.tcv = {eid, days, st, res, err}
 const CSS = `<style>
 .tcr{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)}
 .tcr .nm{flex:0 0 42%;font-size:14px}
@@ -54,6 +55,14 @@ function loadTpl(eid, kind = "tpl") {
     .catch(e => { if (S.tpr !== R) return; R.st = "err"; R.err = errTxt(e); render(); });
   render();
 }
+// ✨ Připravit: předchozí trénink s plánem (nejnovější) a naposledy uložená šablona – obojí najednou
+export function loadPrep(eid) {
+  const R = S.tpr = {eid, kind: "prep", st: "load", list: [], c: null, t: null, tErr: null}, src = copySources(S.ev, eid);
+  const cp = Promise.all(src.map(e => planOf(e.id).then(p => ({ev: e, p})))).then(L => { R.c = L.find(x => x.p && (x.p.blocks || []).length) || null; });
+  const tp = S.db.collection(TRTPL_COLL).getAll().then(L => { R.t = latestTpl(L); }).catch(e => { R.tErr = errTxt(e); });
+  Promise.all([cp, tp]).then(() => { if (S.tpr !== R) return; R.st = "ok"; render(); });
+  render();
+}
 // 📊 Pokrytí: tréninky v období → jejich plány (po jednom dokumentu) → výpočet nad docházkou a bankou cvičení
 function loadCover(eid, days, X, D) {
   const R = S.tcv = {eid, days, st: "load"}, T = coverWindow(S.ev, eid, days);
@@ -88,11 +97,20 @@ function saveHtml(R) {
 ${R.st === "err" ? `<div class="msg">Šablony se nepodařilo načíst (${esc(R.err)}). Manager musí publikovat pravidla databáze ve verzi v21.2.</div>` : ""}
 <button class="p w" id="tprs" style="margin-top:8px" ${R.st === "load" ? "disabled" : ""}>💾 Uložit šablonu</button>`;
 }
+// ✨ Návrh: dvě velká tlačítka (předchozí trénink, poslední šablona); prázdný plán = rovnou přidat blok
+function prepHtml(R) {
+  if (R.st === "load") return '<div class="mu">Hledám poslední plán a šablonu…</div>';
+  const btn = (k, title, sub) => `<button class="s w" data-tpru="${k}|0" style="text-align:left;margin-bottom:8px;min-height:56px;${armed("tpru:" + k + "0") ? "background:var(--wa);color:#fff" : ""}">${armed("tpru:" + k + "0") ? "Nahradit rozpracovaný plán? Klepni znovu" : title}<div class="mu" style="font-size:13px;font-weight:400">${sub}</div></button>`;
+  const c = R.c ? btn("c", `⧉ Jako minule – ${esc(dmy(R.c.ev.date))} ${esc(R.c.ev.time || "")}`, esc(planSummary(R.c.p)) + (R.c.p.goal ? " · 🎯 " + esc(R.c.p.goal) : "")) : "";
+  const t = R.t ? btn("t", `📑 Šablona – ${esc(R.t.name)}`, esc(planSummary(R.t)) + (R.t.goal ? " · 🎯 " + esc(R.t.goal) : "")) : "";
+  const none = !c && !t ? `<div class="mu" style="margin-bottom:6px">${R.tErr ? "Šablony se nepodařilo načíst (" + esc(R.tErr) + "). " : ""}Žádný předchozí plán ani šablona – přidej bloky dole.</div>` : "";
+  return c + t + none + '<div class="mu" style="font-size:12px">Nebo začni prázdný plán: ✕ a bloky přidáš dole.</div>';
+}
 function reusePanelHtml(eid) {
   const R = S.tpr && S.tpr.eid === eid ? S.tpr : null;
   if (!R) return "";
-  const title = {copy: "⧉ Kopírovat z předchozího tréninku", tpl: "📑 Použít šablonu", save: "💾 Uložit jako šablonu"}[R.kind];
-  const body = R.kind === "copy" ? copyListHtml(R) : R.kind === "tpl" ? tplListHtml(R) : saveHtml(R);
+  const title = {copy: "⧉ Kopírovat z předchozího tréninku", tpl: "📑 Použít šablonu", save: "💾 Uložit jako šablonu", prep: "✨ Připravit trénink – z čeho začít?"}[R.kind];
+  const body = R.kind === "copy" ? copyListHtml(R) : R.kind === "tpl" ? tplListHtml(R) : R.kind === "prep" ? prepHtml(R) : saveHtml(R);
   return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${title}</b><button class="s" id="tprx" style="flex:none;padding:4px 10px;min-height:0">✕</button></div>
 ${R.kind !== "save" ? '<div class="mu" style="font-size:12px;margin-bottom:4px">Použití nahradí rozpracovaný plán; skupiny stanovišť se rozdělí podle pětek tohoto tréninku, trenéři jen přihlášení. Uloží se až 💾 Uložit plán.</div>' : ""}${body}</div>`;
 }
@@ -134,7 +152,7 @@ function bindCoverSection(a, eid, X, D) {
 // ===== Exporty =====
 // Úprava plánu: tlačítka ⧉ / 📑 / 💾 šablona a otevřený panel (jen s právem upravovat plán – úprava se jinak neotevře)
 export function reuseHtml(eid) {
-  return `<div class="row" style="margin:8px 0;flex-wrap:wrap"><button class="s" id="tprc">⧉ Z předchozího tréninku</button><button class="s" id="tprt">📑 Ze šablony</button><button class="s" id="tprv">💾 Uložit jako šablonu</button></div>${reusePanelHtml(eid)}`;
+  return `<div class="row" style="margin:8px 0;flex-wrap:wrap"><button class="s" id="tprc" style="flex:1 1 140px">⧉ Z předchozího tréninku</button><button class="s" id="tprt" style="flex:1 1 140px">📑 Ze šablony</button><button class="s" id="tprv" style="flex:1 1 140px">💾 Uložit jako šablonu</button></div>${reusePanelHtml(eid)}`;
 }
 // apply(plán) nahradí rozpracovaný plán; cur() = rozpracovaný plán (pro šablonu a pro potvrzení nahrazení)
 export function bindReuse(a, eid, X, D, apply, cur) {
@@ -151,7 +169,7 @@ export function bindReuse(a, eid, X, D, apply, cur) {
     if ((cur().blocks || []).length) confirm2(key, go); else go();
   };
   a.querySelectorAll("[data-tpru]").forEach(b => b.onclick = () => {
-    const [k, i] = b.dataset.tpru.split("|"), it = R.list[+i];
+    const [k, i] = b.dataset.tpru.split("|"), it = R.kind === "prep" ? (k === "c" ? R.c : R.t) : R.list[+i];
     if (it) use("tpru:" + k + i, k === "c" ? it.p : it);
   });
   a.querySelectorAll("[data-tprd]").forEach(b => b.onclick = () => {

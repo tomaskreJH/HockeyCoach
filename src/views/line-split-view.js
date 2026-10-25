@@ -2,6 +2,7 @@
 // Způsob, počet pětek a ⚔ poměr útočnic / obránkyň se volí u tréninku (volba se pamatuje v zařízení – localStorage hk-split);
 // výpočet domain/line-split.js. Výkonnost 1–5 = plevel/team (jen realizační tým; poslech až při prvním zobrazení, jeden dokument).
 // Rozdělení přepíše jen hráčky (realizační tým zůstane); když už jsou hráčky v pětkách, potvrzuje se druhým klepnutím.
+// ✨ Připravit trénink (karta plánu) dělí posledním způsobem jen dosud nerozdělené přihlášené (quickSplit).
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Načtení výkonnosti -> Vykreslení -> Eventy -> Exporty.
 
 // ===== Importy =====
@@ -124,6 +125,16 @@ export function splitHtml(ev, P, A) {
   if (S.plvo && S.plvo.eid !== ev.id) S.plvo = null;
   const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p));
   return panelHtml(ev, going) + (HK.can("sport") ? sheetHtml(going, P.filter(p => !isG(p))) : "");
+}
+// ✨ Připravit trénink: rozdělí přihlášené hráčky posledním způsobem (volby zařízení), jen když ještě žádná z nich v pětce není;
+// vrací popis pro hlášku, "" = nic se nedělilo (už rozděleno, nikdo nejde nebo chybí právo)
+export function quickSplit(ev, P, A) {
+  if (!HK.can("sport")) return "";
+  const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)), L = ev.raw.lines || {}, o = opts();
+  if (!going.length || going.some(p => L[p.id])) return "";
+  const lines = splitLines(going, {...o, lv: S.plv || {}, lu: (S.def || {}).lu, prev: L});
+  S.db.doc("events/" + ev.id).merge({lines});
+  return SPLIT_MODES[o.mode] + " do " + o.n + " pětek";
 }
 export function bindSplit(a, ev, P, A) {
   const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p));

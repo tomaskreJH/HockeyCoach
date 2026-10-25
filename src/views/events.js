@@ -93,7 +93,7 @@ const CSS = `<style>
 #evw .evln{display:flex;gap:4px}
 #evw .evln .chip{padding:8px 0;min-width:38px;text-align:center}
 #evw .dbt{display:inline-block;padding:1px 6px;border-radius:4px;font-weight:700;font-size:12px;color:#fff;border:1px solid #222;background:repeating-linear-gradient(90deg,#333 0 3px,#777 3px 7px);text-shadow:0 0 2px #000;white-space:nowrap}
-#evw table td,#evw table th{white-space:nowrap}
+#evw .tw table td,#evw .tw table th{white-space:nowrap}
 </style>`;
 // Režimy pokladny v záložce Team (jen správci pokladny); klíč = hodnota S.tm
 const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["mon", "📅 Měsíce"], ["bud", "📊 Rozpočet"]];

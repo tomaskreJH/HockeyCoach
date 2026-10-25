@@ -59,9 +59,14 @@ nav button.on { color: var(--ac); border-color: var(--ac); }
 .d { background: var(--cd); color: var(--no); border-color: var(--no); }
 .w { width: 100%; }
 
+input, select, textarea { max-width: 100%; min-width: 0; }
+select { text-overflow: ellipsis; }
 input, select { width: 100%; font: inherit; padding: 11px; border: 1px solid var(--bd); border-radius: 10px; background: var(--bg); color: var(--tx); margin-bottom: 10px; }
 label { font-size: 13px; color: var(--mu); display: block; margin-bottom: 3px; }
-.row { display: flex; gap: 8px; flex-wrap: wrap; } .row > * { flex: 1; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; } .row > * { flex: 1; min-width: 0; }
+/* Tlačítka v řádku se smí zúžit (dlouhé slovo se zalomí); na telefonu menší boční odsazení */
+.row > button { overflow-wrap: anywhere; }
+@media (max-width: 420px) { .row > button { padding-left: 10px; padding-right: 10px; } }
 .mu { color: var(--mu); font-size: 14px; }
 
 
@@ -95,9 +100,14 @@ label { font-size: 13px; color: var(--mu); display: block; margin-bottom: 3px; }
 .ev[data-ee] { cursor: pointer; }
 
 .tw { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; min-width: 520px; }
+/* Široká tabulka (statistiky) jen uvnitř .tw – posun do strany uvnitř karty; ostatní tabulky se vejdou na šířku obrazovky */
+table { border-collapse: collapse; width: 100%; }
+.tw table { min-width: 520px; }
 th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--bd); font-size: 15px; }
 th:first-child, td:first-child { text-align: left; }
+/* Úzké tabulky (mimo .tw) smí zalomit i dlouhé slovo, aby se vešly na šířku telefonu */
+th, td { overflow-wrap: anywhere; }
+.tw th, .tw td { overflow-wrap: normal; }
 th { color: var(--mu); font-size: 12px; }
 
 
