@@ -28,7 +28,8 @@ export const MODULES = {
   members: {label: "Členové týmu a ✋ žádosti o přijetí", acts: ["r", "e", "d"]},
   budget: {label: "Rozpočet", acts: ["r", "e", "d"]},
   app: {label: "Nastavení aplikace a data", acts: ["r", "e"]},
-  drills: {label: "📚 Banka cvičení", acts: ["r", "e", "d"]}
+  drills: {label: "📚 Banka cvičení", acts: ["r", "e", "d"]},
+  trplan: {label: "📋 Plán tréninku", acts: ["r", "e"]}
 };
 // Zkratky oprávnění aplikace (HK.can)
 export const CAN_ACTS = ["sport", "money", "members", "roster", "accounts", "admin", "onlyOwn", "guest", "wipe"];
@@ -39,21 +40,23 @@ const row = s => ({r: s.includes("r"), e: s.includes("e"), c: s.includes("c"), d
 const deepFreeze = o => { Object.values(o).forEach(v => { if (v && typeof v === "object") deepFreeze(v); }); return Object.freeze(o); };
 // Výchozí práva = chování před OM: trenér = sport (bez členů, žádostí, obnovy, účtů a brány verze),
 // asistent = dřívější kustod (u hráčky jen stav – to není „upravovat“ soupisku), hráčka čte týmové moduly a nic za ostatní nezapisuje.
-// Banka cvičení (drills): trenér vše, asistent čte a zakládá / upravuje (mazat ne), hráčka ji nevidí (plán tréninku uvidí od E2).
+// Banka cvičení (drills): trenér vše, asistent čte a zakládá / upravuje (mazat ne), hráčka ji nevidí.
+// Plán tréninku (trplan): trenér a asistent čtou a upravují, hráčka plán jen čte (vidí, co se bude trénovat), hostující nic.
 export const DEFAULT_PERMS = deepFreeze({
   trener: {events: row("recd"), matches: row("recd"), att: row("red"), lines: row("red"), roster: row("red"), staff: row("red"), opp: row("red"),
-    stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row("r"), drills: row("red")},
+    stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row("r"), drills: row("red"), trplan: row("re")},
   asistent: {events: row("recd"), matches: row("recd"), att: row("red"), lines: row("red"), roster: row("r"), staff: row("r"), opp: row("red"),
-    stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row("r"), drills: row("re")},
+    stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row("r"), drills: row("re"), trplan: row("re")},
   hracka: {events: row("r"), matches: row("r"), att: row(""), lines: row("r"), roster: row("r"), staff: row("r"), opp: row("r"),
-    stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row(""), drills: row("")}
+    stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row(""), drills: row(""), trplan: row("r")}
 });
 
 // Upravitelné buňky matice ("modul.akce") = to, co v této verzi řídí aplikace i pravidla databáze; ostatní buňky jsou pevně výchozí.
 // Pevné: číst události a zápasy, upravovat zápasy (= celý sport: živý zápis, docházka za ostatní, pětky), soupiska, realizační tým,
 // členové (jen manager), rozpočet (pokladník), nastavení. Soupeře „upravovat“ potřebuje založení zápasu (nový soupeř se zapíše sám).
 // Banka cvičení: číst pevně (sport ji potřebuje k plánu), upravovat a mazat jde měnit; hráčka banku nemá (záložka Team jí chybí).
-const STAFF_EDIT = ["events.e", "events.c", "events.d", "matches.c", "matches.d", "opp.r", "opp.d", "stats.r", "attview.r", "drills.e", "drills.d"];
+// Plán tréninku: číst pevně pro všechny členy kromě hostující, upravovat jde měnit u trenéra a asistenta.
+const STAFF_EDIT = ["events.e", "events.c", "events.d", "matches.c", "matches.d", "opp.r", "opp.d", "stats.r", "attview.r", "drills.e", "drills.d", "trplan.e"];
 export const EDITABLE = deepFreeze({trener: [...STAFF_EDIT], asistent: [...STAFF_EDIT], hracka: ["opp.r", "stats.r", "attview.r"]});
 
 // ===== Práva =====

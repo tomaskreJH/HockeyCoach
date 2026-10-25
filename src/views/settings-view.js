@@ -1,5 +1,6 @@
 /* Okno ⚙️ Účet a data (všechny role): sbalitelné sekce, nahoře vždy přihlášený účet. Rozbalená je nejvýš jedna sekce,
-   pamatuje se v zařízení (localStorage, jen pohodlí). Sbalená sekce ukazuje stav v záhlaví (žádosti, minimální verze, náhled role).
+   pamatuje se v zařízení (localStorage, jen pohodlí). Sbalená sekce ukazuje stav v záhlaví (žádosti, náhled role).
+   Brána verze (🔒 Vyžadovat verzi, jen manager) je v kartě 👤 Účet pod Načíst novou verzi.
    Jen vykreslení a obsluha – údaje a zápisy dává datová vrstva přes HK.cfg, oprávnění HK.can (kontroly rolí jsou v storage.js).
    Otevírá se tlačítkem ⚙️ (HK.openCfg z main.js); zavírá Zavřít, klepnutí mimo okno a Zpět. 💾 Data = záloha, CSV a obnova ze zálohy.
    🔐 Práva rolí (views/perm-view.js): přehled „kdo co smí“ pro členy kromě hostující, editor matice jen pro managera.
@@ -45,10 +46,16 @@ function verInfo() {
 }
 
 // ===== Sekce =====
-// 👤 Účet: e-mail, role, připojení, odhlášení, verze aplikace (vždy vidět, nesbaluje se)
+// 👤 Účet: e-mail, role, připojení, odhlášení, verze aplikace a brána verze (vždy vidět, nesbaluje se);
+// manager tu má i 🔒 Vyžadovat verzi (zvýšení minimální verze – potvrzení druhým klepnutím)
 function accountHtml(coach, staff) {
   const a = C().acct();
-  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${coach ? "" : verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div></div>`;
+  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div>${coach ? gateHtml() : ""}</div>`;
+}
+// 🔒 Brána verze (jen manager, pod Načíst novou verzi): zvýšit minimum na tuto verzi, nebo stav, že minimum odpovídá
+function gateHtml() {
+  const g = C().gateInfo();
+  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">${g.raise ? `<button class="s w" id="cmv">🔒 Vyžadovat verzi v${esc(APP_VERSION)}</button>` : '<div class="mu">✅ Minimální verze odpovídá této verzi.</div>'}<div class="mu" style="margin-top:6px">Zařízení se starší verzí, než je minimální, nic nezapisuje a ukáže pruh Načíst novou verzi. Minimum jde jen zvýšit – nastav ho, až je nová verze na všech zařízeních.</div></div>`;
 }
 // 👥 Tým a členové: ✋ žádosti o přijetí (manager), seznam členů, formulář přidání až po rozkliknutí
 function teamHtml(coach) {
@@ -71,12 +78,6 @@ function dataHtml(coach) {
   let body = `<h3 style="margin-top:4px">Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>`;
   if (coach) body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>`;
   return sec("data", "💾 Data", body);
-}
-// 🔒 Aplikace: brána verze (jen manager); v záhlaví minimální verze nebo upozornění, že není nastavená
-function appHtml() {
-  const g = C().gateInfo();
-  const body = `<div class="mu" style="margin-bottom:8px">Zařízení se starší verzí, než je minimální, nic nezapisuje a ukáže pruh Načíst novou verzi. Minimum jde jen zvýšit.${verInfo()}</div>${g.raise ? `<button class="s w" id="cmv">🔒 Vyžadovat verzi v${esc(APP_VERSION)}</button>` : `<div class="mu">✅ Minimální verze odpovídá této verzi.</div>`}`;
-  return sec("app", "🔒 Aplikace", body, g.min ? "min. v" + g.min + (g.raise ? " · lze zvýšit" : "") : "⚠️ minimální verze není nastavená", !g.min);
 }
 // 🛠 Vývojář: 👁 náhled role (jen DEV_EMAILS); při běžícím náhledu popis a Ukončit
 function devHtml() {
@@ -118,7 +119,6 @@ function openSettings() {
  ${staff ? eventsHtml() : ""}
  ${cashier ? cashHtml() : ""}
  ${staff ? dataHtml(coach) : ""}
- ${coach ? appHtml() : ""}
  ${dev ? devHtml() : ""}
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   bindCommon(el, q, close);

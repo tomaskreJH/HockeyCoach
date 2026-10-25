@@ -15,7 +15,7 @@
 //     už aplikaci opustí, proto nesmí jen potichu zavřít okno),
 //   - zásoba je 5 záznamů (víc Zpět po sobě bez klepnutí).
 // Pořadí zavírání (od nejvyšší vrstvy):
-//   1) okna nad vším (nápověda, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
+//   1) okna nad vším (obrázek cvičení, nápověda, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
 //   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas),
 //   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
 //   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), Události (Minulé / Kalendář / Docházka) → Nadcházející,
@@ -31,6 +31,7 @@ import {render} from "../views/shell.js";
 // ===== Konstanty a stav =====
 // Okna, která mají vlastní tlačítko zavření (selektor kontejneru + tlačítka), v pořadí od nejvyšší vrstvy
 const DOM_LAYERS = [
+  "#imv #imx",                 // obrázek cvičení přes celou obrazovku (views/drill-media.js)
   "#hlp #hlx",                 // nápověda
   "#cpay #cpx",                // okno úhrady (pokladna u události)
   "#mkq #mkx",                 // QR platba (Moje platby, banner dluhu)
@@ -40,11 +41,13 @@ const DOM_LAYERS = [
   '#mod [data-pp="x"]',        // výběr hráčky na místo v sestavě
   "#mod #cl",                  // okna zápasu, hráčky, člena týmu, gólu a trestu
   "#evsh #evrc",               // okno s důvodem odpovědi na událost
+  "#tpd #tpdx",                // okno cvičení v plánu tréninku
   "#ed #efc",                  // opravy zápisu: formulář události
   "#ed #sxcn",                 // opravy zápisu: formulář střídání
   "#ed #edx",                  // opravy zápisu
   "#rp #rpx",                  // zápis utkání
-  "#app #cbc"                  // pokladna: rozpracovaný vklad / výdaj
+  "#app #cbc",                 // pokladna: rozpracovaný vklad / výdaj
+  "#app #tpx"                  // úprava plánu tréninku (s neuloženými změnami se ptá druhým klepnutím)
 ];
 const DEPTH = 5;               // zásoba strážních záznamů nad základním záznamem
 const ARM = ["pointerdown", "touchstart", "mousedown", "pointercancel"]; // začátek dotyku připraví jedno doplnění, posun ho zruší

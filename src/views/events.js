@@ -42,9 +42,10 @@ import {canNos, isNos, nosCount, nosPatch, startMs} from "../domain/attendance.j
 import {costTotal, cxOf, kc} from "../domain/cash.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
 import {memberBlocked} from "../domain/debtors.js";
-import {LINE_NOS, answerCounts, baseLines, lineCounts, setLine, sortEvents, trKey} from "../domain/event-helpers.js";
+import {LINE_NOS, answerCounts, baseLines, isTrKey, lineCounts, setLine, sortEvents, trKey} from "../domain/event-helpers.js";
 import {MEET_MAX, clampMin, defEnd, endOk, evDefaults, meetAt, meetDefault, meetOf, okTime, timeFields, timeParts} from "../domain/event-time.js";
 import {NOTE_COLL, attDoc, noteDoc, noteId} from "../domain/private-data.js";
+import {evenLines} from "../domain/training-plan.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {modal} from "./modal.js";
@@ -57,6 +58,7 @@ import {attReqBanner, attReqBox, attReqModal, bindAttReqAdmin, bindAttReqBox} fr
 import {bindBudget, budgetHtml} from "./budget-view.js";
 import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
+import {bindPlanCard, planCardHtml, planEditing, planEditor} from "./trplan-view.js";
 
 // ===== Konstanty =====
 const ANS = {yes: {ic: "✅", t: "Jdu", cls: "pp"}, no: {ic: "❌", t: "Nejdu", cls: "red"}, maybe: {ic: "❓", t: "Nejsem jistý", cls: "sh"}};
@@ -278,7 +280,8 @@ export function cashPanel(a, head) {
 export {CASH_MODES};
 
 // ===== Vykreslení: detail události =====
-// Pořadí: hlavička → docházka → výsledek a statistiky zápasu → rozdělení do pětek → pokladna (jen správci, na konci stránky)
+// Pořadí: hlavička → docházka → výsledek a statistiky zápasu → rozdělení do pětek → 📋 plán tréninku (views/trplan-view.js) → pokladna (jen správci, na konci stránky)
+// Úprava plánu tréninku se vykreslí místo celého detailu (planEditor).
 // Rozdělení do pětek (jen trénink): přihlášené hráčky (bez brankářek) a přihlášení členové realizačního týmu, barevné volby 1.–4. pětky;
 // hráčka vidí rozdělení jen ke čtení. Člen týmu má v lines klíč "t:" + id (vede stanoviště / jde s pětkou).
 function linesHtml(ev, A, P, T, ro) {
@@ -291,7 +294,7 @@ function linesHtml(ev, A, P, T, ro) {
   const trH = goT.length ? '<div class="lnl">Realizační tým</div>' + goT.map(t => row(trKey(t.id), "🎓 " + esc(t.name) + (kindOf(t) ? ` <span class="mu">${esc(kindOf(t))}</span>` : ""))).join("") : "";
   return `<div class="cd"><h2>Rozdělení do pětek</h2><div class="mu" style="margin-bottom:8px">Z hráček, které jdou (bez brankářek), a přihlášeného realizačního týmu. Barvy jako v živém zápisu.</div>
 <div style="margin-bottom:10px">${LINE_NOS.map(n => `<span class="evl L${n}">${n}. pětka: ${c.pl[n]}${c.tr[n] ? " + 🎓" + c.tr[n] : ""}</span>`).join("")}<span class="evl L0">bez pětky: ${c.free}</span></div>
-${ro ? "" : '<div class="row" style="margin-bottom:8px"><button class="s" id="evlb">↻ Podle základní formace</button><button class="s" id="evlc">Vymazat</button></div>'}
+${ro ? "" : '<div class="row" style="margin-bottom:8px"><button class="s" id="evlb">↻ Podle základní formace</button><button class="s" id="evlc">Vymazat</button></div><div class="row" style="margin-bottom:8px;align-items:center;flex-wrap:nowrap"><span class="mu" style="flex:none">⚖ Vyrovnaně do</span>' + [2, 3, 4].map(n => `<button class="s" data-evle="${n}">${n}</button>`).join("") + '<span class="mu" style="flex:none">pětek</span></div>'}
 ${going.length || goT.length ? going.map(p => row(p.id, pn(p.id))).join("") + trH : '<div class="msg">Zatím se nikdo nepřihlásil.</div>'}</div>`;
 }
 // Formace pro hostující (lineuppub → S.lu): jen u události, kde má odpověď „Jdu“; pravidla databáze jinou nepustí
@@ -316,6 +319,9 @@ function cancelHtml(ev, mt) {
 function detail(a, ev) {
   const P = activePl(), AT = atMap(), A = AT[ev.id] || {}, c = counts(ev, AT, P), lk = isLocked(ev), mt = ev.type === "match", ownP = isPl(), me = HK.pid(), g = guest(), cn = isCancelled(ev);
   const can = !cn && (!lk || staff()), T = trs(), st0 = startMs(ev.date, ev.time), now = Date.now(), nn = nosCount(A, P.map(p => p.id));
+  // 📋 Plán tréninku: konec uložený, jinak začátek + výchozí délka; úprava plánu nahradí celý detail
+  const tpCtx = {ev, P, A, T, end: okTime(ev.raw.end) && endOk(ev.time, ev.raw.end) ? ev.raw.end : defEnd(ev.time, defs()), css: CSS}, tpOn = !mt && !g && !cn;
+  if (tpOn && planEditing(ev.id)) { planEditor(a, tpCtx); return; }
   const rows = P.map((p, i) => {
     const x = A[p.id], mine = p.id === me, nos = isNos(x), ok = can && (!ownP || mine) && (!nos || staff());   // hráčka mění jen svůj řádek, 🚫 jen trenér
     const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen manager, trenér a asistent
@@ -349,10 +355,11 @@ ${attReqBanner()}
 ${cn ? "" : attReqBox(ev, reqMid)}
 ${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${HK.perm("stats", "r") ? '<button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>' + matchStatsHtml(ev.raw) : ""}</div>` : ""}
 ${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, T, ownP)}
+${tpOn ? planCardHtml(tpCtx) : ""}
 ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   // Eventy detailu
   // Zpět: do Teamu (otevřeno z přehledu plateb), jinak do seznamu událostí
-  a.querySelector("#evb").onclick = () => { S.evid = null; S.evx = null; if (S.evBack) { S.tab = S.evBack; S.evBack = null; } render(); window.scrollTo(0, 0); };
+  a.querySelector("#evb").onclick = () => { S.evid = null; S.evx = null; S.tpv = null; S.tpe = null; if (S.evBack) { S.tab = S.evBack; S.evBack = null; } render(); window.scrollTo(0, 0); };
   a.querySelectorAll("[data-pa]").forEach(b => b.onclick = () => { const [pid, st] = b.dataset.pa.split("|"); answer(ev.id, pid, st); });
   // Zápis utkání uzavřeného zápasu: stejné okno jako v záložce Soupeři (pro všechny role, jen čtení a export)
   const rp = a.querySelector("#evrp");
@@ -361,6 +368,7 @@ ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   bindPay(a, ev);
   bindAttReqAdmin(a);
   bindAttReqBox(a, ev, reqMid);
+  if (tpOn) bindPlanCard(a, tpCtx);
   if (ownP) return;                                                   // zbytek jsou správcovské akce (jen manager, trenér a asistent)
   a.querySelectorAll("[data-nos]").forEach(b => b.onclick = () => toggleNos(ev, b.dataset.nos));
   const eo = a.querySelector("#evo");
@@ -408,6 +416,8 @@ ${payHtml(ev)}</div>` + sheetHtml() + attReqModal();
   // Podle základní formace přepíše jen hráčky; přiřazení realizačního týmu zůstane
   if (lb) lb.onclick = () => saveLines(ev, baseLines((S.def || {}).lu, P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)).map(p => p.id), ev.raw.lines));
   if (lc) lc.onclick = () => saveLines(ev, {});
+  // ⚖ Vyrovnaně do 2–4 pětek: přihlášené hráčky v pořadí soupisky střídavě do pětek; přiřazení realizačního týmu zůstane
+  a.querySelectorAll("[data-evle]").forEach(b => b.onclick = () => saveLines(ev, evenLines(P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)).map(p => p.id), +b.dataset.evle, ev.raw.lines, isTrKey)));
 }
 
 // ===== Vykreslení: okno s důvodem =====

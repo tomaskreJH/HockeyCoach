@@ -1,17 +1,22 @@
 // Doména: banka cvičení (kolekce drills) – kontrola a úprava formuláře, filtr seznamu, kopie, vyřazení a smazání. Čisté funkce bez DOM.
-// Dokument drills/{id}: name, cat, sk [dovednosti], lvl 1–3, dur (min), grp [all|st|gk], eq, desc, url, meas {u, low} | null, by, at, arch.
+// Dokument drills/{id}: name, cat, sk [dovednosti], lvl 1–3, dur (min), grp [all|st|gk], eq, desc, url, pdf, img [id obrázků], meas {u, low} | null, by, at, arch.
+// Obrázky jsou samostatné dokumenty drillimg/{id} = {d (data:image/jpeg;base64), did, w, h, by, at} – zmenšené v zařízení, nejvýš IMG_MAX na cvičení.
 // Cvičení se z banky nemaže, ale vyřazuje (arch: true) – plány tréninku na něj mohou odkazovat; smazat jde jen vyřazené.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Kontrola a úprava -> Seznam a filtr -> Kopie a vyřazení.
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Kontrola a úprava -> Obrázky -> Seznam a filtr -> Kopie a vyřazení.
 
 // ===== Importy =====
 import {CATS, GROUPS, LEVELS, SKILLS, UNITS} from "../config/skills.js";
 
 // ===== Konstanty =====
 export const DRILL_COLL = "drills";
-export const DRILL_MAX = {name: 80, eq: 200, desc: 2000, url: 300};   // nejdelší texty
+export const DRILLIMG_COLL = "drillimg";                            // obrázky cvičení (jeden dokument = jeden obrázek)
+export const DRILL_MAX = {name: 80, eq: 200, desc: 2000, url: 300};   // nejdelší texty (url platí i pro pdf)
+export const IMG_MAX = 3;                                            // obrázků na cvičení
+export const IMG_PX = 1280;                                          // delší strana zmenšeného obrázku (px)
+export const IMG_LEN = 700000;                                       // nejdelší data:URL obrázku (znaků; dokument Firestore má limit 1 MiB)
 export const DUR_MIN = 1, DUR_MAX = 60, DUR_DEF = 10;                 // délka cvičení v minutách
 // Pole dokumentu, která zapisuje formulář (by, at a arch zapisuje aplikace)
-export const DRILL_FIELDS = ["name", "cat", "sk", "lvl", "dur", "grp", "eq", "desc", "url", "meas"];
+export const DRILL_FIELDS = ["name", "cat", "sk", "lvl", "dur", "grp", "eq", "desc", "url", "pdf", "img", "meas"];
 
 // ===== Pomocné funkce =====
 const str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
@@ -33,12 +38,15 @@ export function drillError(x) {
   if (!Number.isInteger(dur) || dur < DUR_MIN || dur > DUR_MAX) return "Délka musí být " + DUR_MIN + " až " + DUR_MAX + " min";
   const u = str(d.url, 999);
   if (u && !urlOk(u)) return "Odkaz na video musí začínat http:// nebo https://";
+  const pf = str(d.pdf, 999);
+  if (pf && !urlOk(pf)) return "Odkaz na PDF musí začínat http:// nebo https://";
+  if (Array.isArray(d.img) && d.img.length > IMG_MAX) return "Nejvýš " + IMG_MAX + " obrázky";
   if (d.meas && !UNITS[d.meas.u]) return "Vyber jednotku měření";
   return null;
 }
 // Normalizovaný dokument k uložení (jen pole formuláře; neplatné hodnoty nahradí výchozí). Kontrolu dělá drillError.
 export function drillDoc(x) {
-  const d = x || {}, lvl = Number(d.lvl), dur = Number(d.dur), u = str(d.url, DRILL_MAX.url);
+  const d = x || {}, lvl = Number(d.lvl), dur = Number(d.dur), u = str(d.url, DRILL_MAX.url), pf = str(d.pdf, DRILL_MAX.url);
   return {
     name: str(d.name, DRILL_MAX.name),
     cat: CATS[d.cat] ? d.cat : Object.keys(CATS)[0],
@@ -49,11 +57,30 @@ export function drillDoc(x) {
     eq: str(d.eq, DRILL_MAX.eq),
     desc: str(d.desc, DRILL_MAX.desc),
     url: urlOk(u) ? u : "",
+    pdf: urlOk(pf) ? pf : "",
+    img: [...new Set((Array.isArray(d.img) ? d.img : []).filter(i => typeof i === "string" && /^[\w-]{1,40}$/.test(i)))].slice(0, IMG_MAX),
     meas: d.meas && UNITS[d.meas.u] ? {u: d.meas.u, low: d.meas.low === true} : null
   };
 }
 // Prázdný formulář nového cvičení
-export const drillBlank = () => ({name: "", cat: "skill", sk: [], lvl: 1, dur: DUR_DEF, grp: ["all"], eq: "", desc: "", url: "", meas: null});
+export const drillBlank = () => ({name: "", cat: "skill", sk: [], lvl: 1, dur: DUR_DEF, grp: ["all"], eq: "", desc: "", url: "", pdf: "", img: [], meas: null});
+
+// ===== Obrázky =====
+// Rozměr zmenšeného obrázku: delší strana nejvýš max, poměr stran zachovaný, menší obrázek se nezvětšuje
+export function imgFit(w, h, max = IMG_PX) {
+  const W = Math.max(1, Math.round(+w || 1)), H = Math.max(1, Math.round(+h || 1)), k = Math.min(1, max / Math.max(W, H));
+  return {w: Math.max(1, Math.round(W * k)), h: Math.max(1, Math.round(H * k))};
+}
+// Dokument obrázku drillimg/{id}; null, když data nejsou obrázek data:URL nebo jsou příliš velká
+export function imgDoc(d, did, w, h, by, at) {
+  if (typeof d !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(d) || d.length > IMG_LEN) return null;
+  return {d, did: String(did || ""), w: Math.round(+w || 0), h: Math.round(+h || 0), by: String(by || ""), at: String(at || "")};
+}
+// Změna obrázků při uložení: del = id dokumentů drillimg ke smazání (byly u cvičení, po úpravě už nejsou)
+export function imgChanges(before, after) {
+  const a = new Set(after || []);
+  return {del: (before || []).filter(id => !a.has(id))};
+}
 
 // ===== Seznam a filtr =====
 // Filtr banky: q (hledání v názvu, pomůckách a popisu), cat, sk (dovednost), lvl, fav (jen ⭐), arch (true = jen vyřazená, jinak jen aktivní).
@@ -81,9 +108,10 @@ export function drillCounts(list) {
 }
 
 // ===== Kopie a vyřazení =====
-// Kopie cvičení jako nový formulář (bez autora, času a vyřazení); název s příponou „(kopie)“ v mezích délky
+// Kopie cvičení jako nový formulář (bez autora, času, vyřazení a obrázků – obrázky patří původnímu cvičení); název s příponou „(kopie)“
 export function drillCopy(d) {
   const c = drillDoc(d), suf = " (kopie)";
+  c.img = [];
   c.name = c.name.slice(0, DRILL_MAX.name - suf.length) + suf;
   return c;
 }

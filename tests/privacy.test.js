@@ -150,7 +150,7 @@ test("záloha a obnova obsahují nové kolekce attnote, staffpay, plpay", async 
   const orig = document.createElement;
   let a = null;
   document.createElement = () => (a = {style: {}, click() {}, remove() {}});
-  try { HK.exportJSON(); } finally { document.createElement = orig; }
+  try { await HK.exportJSON(); } finally { document.createElement = orig; }
   const out = JSON.parse(await resolveObjectURL(a.href).text());
   assert.deepEqual(out.data.plpay, {a: {grp: "single", fx: 1, ex: false}});
   assert.deepEqual(out.data.staffpay, {t1: {m: "month", amt: 100}});

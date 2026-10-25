@@ -10,7 +10,7 @@
    Výchozí je jen ke čtení – každý zápis (doc.set, add, delete, dávka, členové, obnova zálohy) skončí hláškou „V náhledu se nezapisuje“.
    Brána verze: dokument settings/app = {minVer, minBy, minAt}. Klient se starší verzí (core/app-version.js) nezapisuje –
    strážce blocked() zastaví každý zápis (doc.set, add, delete, dávka, členové, obnova) a nahoře je pruh „Načíst novou verzi“.
-   Minimum nastavuje jen manager (⚙️ → 🔒 Aplikace) a jen směrem nahoru; ze zálohy se neobnovuje.
+   Minimum nastavuje jen manager (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) a jen směrem nahoru; ze zálohy se neobnovuje.
    Role a práva: domain/permissions.js (manager / trener / asistent / hracka / host; jiná hodnota role, např. stará kustod, nemá přístup – stejně jako v pravidlech databáze);
    matice práv settings/perm (zapisuje jen manager, ⚙️ → 🔐 Práva rolí) se předává do HK.can a HK.perm – chybějící dokument = výchozí práva.
    Účet Google bez členství vidí formulář ✋ žádosti o přijetí (joinreq/{e-mail}, views/join-view.js), manager ji vyřídí v okně z 🏠 / ⚙️.
@@ -31,7 +31,7 @@ import {BUDGET_COLL} from "../domain/budget.js";
 import {exOf, fxOf} from "../domain/cash.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
-import {DRILL_COLL} from "../domain/drills.js";
+import {DRILLIMG_COLL, DRILL_COLL} from "../domain/drills.js";
 import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL, isGuest} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
@@ -40,6 +40,7 @@ import {PID_ROLE_KEYS, ROLE_KEYS, ROLE_LABELS, ROLE_VER, STAFF_ROLE_KEYS, actOf,
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, splitLegacy, withPlPay} from "../domain/private-data.js";
 import {SERIES_COLL} from "../domain/recurrence.js";
+import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -82,7 +83,10 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // joinreq = žádosti o přijetí do týmu (čte jen manager a uchazeč; výsledek je v members, soupisce a auditu),
 // evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta)
 const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL];
-[...COLL, ...EXTRA].forEach(c => { data[c] = {}; subs[c] = []; });
+// Kolekce Tréninku, které se v zařízení nečtou celé (plán jen u otevřeného tréninku, obrázky cvičení na vyžádání):
+// do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
+const FETCH = [TRPLAN_COLL, DRILLIMG_COLL];
+[...COLL, ...EXTRA, ...FETCH].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -305,6 +309,8 @@ const db = {
       set: async d => { writeDoc(c, id, d); },
       merge: async d => { mergeDoc(c, id, d); },
       delete: async () => { removeDoc(c, id); },
+      // Jednorázové čtení (i z offline paměti zařízení); null = dokument neexistuje, chyba (práva, offline bez kopie) = výjimka
+      get: async () => { const s = await getDoc(fsDoc(fs, c, id)); return s.exists() ? clone(s.data()) : null; },
       onSnapshot: (cb, er) => subscribe(c, () => { const d = data[c][id]; cb({exists: !!d, data: () => d ? clone(d) : undefined}); }, er)
     };
   },
@@ -482,7 +488,7 @@ function runPreview(r, p, t, c, w) {
 }
 const logout = async () => { pvWrite(null); await signOut(auth); location.reload(); };
 // Počty dokumentů ve vybraném souboru zálohy (náhled před obnovou)
-const backupCounts = obj => { const d = (obj && obj.data) || {}; return COLL.map(c => [c, Object.keys(d[c] || {}).length]); };
+const backupCounts = obj => { const d = (obj && obj.data) || {}; return [...COLL, ...FETCH].map(c => [c, Object.keys(d[c] || {}).length]); };
 // Brána verze pro ⚙️: požadované minimum, kdo a kdy ho nastavil, zda je tato verze starší a zda ji jde vyžadovat
 const gateInfo = () => { const a = data.settings[APP_DOC] || {}; return {min: a.minVer || "", by: a.minBy || "", at: a.minAt ? String(a.minAt).slice(0, 10) : "", old: outdated(), raise: canRaise(APP_VERSION, minVer())}; };
 
@@ -515,9 +521,13 @@ async function refresh() {
 // ===== Zálohy =====
 // Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (asistent tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo);
 // soukromé kolekce attnote, staffpay a plpay jsou v ní, pokud je role smí číst (manager všechny)
-function exportJSON() {
+async function exportJSON() {
   const out = {};
   COLL.forEach(c => { if (first[c]) out[c] = data[c]; });
+  // Plány tréninků a obrázky cvičení se načtou celé až teď (bez chyby zálohy, když je pravidla nepustí)
+  if (can("sport")) for (const c of FETCH) {
+    try { const s = await getDocs(fsCol(fs, c)); out[c] = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez " + c + ":", errTxt(e)); }
+  }
   downloadFile("hokej-zaloha-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", version: 1, exported: new Date().toISOString(), data: out}, null, 1), "application/json");
 }
 function exportCSV() {
@@ -564,6 +574,8 @@ async function importData(obj, replace) {
     if (replace && bk[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC || id === PERM_DOC)) && !(c === BUDGET_COLL && data[c][id].approved)) ops.push(["del", c, id]); });
     Object.entries(src).forEach(([id, d]) => { if (c === "settings" && (id === APP_DOC || id === PERM_DOC)) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : c === BUDGET_COLL ? keepBudget(id, d) : d]); });
   });
+  // Plány tréninků a obrázky cvičení: jen doplnit / přepsat ze zálohy (v zařízení nejsou načtené celé, proto se nic nemaže)
+  FETCH.forEach(c => Object.entries(bk[c] || {}).forEach(([id, d]) => ops.push(["set", c, id, d])));
   // Předpisy po obnově (pro přepočet souhrnu dlužníků): nahrazení = jen ze zálohy, sloučení = stávající + ze zálohy
   const chSrc = bk.charges, chNew = chSrc ? Object.entries(replace ? chSrc : {...data.charges, ...chSrc}).map(([id, d]) => ({id, ...d})) : null;
   await commitOps(ops);

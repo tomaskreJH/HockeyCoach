@@ -32,9 +32,9 @@ service cloud.firestore {
     // Výchozí matice = DEFAULT_PERMS z domain/permissions.js (shodu hlídá test tests/perm-matrix.test.js).
     function permPath() { return /databases/$(database)/documents/settings/perm; }
     function permDef() { return {
-      'trener': {'events': {'r': true, 'e': true, 'c': true, 'd': true}, 'matches': {'r': true, 'e': true, 'c': true, 'd': true}, 'att': {'r': true, 'e': true, 'c': false, 'd': true}, 'lines': {'r': true, 'e': true, 'c': false, 'd': true}, 'roster': {'r': true, 'e': true, 'c': false, 'd': true}, 'staff': {'r': true, 'e': true, 'c': false, 'd': true}, 'opp': {'r': true, 'e': true, 'c': false, 'd': true}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': true, 'e': false, 'c': false, 'd': false}, 'drills': {'r': true, 'e': true, 'c': false, 'd': true}},
-      'asistent': {'events': {'r': true, 'e': true, 'c': true, 'd': true}, 'matches': {'r': true, 'e': true, 'c': true, 'd': true}, 'att': {'r': true, 'e': true, 'c': false, 'd': true}, 'lines': {'r': true, 'e': true, 'c': false, 'd': true}, 'roster': {'r': true, 'e': false, 'c': false, 'd': false}, 'staff': {'r': true, 'e': false, 'c': false, 'd': false}, 'opp': {'r': true, 'e': true, 'c': false, 'd': true}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': true, 'e': false, 'c': false, 'd': false}, 'drills': {'r': true, 'e': true, 'c': false, 'd': false}},
-      'hracka': {'events': {'r': true, 'e': false, 'c': false, 'd': false}, 'matches': {'r': true, 'e': false, 'c': false, 'd': false}, 'att': {'r': false, 'e': false, 'c': false, 'd': false}, 'lines': {'r': true, 'e': false, 'c': false, 'd': false}, 'roster': {'r': true, 'e': false, 'c': false, 'd': false}, 'staff': {'r': true, 'e': false, 'c': false, 'd': false}, 'opp': {'r': true, 'e': false, 'c': false, 'd': false}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': false, 'e': false, 'c': false, 'd': false}, 'drills': {'r': false, 'e': false, 'c': false, 'd': false}}
+      'trener': {'events': {'r': true, 'e': true, 'c': true, 'd': true}, 'matches': {'r': true, 'e': true, 'c': true, 'd': true}, 'att': {'r': true, 'e': true, 'c': false, 'd': true}, 'lines': {'r': true, 'e': true, 'c': false, 'd': true}, 'roster': {'r': true, 'e': true, 'c': false, 'd': true}, 'staff': {'r': true, 'e': true, 'c': false, 'd': true}, 'opp': {'r': true, 'e': true, 'c': false, 'd': true}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': true, 'e': false, 'c': false, 'd': false}, 'drills': {'r': true, 'e': true, 'c': false, 'd': true}, 'trplan': {'r': true, 'e': true, 'c': false, 'd': false}},
+      'asistent': {'events': {'r': true, 'e': true, 'c': true, 'd': true}, 'matches': {'r': true, 'e': true, 'c': true, 'd': true}, 'att': {'r': true, 'e': true, 'c': false, 'd': true}, 'lines': {'r': true, 'e': true, 'c': false, 'd': true}, 'roster': {'r': true, 'e': false, 'c': false, 'd': false}, 'staff': {'r': true, 'e': false, 'c': false, 'd': false}, 'opp': {'r': true, 'e': true, 'c': false, 'd': true}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': true, 'e': false, 'c': false, 'd': false}, 'drills': {'r': true, 'e': true, 'c': false, 'd': false}, 'trplan': {'r': true, 'e': true, 'c': false, 'd': false}},
+      'hracka': {'events': {'r': true, 'e': false, 'c': false, 'd': false}, 'matches': {'r': true, 'e': false, 'c': false, 'd': false}, 'att': {'r': false, 'e': false, 'c': false, 'd': false}, 'lines': {'r': true, 'e': false, 'c': false, 'd': false}, 'roster': {'r': true, 'e': false, 'c': false, 'd': false}, 'staff': {'r': true, 'e': false, 'c': false, 'd': false}, 'opp': {'r': true, 'e': false, 'c': false, 'd': false}, 'stats': {'r': true, 'e': false, 'c': false, 'd': false}, 'attview': {'r': true, 'e': false, 'c': false, 'd': false}, 'members': {'r': false, 'e': false, 'c': false, 'd': false}, 'budget': {'r': false, 'e': false, 'c': false, 'd': false}, 'app': {'r': false, 'e': false, 'c': false, 'd': false}, 'drills': {'r': false, 'e': false, 'c': false, 'd': false}, 'trplan': {'r': true, 'e': false, 'c': false, 'd': false}}
     }; }
     function permSet(r, mod, act) { return exists(permPath()) ? get(permPath()).data.get(['roles', r, mod, act], null) : null; }
     function permVal(v, r, mod, act) { return v is bool ? v : permDef()[r][mod][act]; }
@@ -166,14 +166,36 @@ service cloud.firestore {
     // ===== 📚 Banka cvičení (modul Trénink): čte, zakládá / upravuje a maže se podle matice práv (modul drills); hostující nic =====
     // Dokument jen se známými poli; název 1–80 znaků, dovednosti a skupiny jako seznam, délka 1–60 min.
     function drillOk(d) {
-      return d.keys().hasOnly(['name', 'cat', 'sk', 'lvl', 'dur', 'grp', 'eq', 'desc', 'url', 'meas', 'by', 'at', 'arch'])
+      return d.keys().hasOnly(['name', 'cat', 'sk', 'lvl', 'dur', 'grp', 'eq', 'desc', 'url', 'pdf', 'img', 'meas', 'by', 'at', 'arch'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 80 && d.cat is string && d.sk is list && d.grp is list
-        && d.dur is int && d.dur >= 1 && d.dur <= 60;
+        && d.dur is int && d.dur >= 1 && d.dur <= 60 && (!('img' in d) || (d.img is list && d.img.size() <= 3));
     }
     match /drills/{id} {
       allow read: if can('drills', 'r');
       allow create, update: if can('drills', 'e') && drillOk(request.resource.data);
       allow delete: if can('drills', 'd');
+    }
+    // Obrázky cvičení drillimg/{id} = {d (data:URL zmenšeného obrázku), did, w, h, by, at}: čtou členové kromě hostující (obrázky v plánu
+    // tréninku), zakládá, mění a maže, kdo smí upravovat banku cvičení (odebrání obrázku je úprava cvičení).
+    function imgOk(d) {
+      return d.keys().hasOnly(['d', 'did', 'w', 'h', 'by', 'at']) && d.d is string && d.d.size() <= 700000 && d.did is string;
+    }
+    match /drillimg/{id} {
+      allow read: if isTeam();
+      allow create, update: if can('drills', 'e') && imgOk(request.resource.data);
+      allow delete: if can('drills', 'e');
+    }
+
+    // ===== 📋 Plán tréninku trplan/{eid} (id = id tréninku): čte se a upravuje podle matice práv (modul trplan); hostující nic =====
+    // Celý dokument patří aplikaci (bloky, linky, skupiny, trenéři); poznámky trenérů v něm nejsou – hráčka plán čte celý.
+    function trplanOk(d) {
+      return d.keys().hasOnly(['v', 'goal', 'blocks', 'by', 'at']) && d.blocks is list && d.blocks.size() <= 30
+        && (!('goal' in d) || (d.goal is string && d.goal.size() <= 200));
+    }
+    match /trplan/{id} {
+      allow read: if can('trplan', 'r');
+      allow create, update: if can('trplan', 'e') && trplanOk(request.resource.data);
+      allow delete: if can('trplan', 'e');
     }
 
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
