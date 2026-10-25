@@ -42,10 +42,12 @@ import {NOTE_COLL, PPAY_COLL, SPAY_COLL, splitLegacy, withPlPay} from "../domain
 import {SERIES_COLL} from "../domain/recurrence.js";
 import {TRTPL_COLL} from "../domain/plan-reuse.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
+import {PLEVEL_COLL} from "../domain/line-split.js";
+import {TRLIVE_COLL} from "../domain/training-live.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
 const VERSION = APP_LABEL;                                              // číslo verze je jen v core/app-version.js
@@ -82,11 +84,12 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // evprice = ceny uzavřených událostí na hlavu (odvozují se z evcash, po obnově se doplní v ⚙️ → Pokladna),
 // requests = žádosti členů (průběh vyřízení; výsledek schválení je v plpay a v auditu),
 // joinreq = žádosti o přijetí do týmu (čte jen manager a uchazeč; výsledek je v members, soupisce a auditu),
-// evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta)
-const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL];
-// Kolekce Tréninku, které se v zařízení nečtou celé (plán jen u otevřeného tréninku, obrázky cvičení a šablony plánu na vyžádání):
+// evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta),
+// trlive = společné hodiny ⏱ živého tréninku (průběžný stav, poslech jen u otevřeného tréninku)
+const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL];
+// Kolekce Tréninku, které se v zařízení nečtou celé (plán jen u otevřeného tréninku, obrázky cvičení, šablony plánu a ⭐ výkonnost na vyžádání):
 // do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
-const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL];
+const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL];
 [...COLL, ...EXTRA, ...FETCH].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
@@ -196,8 +199,9 @@ function subscribe(c, cb, er) {
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
 function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); }
-// Hodnoty pro částečný zápis: "__del" smaže pole, ostatní se zkopírují; undefDel = i undefined smaže pole (jinak se vynechá)
-const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k, v]) => { if (v === undefined && !undefDel) return; o[k] = v === "__del" || v === undefined ? deleteField() : clone({v}).v; }); return o; };
+// Hodnoty pro částečný zápis: "__del" smaže pole, "__now" = čas serveru (serverTimestamp), ostatní se zkopírují;
+// undefDel = i undefined smaže pole (jinak se vynechá)
+const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k, v]) => { if (v === undefined && !undefDel) return; o[k] = v === "__now" ? serverTimestamp() : v === "__del" || v === undefined ? deleteField() : clone({v}).v; }); return o; };
 // Částečný zápis dokumentu: změní jen uvedená pole (mergeFields), ostatní pole – i ta, která tato verze nezná – zůstanou.
 // Stejně jako writeDoc nečeká na server (offline se zápis odešle po připojení); chyba se ukáže hláškou.
 function mergeDoc(c, id, d) {

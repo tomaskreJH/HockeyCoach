@@ -52,7 +52,8 @@
 | v21.0 | E1 | 📚 Banka cvičení (Team → 📚 Cvičení), kolekce `drills`, modul matice `drills` – **nasazeno, otestováno** (25. 10. 2026) |
 | v21.1 | E2a | 📋 Plán tréninku v detailu tréninku (bloky, stanoviště, točení, trenéři, brankářky, kontroly), kolekce `trplan`, modul matice `trplan`; 📷 obrázky (`drillimg`) a 📄 PDF u cvičení; ⚖ vyrovnané pětky; 🔒 Vyžadovat verzi v 👤 Účet; stav skóre v Zápisu utkání – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.2 | E2b | 📥 základní sada cvičení a 📄 import z CSV, ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (`trtpl`), 📊 pokrytí dovedností, kontrola použití cvičení před smazáním – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
-| v21.3 – v21.6 | E | 🏒 **Modul Trénink** (zařazeno 24. 10. 2026 před notifikace): E3 živý trénink (společné hodiny, Moje stanoviště, upozornění), E3b stopky, E4 hodnocení, E5 přehled a analýza – **podrobně `docs/plan-trenink.md`** |
+| v21.3 | E3 | ⏱ živý trénink (`trlive`, společné hodiny, Moje stanoviště, upozornění, Wake Lock), rozdělení do pětek s výběrem způsobu a ⚔ poměrem postů, ⭐ výkonnost hráček (`plevel`), bloky plánu podle postů – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
+| v21.4 – v21.6 | E | 🏒 **Modul Trénink** (zařazeno 24. 10. 2026 před notifikace): E3b stopky, E4 hodnocení, E5 přehled a analýza – **podrobně `docs/plan-trenink.md`** |
 | v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky) – posunuto za Trénink |
 | poslední | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
 | později | M | Další tým = **samostatná kopie: vlastní GitHub, vlastní projekt Firebase** (možnost A); kód na to připraví D1 (nastavení týmu a Firebase na jednom místě) |
@@ -63,6 +64,8 @@
 ---
 
 ## Stav (aktualizováno 25. 10. 2026)
+- **v21.3 (E3) dodáno, k testu:** ⏱ živý trénink z karty plánu (společné hodiny `trlive/{eid}` s časem serveru a dorovnáním posunu hodin zařízení, ▶ / ⏸ / ⏮ ⏭ / +1 / +5 min / ⏹, převzetí řízení, Moje stanoviště, co následuje, vibrace a zvuk 60 s / 10 s, Wake Lock); rozdělení do pětek s výběrem způsobu (⚖ vyrovnaně, 📶 podle výkonnosti, 🔀 střídavě, 📋 základní formace) a ⚔ poměrem útočnic / obránkyň; ⭐ výkonnost 1–5 (`plevel/team`, jen realizační tým); bloky plánu dělené podle postů (`by: "pos"`). Řízení hodin = `trplan e` (rozhodnutí 25. 10. 2026). Pravidla publikovat před kódem.
+- **v21.2 (E2b) nasazeno (25. 10. 2026).**
 - **v21.2 (E2b) dodáno, k testu:** 📥 základní sada cvičení (hráčky a brankářky) a 📄 import z tabulky CSV v bance, ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (kolekce `trtpl`, sdílené pro tým), 📊 pokrytí dovedností přihlášených hráček (14 / 30 / 60 dní), smazání cvičení jen nepoužitého (i s obrázky). Pravidla publikovat před kódem. Rozhodnutí: šablony i kopírování (obojí).
 - **v21.1 (E2a) nasazeno (25. 10. 2026):** 📋 plán tréninku (karta pod Rozdělením do pětek, úprava na celé stránce), 📷 obrázky a 📄 PDF u cvičení, ⚖ vyrovnaně do 2–4 pětek, 🔒 Vyžadovat verzi v ⚙️ → 👤 Účet, stav skóre u gólů v Zápisu utkání. Pravidla publikovat před kódem. E2 rozděleno na v21.1 a v21.2 (rozhodnutí 25. 10. 2026).
 - **v21.0 (E1) nasazeno a otestováno (25. 10. 2026):** 📚 banka cvičení v Team (přepínač 📚 Cvičení), nová kolekce `drills` a modul matice `drills` (trenér vše, asistent bez mazání, hráčka nic). Pravidla publikovat před kódem. v20.7.1 nasazena, netestována.
@@ -70,7 +73,7 @@
 - **v20.7 (D4) dodáno, k testu:** úklid před modulem Trénink – odstraněny hotové jednorázové převody (⚙️ Kontrola dat – pole `ex`, převod a úklid soukromí, 🔁 převod rolí), stará role `kustod` / `trener` bez `rv` se už nepřevádí (stejně jako v pravidlech v20.6), komentáře „kustod“ → asistent, `LINE_NOS` na jednom místě, `main.js` rozepsaný do bloků, plán zkrácen (dokončené fáze v archivu). Bez změny chování ostatních modulů.
 - **Rozhodnutí 24. 10. 2026:** modul Trénink (E) před notifikacemi (N); odpovědi T1 – T5 v `docs/plan-trenink.md` kap. 6.
 - v20.6 (OM3) dodána – výsledek testu a publikování `firestore.rules` uživatel zatím nehlásil.
-- Další: **v21.3 E3 – ⏱ živý trénink** (`docs/plan-trenink.md`).
+- Další: **v21.4 E3b – ⏲ stopky** (`docs/plan-trenink.md`).
 
 ## H – později: Souběžné tresty a chybějící hráčka při vyrovnané hře (myšlenka, přidáno 22. 10. 2026)
 Zatím jen zamyšlení – nezařazeno do verze, rozhodne se po v18.6.

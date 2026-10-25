@@ -210,6 +210,29 @@ service cloud.firestore {
       allow delete: if can('trplan', 'e');
     }
 
+    // ===== ⏱ Živý trénink trlive/{eid} (id = id tréninku): společné hodiny – čte, kdo smí číst plán, řídí, kdo smí plán upravovat =====
+    // {v, st (run / pause / end), e0 (s od začátku plánu), wAt (čas zařízení), sAt (čas serveru = čas zápisu), ctl (řídící = zapisující), by, at}
+    function trliveOk(d) {
+      return d.keys().hasOnly(['v', 'st', 'e0', 'wAt', 'sAt', 'ctl', 'by', 'at']) && d.st in ['run', 'pause', 'end']
+        && d.e0 is number && d.e0 >= 0 && d.e0 <= 21600 && d.sAt == request.time && d.ctl == mail();
+    }
+    match /trlive/{id} {
+      allow read: if can('trplan', 'r');
+      allow create, update: if can('trplan', 'e') && trliveOk(request.resource.data);
+      allow delete: if can('trplan', 'e');
+    }
+
+    // ===== ⭐ Výkonnost hráček plevel/team: jen realizační tým (hráčky ani hostující ji nečtou) =====
+    // {v, lv: {id hráčky: 1–5}, by, at} – podklad pro rozdělení do pětek tréninku
+    function plevelOk(d) {
+      return d.keys().hasOnly(['v', 'lv', 'by', 'at']) && d.lv is map && d.lv.size() <= 200;
+    }
+    match /plevel/{id} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && plevelOk(request.resource.data);
+      allow delete: if isRoster();
+    }
+
     // ===== Vyúčtování událostí (náklady, kdo platí, snapshot): jen správci pokladny; id = id události nebo zápasu =====
     match /evcash/{id} { allow read, write: if isCash(); }
     // Cena uzavřené události na hlavu evprice/{id} = {ym, date, tpl, head: {monthly, single, exempt}} (před koeficientem, 0 = skupina neplatí):

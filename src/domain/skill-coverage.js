@@ -7,7 +7,7 @@
 // ===== Importy =====
 import {SKILLS} from "../config/skills.js";
 import {isNos} from "./attendance.js";
-import {laneOf, myGroup, rotation} from "./training-plan.js";
+import {GK, groupIn, laneOf, myGroup, posGrp, rotation} from "./training-plan.js";
 
 // ===== Konstanty =====
 export const COVER_DAYS = [14, 30, 60];                  // nabízená období (dny)
@@ -33,12 +33,14 @@ export function coverWindow(events, eid, days = COVER_DEF) {
 }
 
 // ===== Dovednosti skupiny v plánu =====
-// Minuty po dovednostech, které skupina g (číslo pětky, "G" nebo null = bez pětky) trénovala podle plánu; drills = mapa id → cvičení
-export function groupSkills(plan, g, drills) {
+// Minuty po dovednostech, které skupina g (číslo pětky, "G" nebo null = bez pětky) trénovala podle plánu; drills = mapa id → cvičení;
+// pg = skupina podle postu ("F" / "D" / "G") pro bloky dělené podle postů (chybí = jako bez skupiny)
+export function groupSkills(plan, g, drills, pg) {
   const out = {}, D = drills || {};
   ((plan && plan.blocks) || []).forEach(b => {
+    const gb = groupIn(b, g, pg === undefined ? null : pg);
     rotation(b).forEach(r => {
-      let lid = g == null ? null : laneOf(b, r, g);
+      let lid = gb == null ? null : laneOf(b, r, gb);
       // Bez pětky: v bloku Společně linka pro všechny (bez skupin); na stanovištích nikde
       if (lid == null && b.mode === "all") { const open = (b.lanes || []).find(l => !(l.grp || []).length); lid = open ? open.id : null; }
       const l = (b.lanes || []).find(x => x.id === lid), d = l && D[l.drill];
@@ -51,10 +53,10 @@ export function groupSkills(plan, g, drills) {
 }
 
 // ===== Pokrytí =====
-// Pokrytí pro hráčky pids (goalies = množina id brankářek) z tréninků trainings [{id, lines}] s plány plans {eid: plán | null}
-// a docházkou att [{eid, pid, st, nos}]. Výsledek: {n (tréninků s plánem), rows [{k, have, pop, pct, min, miss [pid]}], none [pid bez tréninku]}.
+// Pokrytí pro hráčky pids (goalies = množina id brankářek, pos = mapa id → post z soupisky) z tréninků trainings [{id, lines}]
+// s plány plans {eid: plán | null} a docházkou att [{eid, pid, st, nos}]. Výsledek: {n (tréninků s plánem), rows [{k, have, pop, pct, min, miss [pid]}], none [pid bez tréninku]}.
 // rows jen pro dovednosti, které mají koho počítat (🧤 jen brankářky, ostatní jen hráčky v poli); řazeno od nejméně pokryté.
-export function skillCoverage({pids, goalies, trainings, plans, att, drills}) {
+export function skillCoverage({pids, goalies, trainings, plans, att, drills, pos}) {
   const G = goalies || new Set(), P = plans || {}, T = (trainings || []).filter(t => P[t.id] && (P[t.id].blocks || []).length);
   const went = new Set((att || []).filter(a => a.st === "yes" && !isNos(a)).map(a => a.eid + "|" + a.pid));
   const per = {}, none = [];
@@ -64,7 +66,7 @@ export function skillCoverage({pids, goalies, trainings, plans, att, drills}) {
     T.forEach(t => {
       if (!went.has(t.id + "|" + pid)) return;
       n++;
-      const gs = groupSkills(P[t.id], myGroup(t.lines, pid, G.has(pid)), drills);
+      const gs = groupSkills(P[t.id], myGroup(t.lines, pid, G.has(pid)), drills, G.has(pid) ? GK : posGrp((pos || {})[pid]));
       Object.entries(gs).forEach(([k, v]) => { m[k] = (m[k] || 0) + v; });
     });
     per[pid] = m;

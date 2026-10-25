@@ -28,6 +28,8 @@ export const doc = (fs, c, id) => ({c, id});
 const rec = w => { const f = fb(); if (f && f.writes) f.writes.push(w); };
 // Smazání pole: značka, kterou test pozná po převodu do JSON
 export const deleteField = () => "__del";
+// Čas serveru: značka, kterou test pozná po převodu do JSON
+export const serverTimestamp = () => "__ts";
 // Záznam zápisu: kopie dat, u částečného zápisu i volby
 const entry = (ref, d, opt) => Object.assign({path: path(ref), d: JSON.parse(JSON.stringify(d))}, opt ? {opt: JSON.parse(JSON.stringify(opt))} : {});
 const path = ref => (ref ? ref.c + "/" + ref.id : "?");

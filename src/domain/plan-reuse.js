@@ -4,7 +4,7 @@
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Kopie plánu -> Šablony -> Výběr tréninků.
 
 // ===== Importy =====
-import {GK, isFixedLane, newPid, planDoc} from "./training-plan.js";
+import {GK, POS_GRPS, groupsFor, isFixedLane, newPid, planDoc} from "./training-plan.js";
 
 // ===== Konstanty =====
 export const TRTPL_COLL = "trtpl";
@@ -19,10 +19,12 @@ const when = e => String((e && e.date) || "") + " " + String((e && e.time) || ""
 
 // ===== Kopie plánu =====
 // Nový plán z cizího plánu (jiný trénink nebo šablona): nová id bloků a linek, trenéři jen z coaches (přihlášení; null = ponechat),
-// skupiny: Společně – jen pětky nového tréninku (🥅 zůstává), Stanoviště – pětky nového tréninku střídavě na linky, které se točí (🥅 linka zůstává).
-export function planCopy(src, groups, coaches, drills) {
-  const P = planDoc(clone(src || {}), drills), G = groups || [], field = G.filter(g => g !== GK), co = coaches ? new Set(coaches) : null;
+// skupiny: Společně – jen skupiny nového tréninku (🥅 zůstává), Stanoviště – skupiny nového tréninku střídavě na linky, které se točí (🥅 linka zůstává);
+// blok podle postů (by: "pos") bere skupiny z pgroups (posGroups nového tréninku, výchozí útočnice + obránkyně).
+export function planCopy(src, groups, coaches, drills, pgroups) {
+  const P = planDoc(clone(src || {}), drills), co = coaches ? new Set(coaches) : null;
   P.blocks.forEach(b => {
+    const field = groupsFor(b, groups, pgroups || POS_GRPS).filter(g => g !== GK);
     b.id = newPid("b");
     b.lanes.forEach(l => {
       l.id = newPid("l");

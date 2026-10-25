@@ -1,7 +1,6 @@
-// Doména: plán tréninku trplan/{eid} – bloky Společně / Stanoviště, časy od začátku tréninku, rozpis točení skupin,
-// skupiny z rozdělení do pětek (1–4) + 🥅 brankářky "G", kontrola plánu (přetečení, kolize trenérů, skupiny bez stanoviště).
-// Dokument: {v, goal, blocks: [{id, mode "all"|"st", dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp [1..4|"G"]}]}], by, at}.
-// Linka s brankářkami ("G") se netočí (souběžná linka); ostatní linky stanoviště se točí po kolech. Čisté funkce bez DOM.
+// Doména: plán tréninku trplan/{eid} – bloky Společně / Stanoviště, časy od začátku tréninku, rozpis točení skupin, kontrola plánu.
+// Skupiny bloku: pětky z rozdělení (1–4) nebo posty (blok by: "pos" – "F" útočnice, "D" obránkyně) + 🥅 brankářky "G" (linka se netočí).
+// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp}]}], by, at}.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Skupiny -> Úprava plánu -> Časy a točení -> Kontrola -> Hráčka -> Exporty (u funkcí).
 
 // ===== Importy =====
@@ -11,6 +10,9 @@ import {LINE_NOS} from "./event-helpers.js";
 export const TRPLAN_COLL = "trplan";
 export const PLAN_VER = 1;                                   // trplan.v: verze tvaru plánu
 export const GK = "G";                                       // skupina brankářek
+export const FW = "F", DF = "D";                              // skupiny podle postu: útočnice, obránkyně (blok by: "pos")
+export const POS_GRPS = [FW, DF];
+export const BY = {ln: "🎽 Pětky", pos: "⚔ Útok / obrana"};      // čím se v bloku dělí skupiny
 export const MODES = {all: "👥 Společně", st: "🔄 Stanoviště"};
 export const PLAN_MAX = {blocks: 30, lanes: 4, goal: 200, dn: 80, di: 3};
 export const BLK_DUR_MIN = 1, BLK_DUR_MAX = 90, BLK_DUR_DEF = 10;
@@ -20,16 +22,21 @@ const int = (v, d) => { const n = Number(v); return Number.isInteger(n) ? n : d;
 const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 const str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
 const uniq = a => [...new Set(a)];
-// Klíč skupiny: čísla pětek 1–4 nebo "G" (jiné hodnoty se zahodí)
-const grpKey = g => (g === GK ? GK : LINE_NOS.includes(+g) ? +g : null);
-// Pořadí skupin: pětky vzestupně, brankářky na konci
-const grpSort = (a, b) => (a === GK) - (b === GK) || a - b;
+// Klíč skupiny bloku: u pětek čísla 1–4, u postů "F" / "D"; "G" vždy (jiné hodnoty se zahodí)
+const grpKey = (g, pos) => (g === GK ? GK : pos ? (POS_GRPS.includes(g) ? g : null) : LINE_NOS.includes(+g) ? +g : null);
+// Pořadí skupin: pětky vzestupně, útočnice, obránkyně, brankářky na konci
+const grpRank = g => (g === GK ? 9 : g === FW ? 7 : g === DF ? 8 : +g);
+const grpSort = (a, b) => grpRank(a) - grpRank(b);
+// Dělí blok skupiny podle postů?
+export const isPosBlock = b => !!b && b.by === "pos";
+// Skupina hráčky podle postu (Obránkyně = "D", jinak útočnice "F")
+export const posGrp = pos => (pos === "Obránkyně" ? DF : FW);
 // Linka s brankářkami se netočí
 export const isFixedLane = l => (l.grp || []).includes(GK);
 // Nové krátké id bloku / linky (unikátní v rámci plánu)
 export const newPid = (p = "b") => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Text skupiny pro zobrazení
-export const grpLabel = g => (g === GK ? "🥅 Brankářky" : g + ". pětka");
+export const grpLabel = g => (g === GK ? "🥅 Brankářky" : g === FW ? "⚔ Útočnice" : g === DF ? "🛡 Obránkyně" : g + ". pětka");
 
 // ===== Skupiny =====
 // Skupiny tréninku: pětky, ve kterých je aspoň jedna přihlášená hráčka (lines z rozdělení do pětek), + "G" při přihlášené brankářce.
@@ -41,6 +48,17 @@ export function planGroups(lines, skaters, goalies) {
   if ((goalies || []).length) g.push(GK);
   return g;
 }
+// Skupiny podle postu: "F" / "D", ve kterých je aspoň jedna přihlášená hráčka (skaters = [{id, pos}]), + "G" při přihlášené brankářce
+export function posGroups(skaters, goalies) {
+  const has = new Set((skaters || []).map(p => posGrp(p && p.pos)));
+  const g = POS_GRPS.filter(x => has.has(x));
+  if ((goalies || []).length) g.push(GK);
+  return g;
+}
+// Skupiny, které platí pro blok (pětky nebo posty)
+export const groupsFor = (b, groups, pgroups) => (isPosBlock(b) ? pgroups || [] : groups || []);
+// Skupina hráčky v bloku: g = pětka / "G" (myGroup), pg = post "F" / "D" / "G"; null = bez skupiny
+export const groupIn = (b, g, pg) => (isPosBlock(b) ? pg : g);
 // Vyrovnané rozdělení přihlášených hráček do n pětek (going v pořadí soupisky, střídavě 1, 2, …, n); členy realizačního týmu z prev zachová
 export function evenLines(going, n, prev, isTr) {
   const k = clamp(int(n, 2), 1, LINE_NOS.length), r = {};
@@ -52,8 +70,10 @@ export function evenLines(going, n, prev, isTr) {
 // ===== Úprava plánu =====
 // Prázdná linka a blok; blok Společně má jednu linku pro všechny, Stanoviště dvě
 export const laneBlank = () => ({id: newPid("l"), drill: "", dn: "", di: [], co: [], grp: []});
-export function blockBlank(mode, groups) {
+// by = "pos" → skupiny podle postů (groups pak jsou posGroups)
+export function blockBlank(mode, groups, by) {
   const m = mode === "st" ? "st" : "all", b = {id: newPid("b"), mode: m, dur: BLK_DUR_DEF, rot: null, lanes: [laneBlank()]};
+  if (by === "pos") b.by = "pos";
   if (m === "st") {
     b.lanes.push(laneBlank());
     // Výchozí rozdělení: skupiny pětek střídavě na linky, brankářky (pokud jsou) na vlastní linku
@@ -68,16 +88,18 @@ export const planBlank = () => ({v: PLAN_VER, goal: "", blocks: []});
 // Normalizovaný plán k uložení (jen známá pole, meze délek a počtů); drills = mapa id → cvičení z banky (kopie názvu a obrázků pro hráčky)
 export function planDoc(p, drills) {
   const D = drills || {}, src = p || {};
-  const lane = (l, mode) => {
-    const d = D[l.drill], grp = uniq((l.grp || []).map(grpKey).filter(g => g != null)).sort(grpSort);
+  const lane = (l, mode, pos) => {
+    const d = D[l.drill], grp = uniq((l.grp || []).map(g => grpKey(g, pos)).filter(g => g != null)).sort(grpSort);
     return {id: str(l.id, 24) || newPid("l"), drill: str(l.drill, 40),
       dn: str(d ? d.name : l.dn, PLAN_MAX.dn), di: (d ? d.img || [] : l.di || []).filter(x => typeof x === "string").slice(0, PLAN_MAX.di),
       co: uniq((l.co || []).filter(x => typeof x === "string" && x)).slice(0, 6), grp: mode === "all" && !grp.includes(GK) ? grp.filter(g => g !== GK) : grp};
   };
   const blocks = (Array.isArray(src.blocks) ? src.blocks : []).slice(0, PLAN_MAX.blocks).map(b => {
-    const mode = b.mode === "st" ? "st" : "all", dur = clamp(int(b.dur, BLK_DUR_DEF), BLK_DUR_MIN, BLK_DUR_MAX), rot = int(b.rot, null);
-    return {id: str(b.id, 24) || newPid("b"), mode, dur, rot: mode === "st" && rot && rot >= 1 && rot <= dur ? rot : null,
-      lanes: (Array.isArray(b.lanes) ? b.lanes : []).slice(0, PLAN_MAX.lanes).map(l => lane(l, mode))};
+    const mode = b.mode === "st" ? "st" : "all", dur = clamp(int(b.dur, BLK_DUR_DEF), BLK_DUR_MIN, BLK_DUR_MAX), rot = int(b.rot, null), pos = isPosBlock(b);
+    const o = {id: str(b.id, 24) || newPid("b"), mode, dur, rot: mode === "st" && rot && rot >= 1 && rot <= dur ? rot : null,
+      lanes: (Array.isArray(b.lanes) ? b.lanes : []).slice(0, PLAN_MAX.lanes).map(l => lane(l, mode, pos))};
+    if (pos) o.by = "pos";
+    return o;
   });
   return {v: PLAN_VER, goal: str(src.goal, PLAN_MAX.goal), blocks};
 }
@@ -127,15 +149,15 @@ export function rotation(block) {
 }
 
 // ===== Kontrola =====
-// Problémy plánu: [{lvl: "err" | "warn", blk (index bloku | null), t}]. ctx = {total (min tréninku), groups (planGroups), coaches (id přihlášených
+// Problémy plánu: [{lvl: "err" | "warn", blk (index bloku | null), t}]. ctx = {total (min tréninku), groups (planGroups), pgroups (posGroups), coaches (id přihlášených
 // členů týmu), drills (mapa id → cvičení)}. err = chyba (plán nejde spustit správně), warn = upozornění; uložit jde vždy.
 export function planIssues(p, ctx = {}) {
   const out = [], B = (p && p.blocks) || [], add = (lvl, blk, t) => out.push({lvl, blk, t}), D = ctx.drills || null;
-  const used = planMinutes(B), total = +ctx.total || 0, G = ctx.groups || [], field = G.filter(g => g !== GK), coaches = ctx.coaches ? new Set(ctx.coaches) : null;
+  const used = planMinutes(B), total = +ctx.total || 0, G0 = ctx.groups || [], coaches = ctx.coaches ? new Set(ctx.coaches) : null;
   if (total && used > total) add("err", null, "Plán přesahuje konec tréninku o " + (used - total) + " min.");
   else if (total && used < total && B.length) add("warn", null, "Nenaplánováno zbývá " + (total - used) + " min.");
   B.forEach((b, bi) => {
-    const L = b.lanes || [], nm = "Blok " + (bi + 1) + ": ";
+    const L = b.lanes || [], nm = "Blok " + (bi + 1) + ": ", G = groupsFor(b, G0, ctx.pgroups || POS_GRPS), field = G.filter(g => g !== GK);
     if (!L.length) add("warn", bi, nm + "bez linky.");
     L.forEach((l, li) => {
       const ln = L.length > 1 ? "linka " + (li + 1) + " " : "";
@@ -150,7 +172,7 @@ export function planIssues(p, ctx = {}) {
     // Skupiny: každá na nejvýš jedné lince; u stanovišť všechny pětky tréninku na některé lince
     const cnt = {};
     L.forEach(l => (l.grp || []).forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
-    Object.entries(cnt).filter(([, n]) => n > 1).forEach(([g]) => add("err", bi, nm + grpLabel(g === GK ? GK : +g) + " je na dvou linkách."));
+    Object.entries(cnt).filter(([, n]) => n > 1).forEach(([g]) => add("err", bi, nm + grpLabel(g === GK || g === FW || g === DF ? g : +g) + " je na dvou linkách."));
     if (b.mode === "st") {
       const rl = L.filter(l => !isFixedLane(l));
       if (rl.length < 2) add("warn", bi, nm + "stanoviště potřebují aspoň 2 linky, které se točí.");
@@ -158,7 +180,7 @@ export function planIssues(p, ctx = {}) {
       if (rl.some(l => !(l.grp || []).length)) add("warn", bi, nm + "stanoviště bez skupiny (v prvním kole prázdné).");
       if (b.rot && rl.length > 1 && Math.floor(b.dur / b.rot) < rl.length) add("warn", bi, nm + "skupiny za " + b.dur + " min neprojdou všechna stanoviště (" + rl.length + " × " + b.rot + " min).");
     }
-    if (cnt[GK] && !G.includes(GK)) add("warn", bi, nm + "linka brankářek, ale žádná brankářka není přihlášená.");
+    if (cnt[GK] && !G0.includes(GK)) add("warn", bi, nm + "linka brankářek, ale žádná brankářka není přihlášená.");
   });
   return out;
 }

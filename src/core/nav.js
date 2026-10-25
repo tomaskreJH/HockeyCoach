@@ -15,7 +15,7 @@
 //     už aplikaci opustí, proto nesmí jen potichu zavřít okno),
 //   - zásoba je 5 záznamů (víc Zpět po sobě bez klepnutí).
 // Pořadí zavírání (od nejvyšší vrstvy):
-//   1) okna nad vším (obrázek cvičení, nápověda, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
+//   1) okna nad vším (obrázek cvičení, nápověda, ⏱ živý trénink, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
 //   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas),
 //   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
 //   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), Události (Minulé / Kalendář / Docházka) → Nadcházející,
@@ -33,6 +33,7 @@ import {render} from "../views/shell.js";
 const DOM_LAYERS = [
   "#imv #imx",                 // obrázek cvičení přes celou obrazovku (views/drill-media.js)
   "#hlp #hlx",                 // nápověda
+  "#tlv #tlx",                 // ⏱ živý trénink přes celou obrazovku (views/trlive-view.js; hodiny běží dál ostatním)
   "#cpay #cpx",                // okno úhrady (pokladna u události)
   "#mkq #mkx",                 // QR platba (Moje platby, banner dluhu)
   "#cset #csx",                // nastavení pokladny
@@ -41,6 +42,7 @@ const DOM_LAYERS = [
   '#mod [data-pp="x"]',        // výběr hráčky na místo v sestavě
   "#mod #cl",                  // okna zápasu, hráčky, člena týmu, gólu a trestu
   "#evsh #evrc",               // okno s důvodem odpovědi na událost
+  "#plvm #plvx",               // ⭐ výkonnost hráček (rozdělení do pětek tréninku)
   "#tpd #tpdx",                // okno cvičení v plánu tréninku
   "#ed #efc",                  // opravy zápisu: formulář události
   "#ed #sxcn",                 // opravy zápisu: formulář střídání

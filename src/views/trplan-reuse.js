@@ -60,7 +60,7 @@ function loadCover(eid, days, X, D) {
   Promise.all(T.map(e => planOf(e.id).then(p => [e.id, p]))).then(L => {
     if (S.tcv !== R) return;
     R.res = skillCoverage({pids: [...X.cnt.sk, ...X.cnt.gk], goalies: new Set(X.cnt.gk), trainings: T.map(e => ({id: e.id, lines: e.lines || {}})),
-      plans: Object.fromEntries(L), att: S.at, drills: D});
+      plans: Object.fromEntries(L), att: S.at, drills: D, pos: X.pos});
     R.cnt = T.length; R.st = "ok"; render();
   }).catch(e => { if (S.tcv !== R) return; R.st = "err"; R.err = errTxt(e); render(); });
   render();
@@ -147,7 +147,7 @@ export function bindReuse(a, eid, X, D, apply, cur) {
   if (!R) return;
   // Použití: s bloky v rozpracovaném plánu druhým klepnutím
   const use = (key, src) => {
-    const go = () => { apply(planCopy(src, X.groups, X.coaches.map(t => t.id), D)); S.tpr = null; toast("Plán převzat – zkontroluj a ulož"); };
+    const go = () => { apply(planCopy(src, X.groups, X.coaches.map(t => t.id), D, X.pgroups)); S.tpr = null; toast("Plán převzat – zkontroluj a ulož"); };
     if ((cur().blocks || []).length) confirm2(key, go); else go();
   };
   a.querySelectorAll("[data-tpru]").forEach(b => b.onclick = () => {
