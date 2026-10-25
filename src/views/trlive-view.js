@@ -3,7 +3,8 @@
 // převzetí řízení od jiného trenéra druhým klepnutím. Každý vidí „Moje stanoviště“ (trenér své linky, hráčka linku své skupiny),
 // odpočet kola, hráčky na lince, co následuje; vibrace a zvuk 60 s a 10 s před koncem kola, obrazovka nezhasíná. Výpočty domain/training-live.js.
 // ⌚ Oznámení (volitelně, hk-tl-ntf): systémové oznámení „co teď / co potom“ – Android ho zrcadlí na hodinky; řídící má v oznámení ⏸ / ⏭.
-// ⏲ Stopky u měřeného cvičení na mé lince (views/stopwatch-view.js, smí HK.perm("treval", "e")).
+// ⏲ Stopky u měřeného cvičení na mé lince (views/stopwatch-view.js), ⭐ hodnocení kola, které skončilo, jedním klepnutím
+// (views/treval-view.js) – obojí smí HK.perm("treval", "e").
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Zvuk, oznámení a obrazovka -> Poslech -> Vykreslení (karta, obrazovka; tik mění jen čísla) -> Eventy -> Exporty.
 
 // ===== Importy =====
@@ -13,13 +14,14 @@ import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {laneMeas} from "../domain/stopwatch.js";
+import {evalLanes, prevSpot} from "../domain/training-eval.js";
 import {LIVE_ST, TRLIVE_COLL, alertsDue, coachLanes, groupPids, liveAt, liveCtl, liveNote, liveSec, mmss, skewNext, skewObs, stepSec} from "../domain/training-live.js";
-import {DF, FW, GK, MODES, clock, grpLabel, isFixedLane, isPosBlock, laneOf, planTimes} from "../domain/training-plan.js";
+import {DF, FW, GK, MODES, clock, grpLabel, isPosBlock, laneOf, laneTags, planTimes} from "../domain/training-plan.js";
 import {render} from "./shell.js";
 import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
+import {bindLiveEval, liveEvalHtml} from "./treval-view.js";
 
 // ===== Konstanty a stav =====
-const LETTERS = ["A", "B", "C", "D"];
 const MUTE_KEY = "hk-tl-mute", SKEW_KEY = "hk-clk", NTF_KEY = "hk-tl-ntf";
 const HID_WIN = 70;                                      // skrytá aplikace tiká řidčeji: upozornění / točení se pozná až do 70 s zpětně
 const FRESH_MS = 5000;                                   // změny doručené až po 5 s poslechu jsou čerstvé (měří se z nich posun hodin)
@@ -57,8 +59,6 @@ const storedSkew = () => { try { const v = Number(localStorage.getItem(SKEW_KEY)
 // Odhad posunu hodin zařízení: z tohoto poslechu, jinak uložený z dřívějška, jinak 0
 const skew = () => (L.sess != null ? L.sess : storedSkew() || 0);
 const chip = g => `<span class="evl L${g}">${ICON[g] ? ICON[g] + " " + esc(grpLabel(g).replace(/^\S+ /, "")) : g + ". pětka"}</span>`;
-// Označení linek bloku: stanoviště A–D (točící se), 🥅 linka brankářek, u Společně nic
-function tags(b) { let k = 0; return (b.lanes || []).map(l => (b.mode !== "st" ? "" : isFixedLane(l) ? "🥅" : LETTERS[k++] || "?")); }
 const staffName = (X, id) => { const t = (X.staff || []).find(x => x.id === id); return t ? t.name : "?"; };
 // Kdo řídí (text)
 const ctlName = c => (!c ? "" : c === me() ? "ty" : esc(c.split("@")[0]));
@@ -86,7 +86,7 @@ function alarm(kind, at) {
 }
 // Kde jsem v kole (pro text oznámení): moje linka (trenér / skupina hráčky), jinak jediná linka bloku, jinak blok
 function spot(B, at, X) {
-  const b = B[at.bi], M = mine(b, at.round, X), T = tags(b);
+  const b = B[at.bi], M = mine(b, at.round, X), T = laneTags(b);
   const li = M && M.length ? (b.lanes || []).findIndex(l => l.id === M[0]) : (b.lanes || []).length === 1 ? 0 : -1;
   const l = li >= 0 ? b.lanes[li] : null, d = l && X.D[l.drill], grp = l ? (at.round && at.round.lanes[l.id]) || l.grp || [] : [];
   return {where: l && T[li] ? (T[li] === "🥅" ? "🥅 Brankářky" : "Stanoviště " + T[li]) : "Blok " + (at.bi + 1),
@@ -173,7 +173,7 @@ function mine(b, round, X) {
   return null;
 }
 function lanesHtml(b, at, X) {
-  const T = tags(b), M = mine(b, at.round, X), list = (b.lanes || []).map((l, i) => ({l, t: T[i], m: M && M.includes(l.id)}));
+  const T = laneTags(b), M = mine(b, at.round, X), list = (b.lanes || []).map((l, i) => ({l, t: T[i], m: M && M.includes(l.id)}));
   const show = M && M.length ? list.filter(x => x.m) : list;
   const head = M == null ? "Linky" : M.length ? "📍 Moje stanoviště" : X.tid ? "Teď nevedeš žádnou linku – všechny linky" : "Tvoje skupina teď nemá linku";
   return `<h3 style="margin:10px 0 6px">${head}</h3>${(M && !M.length ? list : show).map(x => laneHtml(b, x.l, x.t, at.round, X, x.m)).join("")}
@@ -187,6 +187,14 @@ function nextHtml(B, at, X) {
   const b = B[n.bi], M = mine(b, n.round, X), l = M && M.length ? (b.lanes || []).find(x => x.id === M[0]) : null, d = l && X.D[l.drill];
   const what = n.bi !== at.bi ? `blok ${n.bi + 1} · ${MODES[b.mode]}` : `kolo ${n.ri + 1}/${n.nr} (točení)`;
   return `<div class="tlln" style="margin-top:8px"><div class="mu">Za ${mmss(at.left)} → ${what}</div>${l ? `<div><b>${esc(d ? d.name : l.dn || "?")}</b> · ${((n.round.lanes[l.id]) || l.grp || []).map(chip).join("") || "všichni"}</div>` : ""}</div>`;
+}
+// ⭐ Výzva k hodnocení skončeného kola (realizační tým s právem hodnotit): moje linky předchozího kola, po konci plánu poslední kolo
+function rateHtml(B, at, X) {
+  if (!L.live || !LIVE_ST[L.live.st]) return "";
+  const pv = prevSpot(B, at), all = evalLanes(X.plan, X.D);
+  if (!pv || pv.done) return at && at.done ? liveEvalHtml(L.eid, [], all, true) : "";
+  const b = B[pv.bi], M = mine(b, pv.round, X), ids = M == null || !M.length ? (b.lanes || []).map(l => l.id) : M;
+  return liveEvalHtml(L.eid, all.filter(l => l.bid === b.id && ids.includes(l.lid)), all, !!(at && at.done));
 }
 function controlsHtml(v, at) {
   if (!canE()) return "";
@@ -208,12 +216,12 @@ function screenHtml() {
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), st = v && LIVE_ST[v.st] ? v.st : null, T = planTimes(B);
   const b = B[at.bi], total = T[T.length - 1].b;
   const info = `<div class="mu">${st ? LIVE_ST[st] : "Čeká na spuštění"}${v && v.ctl ? " · řídí " + ctlName(v.ctl) : ""} · <span id="tlt">${mmss(sec || 0)}</span> / ${mmss(total)}${X.start ? " · konec plánu " + clock(X.start, total) : ""}</div>`;
-  if (at.done) return CSS + head + info + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at);
+  if (at.done) return CSS + head + info + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at) + rateHtml(B, at, X);
   const sub = `Blok ${at.bi + 1}/${B.length} · ${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${at.nr > 1 ? ` · kolo ${at.ri + 1}/${at.nr}` : ""}`;
   return CSS + head + info + `<div style="text-align:center;margin-top:8px;font-weight:700">${sub}</div>
 <div class="tlbig" id="tlc">${mmss(at.left)}</div>${at.nr > 1 ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}
 <div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>
-${controlsHtml(v, at)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}`;
+${controlsHtml(v, at)}${rateHtml(B, at, X)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}`;
 }
 // Celé překreslení obrazovky (změna stavu, kola nebo bloku); tik mění jen čísla
 function paint() {
@@ -271,6 +279,9 @@ function bind() {
   el.querySelector("#tlx").onclick = close;
   el.querySelector("#tlm").onclick = () => { try { localStorage.setItem(MUTE_KEY, muted() ? "0" : "1"); } catch (e) { /* bez paměti */ } paint(); if (!muted()) beep(1); };
   el.querySelector("#tln").onclick = toggleNtf;
+  // ⭐ Hodnocení skončeného kola jedním klepnutím (bez psaní)
+  const X0 = L.getX ? L.getX() : null;
+  if (X0 && X0.plan) bindLiveEval(el, L.eid, evalLanes(X0.plan, X0.D), paint);
   // ⏲ Stopky měřeného cvičení: hráčky linky v tomto kole (u Společně bez skupin všechny hráčky v poli)
   el.querySelectorAll("[data-tsw]").forEach(b => b.onclick = () => {
     const X = L.getX ? L.getX() : null, B = (X && X.plan && X.plan.blocks) || [], [bid, lid] = b.dataset.tsw.split("|");

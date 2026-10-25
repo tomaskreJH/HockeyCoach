@@ -55,7 +55,8 @@
 | v21.3 | E3 | ⏱ živý trénink (`trlive`, společné hodiny, Moje stanoviště, upozornění, Wake Lock), rozdělení do pětek s výběrem způsobu a ⚔ poměrem postů, ⭐ výkonnost hráček (`plevel`), bloky plánu podle postů – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.4 | E3b | ⏲ stopky a výsledky měření (`trms`, modul matice `treval`, výsledky vidí celý tým), ⌚ oznámení živého tréninku i na hodinky (akce ⏸ / ⏭ pro řídícího), ⏱ čas cvičení v plánu jen pro trénink (rychlá volba, délka z banky) – **hotovo, k testu** (25. 10. 2026), **pravidla publikovat před kódem** |
 | v21.5 | K1 | 📱 telefon a příprava tréninku: nic neujíždí do šířky (CSS tabulek, polí a řádků), ✨ Připravit trénink, ⚙ Další volby bloku plánu – **hotovo, k testu** (25. 10. 2026), pravidla beze změny |
-| v21.6 – v21.7 | E | 🏒 **Modul Trénink**: E4 hodnocení, E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
+| v21.6 | E4 | ⭐ hodnocení cvičení (linka plánu, 😃 🙂 😐 😴, poznámka, volitelně hráčky; kolekce `treval`, jen realizační tým), výzva v ⏱ živém tréninku po kole jedním klepnutím, 📋 docs/testy-rucni.md – **hotovo, k testu** (25. 10. 2026), pravidla publikovat před kódem |
+| v21.7 | E | 🏒 **Modul Trénink**: E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
 | v21.7 | K | 🖐 **Komfort zadávání, ovládání a přehledu** (priorita uživatele 25. 10. 2026): průchod hlavních toků na telefonu – méně klepnutí, výchozí hodnoty, rychlé akce, přehledy na jedné obrazovce – podrobně `docs/plan-trenink.md` kap. 4 |
 | v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky; oznámení i na hodinky) – posunuto za Trénink a K |
 | potom | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
@@ -68,6 +69,7 @@
 ---
 
 ## Stav (aktualizováno 25. 10. 2026)
+- **v21.6 (E4) dodáno, k testu:** ⭐ hodnocení cvičení v kartě plánu (každá linka / stanoviště zvlášť, stupnice T5, druhé klepnutí zruší, 📝 poznámka a hodnocení hráček v okně `#tev`), výzva „Jak šlo cvičení?“ v ⏱ živém tréninku po skončeném kole (moje linky, jedno klepnutí), kolekce `treval/{eid}` (čte `treval r`, zapisuje `treval e`), `domain/training-eval.js`, `views/treval-view.js`; ruční testovací plán `docs/testy-rucni.md` (v21.3 – v21.6). **v21.5 nasazena, netestována; v21.3 – v21.4 testovány jen pohledem.**
 - **v21.5 (K1) dodáno, k testu:** oprava šířky na telefonu (globální `table{min-width}` platí jen v `.tw`, pole a položky `.row` se smí zúžit, úzké tabulky zalamují, `#evw` nowrap jen v `.tw`), ✨ Připravit trénink (`quickSplit`, `loadPrep`, `latestTpl`), ⚙ Další volby bloku (`blockExtras`). Ověřeno měřením v Chromiu na 360 px.
 - **v21.4 (E3b) dodáno, k testu:** ⏲ stopky (klepnutí na jméno = start / stop, víc hráček souběžně, ▶ Start všech, pokusy, nejlepší, počty a body) z ⏱ živého tréninku i z karty plánu, ⏲ výsledky měření s pořadím v kartě plánu (`trms/{eid}`, vidí celý tým kromě hostující), modul matice `treval`; ⌚ systémová oznámení živého tréninku „co teď / co potom“ (Android je zrcadlí na hodinky Garmin), akce ⏸ / ⏭ pro řídícího; v plánu ⏱ čas cvičení jen pro trénink (rychlá volba, převzetí délky z banky). Kontrola kódu v21.3 – oprava upozornění se zhasnutým telefonem. Pravidla publikovat před kódem. **v21.3 nasazena, živý trénink zatím neotestován.**
 - **Rozhodnutí 25. 10. 2026:** měření není tajné – výsledky vidí celý tým (motivace, srovnání), během tréninku se jen zapisují; hodnocení a poznámky trenérů (E4) zůstávají jen realizačnímu týmu. Priorita: funkčnost a komfort zadávání, ovládání a přehledu (nová fáze K po E5); oznámení na hodinkách hned (v21.4), vlastní aplikace pro Garmin (G) později; jiný klub (M) stále úplně poslední.
@@ -80,7 +82,7 @@
 - **v20.7 (D4) dodáno, k testu:** úklid před modulem Trénink – odstraněny hotové jednorázové převody (⚙️ Kontrola dat – pole `ex`, převod a úklid soukromí, 🔁 převod rolí), stará role `kustod` / `trener` bez `rv` se už nepřevádí (stejně jako v pravidlech v20.6), komentáře „kustod“ → asistent, `LINE_NOS` na jednom místě, `main.js` rozepsaný do bloků, plán zkrácen (dokončené fáze v archivu). Bez změny chování ostatních modulů.
 - **Rozhodnutí 24. 10. 2026:** modul Trénink (E) před notifikacemi (N); odpovědi T1 – T5 v `docs/plan-trenink.md` kap. 6.
 - v20.6 (OM3) dodána – výsledek testu a publikování `firestore.rules` uživatel zatím nehlásil.
-- Další: **v21.6 E4 – ⭐ hodnocení** (`docs/plan-trenink.md`).
+- Další: **v21.7 E5 – 📈 přehled a analýza** (`docs/plan-trenink.md`) – nejdřív výsledky testů podle `docs/testy-rucni.md`.
 
 ## H – později: Souběžné tresty a chybějící hráčka při vyrovnané hře (myšlenka, přidáno 22. 10. 2026)
 Zatím jen zamyšlení – nezařazeno do verze, rozhodne se po v18.6.

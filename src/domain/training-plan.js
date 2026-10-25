@@ -37,6 +37,11 @@ export const isFixedLane = l => (l.grp || []).includes(GK);
 export const blockExtras = b => !!b && (isPosBlock(b) || !!b.rot || (b.lanes || []).some(l => (l.co || []).length > 0) || (b.mode !== "st" && (b.lanes || []).length > 1));
 // Nové krátké id bloku / linky (unikátní v rámci plánu)
 export const newPid = (p = "b") => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+// Označení linek bloku: stanoviště A–D (jen linky, které se točí), linka brankářek 🥅, u bloku Společně prázdný text
+export function laneTags(b) {
+  let k = 0;
+  return ((b && b.lanes) || []).map(l => (b.mode !== "st" ? "" : isFixedLane(l) ? "🥅" : "ABCD"[k++] || "?"));
+}
 // Text skupiny pro zobrazení
 export const grpLabel = g => (g === GK ? "🥅 Brankářky" : g === FW ? "⚔ Útočnice" : g === DF ? "🛡 Obránkyně" : g + ". pětka");
 

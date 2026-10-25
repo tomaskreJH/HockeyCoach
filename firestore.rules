@@ -233,6 +233,17 @@ service cloud.firestore {
       allow delete: if can('treval', 'e');
     }
 
+    // ===== ⭐ Hodnocení cvičení treval/{eid} (id = id tréninku): poznámky trenérů – čte jen realizační tým podle matice (treval, r;
+    // hráčka ani hostující ne), zapisuje, kdo smí hodnotit (treval, e). {v, r: {blok_linka: {d, dn, r (0–4), n, pl: {id hráčky: {r, n}}}}, by, at}
+    function trevalOk(d) {
+      return d.keys().hasOnly(['v', 'r', 'by', 'at']) && d.r is map && d.r.size() <= 120 && d.get('by', mail()) == mail();
+    }
+    match /treval/{id} {
+      allow read: if can('treval', 'r');
+      allow create, update: if can('treval', 'e') && trevalOk(request.resource.data);
+      allow delete: if can('treval', 'e');
+    }
+
     // ===== ⭐ Výkonnost hráček plevel/team: jen realizační tým (hráčky ani hostující ji nečtou) =====
     // {v, lv: {id hráčky: 1–5}, by, at} – podklad pro rozdělení do pětek tréninku
     function plevelOk(d) {

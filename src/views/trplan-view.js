@@ -1,7 +1,8 @@
 // 📋 Plán tréninku v detailu tréninku (karta pod Rozdělením do pětek) a jeho úprava na celé stránce.
 // Plán = trplan/{eid}: bloky 👥 Společně / 🔄 Stanoviště za sebou od začátku tréninku, linky s cvičením z banky, trenéry a skupinami
 // (🎽 pětky z rozdělení nebo ⚔ posty útočnice / obránkyně – volba u bloku – + 🥅 brankářky); u stanovišť rozpis točení po kolech;
-// ⏱ živý trénink z karty (views/trlive-view.js), ⏲ výsledky měření pod plánem (views/stopwatch-view.js). Čte se jen pro otevřený trénink.
+// ⏱ živý trénink z karty (views/trlive-view.js), ⏲ výsledky měření a ⭐ hodnocení pod plánem (views/stopwatch-view.js, views/treval-view.js).
+// Čte se jen pro otevřený trénink.
 // Délka bloku = čas cvičení v tomto tréninku (−/+, číslo, rychlá volba); výběr cvičení převezme jeho délku z banky, dokud ji trenér nezmění.
 // Úprava bloku ukazuje jen cvičení, ⏱ čas a skupiny; režim, posty, točení, trenéři a souběžná linka jsou pod „⚙ Další volby“ (otevřené, když se používají).
 // ✨ Připravit trénink: rozdělí nerozdělené přihlášené do pětek posledním způsobem a otevře plán s nabídkou minulého plánu / poslední šablony.
@@ -17,12 +18,13 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {BY, DF, FW, GK, MODES, PLAN_MAX, POS_GRPS, TRPLAN_COLL, blockBlank, blockExtras, clock, groupIn, groupsFor, grpLabel, hm2min, isFixedLane, isPosBlock, laneBlank, laneOf, moveBlock, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, posGroups, posGrp, rotation} from "../domain/training-plan.js";
+import {BY, DF, FW, GK, MODES, PLAN_MAX, POS_GRPS, TRPLAN_COLL, blockBlank, blockExtras, clock, groupIn, groupsFor, grpLabel, hm2min, isFixedLane, isPosBlock, laneBlank, laneOf, laneTags, moveBlock, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, posGroups, posGrp, rotation} from "../domain/training-plan.js";
 import {bindThumbs, thumbsHtml} from "./drill-media.js";
 import {bindCover, bindReuse, coverHtml, loadPrep, reuseHtml} from "./trplan-reuse.js";
 import {quickSplit} from "./line-split-view.js";
 import {bindLiveCard, liveCardHtml} from "./trlive-view.js";
 import {bindMsCard, msCardHtml} from "./stopwatch-view.js";
+import {bindEvalCard, evalCardHtml} from "./treval-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -68,11 +70,6 @@ const grpVal = g => (GRP_ICON[g] ? g : +g);
 // Skupina přihlášené hráčky v bloku (pětka nebo post)
 const mineIn = (b, X) => groupIn(b, X.mine, X.mineP);
 const grpChips = (grp, short) => (grp || []).map(g => grpChip(g, short)).join("");
-// Označení linky: stanoviště A–D (jen linky, které se točí), linka brankářek 🥅, u bloku Společně nic
-function laneTags(b) {
-  let k = 0;
-  return (b.lanes || []).map(l => (b.mode !== "st" ? "" : isFixedLane(l) ? "🥅" : LETTERS[k++] || "?"));
-}
 // Odvozené údaje tréninku pro plán: skupiny (pětky i posty), trenéři, délka, začátek, skupina přihlášené hráčky, id člena týmu
 function derive(ctx) {
   const {P, A, T, ev} = ctx, yes = id => A[id] && A[id].st === "yes", L = ev.raw.lines || {};
@@ -166,7 +163,7 @@ function cardHtml(ctx) {
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
   else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do pětek.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do pětek (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
-  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
+  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
 
 // ===== Vykreslení: úprava plánu =====
@@ -302,6 +299,7 @@ function bindCard(a, ctx) {
   bindCover(a, eid, X, drillMap());
   bindLiveCard(a, eid, () => ({...derive(ctx), D: drillMap(), plan: S.tp[eid], ev: ctx.ev, end: ctx.end}));
   bindMsCard(a, eid, () => ({...derive(ctx), D: drillMap(), plan: S.tp[eid]}));
+  if (S.tp[eid]) bindEvalCard(a, eid, () => ({...derive(ctx), D: drillMap(), plan: S.tp[eid]}));
   const nw = a.querySelector("#tpnew");
   if (nw) nw.onclick = () => open(planBlank());
   // ✨ Připravit trénink: pětky posledním způsobem (jen nerozdělené přihlášené), pak plán s nabídkou minulého plánu / poslední šablony

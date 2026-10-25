@@ -30,7 +30,7 @@ export const MODULES = {
   app: {label: "Nastavení aplikace a data", acts: ["r", "e"]},
   drills: {label: "📚 Banka cvičení", acts: ["r", "e", "d"]},
   trplan: {label: "📋 Plán tréninku", acts: ["r", "e"]},
-  treval: {label: "⏲ Měření a hodnocení tréninku", acts: ["r", "e"]}
+  treval: {label: "⏲ Měření a ⭐ hodnocení tréninku", acts: ["r", "e"]}
 };
 // Zkratky oprávnění aplikace (HK.can)
 export const CAN_ACTS = ["sport", "money", "members", "roster", "accounts", "admin", "onlyOwn", "guest", "wipe"];
@@ -43,8 +43,8 @@ const deepFreeze = o => { Object.values(o).forEach(v => { if (v && typeof v === 
 // asistent = dřívější kustod (u hráčky jen stav – to není „upravovat“ soupisku), hráčka čte týmové moduly a nic za ostatní nezapisuje.
 // Banka cvičení (drills): trenér vše, asistent čte a zakládá / upravuje (mazat ne), hráčka ji nevidí.
 // Plán tréninku (trplan): trenér a asistent čtou a upravují, hráčka plán jen čte (vidí, co se bude trénovat), hostující nic.
-// Měření a hodnocení (treval): trenér a asistent měří (⏲ stopky) a později hodnotí; výsledky měření vidí celý tým přes trplan r,
-// hodnocení a poznámky trenérů (E4) hráčka nečte.
+// Měření a hodnocení (treval): trenér a asistent měří (⏲ stopky) a hodnotí cvičení i hráčky (⭐ treval/{eid}); výsledky měření vidí
+// celý tým přes trplan r, hodnocení a poznámky trenérů čte jen realizační tým (treval r – hráčka ani hostující ne).
 export const DEFAULT_PERMS = deepFreeze({
   trener: {events: row("recd"), matches: row("recd"), att: row("red"), lines: row("red"), roster: row("red"), staff: row("red"), opp: row("red"),
     stats: row("r"), attview: row("r"), members: row(""), budget: row(""), app: row("r"), drills: row("red"), trplan: row("re"), treval: row("re")},

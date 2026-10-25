@@ -201,6 +201,8 @@ export function openStopwatch(eid, m, pids, all) {
 export function msData(eid) { ensureMs(eid); return M.res; }
 // Smí přihlášený měřit (stopky v ⏱ živém tréninku)
 export const mayMeasure = () => canMs();
+// Hráčky linky plánu (pro ⭐ hodnocení hráček): brankářská linka = brankářky, stanoviště = hráčky v poli, společný blok = vybrané skupiny
+export const lanePlayers = (b, l, X) => lanePids(b, l, X);
 // Karta „⏲ Výsledky měření“ do karty plánu (prázdný text, když plán nic neměří a výsledky nejsou); D = banka cvičení {id: cvičení}
 export function msCardHtml(eid, plan, D) { return HK.perm("trplan", "r") ? cardHtml(eid, plan, D) : ""; }
 // getX = údaje tréninku (plan, D, X z trplan-view) – ⏲ Měřit otevře stopky pro hráčky linky
