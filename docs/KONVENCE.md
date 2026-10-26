@@ -74,6 +74,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `mine.js`, `qr-image.js` | ⚠️ Moje platby a QR |
 | `finance.js`, `payments.js`, `cashbook.js`, `money.js`, `cash-settings.js`, `request-list.js` | ⚠️ správa pokladny: platby, pokladna u události, pohyby, měsíce, nastavení, žádosti o placení |
 | `bank-pair.js` | ⚠️ Platby → ☑ Hromadně: více úhrad najednou, 🏦 výpis z banky |
+| `pay-history.js` | ⚠️ 🕘 historie placení hráčky (zpětná změna způsobu placení, dopad) |
 | `budget-view.js`, `budget-print.js` | 📊 rozpočet sezóny, 🖨 export |
 | `drills-view.js`, `drill-import-view.js`, `drill-picker.js`, `drill-media.js` | 📚 banka cvičení, import, výběr cvičení, 📷 obrázky a ▶ / 📄 náhled odkazů |
 | `trplan-view.js` | 📋 karta plánu v detailu tréninku, okno cvičení, společné styly a pomůcky plánu |
@@ -89,7 +90,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
 | **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `prompt-dalsi-vlakno.md`, `archiv/` |
 
-**⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
+**⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 
 ## 2. Struktura souboru
 - Pořadí: **Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty**, sekce `// ===== Název =====`.

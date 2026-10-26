@@ -71,7 +71,7 @@ function issueContrib(rows, cfg) {
   toast("Vystaveno " + plan.length + " příspěvků (" + kc(tot) + ")");
 }
 // Smazání nezaplaceného příspěvku (předpis + audit v jedné dávce)
-function deleteContrib(x) {
+export function deleteContrib(x) {
   if (+x.paid > 0) { toast("Předpis má úhradu – nejdřív ji stornuj v 🏦 Pokladna"); return; }
   const b = S.db.batch().delete("charges/" + x.id).set("audit/" + uid(), audit(x.eid, "contrib-del", nm(x.mid, {staff: true, fb: x.mid || ""}) + ": " + kc(+x.amt || 0)));
   withDebtors(b, [], [x.id]).commit();

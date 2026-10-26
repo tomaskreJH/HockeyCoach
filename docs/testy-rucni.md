@@ -48,3 +48,13 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 6.7 Dva účty (pokud jsou nastavené): volba účtu výpisu – páruje se jen s předpisy na tento účet.
 - [ ] 6.8 Hráčka: Moje platby beze změny, ☑ Hromadně nevidí.
 - [ ] 6.9 Rychlá kontrola z kap. 1.
+
+## 7. v22.3 – 🕘 zpětná změna placení, ⚙ sloupce výpisu
+- [ ] 7.1 V záhlaví je **v22.3**.
+- [ ] 7.2 Pokladník: hráčka s Příspěvkem → okno hráčky → **🕘 Historie placení** (okno hráčky se zavře). Dosud: „od začátku dosud – Příspěvek“.
+- [ ] 7.3 Od = do = minulý měsíc, Za událost → text „…pak zpět Příspěvek“ → 💾 Uložit → Klepni znovu → ✅ Uloženo. Dole nezaplacený příspěvek toho měsíce → 🗑 Smazat → Smazat? → zmizí (v 📅 Měsíce také).
+- [ ] 7.4 Uzavřené vyúčtování události, kde byla: ↩ otevřít → ⚠️ Pokladna → ↩ Znovu otevřít → uzavřít: hráčka má předpis za událost. Příspěvek od dalšího měsíce se vystaví jako dřív.
+- [ ] 7.5 Totéž z Team → 💰 Platby → Podle hráček → rozbalit → 🕘. Hráčka v Moje platby vidí nový způsob za daný měsíc.
+- [ ] 7.6 ☑ Hromadně → načíst CSV z banky týmu: pokud se sloupce poznají, ⚙ ukazuje „automaticky“. Zkusit ⚙ → změnit sloupec VS na jiný → páry se změní; ↺ Automaticky vrátí.
+- [ ] 7.7 Soubor s jinými sloupci (např. upravené záhlaví v Excelu, uložit jako CSV): ⚙ se otevře sám, přiřadit částku a VS → páry; 💾 Uložit → načíst znovu → „sloupce: uložené pro účet“. 🗑 Zapomenout uložené.
+- [ ] 7.8 Rychlá kontrola z kap. 1.

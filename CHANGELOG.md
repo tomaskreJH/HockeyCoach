@@ -2,6 +2,27 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.3 (26. 10. 2026) – 🕘 zpětná změna způsobu placení, ⚙ sloupce výpisu z banky
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu – zip obsahuje i v22.2 (pokud v22.2 ještě není nahraná, stačí tento zip). Nové soubory `src/views/pay-history.js`, `tests/pay-history.test.js` (a z v22.2 `src/domain/bank-match.js`, `src/views/bank-pair.js`, `tests/bank-match.test.js`); nic se nemaže. 4) Načíst novou verzi (cache `hokej-v100`). 5) **🔒 Vyžadovat verzi: ne.** 6) Test: `docs/testy-rucni.md` kap. 6 a 7.
+
+⚠️ SAHÁ NA PLATBY (`domain/cash.js` – nové funkce, `domain/bank-match.js`, `views/bank-pair.js`, nové `views/pay-history.js`; výpočty předpisů beze změny).
+
+**Přidáno**
+- **🕘 Historie placení** hráčky (`src/views/pay-history.js`, správce pokladny): v okně hráčky (tlačítko pod platebními poli) a v Team → 💰 Platby → Podle hráček. Přehled dosavadních úseků, zpětná změna „od měsíce – do měsíce – způsob“ (prázdné do = trvale), po rozsahu se vrátí tehdejší způsob. Zápis `plpay/{pid}` (`grpH`, `grp`) + audit v jedné dávce, potvrzení druhým klepnutím. Pak dopad: vystavené příspěvky v období (🗑 smazat nezaplacený) a uzavřená vyúčtování, kde byla přihlášená (↩ otevřít událost – znovu otevřít a uzavřít ručně).
+- `src/domain/cash.js` – `grpHRange()` (historie s rozsahem měsíců, bez opakování stejného způsobu), `grpSpans()` (úseky pro zobrazení).
+- **⚙ Sloupce výpisu** (Platby → ☑ Hromadně): když se formát výpisu nepozná, otevře se sám – volba řádku záhlaví a sloupců (částka, VS, datum, plátce, zpráva, id pohybu) s ukázkou hodnoty; 💾 uložení pro účet týmu do `settings/cash.bank[účet]` (příště se použije samo, změna banky = jednou znovu přiřadit), ↺ Automaticky, 🗑 Zapomenout uložené.
+- `src/domain/bank-match.js` – `readStatement(text, {map, hi})`, `mapDoc()`, `colKey()`; zpráva se pozná i v anglických sloupcích (note, memo, description…).
+- Testy: `tests/pay-history.test.js` (5), přiřazení sloupců v `tests/bank-match.test.js` (2); kouřový test – 🕘 Historie placení s uložením, výpis neznámé banky s ručním přiřazením.
+
+**Změněno**
+- `src/domain/requests.js` – `impactOf()` umí i konec rozsahu (`until`); schvalování žádostí beze změny.
+- `src/views/request-list.js` (`evFlags`) a `src/views/money.js` (`deleteContrib`) – jen export pro 🕘 (logika beze změny).
+- ❓ Nápověda kap. 12: 🕘 Historie placení, ⚙ Sloupce výpisu.
+
+**Beze změny:** výpočet předpisů a vyúčtování (řídí se historií jako dosud), žádosti o změnu placení, ruční změna způsobu v okně hráčky (platí od běžného měsíce), pravidla databáze, živý zápis, trénink.
+
+**Ověřeno:** `npm test` 378 / 378. `npm run smoke` – 8 rolí bez chyb, 193 obrazovek (🕘 uložení u managera, trenéra-pokladníka a pokladníka; výpis neznámé banky → ruční sloupce → 1 přesná shoda).
+
 ## v22.2 (26. 10. 2026) – ⏱ ▶ Teď v živém tréninku, ☑ hromadné úhrady a 🏦 párování výpisu z banky
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nové `src/domain/bank-match.js`, `src/views/bank-pair.js`, `tests/bank-match.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v99`). 5) **🔒 Vyžadovat verzi: ne** (nové pole `bt` v pokladně starší verze jen nečtou). 6) Test: `docs/testy-rucni.md` kap. 6.
 

@@ -92,9 +92,27 @@ async function money() {
     // ☑ Hromadně: zaškrtnutí předpisu, zápis druhým klepnutím
     if (await tap('[data-fv="hb"]', 250)) {
       snap("pay-bulk");
+      // 🏦 výpis neznámé banky: nepoznané záhlaví → ⚙ Sloupce výpisu, ruční přiřazení částky a VS
+      const f = $("#hbf");
+      if (f) {
+        const csv = "Statement\nBooked,Value,Sym,Payer\n2026-10-20,150.00,1001,Anna\n";
+        Object.defineProperty(f, "files", {value: [new window.File([csv], "vypis.csv", {type: "text/csv"})]});
+        f.dispatchEvent(new window.Event("change"));
+        await new Promise(r => setTimeout(r, 300));
+        snap("pay-bank-unknown");
+        const set = async (k, v) => { const e = $(`[data-hmk="${k}"]`); if (e) { e.value = v; e.dispatchEvent(new window.Event("change")); await new Promise(r => setTimeout(r, 150)); } };
+        await set("amt", "value"); await set("vs", "sym");
+        snap("pay-bank-mapped");
+        await tap("#hbx", 150);
+      }
       if (await tap("[data-hc]", 150) && await tap("#hbw", 200)) { snap("pay-bulk-arm"); if (await tap("#hbw", 300)) snap("pay-bulk-done"); }
     }
-    await tap('[data-fv="pl"]', 150);
+    // 🕘 Historie placení hráčky (Podle hráček → rozbalit → 🕘), uložení zpětné změny
+    if (await tap('[data-fv="pl"]', 150) && await tap('[data-fall]', 150) && await tap("[data-fo]", 200) && await tap("[data-fh]", 200)) {
+      snap("pay-hist");
+      if (await tap("#phs", 150) && await tap("#phs", 250)) snap("pay-hist-saved");
+      await tap("#phx", 150);
+    }
     await tap('[data-tm="team"]', 200);
   }
   if (await tap('#nav button[data-t="mk"]', 250) && await tap('[data-mkv="mon"]', 250)) {

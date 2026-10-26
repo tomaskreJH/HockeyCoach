@@ -53,10 +53,12 @@ export function decidePlan(r, p, ok, reply, by, at, now) {
 }
 // Dopad schválení na už vystavené: příspěvky hráčky od měsíce r.ym (nepřepočítají se – nezaplacené lze smazat ručně) a uzavřená vyúčtování
 // událostí od r.ym, na kterých byla přihlášená (vyúčtování lze ručně znovu otevřít). ch = všechny předpisy, ev = [{id, title, date, settled, went}].
+// r.until (nepovinné) = poslední měsíc změny (🕘 zpětná změna z rozsahu měsíců).
 export function impactOf(r, ch, ev) {
-  const contribs = (ch || []).filter(x => x.mid === r.mid && isContrib(x) && contribYm(x.eid) >= r.ym)
+  const inR = ym => ym >= r.ym && (!r.until || ym <= r.until);
+  const contribs = (ch || []).filter(x => x.mid === r.mid && isContrib(x) && inR(contribYm(x.eid)))
     .map(x => ({id: x.id, ym: contribYm(x.eid), amt: +x.amt || 0, rest: restOf(x)})).sort((a, b) => a.ym.localeCompare(b.ym));
-  const settled = (ev || []).filter(e => e.settled && e.went && String(e.date || "").slice(0, 7) >= r.ym).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const settled = (ev || []).filter(e => e.settled && e.went && inR(String(e.date || "").slice(0, 7))).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   return {contribs, settled};
 }
 

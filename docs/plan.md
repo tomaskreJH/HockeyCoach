@@ -5,7 +5,8 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | Pořadí | Fáze | Obsah |
 |---|---|---|
 | ~~v22.2~~ | hotovo | ⏱ ▶ Teď (skok na blok), ☑ hromadné úhrady, 🏦 párování výpisu z banky (CSV) |
-| v22.3 | **E5** | 📈 přehled a analýza Tréninku (níže) |
+| ~~v22.3~~ | hotovo | 🕘 zpětná změna způsobu placení, ⚙ ruční sloupce výpisu (univerzální import) |
+| v22.4 | **E5** | 📈 přehled a analýza Tréninku (níže) |
 | potom | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
@@ -65,4 +66,5 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 8. Poslech `events` / `attendance` jen aktuální sezóny – zeptat se před změnou (mění statistiky a docházku za starší období).
 9. `live-engine.js` ukládá přes `core/actions.js` (doména sahá na data) – oddělit jen při zásahu do živého zápisu.
 10. ⚖️ Porovnání způsobu placení je od v22.1.3 jen pro správce pokladny (Team → 💰 Platby → ⚖️ Tarify); hráčkám ho zpřístupnit až na pokyn trenéra (např. volbou v ⚙️ → Pokladna).
-11. 🏦 Výpis z banky: přeplatek se jen hlásí (zapsat ručně jako vklad); případně později přímé napojení Fio API (token, jen čtení) – zatím CSV stačí.
+11. 🏦 Výpis z banky: přeplatek se jen hlásí (zapsat ručně jako vklad). Import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje.
+12. 🕘 Po zpětné změně placení se uzavřená vyúčtování znovu otevírají ručně (záměrně – předpisy ostatních se tím přepočítají); případně později hromadně.

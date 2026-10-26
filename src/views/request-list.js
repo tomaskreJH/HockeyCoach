@@ -25,7 +25,7 @@ export const payOpen = () => openReqs(S.rq, "pay");
 // Popis změny: „Příspěvek → Za událost od listopad 2026“
 export const reqLine = r => esc(GRP[r.from] || r.from) + " → <b>" + esc(GRP[r.to] || r.to) + "</b> od " + esc(ymLabel(r.ym));
 // Události s příznaky pro impactOf: uzavřené vyúčtování a přihlášení hráčky
-function evFlags(mid) {
+export function evFlags(mid) {
   const went = id => S.at.some(a => a.eid === id && a.pid === mid && a.st === "yes");
   const one = (id, title, date) => ({id, title, date, settled: !!cxOf(id, S.ec).settle, went: went(id)});
   return [...S.ev.map(e => one(e.id, e.title || "Trénink", e.date)), ...S.ma.map(m => one(m.id, "Zápas – " + (m.opp || ""), m.date))];

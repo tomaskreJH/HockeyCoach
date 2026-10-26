@@ -2,7 +2,7 @@
 // párování podle VS předpisu, osobního VS (souhrnná platba) a čísla ve zprávě, částečná úhrada, přeplatek, už zapsané pohyby.
 import test from "node:test";
 import assert from "node:assert/strict";
-import {matchStatement, parseAmount, parseCsv, parseDate, readStatement, vsNorm} from "../src/domain/bank-match.js";
+import {colKey, mapDoc, matchStatement, parseAmount, parseCsv, parseDate, readStatement, vsNorm} from "../src/domain/bank-match.js";
 
 // ===== Pomocná data =====
 // Fio: údaje o účtu nad záhlavím, oddělovač ;, uvozovky
@@ -94,4 +94,35 @@ test("matchStatement: osobní VS pokryje přesně všechny dluhy osoby = přesn�
   const m = matchStatement([{ref: "x", date: "", amt: 1100, vs: "999", name: "", acc: "", msg: ""}], CH, pvs, null);
   assert.equal(m.pairs[0].exact, true);
   assert.equal(m.pairs[0].sum, 1100);
+});
+
+// ===== Ruční přiřazení sloupců (nepoznaný formát, změna banky) =====
+// Neznámá banka: anglické / vlastní názvy sloupců, oddělovač , – automatika částku nepozná
+const ODD = `Account statement,Team
+Booked,Value,Ref,Payer,Note,Sym
+2026-10-05,"500.00",A1,Jana N,trenink,111
+2026-10-06,"-50.00",A2,Bank,fee,`;
+test("readStatement: nepoznané záhlaví → nabídne řádek s nejvíce sloupci, ruční přiřazení přečte pohyby", () => {
+  const r = readStatement(ODD);
+  assert.equal(r.txs.length, 0);
+  assert.ok(r.err.includes("záhlaví"));
+  assert.equal(r.hi, 1, "nabídnutý řádek záhlaví");
+  assert.deepEqual(r.sample[0].slice(0, 2), ["2026-10-05", "500.00"]);
+  assert.equal(r.cand.length, 4);
+  const map = {amt: colKey("Value"), vs: "sym", date: "booked", name: "payer", msg: "note", ref: "ref"};
+  const m = readStatement(ODD, {map});
+  assert.equal(m.manual, true);
+  assert.equal(m.err, "");
+  assert.deepEqual(m.txs[0], {ref: "A1", date: "2026-10-05", amt: 500, vs: "111", name: "Jana N", acc: "", msg: "trenink", cur: ""});
+  assert.equal(m.txs.length, 2);
+  assert.deepEqual(mapDoc(m.map), {amt: "value", vs: "sym", date: "booked", name: "payer", msg: "note", ref: "ref"});
+});
+test("readStatement: ručně zvolený řádek záhlaví a uložené přiřazení; mapDoc bez částky = null", () => {
+  const r = readStatement(ODD, {hi: 1, map: {amt: "value", vs: "sym", msg: "*"}});
+  assert.equal(r.hi, 1);
+  assert.equal(r.txs[0].vs, "111");
+  assert.equal(r.txs[0].msg, "trenink", "msg * = textové sloupce (Note)");
+  assert.equal(readStatement(ODD, {map: {amt: "neni"}}).txs.length, 0, "uložené přiřazení nesedí → automatika (nepozná)");
+  assert.equal(mapDoc({vs: "x"}), null);
+  assert.equal(readStatement(FIO, {map: {amt: "objem", vs: "vs", msg: ""}}).txs[0].msg, "", "msg prázdné = bez zprávy");
 });

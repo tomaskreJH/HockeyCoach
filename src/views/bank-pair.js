@@ -1,22 +1,25 @@
 // ⚠️ Team → 💰 Platby → ☑ Hromadně (správce pokladny): potvrzení více úhrad najednou. 🏦 Načtený výpis z banky (CSV) se spáruje
 // s předpisy (domain/bank-match.js) – přesné shody se předvyberou, ostatní jsou k ruční kontrole; pod tím ruční výběr nezaplacených
 // předpisů po událostech. ✅ Zapsat = payMany (payments.js), potvrzení druhým klepnutím. Pohyb z výpisu nese značku bt (bez dvojího zápisu).
-// Při dvou účtech se volí účet výpisu – páruje se jen s předpisy na tento účet (platby na různé účty se nesmí slučovat).
+// Dva účty: volí se účet výpisu (platby se nesmí slučovat). ⚙ Sloupce výpisu: ruční přiřazení uložené v settings/cash bank[účet].
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast} from "../core/utils.js";
 import {ACC, accIban, accName, accOf, cashCfg, chargeMsg, contribEvent, contribYm, fmtDue, kc, overdue, personVs, r2, restOf, twoAcc} from "../domain/cash.js";
-import {matchStatement, readStatement} from "../domain/bank-match.js";
+import {colKey, mapDoc, matchStatement, readStatement} from "../domain/bank-match.js";
 import {payMany} from "./payments.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
-// acc = účet výpisu (main / op), stm = načtený výpis {file, res, m}, sp = vybrané páry výpisu (index), sc = ručně vybrané předpisy (cid)
+// acc = účet výpisu (main / op), stm = načtený výpis {file, text, hi (ruční řádek záhlaví), map (ruční přiřazení), open (⚙ Sloupce), res, m},
+// sp = vybrané páry výpisu (index), sc = ručně vybrané předpisy (cid)
 let acc = "main", stm = null;
 const sp = new Set(), sc = new Set();
 const HOW = {vs: "VS předpisu", osoba: "osobní VS – souhrnná platba", "zpráva": "číslo ve zprávě – zkontroluj"};
+// Pole přiřazení sloupců v ⚙ Sloupce výpisu
+const FIELDS = [["amt", "Částka (povinné)"], ["vs", "Variabilní symbol"], ["date", "Datum"], ["name", "Plátce / název protiúčtu"], ["msg", "Zpráva pro příjemce"], ["ref", "Id pohybu"]];
 
 // ===== Pomocné funkce =====
 const icon = e => (e && e.type === "match" ? "🆚" : e && e.type === "contrib" ? "📅" : "🏒");
@@ -34,6 +37,15 @@ function rematch() {
   stm.m = matchStatement(stm.res.txs, openCharges(cfg), personVs, doneRefs());
   sp.clear();
   stm.m.pairs.forEach((p, i) => { if (p.exact) sp.add(i); });
+}
+// Uložené přiřazení sloupců pro účet výpisu
+const savedMap = () => (S.cc && S.cc.bank && S.cc.bank[acc]) || null;
+// Nové čtení výpisu (ruční / uložené přiřazení, řádek záhlaví) a párování
+function reread() {
+  if (!stm) return;
+  stm.res = readStatement(stm.text, {map: stm.map || savedMap(), hi: stm.hi});
+  stm.m = null;
+  if (stm.res.txs.length) rematch(); else if (!stm.res.err) stm.res.err = "Ve výpisu nejsou žádné pohyby.";
 }
 // Předpisy obsažené ve vybraných párech výpisu (ruční výběr je u nich zablokovaný)
 function pairCids() {
@@ -64,6 +76,20 @@ function decode(buf) {
 }
 
 // ===== Vykreslení =====
+// ⚙ Sloupce výpisu: řádek záhlaví, výběr sloupců (s ukázkou hodnoty z prvního řádku), uložení pro účet
+function mapHtml() {
+  const r = stm.res, H = r.head || [], s0 = (r.sample && r.sample[0]) || [], M = r.map || {}, saved = savedMap();
+  const sel = (k, v) => `<select data-hmk="${k}" style="margin:0 0 6px">${k === "msg" ? `<option value="*" ${v === "*" ? "selected" : ""}>všechny textové (automaticky)</option>` : ""}<option value="" ${!v ? "selected" : ""}>— nic —</option>${H.map((h, i) => { const n = colKey(h); return n ? `<option value="${esc(n)}" ${v === n ? "selected" : ""}>${esc(h)}${s0[i] ? " – " + esc(String(s0[i]).slice(0, 30)) : ""}</option>` : ""; }).join("")}</select>`;
+  const rows = (r.cand || []).map(c => `<option value="${c.i}" ${c.i === r.hi ? "selected" : ""}>${c.i + 1}. ${esc(c.label || "(prázdný)")}</option>`).join("");
+  const on = armed("hmf" + acc);
+  return `<div class="cd" style="margin:8px 0;border-style:dashed"><b>⚙ Sloupce výpisu</b><div class="mu" style="margin:4px 0 8px">Když banka změní formát, stačí sloupce jednou přiřadit a uložit – příště se použijí samy.</div>
+<label>Řádek se záhlavím (názvy sloupců)</label><select data-hmh style="margin:0 0 6px">${rows}</select>
+${FIELDS.map(([k, t]) => `<label>${esc(t)}</label>${sel(k, M[k] || "")}`).join("")}
+<div class="row" style="margin-top:6px"><button class="p" data-hms ${M.amt ? "" : "disabled"} style="min-height:48px">💾 Uložit pro ${esc(twoAcc(cashCfg(S.cc)) ? accName(cashCfg(S.cc), acc).toLowerCase() : "účet týmu")}</button><button class="s" data-hmr style="min-height:48px">↺ Automaticky</button></div>
+${saved ? `<button class="d w" data-hmf style="margin-top:8px;min-height:44px;${on ? "background:var(--no);color:#fff" : ""}">${on ? "Opravdu zapomenout? Klepni znovu" : "🗑 Zapomenout uložené sloupce"}</button>` : ""}</div>`;
+}
+// Stav přiřazení sloupců pod souhrnem výpisu
+const mapTag = () => (stm.res.manual ? (stm.map ? "sloupce: ruční (neuložené)" : "sloupce: uložené pro účet") : "sloupce: automaticky");
 // Výpis z banky: načtení, souhrn, páry ke kontrole, nespárované příjmy
 function statementHtml(cfg) {
   const two = twoAcc(cfg);
@@ -71,7 +97,7 @@ function statementHtml(cfg) {
   const load = `<label class="p w" style="display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:10px;cursor:pointer;margin-top:8px">📥 Načíst výpis z banky (CSV)<input type="file" id="hbf" accept=".csv,.txt,text/csv" style="display:none"></label>`;
   if (!stm) return `<div class="cd"><h2>🏦 Výpis z banky</h2><div class="mu">V internetovém bankovnictví stáhni pohyby účtu jako <b>CSV</b> (např. za poslední měsíc) a načti je sem. Platby se spárují podle VS – přesné shody se rovnou vyberou, zbytek zkontroluješ.</div>${accChips}${load}</div>`;
   const {res, m} = stm;
-  if (!m) return `<div class="cd"><h2>🏦 Výpis z banky</h2><div style="color:var(--no)">${esc(res.err || "Výpis se nepodařilo přečíst.")}</div>${res.head && res.head.length ? `<div class="mu" style="margin-top:6px">Sloupce v souboru: ${esc(res.head.slice(0, 20).join(" · "))}</div>` : ""}${accChips}${load}</div>`;
+  if (!m) return `<div class="cd"><h2>🏦 Výpis z banky</h2><div class="mu">${esc(stm.file)}</div><div style="color:var(--no)">${esc(res.err || "Výpis se nepodařilo přečíst.")}</div>${accChips}${mapHtml()}${load}<button class="s w" id="hbx" style="margin-top:10px;min-height:44px">✕ Zavřít výpis</button></div>`;
   const ex = m.pairs.filter(p => p.exact).length;
   const pairs = m.pairs.map((p, i) => {
     const on = sp.has(i), tags = [p.how !== "vs" ? `<span class="tag sh">${esc(HOW[p.how])}</span>` : "", p.over > 0 ? `<span class="tag sh">přeplatek ${kc(p.over)}</span>` : "", !p.exact && p.over <= 0 && p.how === "vs" ? '<span class="tag sh">částečná úhrada</span>' : ""].join(" ");
@@ -82,6 +108,7 @@ function statementHtml(cfg) {
   return `<div class="cd"><h2>🏦 Výpis z banky${two ? " – " + esc(accName(cfg, acc)) : ""}</h2>
 <div class="mu">${esc(stm.file)} · spárováno <b>${m.pairs.length}</b> (přesně ${ex}) · nespárováno ${m.loose.length}${m.seen.length ? ` · už zapsáno ${m.seen.length}` : ""}${m.out ? ` · výdaje ${m.out} (nepárují se)` : ""}</div>
 ${res.err ? `<div class="mu" style="color:var(--wa)">${esc(res.err)}</div>` : ""}${accChips}
+<button class="chip ${stm.open ? "on" : ""}" data-hmo style="margin-top:6px">⚙ ${esc(mapTag())}</button>${stm.open ? mapHtml() : ""}
 ${pairs ? `<div class="chips" style="margin:8px 0"><button class="chip" data-hpa="1">Vybrat vše</button><button class="chip" data-hpa="0">Zrušit výběr</button></div>${pairs}` : '<div class="msg" style="margin-top:8px">Žádná platba z výpisu nesedí na nezaplacený předpis.</div>'}${loose}
 <button class="s w" id="hbx" style="margin-top:10px;min-height:44px">✕ Zavřít výpis</button></div>`;
 }
@@ -133,7 +160,7 @@ function refreshBar(a) {
 }
 export function bindBulk(a) {
   // Volba účtu výpisu: nové párování a ruční výběr jen pro tento účet
-  a.querySelectorAll("[data-hba]").forEach(b => b.onclick = () => { acc = b.dataset.hba; sc.clear(); rematch(); render(); });
+  a.querySelectorAll("[data-hba]").forEach(b => b.onclick = () => { acc = b.dataset.hba; sc.clear(); if (stm) { stm.map = null; stm.hi = null; reread(); } render(); });
   // Načtení výpisu (CSV) – UTF-8 nebo windows-1250
   const f = a.querySelector("#hbf");
   if (f) f.onchange = () => {
@@ -141,14 +168,30 @@ export function bindBulk(a) {
     if (!file) return;
     const rd = new FileReader();
     rd.onload = () => {
-      const res = readStatement(decode(new Uint8Array(rd.result)));
-      stm = {file: file.name, res, m: null};
-      if (res.txs.length) rematch(); else if (!res.err) res.err = "Ve výpisu nejsou žádné pohyby.";
+      stm = {file: file.name, text: decode(new Uint8Array(rd.result)), hi: null, map: null, open: false, res: null, m: null};
+      reread();
       render();
     };
     rd.onerror = () => toast("Soubor se nepodařilo přečíst");
     rd.readAsArrayBuffer(file);
   };
+  // ⚙ Sloupce výpisu: otevřít / zavřít, řádek záhlaví, sloupec, uložit pro účet, automaticky, zapomenout uložené
+  a.querySelectorAll("[data-hmo]").forEach(b => b.onclick = () => { stm.open = !stm.open; render(); });
+  a.querySelectorAll("[data-hmh]").forEach(b => b.onchange = () => { stm.hi = +b.value; stm.map = null; stm.open = true; reread(); render(); });
+  a.querySelectorAll("[data-hmk]").forEach(b => b.onchange = () => { stm.map = {...(stm.res.map || {}), [b.dataset.hmk]: b.value}; stm.open = true; reread(); render(); });
+  a.querySelectorAll("[data-hms]").forEach(b => b.onclick = () => {
+    const d = mapDoc(stm.res.map);
+    if (!d) return;
+    S.db.doc("settings/cash").merge({bank: {...((S.cc && S.cc.bank) || {}), [acc]: d}}).then(() => toast("Sloupce výpisu uloženy"));
+    stm.map = null; stm.open = false;
+    render();
+  });
+  a.querySelectorAll("[data-hmr]").forEach(b => b.onclick = () => { stm.map = null; stm.hi = null; reread(); render(); });
+  a.querySelectorAll("[data-hmf]").forEach(b => b.onclick = () => confirm2("hmf" + acc, () => {
+    const bank = {...((S.cc && S.cc.bank) || {})};
+    delete bank[acc];
+    S.db.doc("settings/cash").merge({bank}).then(() => toast("Uložené sloupce zapomenuty"));
+  }));
   const x = a.querySelector("#hbx");
   if (x) x.onclick = () => { stm = null; sp.clear(); render(); };
   // Páry výpisu: zaškrtnutí, vybrat vše / zrušit

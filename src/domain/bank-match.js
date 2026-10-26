@@ -1,7 +1,7 @@
 // Doména: 🏦 párování výpisu z banky s předpisy (bez DOM). Výpis = CSV z internetového bankovnictví (Fio, ČSOB, KB, Air Bank,
 // Raiffeisen, Moneta, Česká spořitelna…) – sloupce se poznají podle názvu v záhlaví. Páruje se jen příjem (částka > 0):
 // VS předpisu → ten předpis, osobní VS (souhrnná platba) → nejstarší předpisy osoby, jinak VS / číslo ve zprávě. Zapsaný pohyb
-// výpisu nese v pokladně značku bt (opakované načtení stejného výpisu ho podruhé nenabídne).
+// výpisu nese značku bt (stejný výpis podruhé nenabídne). Nepoznaný formát = ruční přiřazení sloupců uložené pro účet týmu.
 // ===== Importy =====
 import {r2, restOf} from "./cash.js";
 
@@ -18,10 +18,12 @@ const COLS = {
   cur: [/^mena$/, /^mena uctu$/, /^currency$/]
 };
 // Textové sloupce, ve kterých se hledá VS / číslo předpisu, když chybí ve sloupci VS
-const MSG = /zprava|popis|poznamka|komentar|upresneni|informace|message/;
+const MSG = /zprava|popis|poznamka|komentar|upresneni|informace|message|note|memo|description|remark|detail/;
 
 // ===== Pomocné funkce =====
 const plain = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+// Název sloupce pro přiřazení (stejný tvar jako v uloženém přiřazení)
+export const colKey = s => plain(s);
 // VS bez úvodních nul (banky ho vypisují i s nulami); jen číslice
 export const vsNorm = v => String(v == null ? "" : v).replace(/\D/g, "").replace(/^0+/, "");
 // Částka z textu: „1 234,50“, „-1234.50“, „1.234,50 CZK“, „+500“ → číslo, nesmysl = null
@@ -72,19 +74,31 @@ function colOf(head, pats) {
 const refOf = (id, date, amt, vs, acc, msg) => String(id || [date, amt, vs, acc, msg].join("|")).slice(0, BT_MAX);
 
 // ===== Hlavní logika: čtení výpisu =====
-// Text CSV → {txs: [{ref, date, amt, vs, name, acc, msg, cur}], head (názvy sloupců), cols, err}; jen řádky s částkou.
-// Záhlaví = první řádek (z prvních 40), kde se pozná sloupec částky (bankovní výpisy mají nad ním údaje o účtu).
-export function readStatement(text) {
-  const t = String(text || ""), rows = parseCsv(t.charCodeAt(0) === 0xFEFF ? t.slice(1) : t);
-  let hi = -1, head = [];
-  for (let i = 0; i < Math.min(rows.length, 40); i++) {
-    const h = rows[i].map(plain);
-    if (colOf(h, COLS.amt) >= 0 && (colOf(h, COLS.vs) >= 0 || colOf(h, COLS.date) >= 0)) { hi = i; head = h; break; }
-  }
-  if (hi < 0) return {txs: [], head: (rows[0] || []).map(String), cols: {}, err: "Ve výpisu jsem nenašel záhlaví se sloupcem Částka a VS / Datum."};
-  const cols = {};
-  Object.keys(COLS).forEach(k => { cols[k] = colOf(head, COLS[k]); });
-  const msgCols = head.map((h, i) => (MSG.test(h) ? i : -1)).filter(i => i >= 0);
+// Pole přiřazení sloupců (uložené v settings/cash bank[účet]): názvy sloupců bez diakritiky; msg "*" = všechny textové sloupce
+export const MAP_KEYS = ["amt", "vs", "date", "name", "msg", "ref"];
+// Text CSV → {txs: [{ref, date, amt, vs, name, acc, msg, cur}], head (názvy sloupců), hi (řádek záhlaví), cand (prvních 15 řádků
+// pro volbu záhlaví), sample (3 řádky pod záhlavím), map (použité přiřazení), manual (podle uloženého / ručního přiřazení), err}.
+// opt.map = ruční přiřazení sloupců (najde se řádek, který obsahuje sloupec částky), opt.hi = ručně zvolený řádek záhlaví.
+// Bez přiřazení: záhlaví = první řádek z prvních 40, kde se pozná sloupec částky a VS / data (nad ním bývají údaje o účtu).
+export function readStatement(text, opt) {
+  const t = String(text || ""), rows = parseCsv(t.charCodeAt(0) === 0xFEFF ? t.slice(1) : t), o = opt || {}, M = o.map && o.map.amt ? o.map : null;
+  const top = rows.slice(0, 40).map(r => r.map(plain));
+  let hi = Number.isInteger(o.hi) && o.hi >= 0 && o.hi < rows.length ? o.hi : -1;
+  if (hi < 0 && M) hi = top.findIndex(h => h.includes(M.amt));
+  if (hi < 0) hi = top.findIndex(h => colOf(h, COLS.amt) >= 0 && (colOf(h, COLS.vs) >= 0 || colOf(h, COLS.date) >= 0));
+  const found = hi >= 0;
+  // Nepoznané záhlaví: nabídne se řádek s nejvíce vyplněnými buňkami (uživatel ho může změnit)
+  if (!found) top.forEach((h, i) => { if (hi < 0 || h.filter(Boolean).length > top[hi].filter(Boolean).length) hi = i; });
+  const cand = rows.slice(0, 15).map((r, i) => ({i, label: r.filter(x => String(x).trim()).slice(0, 4).join(" · ").slice(0, 60)}));
+  if (hi < 0) return {txs: [], head: [], hi: -1, cand, sample: [], map: null, manual: false, cols: {}, err: "Soubor je prázdný."};
+  const head = rows[hi].map(plain), manual = !!M && head.includes(M.amt);
+  const cols = {}, idx = name => (name ? head.indexOf(name) : -1);
+  Object.keys(COLS).forEach(k => { cols[k] = manual ? (MAP_KEYS.includes(k) && k !== "msg" ? idx(M[k]) : colOf(head, COLS[k])) : colOf(head, COLS[k]); });
+  const msgAuto = head.map((h, i) => (MSG.test(h) ? i : -1)).filter(i => i >= 0);
+  const msgCols = manual && M.msg && M.msg !== "*" ? [idx(M.msg)].filter(i => i >= 0) : manual && !M.msg ? [] : msgAuto;
+  const map = {amt: head[cols.amt] || "", vs: head[cols.vs] || "", date: head[cols.date] || "", name: head[cols.name] || "", msg: manual && M.msg !== "*" ? (M.msg || "") : "*", ref: head[cols.ref] || ""};
+  const base = {head: rows[hi].map(String), hi, cand, sample: rows.slice(hi + 1, hi + 4).map(r => r.map(String)), map, manual, cols};
+  if (cols.amt < 0) return {...base, txs: [], err: found || manual ? "Vyber sloupec s částkou." : "Ve výpisu jsem nepoznal záhlaví – vyber řádek záhlaví a sloupce (⚙ Sloupce výpisu)."};
   const txs = [];
   rows.slice(hi + 1).forEach(r => {
     const g = i => (i >= 0 && i < r.length ? String(r[i]).trim() : "");
@@ -93,7 +107,14 @@ export function readStatement(text) {
     const date = parseDate(g(cols.date)), vs = vsNorm(g(cols.vs)), acc = g(cols.acc), msg = msgCols.map(g).filter(Boolean).join(" · ");
     txs.push({ref: refOf(g(cols.ref), date, amt, vs, acc, msg), date, amt, vs, name: g(cols.name), acc, msg, cur: g(cols.cur)});
   });
-  return {txs, head: rows[hi].map(String), cols, err: cols.vs < 0 ? "Výpis nemá sloupec VS – páruji jen podle čísel ve zprávě." : ""};
+  return {...base, txs, err: cols.vs < 0 ? "Výpis nemá sloupec VS – páruji jen podle čísel ve zprávě." : ""};
+}
+// Uložitelné přiřazení sloupců (jen známá pole, krátké texty) z ručního výběru; bez sloupce částky null
+export function mapDoc(m) {
+  if (!m || !m.amt) return null;
+  const o = {};
+  MAP_KEYS.forEach(k => { o[k] = String(m[k] == null ? "" : m[k]).slice(0, 60); });
+  return o;
 }
 
 // ===== Hlavní logika: párování =====

@@ -65,6 +65,20 @@ export function grpHWith(p, grp, ym) {
   h.push({ym, grp: grp === "single" ? "single" : "monthly"});
   return hSort(h);
 }
+// 🕘 Zpětná změna způsobu placení (pokladník): grp v měsících from..to (to prázdné = trvale od from, pozdější změny se zruší);
+// po to se vrátí způsob, který tehdy platil. Vrací novou historii bez opakování stejného způsobu, nebo null (chybné měsíce).
+export function grpHRange(p, grp, from, to) {
+  if (!ymOk(from) || (to && (!ymOk(to) || to < from))) return null;
+  const g = grp === "single" ? "single" : "monthly", next = to ? ymAdd(to, 1) : "", back = next ? grpAt(p, next) : null;
+  let h = grpHWith(p, g, from);
+  h = next ? grpHWith({grpH: h.filter(e => !(e.ym > from && e.ym <= to))}, back, next) : h.filter(e => !(e.ym > from));
+  return hSort(h).filter((e, i, A) => i === 0 || e.grp !== A[i - 1].grp);
+}
+// Úseky způsobu placení pro zobrazení: [{from ("" = od začátku), to ("" = dosud), grp}]
+export function grpSpans(p) {
+  const h = hasH(p) ? hSort(p.grpH) : [{ym: "", grp: grp0(p)}];
+  return h.map((e, i) => ({from: String(e.ym || ""), to: h[i + 1] ? ymAdd(String(h[i + 1].ym), -1) : "", grp: e.grp === "single" ? "single" : "monthly"}));
+}
 // Skupina pro výpočet události: osvobozená má vlastní skupinu, jinak skupina plateb
 export const grpKey = p => (exOf(p) ? "exempt" : grpOf(p));
 // Koeficient v procentech pro zobrazení ("50 %", "33,3 %") a převod zadaných procent na koeficient 0..1
