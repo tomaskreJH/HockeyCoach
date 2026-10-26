@@ -107,6 +107,21 @@ Předpoklad: pravidla v21.8 publikovaná, na všech telefonech realizačního t�
 | 8.12 | Plán po tréninku (✏️ Upravit) | Uložený plán je beze změny (vypuštění / zkrácení platilo jen pro živý průběh). ↺ Spustit znovu začne bez úprav. |
 | 8.13 | ☕ Pauza v živém tréninku | Velký nápis „☕ Pití“, ⌚ oznámení „☕ Pauza“; výzva ⭐ „Jak šlo hráčkám?“ nabídne cvičení **před** pauzou. |
 
+## 9. v21.9 – 🏃 štafeta ve stopkách
+Předpoklad: cvičení s měřením času (banka → cvičení → měření „s“, nižší je lepší) v plánu tréninku, přihlášené aspoň 4 hráčky.
+
+| # | Postup | Očekávaný výsledek |
+|---|---|---|
+| 9.1 | Detail tréninku → ⏲ Výsledky měření → ⏲ Měřit (nebo ⏲ Stopky v živém tréninku) | Nahoře přepínač ⏱ Jednotlivě / 🏃 Štafeta (u počtů a bodů není). |
+| 9.2 | 🏃 Štafeta | Skupiny A a B předvyplněné střídavě. Skupin 2 / 3 / 4 změní počet, 🔀 Střídavě rozdělí znovu. |
+| 9.3 | Klepnout na skupinu A, pak na jména | Jméno se přesune na konec skupiny A s pořadím (1., 2. …); klepnutí na jméno ve skupině ho vyřadí do Nezařazených. |
+| 9.4 | ▶ Start štafety | Velká tlačítka A, B: jméno běžící hráčky, 1/3, „další …“, čas úseku velký a celkem malý – běží. |
+| 9.5 | Klepnout na A (předávka), omylem ještě jednou → ↩ | Předávka: na A běží další hráčka a úsek od nuly; ↩ vrátí poslední předávku (běží zase předchozí). |
+| 9.6 | Dokončit všechny skupiny | „✅ Doběhly všechny skupiny – uloženo“, pořadí skupin s časy a časy úseků hráček. V tabulce výsledků mají hráčky nový pokus (svůj úsek), pod tabulkou „🏃 Štafeta 1×“ s časy A / B a jmény. |
+| 9.7 | ↺ Znovu / ✎ Upravit skupiny | Nový běh se stejnými skupinami / návrat k rozdělení. |
+| 9.8 | Během štafety ✕ Hotovo | Zeptá se („Běží stopky – zavřít?“), druhé klepnutí zavře bez uložení. ✕ Zrušit štafetu taky druhým klepnutím. |
+| 9.9 | Hráčka (náhled) – detail tréninku | Vidí výsledky měření i řádek 🏃 Štafeta (jen čtení). |
+
 ## 6. Rychlá kontrola, že se nic nerozbilo (po každé verzi, 5 minut)
 - [ ] 🏠 Domů se načte bez chyby, nadcházející události a moje platby.
 - [ ] Události: odpověď ✅ / ❌ / ❓ u tréninku a zápasu, počty v tlačítkách.

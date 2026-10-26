@@ -4,6 +4,17 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v21.9 (26. 10. 2026) – K-T3: 🏃 štafeta ve stopkách
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat; musí být publikovaná pravidla v21.8). 3) Nahrát soubory (nové `src/domain/relay.js`, `tests/relay.test.js`; nic se nemaže). 4) Na telefonech ⚙️ → 👤 Účet → Načíst novou verzi (v21.9, cache `hokej-v92`). 5) Test podle **docs/testy-rucni.md – sekce 9**. **🔒 Vyžadovat verzi: ne** (nové pole `rl` starší verze nemaže ani nečte; 🔒 21.8 z minulé verze platí).
+
+**Přidáno**
+- **🏃 Štafeta ve stopkách** (jen měření času; v okně ⏲ stopek přepínač ⏱ Jednotlivě / 🏃 Štafeta – z karty ⏲ Výsledky měření i z ⏱ živého tréninku): 2–4 skupiny A–D, rozdělení 🔀 střídavě nebo nasazením klepnutím (vybrat skupinu, klepat jména v pořadí běhu; klepnutí ve skupině vyřadí), změna počtu skupin zachová zařazené. **▶ Start štafety** = všechny neprázdné skupiny naráz; velké tlačítko skupiny (jméno běžící, kolikátá / z kolika, další na řadě, úsek a celkem) – klepnutí = předávka, ↩ vrátí poslední předávku, ✕ Zrušit štafetu (druhým klepnutím, bez uložení). Po doběhnutí všech skupin se zapíše jednou dávkou: **úsek = pokus hráčky** (`trms…ms`, pořadí hráček beze změny) a **běh skupin** do `trms/{eid}.r.{linka}.rl = [{at, g: [{p: [pořadí], t: s}]}]` (nejvýš 20 běhů); výsledek s pořadím skupin a časy úseků, ↺ Znovu se stejnými skupinami, ✎ Upravit skupiny. Zavření okna při běžící štafetě se ptá druhým klepnutím. V kartě výsledků řádek „🏃 Štafeta N×“ s posledními 3 běhy (skupiny podle času a jejich hráčky) – vidí celý tým jako ostatní výsledky měření.
+- Doména `src/domain/relay.js` (`relaySplit`, `relayToggle`, `relayResize`, `relayStart`, `relayTap`, `relayUndo`, `relayDone`, `relayLive`, `relayRank`, `relayPatch`, `relayLine`) + `tests/relay.test.js`.
+
+**Beze změny:** jednotlivé stopky, počty a body, pravidla (`trmsOk` hlídá jen velikost `r`), živý trénink, plán, hodnocení, vše mimo Trénink.
+
+**Ověřeno:** `npm test` 339 / 339. Kouřový test jsdom (trenér): karta výsledků s řádkem 🏃 Štafeta, okno stopek → 🏃 Štafeta, 2 skupiny, start, 3 předávky → „Doběhly všechny skupiny“, zápis `trms/e1` s pokusy 3 hráček a 2 běhy v `rl`; bez chyb v konzoli.
+
 ## v21.8 (26. 10. 2026) – K-T2: ⏱ živý trénink podle skutečnosti, ☕ pauza v plánu, název HockeyCoach, sbalená docházka
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules publikovat PŘED kódem** (`trliveOk` dovolí pole `adj` a `skip`; ostatní beze změny – pravidla v21.6 s kolekcí `treval` v souboru jsou). 3) Nahrát soubory (nový jen `tests/training-live-adj.test.js`; nic se nemaže). 4) Na telefonech ⚙️ → 👤 Účet → Načíst novou verzi (v21.8, cache `hokej-v91`). Ikona na ploše se přejmenuje až po přeinstalaci (název z manifestu). 5) Test podle **docs/testy-rucni.md – sekce 8** (+ rychlá kontrola sekce 6). 6) **🔒 Vyžadovat verzi 21.8 – ano, hned po nahrání na všechny telefony realizačního týmu** (starší verze nezná ☕ pauzu – při úpravě plánu by z ní udělala prázdný blok – a nepočítá s vypuštěnými / zkrácenými bloky, ukazovala by jiný čas).
 

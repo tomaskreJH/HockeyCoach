@@ -58,7 +58,7 @@
 | v21.6 | E4 | ⭐ hodnocení cvičení (linka plánu, 😃 🙂 😐 😴, poznámka, volitelně hráčky; kolekce `treval`, jen realizační tým), výzva v ⏱ živém tréninku po kole jedním klepnutím, 📋 docs/testy-rucni.md – **hotovo, k testu** (25. 10. 2026), pravidla publikovat před kódem |
 | v21.7 | K-T | 🖐 trénink jednodušeji (připomínky z testu 25.–26. 10.): ⭐ hodnocení po hráčkách (výzva po kole = seznam hráček stanoviště), detail události (hlavička, pořadí karet, úpravy pod rozbalením, podbarvené nadpisy karet), oprava skoku v ⭐ výkonnosti, kompaktní stopky, 📚 výběr cvičení s hledáním, ▶ / 📄 náhled videa a PDF – **hotovo, k testu** (26. 10. 2026), pravidla beze změny |
 | v21.8 | K-T2 | ⏱ živý trénink podle skutečnosti: kolik zbývá do konce tréninku, o kolik plán přetahuje, ✂ −1 min kolo, 📋 zbytek plánu (další bloky −/+ / ⏭ vypustit jen pro průběh – `trlive.adj` / `skip`), ☕ pauza v plánu (`brk`), živý trénink jen realizační tým, 🎽 dres hráčky, název HockeyCoach, nadpis události s datem, sbalená docházka, ✏️ / 🗑 v Team – **hotovo, k testu** (26. 10. 2026), **pravidla publikovat před kódem, pak 🔒 21.8** |
-| v21.9 | K-T3 | ⏲ štafeta ve stopkách: 2–4 skupiny, pořadí (předem nebo nasazením klepnutím), start všech skupin naráz, předávka klepnutím, čas hráčky i skupiny |
+| v21.9 | K-T3 | 🏃 štafeta ve stopkách: 2–4 skupiny, pořadí (střídavě nebo nasazením klepnutím), start všech skupin naráz, předávka klepnutím, čas hráčky (pokus) i skupiny (`trms…rl`) – **hotovo, k testu** (26. 10. 2026), pravidla beze změny |
 | (hned po) | G0 | ⌚ ověření aplikace pro hodinky Garmin (každý trenér své oznámení a ovládání) – zpráva bez kódu |
 | v22.0 | E | 🏒 **Modul Trénink**: E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
 | v21.7 | K | 🖐 **Komfort zadávání, ovládání a přehledu** (priorita uživatele 25. 10. 2026): průchod hlavních toků na telefonu – méně klepnutí, výchozí hodnoty, rychlé akce, přehledy na jedné obrazovce – podrobně `docs/plan-trenink.md` kap. 4 |
@@ -73,6 +73,7 @@
 ---
 
 ## Stav (aktualizováno 26. 10. 2026)
+- **v21.9 (K-T3) dodáno, k testu:** 🏃 štafeta v okně stopek (`domain/relay.js`, běhy v `trms…rl`). Další G0 (ověření Garmin Connect IQ, bez kódu), pak E5.
 - **v21.8 (K-T2) dodáno, k testu:** ⏱ živý trénink podle skutečnosti (do konce tréninku, přetahování, ✂ −1 min, 📋 zbytek plánu jen pro průběh), ☕ pauza jako blok plánu, živý trénink jen realizační tým, název HockeyCoach, události (nadpis s datem, podbarvená hlavička, sbalená docházka), ✏️ / 🗑 v Team. Pravidla `trliveOk` před kódem, pak 🔒 Vyžadovat verzi 21.8.
 - **v21.7 (K-T) dodáno, k testu:** připomínky z testu – hodnocení po hráčkách, detail události, výkonnost bez skoku, kompaktní stopky, výběr cvičení s hledáním, náhled videa a PDF. Provoz: týmový Google účet spravuje manager (README – Provoz a správa).
 - **v21.6 (E4) dodáno, k testu:** ⭐ hodnocení cvičení v kartě plánu (každá linka / stanoviště zvlášť, stupnice T5, druhé klepnutí zruší, 📝 poznámka a hodnocení hráček v okně `#tev`), výzva „Jak šlo cvičení?“ v ⏱ živém tréninku po skončeném kole (moje linky, jedno klepnutí), kolekce `treval/{eid}` (čte `treval r`, zapisuje `treval e`), `domain/training-eval.js`, `views/treval-view.js`; ruční testovací plán `docs/testy-rucni.md` (v21.3 – v21.6). **v21.5 nasazena, netestována; v21.3 – v21.4 testovány jen pohledem.**

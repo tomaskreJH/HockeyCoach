@@ -2,15 +2,16 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 
 ## 1. Start (šetři limit – čti cíleně)
 1. Stáhni repozitář jen ke čtení (git clone --depth 1 do pracovní složky). Žádné jiné Git příkazy, nic necommituj ani nepushuj.
-2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v21.8.
+2. Vypiš načtenou verzi (src/core/app-version.js → APP_VERSION). Očekávám v21.9.
 3. Přečti jen:
    - docs/KONVENCE.md celý,
    - z docs/plan-v18.md tabulku nahoře a první dva body sekce „Stav“; docs/plan-trenink.md celý,
    - z CHANGELOG.md jen nejnovější záznam.
    Dál čti cíleně (grep -n, výřezy): sw.js, src/main.js (spuštění, poslech kolekcí), src/data/storage.js (boot, `HK.cfg`, `can`), src/views/settings-view.js (sekce ⚙️), firestore.rules (pomocné funkce a dotčené kolekce). Velké soubory (storage.js, events.js, plán 150 kB) nečti celé a nic nečti dvakrát.
-4. Spusť npm test (Node 22, bez instalace balíčků). Musí projít 335 testů ještě před prací; pokud ne, nejdřív to ohlas.
+4. Spusť npm test (Node 22, bez instalace balíčků). Musí projít 339 testů ještě před prací; pokud ne, nejdřív to ohlas.
 
-## 2. Kde projekt stojí (26. 10. 2026, po v21.8)
+## 2. Kde projekt stojí (26. 10. 2026, po v21.9)
+- **v21.9 K-T3 dodána, k testu** – 🏃 štafeta v okně ⏲ stopek (`domain/relay.js`; úsek = pokus hráčky v `trms…ms`, běh skupin `trms…rl = [{at, g: [{p, t}]}]`, nejvýš 20; zápis po doběhnutí všech skupin dávkou s hlubokým sloučením). Pravidla beze změny.
 - **v21.8 K-T2 dodána, k testu** – ⏱ živý trénink podle skutečnosti: nahoře do konce tréninku (z `end` události) a o kolik plán přetahuje (`liveBudget`), ✂ −1 min kolo (`cutSec` → jump), 📋 Zbytek plánu (další bloky −/+ / ⏭ vypustit jen pro průběh: `trlive.adj {bid: min}`, `trlive.skip [bid]`, `liveBlocks` – vypuštěný blok délka 0, indexy zůstávají; `adjPatch` jen bloky po současném; zápis `liveCtl("keep")` se stavem hodin; start vynuluje). ☕ Pauza = blok plánu `brk` bez linek (`isBreak`, `breakBlank`; `prevSpot` ji přeskočí). Živý trénink jen `HK.can("sport")` (hráčky ne), 🎽 dres hráčky v kartě plánu. Název aplikace HockeyCoach (`APP_NAME`, index, manifest). Události: nadpis · zkrácené datum v jednom řádku (seznam i detail, `titleLine`), podbarvená hlavička, 👥 docházka sbalená (`#evatt`). Team ✏️ / 🗑 (`.ib`). **Pravidla v21.8 (`trliveOk` adj / skip) publikovat PŘED kódem, pak 🔒 21.8.**
 - **v21.7 K-T dodána, k testu** – připomínky z testu 25.–26. 10.: ⭐ hodnocení **po hráčkách** (`treval` beze změny tvaru – hodnotí se `pl.{pid}.r` na lince; `domain/training-eval.js` `lanePids` / `rateLanes` / `unratedCount`; karta po linkách, výzva v živém tréninku = hráčky mé linky ve skončeném kole), detail události (hlavička datum / čas a sraz / místo / počty, „Tvoje odpověď“ hráčky v hlavičce, pětky a plán nahoře, docházka a ⚙ Úpravy události dole, panel ↻ Rozdělit sbalený), podbarvené záhlaví karet (`styles/main.css`, `.cd > h2:first-child`), ⭐ výkonnost bez skoku (`S.plvo.y`), kompaktní stopky, 📚 výběr cvičení (`views/drill-picker.js`), ▶ / 📄 náhled odkazů (`mediaOf`, `mediaHtml`). Pravidla beze změny.
 - **Provoz (26. 10. 2026):** týmový Google účet (videa, PDF) spravuje manager – vedoucí týmu; teď vše dělá uživatel (vývoj, test), po uvolnění k distribuci převezme provoz někdo jiný – myslet na strukturu správy (README – Provoz a správa).
@@ -28,7 +29,7 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 - Oprávnění v aplikaci: zkratky `HK.can(akce)` (`sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`) a jemná práva `HK.perm(modul, akce)` z matice `settings/perm` (upravitelné jen buňky `EDITABLE`). Moduly Tréninku: `drills` (v21.0), `trplan` (v21.1), `treval` (v21.4 – měření; E4 hodnocení) – nový modul se přidá do `MODULES`, `DEFAULT_PERMS`, `permDef` v pravidlech a do `can(modul, akce)`.
 - Pravidla (v21.4): `isMgr`, `isRoster`, `isStaff`, `isCash`, `isTeam`, `can(modul, akce)` (moduly matice včetně `drills`, `trplan`), `drillOk`, `imgOk` (`drillimg`), `trplanOk`, `trtplOk` (`trtpl` – čte i zapisuje `can('trplan', 'e')`), `trliveOk` (`trlive` – čte `trplan r`, zapisuje `trplan e`, `sAt == request.time`, `ctl == mail()`), `plevelOk` (`plevel` – `isStaff`), `trmsOk` (`trms` – čte `trplan r`, zapisuje `treval e`), `trevalOk` (`treval` – čte `treval r`, zapisuje `treval e`) – shodu s `actOf` hlídá `tests/rules-narrow.test.js`.
 - Vývojář = `DEV_EMAILS` v src/config/team-config.js (👁 náhled role, 🧨 úplné smazání jen s rolí manager).
-- Brána verze `settings/app.minVer` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) – čísla verzí musí jen růst. Další volné číslo je v21.9, cache `hokej-v92` (každá další verze +1).
+- Brána verze `settings/app.minVer` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi) – čísla verzí musí jen růst. Další volné číslo je v22.0 (E5; opravy v21.9.x), cache `hokej-v93` (každá další verze +1).
 
 ## 3. Rozhodnutí OM (hotovo)
 - manager vše (aspoň jeden), trener sport + soupiska a realizační tým, asistent = dřívější kustod, hracka podle matice (vlastní data pevná), host beze změny, pokladník pevně podle `cash`. Další buňky matice lze odemknout jen tak, že je zároveň řídí aplikace i pravidla.
@@ -43,9 +44,9 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 ### ✅ v21.7 K-T – trénink jednodušeji (hotovo, k testu)
 ### ✅ v21.8 K-T2 – ⏱ živý trénink podle skutečnosti (hotovo, k testu)
 - Plán je jen návod (zdržení). V živém tréninku: kolik zbývá do konce tréninku (z `end` události), o kolik plán přetahuje, ✂ zkrátit / ⏭ vypustit blok jen pro tento průběh (bez změny plánu) – nové pole v `trlive` (např. `adj: {blokId: min}`, `skip: [blokId]`) → `trliveOk` rozšířit, pravidla před kódem, `liveAt` počítat s úpravami (testy). Pauza celého tréninku už je.
-### v21.9 K-T3 – ⏲ štafeta (další)
+### ✅ v21.9 K-T3 – 🏃 štafeta (hotovo, k testu)
 - Režim stopek štafeta: 2–4 skupiny (např. na červené čáře), pořadí hráček předem nebo nasazením klepnutím, ▶ start všech skupin naráz, klepnutí = předávka (jedna končí, další startuje), výsledek čas hráčky (úsek) i skupiny; data v `trms` (úsek = pokus hráčky, čas skupiny zvlášť – navrhnout).
-### G0 – ⌚ ověření aplikace pro hodinky Garmin (hned potom, bez kódu)
+### G0 – ⌚ ověření aplikace pro hodinky Garmin (další, bez kódu)
 ### ✅ v21.6 E4 – ⭐ hodnocení (hotovo, k testu)
 - Plán: **docs/plan-trenink.md** – kap. 3 (`treval/{eid}`), kap. 4 řádek E4, kap. 6 (T5, E3b).
 - E4: po bloku rychlé hodnocení cvičení stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc · 😴 vůbec se nesnaží + poznámka, volitelně u hráček; doplnění i po tréninku (seznam neohodnocených bloků); hodnocení i z ⏱ živého tréninku na konci kola. Data `treval/{eid}` jen pro realizační tým (`treval r` / `e`, hráčka nečte – T2); měření zůstává v `trms` (vidí celý tým).
@@ -76,7 +77,7 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 3. Struktura souboru: Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty, sekce `// ===== Název =====`, stručné české komentáře, hlavička 1–5 řádků o současném stavu (historie jen v CHANGELOG).
 4. Neměň nesouvisející funkčnost: živý zápis, pokladnu, statistiky, docházku, zrušení událostí, žádosti, nepřítomnost, hostující. Když úkol vyžaduje zásah jinde, nejdřív upozorni a zeptej se. Změna peněz nebo pravidel pokladny = v CHANGELOG „⚠️ SAHÁ NA PLATBY“.
 5. Data jen přidávej (merge), stará pole maž až o verzi později. Pravidla v pořadí rozšířit → převést → zúžit. U každé verze napiš, zda a kdy publikovat firestore.rules a zda nastavit 🔒 Vyžadovat verzi.
-6. Vydání verze – vždy vše najednou: src/core/app-version.js, package.json, sw.js (hokej-vNN +1; teď v91, další v92), CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny), README.md (řádek „Aktuální verze“ a tabulka rolí), src/views/help.js, docs/KONVENCE.md (mapa souborů, HK.can, pravidla), docs/plan-v18.md, docs/testy-rucni.md (nová sekce s kroky ručního testu).
+6. Vydání verze – vždy vše najednou: src/core/app-version.js, package.json, sw.js (hokej-vNN +1; teď v92, další v93), CHANGELOG.md (nahoře postup nasazení, Přidáno / Změněno / Opraveno / Beze změny), README.md (řádek „Aktuální verze“ a tabulka rolí), src/views/help.js, docs/KONVENCE.md (mapa souborů, HK.can, pravidla), docs/plan-v18.md, docs/testy-rucni.md (nová sekce s kroky ručního testu).
 7. Ověření před odevzdáním:
    - npm test celý zelený, nová logika v domain/ má testy, srovnávací test výchozích práv.
    - Kouřový test v jsdom MIMO repozitář (scratchpad, `npm i jsdom`) pro všechny role (manager, trener s 💰 i bez, asistent, hracka, host, pokladník, vývojář, stará role trener bez `rv` a kustod; bez matice i s `settings/perm`): start bez chyb, ⚙️ sekce (`[data-acc]`), 🔐 editor / přehled, zápisy jdou jen tam, kam mají. Aplikace se vykreslí až po načtení kolekcí players, matches, staff, opponents, events, attendance (hostující i evpub, lineuppub) – v `__fb.data` je zadej aspoň prázdné; `settings.app.minVer` nastav nejvýš na aktuální verzi (jinak je zápis zablokovaný). Do globálního prostoru zkopíruj vlastnosti okna jsdom (`window`, `history`, `MutationObserver` …; `navigator` přes `Object.defineProperty`). Zástupce Firebase z tests/support neumí `where` ani `getDocs` členů – v scratchpadu si udělej kopii zástupce s filtrováním, zápisem do `__fb.members` a vlastní hooks. `location.reload` a stažení souboru v jsdom hlásí „navigation not implemented“ – to není chyba aplikace.
@@ -90,4 +91,4 @@ Jsi seniorní vývojář aplikace HockeyCoach (repozitář GitHub tomaskreJH/Hoc
 - Odpověď na konci: načtená verze, nová verze, zip, postup nasazení v několika bodech, výsledek testů. Bez dlouhého vysvětlování.
 
 ## 8. Úkol
-Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek ručních testů podle docs/testy-rucni.md (pokud není uvedeno) a zda jsou publikovaná pravidla v21.8, a pokračuj podle bodu 4: v21.9 K-T3 (a dál, pokud zbude čas). Každá verze zvlášť: vlastní číslo, CHANGELOG, testy a vlastní ZIP, aby šla nasadit a otestovat samostatně; kvalita má přednost před množstvím. Šetři limit (bod 7). Drobné úpravy od uživatele nedávej do samostatné verze – přidej je k nejbližší větší verzi.
+Načti repozitář (bod 1), vypiš verzi, zeptej se na výsledek ručních testů podle docs/testy-rucni.md (pokud není uvedeno) a zda jsou publikovaná pravidla v21.8, a pokračuj podle bodu 4: G0 a v22.0 E5 (a dál, pokud zbude čas). Každá verze zvlášť: vlastní číslo, CHANGELOG, testy a vlastní ZIP, aby šla nasadit a otestovat samostatně; kvalita má přednost před množstvím. Šetři limit (bod 7). Drobné úpravy od uživatele nedávej do samostatné verze – přidej je k nejbližší větší verzi.
