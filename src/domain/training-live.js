@@ -7,7 +7,7 @@
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Hodiny -> Úpravy průběhu -> Poloha v plánu -> Řízení -> Upozornění -> Lidé na lince.
 
 // ===== Importy =====
-import {BLK_DUR_MAX, GK, groupIn, isPosBlock, planTimes, posGrp, rotation} from "./training-plan.js";
+import {BLK_DUR_MAX, GK, groupIn, isPosBlock, laneSeq, planTimes, posGrp, rotation, seqStep} from "./training-plan.js";
 
 // ===== Konstanty =====
 export const TRLIVE_COLL = "trlive";
@@ -197,6 +197,15 @@ export function groupPids(block, grp, roster) {
     if (G.has(g)) out.push(p.id);
   });
   return out;
+}
+// Řada cvičení na mé lince: první z linek ids (moje linky) s řadou cvičení → {lid, i, n, it, a, b, left, nx} (seqStep), jinak null.
+// at = liveAt (rel = čas od začátku bloku). Odpočet, upozornění a oznámení se pak řídí cvičením řady (konec cvičení dřív než konec kola).
+export function laneSub(block, ids, at) {
+  if (!block || !at || at.done || !(ids || []).length) return null;
+  const l = (block.lanes || []).find(x => ids.includes(x.id) && laneSeq(block, x));
+  if (!l) return null;
+  const st = seqStep(block, l, at.sec - at.ba);
+  return st ? {lid: l.id, ...st, left: Math.min(st.left, at.left)} : null;
 }
 // Linky bloku, které vede člen týmu tid (id linek)
 export const coachLanes = (block, tid) => (tid ? ((block && block.lanes) || []).filter(l => (l.co || []).includes(tid)).map(l => l.id) : []);

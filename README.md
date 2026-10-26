@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v21.9.1 (26. 10. 2026)** – oprava: **člen realizačního týmu, který je zároveň hráčka** (role Manager / Trenér / Asistent s volitelně propojenou hráčkou v ⚙️ → Členové týmu), se na události hlásí jako hráčka. Předchozí v21.9 – K-T3: 🏃 štafeta ve stopkách. Historie v CHANGELOG.md.
+**Aktuální verze: v22.0 (26. 10. 2026)** – K-T4: **🔁 řada cvičení v lince** – v bloku plánu (Společně, souběžná linka, 🥅) víc cvičení za sebou s vlastním časem v okně bloku (hráčky a brankářky odděleně), ⭐ Jen moje linky, sloučení uložení dvou trenérů, živý trénink po cvičeních řady. Předchozí v21.9.1 – hrající člen realizačního týmu se hlásí jako hráčka. Historie v CHANGELOG.md.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.

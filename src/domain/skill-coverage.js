@@ -7,7 +7,7 @@
 // ===== Importy =====
 import {SKILLS} from "../config/skills.js";
 import {isNos} from "./attendance.js";
-import {GK, groupIn, laneOf, myGroup, posGrp, rotation} from "./training-plan.js";
+import {GK, groupIn, laneOf, laneSeq, myGroup, posGrp, rotation, seqTimes} from "./training-plan.js";
 
 // ===== Konstanty =====
 export const COVER_DAYS = [14, 30, 60];                  // nabízená období (dny)
@@ -43,10 +43,10 @@ export function groupSkills(plan, g, drills, pg) {
       let lid = gb == null ? null : laneOf(b, r, gb);
       // Bez pětky: v bloku Společně linka pro všechny (bez skupin); na stanovištích nikde
       if (lid == null && b.mode === "all") { const open = (b.lanes || []).find(l => !(l.grp || []).length); lid = open ? open.id : null; }
-      const l = (b.lanes || []).find(x => x.id === lid), d = l && D[l.drill];
-      if (!d) return;
-      const min = (r.b - r.a) / 60;
-      (d.sk || []).forEach(k => { out[k] = (out[k] || 0) + min; });
+      const l = (b.lanes || []).find(x => x.id === lid), seq = l && laneSeq(b, l);
+      // Řada cvičení: každé cvičení své minuty (jen část v tomto kole)
+      const parts = seq ? seqTimes(b, seq).map(x => ({d: D[x.drill], s: Math.max(0, Math.min(x.b, r.b) - Math.max(x.a, r.a))})) : [{d: l && D[l.drill], s: r.b - r.a}];
+      parts.forEach(({d, s: sec}) => { if (d && sec > 0) (d.sk || []).forEach(k => { out[k] = (out[k] || 0) + sec / 60; }); });
     });
   });
   return out;

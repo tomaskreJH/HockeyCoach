@@ -5,7 +5,7 @@
 // (strážce blocked() v data/storage.js) a nahoře ukáže pruh s tlačítkem Načíst novou verzi – starší klient tak nesmaže nová pole.
 
 // ===== Konstanty =====
-export const APP_VERSION = "21.9.1";                       // číslo verze bez „v“ (hlavní.fáze[.oprava])
+export const APP_VERSION = "22.0";                         // číslo verze bez „v“ (hlavní.fáze[.oprava])
 export const APP_DATE = "26. 10. 2026";          // datum vydání verze (zobrazení v záhlaví a v ⚙️)
 export const APP_LABEL = "v" + APP_VERSION + " · " + APP_DATE;
 // Platný zápis verze: 1 až 3 čísla oddělená tečkou (např. 18, 18.8, 18.8.1)

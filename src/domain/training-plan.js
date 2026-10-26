@@ -1,8 +1,10 @@
 // Doména: plán tréninku trplan/{eid} – bloky Společně / Stanoviště, časy od začátku tréninku, rozpis točení skupin, kontrola plánu.
 // Skupiny bloku: pětky z rozdělení (1–4) nebo posty (blok by: "pos" – "F" útočnice, "D" obránkyně) + 🥅 brankářky "G" (linka se netočí).
-// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, brk?, dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp}]}], by, at}.
+// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, brk?, dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp, seq?}]}], by, at}.
 // ☕ Pauza = blok s brk (popisek, např. „Pití“) bez linek – nepočítá se do cvičení, hodnocení, měření ani pokrytí dovedností.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Skupiny -> Úprava plánu -> Časy a točení -> Kontrola -> Hráčka -> Exporty (u funkcí).
+// Řada cvičení v lince (seq = [{id, drill, dn, di, dur (min)}]): linka, která se netočí (Společně, 🥅), má víc cvičení za sebou s vlastním časem
+// v časovém okně bloku; drill / dn / di linky = první cvičení řady (starší verze ukážou aspoň to). Klíč hodnocení / měření cvičení řady = blok_linka-cvičení.
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Skupiny -> Úprava plánu -> Řada cvičení -> Časy a točení -> Kontrola -> Hráčka -> Exporty (u funkcí).
 
 // ===== Importy =====
 import {LINE_NOS} from "./event-helpers.js";
@@ -15,7 +17,7 @@ export const FW = "F", DF = "D";                              // skupiny podle p
 export const POS_GRPS = [FW, DF];
 export const BY = {ln: "🎽 Pětky", pos: "⚔ Útok / obrana"};      // čím se v bloku dělí skupiny
 export const MODES = {all: "👥 Společně", st: "🔄 Stanoviště"};
-export const PLAN_MAX = {blocks: 30, lanes: 4, goal: 200, dn: 80, di: 3};
+export const PLAN_MAX = {blocks: 30, lanes: 4, goal: 200, dn: 80, di: 3, seq: 8};   // seq = nejvýš cvičení v řadě jedné linky
 export const BLK_DUR_MIN = 1, BLK_DUR_MAX = 90, BLK_DUR_DEF = 10;
 export const BRK_DEF = "Pití", BRK_DUR = 3, BRK_MAX = 40;    // ☕ pauza: výchozí popisek a délka (min), nejdelší popisek
 
@@ -101,11 +103,18 @@ export const planBlank = () => ({v: PLAN_VER, goal: "", blocks: []});
 // Normalizovaný plán k uložení (jen známá pole, meze délek a počtů); drills = mapa id → cvičení z banky (kopie názvu a obrázků pro hráčky)
 export function planDoc(p, drills) {
   const D = drills || {}, src = p || {};
+  // Kopie názvu a obrázků cvičení z banky (hráčka banku nečte)
+  const drillOf = x => { const d = D[x.drill]; return {drill: str(x.drill, 40), dn: str(d ? d.name : x.dn, PLAN_MAX.dn), di: (d ? d.img || [] : x.di || []).filter(y => typeof y === "string").slice(0, PLAN_MAX.di)}; };
   const lane = (l, mode, pos) => {
-    const d = D[l.drill], grp = uniq((l.grp || []).map(g => grpKey(g, pos)).filter(g => g != null)).sort(grpSort);
-    return {id: str(l.id, 24) || newPid("l"), drill: str(l.drill, 40),
-      dn: str(d ? d.name : l.dn, PLAN_MAX.dn), di: (d ? d.img || [] : l.di || []).filter(x => typeof x === "string").slice(0, PLAN_MAX.di),
+    const grp = uniq((l.grp || []).map(g => grpKey(g, pos)).filter(g => g != null)).sort(grpSort);
+    const o = {id: str(l.id, 24) || newPid("l"), ...drillOf(l),
       co: uniq((l.co || []).filter(x => typeof x === "string" && x)).slice(0, 6), grp: mode === "all" && !grp.includes(GK) ? grp.filter(g => g !== GK) : grp};
+    // Řada cvičení jen u linky, která se netočí; první cvičení řady je zároveň cvičením linky
+    if (Array.isArray(l.seq) && l.seq.length && seqOk({mode, brk: null}, o)) {
+      o.seq = l.seq.slice(0, PLAN_MAX.seq).map(x => ({id: str(x && x.id, 24) || newPid("s"), ...drillOf(x || {}), dur: clamp(int(x && x.dur, BLK_DUR_DEF), BLK_DUR_MIN, BLK_DUR_MAX)}));
+      Object.assign(o, {drill: o.seq[0].drill, dn: o.seq[0].dn, di: o.seq[0].di});
+    }
+    return o;
   };
   const blocks = (Array.isArray(src.blocks) ? src.blocks : []).slice(0, PLAN_MAX.blocks).map(b => {
     if (isBreak(b)) return {id: str(b.id, 24) || newPid("b"), mode: "all", dur: clamp(int(b.dur, BRK_DUR), BLK_DUR_MIN, BLK_DUR_MAX), rot: null, lanes: [], brk: str(b.brk === true ? "" : b.brk, BRK_MAX) || BRK_DEF};
@@ -127,8 +136,74 @@ export function moveBlock(blocks, id, dir) {
 // Použití cvičení v plánech: mapa id cvičení → počet plánů (pro drillCanDelete)
 export function drillUsage(plans) {
   const m = {};
-  (plans || []).forEach(p => uniq((p.blocks || []).flatMap(b => (b.lanes || []).map(l => l.drill)).filter(Boolean)).forEach(id => { m[id] = (m[id] || 0) + 1; }));
+  (plans || []).forEach(p => uniq((p.blocks || []).flatMap(b => (b.lanes || []).flatMap(l => [l.drill, ...(Array.isArray(l.seq) ? l.seq.map(x => x && x.drill) : [])])).filter(Boolean)).forEach(id => { m[id] = (m[id] || 0) + 1; }));
   return m;
+}
+
+// ===== Řada cvičení v lince =====
+// Smí linka mít řadu cvičení? Jen linka, která se netočí: blok Společně (i souběžná linka) nebo 🥅 linka stanovišť; ne ☕ pauza
+export const seqOk = (b, l) => !!b && !!l && !isBreak(b) && (b.mode !== "st" || isFixedLane(l));
+// Řada cvičení linky (null = linka má jedno cvičení na celý blok)
+export const laneSeq = (b, l) => (seqOk(b, l) && Array.isArray(l.seq) && l.seq.length ? l.seq : null);
+// Součet minut řady
+export const seqMinutes = seq => (seq || []).reduce((s, x) => s + (+x.dur || 0), 0);
+// Nové cvičení řady (výchozí čas: zbytek bloku, nejvýš 5 min, aspoň 1)
+export const seqBlank = (left) => ({id: newPid("s"), drill: "", dn: "", di: [], dur: clamp(int(left, 5) > 0 ? Math.min(5, int(left, 5)) : 5, BLK_DUR_MIN, BLK_DUR_MAX)});
+// Převod linky na řadu: dosavadní cvičení linky je první (na celý blok), za ním prázdné další
+export function seqStart(b, l) {
+  const first = {id: newPid("s"), drill: l.drill || "", dn: l.dn || "", di: [...(l.di || [])], dur: Math.max(1, (+b.dur || BLK_DUR_DEF) - 5)};
+  return [first, seqBlank(Math.max(1, (+b.dur || BLK_DUR_DEF) - first.dur))];
+}
+// Časy cvičení řady od začátku bloku (s): [{...cvičení, i, a, b}]; cvičení přesahující blok se zkrátí na konec bloku (a ≥ konec = vynecháno)
+export function seqTimes(b, seq) {
+  const dur = (+b.dur || 0) * 60, out = [];
+  let t = 0;
+  (seq || []).forEach((x, i) => { const a = t; t += (+x.dur || 0) * 60; if (a < dur) out.push({...x, i, a, b: Math.min(t, dur)}); });
+  return out;
+}
+// Kde je řada v čase rel (s od začátku bloku): {i, n, it (cvičení | null = volno po řadě), a, b, left (do konce cvičení / volna), nx (další | null)}
+export function seqStep(b, l, rel) {
+  const seq = laneSeq(b, l);
+  if (!seq) return null;
+  const T = seqTimes(b, seq), dur = (+b.dur || 0) * 60, r = Math.max(0, +rel || 0), n = seq.length;
+  const i = T.findIndex(x => r < x.b);
+  if (i < 0) { const a = T.length ? T[T.length - 1].b : 0; return {i: n, n, it: null, a, b: dur, left: Math.max(0, dur - r), nx: null}; }
+  return {i, n, it: T[i], a: T[i].a, b: T[i].b, left: T[i].b - r, nx: T[i + 1] || null};
+}
+// Sloučení uložení se změnou, kterou mezitím uložil jiný trenér (fresh.at ≠ base = čas uložení při otevření úpravy).
+// mine = můj rozpracovaný plán, struct = měnil jsem i něco mimo řady cvičení, sqd = id linek, jejichž řadu jsem měnil.
+// Jen řady → jeho plán + moje řady (jeho bloky zůstanou); jinak můj plán + jeho řady u linek, jejichž řadu jsem neměnil.
+// Vrací {p, merged (došlo ke sloučení), lost (jeho změny mimo řady přepsal můj plán)}
+export function mergePlan(mine, fresh, base, struct, sqd) {
+  const cp = o => JSON.parse(JSON.stringify(o));
+  if (!fresh || !base || fresh.at === base) return {p: mine, merged: false, lost: false};
+  const my = new Set(sqd || []), byId = P => Object.fromEntries(((P && P.blocks) || []).flatMap(b => (b.lanes || []).map(l => [l.id, l])));
+  if (!struct) {
+    const out = cp(fresh), M = byId(mine);
+    (out.blocks || []).forEach(b => (b.lanes || []).forEach(l => {
+      const m = my.has(l.id) && M[l.id];
+      if (!m) return;
+      // Cvičení linky = první cvičení řady (jinak cvičení linky)
+      const f0 = m.seq && m.seq.length ? m.seq[0] : m;
+      if (m.seq) l.seq = cp(m.seq); else delete l.seq;
+      Object.assign(l, {drill: f0.drill || "", dn: f0.dn || "", di: [...(f0.di || [])]});
+    }));
+    return {p: out, merged: true, lost: false};
+  }
+  const out = cp(mine), F = byId(fresh);
+  (out.blocks || []).forEach(b => (b.lanes || []).forEach(l => { const f = F[l.id]; if (!my.has(l.id) && f && f.seq && f.seq.length) { l.seq = cp(f.seq); Object.assign(l, {drill: f.seq[0].drill || "", dn: f.seq[0].dn || "", di: [...(f.seq[0].di || [])]}); } }));
+  return {p: out, merged: true, lost: true};
+}
+// Id virtuální linky cvičení řady (klíč hodnocení a měření blok_linka-cvičení)
+export const seqLid = (lid, sid) => String(lid) + "-" + String(sid);
+// Linky bloku pro hodnocení, měření a pokrytí: linka s řadou se rozloží na virtuální linky po cvičeních
+// ({...linka, id: seqLid, pid: id linky, sid, si (pořadí), sn (počet), drill, dn, di, min (minut v bloku)}); ostatní linky beze změny (min = celý blok)
+export function expandLanes(b) {
+  return ((b && b.lanes) || []).flatMap(l => {
+    const seq = laneSeq(b, l);
+    if (!seq) return [{...l, min: +b.dur || 0}];
+    return seqTimes(b, seq).map(x => ({...l, seq: undefined, id: seqLid(l.id, x.id), pid: l.id, sid: x.id, si: x.i, sn: seq.length, drill: x.drill, dn: x.dn, di: x.di || [], min: (x.b - x.a) / 60}));
+  });
 }
 
 // ===== Časy a točení =====
@@ -179,6 +254,11 @@ export function planIssues(p, ctx = {}) {
       if (!l.drill) add("warn", bi, nm + ln + "bez cvičení.");
       else if (D && (!D[l.drill] || D[l.drill].arch)) add("warn", bi, nm + ln + "– cvičení „" + (l.dn || "?") + "“ už v bance není (vyřazené nebo smazané).");
       if (coaches) (l.co || []).filter(c => !coaches.has(c)).forEach(() => add("warn", bi, nm + ln + "– trenér není přihlášený na trénink."));
+      // Řada cvičení: musí se vejít do času bloku (blok určuje hlavní trenér, cvičení si linka plánuje sama)
+      const seq = laneSeq(b, l), sm = seqMinutes(seq);
+      if (seq && sm > b.dur) add("err", bi, nm + ln + "– cvičení řady mají " + sm + " min, blok jen " + b.dur + " min.");
+      else if (seq && sm < b.dur) add("warn", bi, nm + ln + "– v řadě zbývá " + (b.dur - sm) + " min volna.");
+      if (seq) seq.slice(1).forEach((x, si) => { if (!x.drill) add("warn", bi, nm + ln + "– " + (si + 2) + ". cvičení řady bez cvičení."); });
     });
     // Kolize trenérů: tentýž člen týmu na dvou linkách téhož bloku
     const seen = {};

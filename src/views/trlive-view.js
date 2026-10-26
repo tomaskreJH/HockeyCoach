@@ -3,6 +3,7 @@
 // upravovat plán (trplan e): ▶ start, ⏸ pauza, ⏮ / ⏭ kolo nebo blok, ✂ −1 min / +1 / +5 min, ⏹ konec; 📋 Zbytek plánu = vypustit / zkrátit
 // další bloky jen pro tento průběh (adj / skip, plán se nemění); nahoře kolik zbývá do konce tréninku a o kolik plán přetahuje.
 // Převzetí řízení druhým klepnutím. Trenér vidí své linky, odpočet kola, hráčky, co následuje; ☕ pauza; vibrace a zvuk 60 s a 10 s před koncem kola.
+// 🔁 Řada cvičení na mé lince: velký odpočet, upozornění, oznámení a výzva ⭐ se řídí cvičením řady (laneSub), konec bloku zůstává menší.
 // ⌚ Oznámení (volitelně, hk-tl-ntf): systémové oznámení „co teď / co potom“ – Android ho zrcadlí na hodinky; řídící má v oznámení ⏸ / ⏭.
 // ⏲ Stopky u měřeného cvičení na mé lince (views/stopwatch-view.js), ⭐ hodnocení hráček kola, které skončilo (seznam, jedno klepnutí na hráčku)
 // (views/treval-view.js) – obojí smí HK.perm("treval", "e").
@@ -16,8 +17,8 @@ import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {laneMeas} from "../domain/stopwatch.js";
 import {prevSpot} from "../domain/training-eval.js";
-import {LIVE_ST, TRLIVE_COLL, adjPatch, alertsDue, coachLanes, cutSec, groupPids, liveAt, liveBlocks, liveBudget, liveCtl, liveNote, liveRest, liveSec, mmss, skewNext, skewObs, stepSec} from "../domain/training-live.js";
-import {DF, FW, GK, MODES, clock, grpLabel, isBreak, isPosBlock, laneOf, laneTags, planTimes} from "../domain/training-plan.js";
+import {LIVE_ST, TRLIVE_COLL, adjPatch, alertsDue, coachLanes, cutSec, groupPids, laneSub, liveAt, liveBlocks, liveBudget, liveCtl, liveNote, liveRest, liveSec, mmss, skewNext, skewObs, stepSec} from "../domain/training-live.js";
+import {DF, FW, GK, MODES, clock, expandLanes, grpLabel, isBreak, isPosBlock, laneOf, laneSeq, laneTags, planTimes, seqTimes} from "../domain/training-plan.js";
 import {render} from "./shell.js";
 import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
 import {bindLiveEval, liveEvalHtml} from "./treval-view.js";
@@ -81,6 +82,12 @@ function blockName(b, X) {
   const l = (b.lanes || []).find(x => x.drill || x.dn), d = l && X.D[l.drill];
   return l ? (d ? d.name : l.dn) + ((b.lanes || []).length > 1 ? " +" + (b.lanes.length - 1) : "") : MODES[b.mode];
 }
+// Řada cvičení na mé lince v současném kole (null = bez řady); mine() je definovaná níž (hoisting funkcí)
+function subAt(B, at, X) { if (!at || at.done || !X) return null; const b = B[at.bi], M = b && !isBreak(b) ? mine(b, at.round, X) : null; return M && M.length ? laneSub(b, M, at) : null; }
+// Virtuální linka cvičení řady (klíč hodnocení / měření blok_linka-cvičení); it = cvičení řady
+const vLane = (b, lid, it) => (it ? expandLanes(b).find(x => x.pid === lid && x.sid === it.id) || null : null);
+// Klíč a zbývající čas pro odpočet a upozornění: kolo, u řady cvičení navíc pořadí cvičení
+const clk = (B, at, X) => { const s = subAt(B, at, X); return s ? {key: at.key + "|" + s.i, left: s.left, s} : {key: at.key, left: at.left, s: null}; };
 // Konec tréninku (ms) z data a času konce události; null bez údajů
 function endMs(X) {
   const ev = X && X.ev, e = X && X.end;
@@ -117,9 +124,11 @@ function spot(B, at, X) {
   if (isBreak(B[at.bi])) return {where: "☕ Pauza", what: B[at.bi].brk || "", who: ""};
   const b = B[at.bi], M = mine(b, at.round, X), T = laneTags(b);
   const li = M && M.length ? (b.lanes || []).findIndex(l => l.id === M[0]) : (b.lanes || []).length === 1 ? 0 : -1;
-  const l = li >= 0 ? b.lanes[li] : null, d = l && X.D[l.drill], grp = l ? (at.round && at.round.lanes[l.id]) || l.grp || [] : [];
-  return {where: l && T[li] ? (T[li] === "🥅" ? "🥅 Brankářky" : "Stanoviště " + T[li]) : "Blok " + (at.bi + 1),
-    what: l ? (d ? d.name : l.dn || "") : MODES[b.mode].replace(/^\S+ /, ""), who: grp.map(g => grpLabel(g)).join(", ")};
+  const l = li >= 0 ? b.lanes[li] : null, grp = l ? (at.round && at.round.lanes[l.id]) || l.grp || [] : [];
+  // Řada cvičení: současné cvičení řady (po řadě volno)
+  const s = l && laneSeq(b, l) ? laneSub(b, [l.id], at) : null, src = s ? s.it : l, d = src && X.D[src.drill];
+  return {where: (l && T[li] ? (T[li] === "🥅" ? "🥅 Brankářky" : "Stanoviště " + T[li]) : "Blok " + (at.bi + 1)) + (s && s.it ? " " + (s.i + 1) + "/" + s.n : ""),
+    what: s && !s.it ? "volno" : src ? (d ? d.name : src.dn || "") : MODES[b.mode].replace(/^\S+ /, ""), who: grp.map(g => grpLabel(g)).join(", ")};
 }
 // Systémové oznámení (zrcadlí se na hodinky): titulek = co se děje, tělo = co následuje; řídící má akce ⏸ / ⏭
 async function show(title, body) {
@@ -136,8 +145,10 @@ function notify(kind, at) {
   if (!ntfOn()) return;
   const X = L.getX ? L.getX() : null, B = liveB(X);
   if (!B.length) return;
-  const live = at && !at.done, cur = live ? spot(B, at, X) : null, n = live ? liveAt(B, at.b) : null, nxt = n && !n.done ? spot(B, n, X) : null;
-  const t = liveNote(kind, cur, nxt, live ? at.left : 0, live && X.start != null ? clock(X.start, at.b) : "");
+  const live = at && !at.done, cur = live ? spot(B, at, X) : null, s = live ? subAt(B, at, X) : null;
+  // Řada cvičení: potom = další cvičení řady (v tomtéž kole), konec = konec cvičení
+  const n = live ? liveAt(B, s && s.nx ? at.ba + s.nx.a : at.b) : null, nxt = n && !n.done ? spot(B, n, X) : null;
+  const t = liveNote(kind, cur, nxt, live ? (s ? s.left : at.left) : 0, live && X.start != null ? clock(X.start, s ? Math.min(at.ba + s.b, at.b) : at.b) : "");
   show(t.title, t.body);
 }
 // ⌚ Zapnutí / vypnutí oznámení (zapnutí si řekne o povolení systému)
@@ -183,15 +194,19 @@ function cardHtml(eid) {
 
 // ===== Vykreslení: obrazovka =====
 // Jedna linka: označení, cvičení, trenéři, skupiny v tomto kole a jejich hráčky
-function laneHtml(b, l, tag, round, X, mine) {
-  const d = X.D[l.drill], name = d ? d.name : l.dn || "— bez cvičení —", grp = (round && round.lanes[l.id]) || l.grp || [];
+function laneHtml(b, l, tag, round, X, mine, at) {
+  // Řada cvičení: současné cvičení řady (virtuální linka – stopky a popis toho cvičení), pod ním celá řada s časy
+  const s = at && laneSeq(b, l) ? laneSub(b, [l.id], at) : null, cur = s && s.it ? vLane(b, l.id, s.it) : null, src = cur || l;
+  const d = X.D[src.drill], name = s && !s.it ? "☕ volno do konce bloku" : d ? d.name : src.dn || "— bez cvičení —", grp = (round && round.lanes[l.id]) || l.grp || [];
   const all = !grp.length && b.mode === "all", pids = all ? [] : groupPids(b, grp, X.roster);
-  const ms = mine && mayMeasure() ? laneMeas(b, l, X.D, msData(L.eid)) : null;
+  const ms = mine && mayMeasure() && !(s && !s.it) ? laneMeas(b, src, X.D, msData(L.eid)) : null;
   const co = (l.co || []).map(id => "🎓 " + esc(staffName(X, id))).join(", ");
-  return `<div class="tlln ${mine ? "me" : ""}">${tag ? `<span class="tlk">${tag}</span>` : ""}<div class="tldn">${esc(name)}</div>
-${co ? `<div class="mu">${co}</div>` : ""}<div style="margin:4px 0">${all ? '<span class="mu">všichni</span>' : grp.map(chip).join("") || '<span class="mu">bez skupiny</span>'}</div>
+  const list = s ? `<div class="mu" style="font-size:13px;margin:2px 0">${seqTimes(b, laneSeq(b, l)).map(x => { const dx = X.D[x.drill], nx = dx ? dx.name : x.dn || "?";
+    return `<div>${x.i < s.i ? "✓" : x.i === s.i ? "▶" : "·"} ${x.i === s.i ? "<b>" + esc(nx) + "</b>" : esc(nx)} · ${Math.round((x.b - x.a) / 6) / 10} min</div>`; }).join("")}</div>` : "";
+  return `<div class="tlln ${mine ? "me" : ""}">${tag ? `<span class="tlk">${tag}</span>` : ""}${s ? `<div class="mu">🔁 ${s.it ? "cvičení " + (s.i + 1) + "/" + s.n + " · ještě " + mmss(s.left) : "řada skončila"}</div>` : ""}<div class="tldn">${esc(name)}</div>
+${co ? `<div class="mu">${co}</div>` : ""}${list}<div style="margin:4px 0">${all ? '<span class="mu">všichni</span>' : grp.map(chip).join("") || '<span class="mu">bez skupiny</span>'}</div>
 ${pids.length ? `<div style="font-size:14px">${pids.map(id => esc(nm(id))).join(", ")}</div>` : ""}
-${ms ? `<button class="p w" data-tsw="${esc(b.id)}|${esc(l.id)}" style="min-height:52px;margin:6px 0">⏲ Stopky – ${esc(ms.dn)}</button>` : ""}
+${ms ? `<button class="p w" data-tsw="${esc(b.id)}|${esc(src.id)}" style="min-height:52px;margin:6px 0">⏲ Stopky – ${esc(ms.dn)}</button>` : ""}
 ${d && d.eq ? `<div class="mu" style="font-size:13px">Pomůcky: ${esc(d.eq)}</div>` : ""}${d && d.desc ? `<div class="mu" style="font-size:13px;white-space:pre-wrap">${esc(String(d.desc).slice(0, 240))}${String(d.desc).length > 240 ? "…" : ""}</div>` : ""}</div>`;
 }
 // Moje linky v kole: trenér = linky, které vede; hráčka = linka své skupiny; nikdo = null (ukážou se všechny)
@@ -206,12 +221,15 @@ function lanesHtml(b, at, X) {
   const T = laneTags(b), M = mine(b, at.round, X), list = (b.lanes || []).map((l, i) => ({l, t: T[i], m: M && M.includes(l.id)}));
   const show = M && M.length ? list.filter(x => x.m) : list;
   const head = M == null ? "Linky" : M.length ? "📍 Moje stanoviště" : X.tid ? "Teď nevedeš žádnou linku – všechny linky" : "Tvoje skupina teď nemá linku";
-  return `<h3 style="margin:10px 0 6px">${head}</h3>${(M && !M.length ? list : show).map(x => laneHtml(b, x.l, x.t, at.round, X, x.m)).join("")}
-${M && M.length && list.length > show.length ? `<details><summary class="mu">Ostatní linky (${list.length - show.length})</summary>${list.filter(x => !x.m).map(x => laneHtml(b, x.l, x.t, at.round, X, false)).join("")}</details>` : ""}`;
+  return `<h3 style="margin:10px 0 6px">${head}</h3>${(M && !M.length ? list : show).map(x => laneHtml(b, x.l, x.t, at.round, X, x.m, at)).join("")}
+${M && M.length && list.length > show.length ? `<details><summary class="mu">Ostatní linky (${list.length - show.length})</summary>${list.filter(x => !x.m).map(x => laneHtml(b, x.l, x.t, at.round, X, false, at)).join("")}</details>` : ""}`;
 }
 // Co následuje: další kolo / blok a moje linka v něm
 function nextHtml(B, at, X) {
   if (!at || at.done) return "";
+  // Řada cvičení: další cvičení řady v tomtéž bloku
+  const s = subAt(B, at, X);
+  if (s && s.nx) { const dx = X.D[s.nx.drill]; return `<div class="tlln" style="margin-top:8px"><div class="mu">Za ${mmss(s.left)} → 🔁 cvičení ${s.i + 2}/${s.n}</div><div><b>${esc(dx ? dx.name : s.nx.dn || "?")}</b> · ${Math.round((s.nx.b - s.nx.a) / 6) / 10} min</div></div>`; }
   const n = liveAt(B, at.b);
   if (!n || n.done) return `<div class="mu" style="margin-top:8px">Potom: konec plánu.</div>`;
   const b = B[n.bi], M = mine(b, n.round, X), l = M && M.length ? (b.lanes || []).find(x => x.id === M[0]) : null, d = l && X.D[l.drill];
@@ -221,11 +239,16 @@ function nextHtml(B, at, X) {
 // ⭐ Výzva k hodnocení hráček skončeného kola (realizační tým s právem hodnotit): hráčky mých linek předchozího kola, po konci plánu poslední kolo
 function rateHtml(B, at, X) {
   if (!L.live || !LIVE_ST[L.live.st]) return "";
+  // Řada cvičení: po skončeném cvičení řady se hodnotí to cvičení (ještě v tomtéž bloku)
+  const s = subAt(B, at, X), cb = at && !at.done ? B[at.bi] : null;
+  if (s && s.i > 0) { const T = seqTimes(cb, laneSeq(cb, cb.lanes.find(l => l.id === s.lid))), pl = vLane(cb, s.lid, T[Math.min(s.i, T.length) - 1]);
+    if (pl && pl.drill) return liveEvalHtml(L.eid, [{block: cb, lane: pl, round: at.round}], X, false); }
   const pv = prevSpot(B, at);
   if (!pv || pv.done) return at && at.done ? liveEvalHtml(L.eid, [], X, true) : "";
   // Trenér hodnotí hráčky svých linek; kdo žádnou linku nevede, vidí všechny linky skončeného kola
   const b = B[pv.bi], M = mine(b, pv.round, X), ids = M == null || !M.length ? (b.lanes || []).map(l => l.id) : M;
-  const spots = (b.lanes || []).filter(l => ids.includes(l.id) && l.drill).map(lane => ({block: b, lane, round: pv.round}));
+  // Linka s řadou: poslední cvičení řady (dřívější se hodnotila během bloku)
+  const spots = (b.lanes || []).filter(l => ids.includes(l.id) && l.drill).map(l => { const q = laneSeq(b, l), T = q ? seqTimes(b, q) : null; return {block: b, lane: T && T.length ? vLane(b, l.id, T[T.length - 1]) || l : l, round: pv.round}; });
   return liveEvalHtml(L.eid, spots, X, !!(at && at.done));
 }
 function controlsHtml(v, at) {
@@ -272,7 +295,7 @@ function screenHtml() {
   if (at.done) return CSS + head + info + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at) + rateHtml(B, at, X);
   const sub = isBreak(b) ? `Blok ${at.bi + 1}/${B.length} · ☕ Pauza` : `Blok ${at.bi + 1}/${B.length} · ${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${at.nr > 1 ? ` · kolo ${at.ri + 1}/${at.nr}` : ""}`;
   return CSS + head + info + `<div style="text-align:center;margin-top:8px;font-weight:700">${sub}</div>
-<div class="tlbig" id="tlc">${mmss(at.left)}</div>${at.nr > 1 ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}
+${(() => { const c = clk(B, at, X); return `${c.s ? `<div class="mu" style="text-align:center">🔁 ${c.s.it ? "moje cvičení " + (c.s.i + 1) + "/" + c.s.n : "řada skončila – volno"}</div>` : ""}<div class="tlbig" id="tlc">${mmss(c.left)}</div>${at.nr > 1 || c.s ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}`; })()}
 <div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>
 ${controlsHtml(v, at)}${rateHtml(B, at, X)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${restHtml(X, at, v)}`;
 }
@@ -286,7 +309,7 @@ function paint() {
 function shownKey() {
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live;
   const at = B.length ? liveAt(B, liveSec(v, Date.now(), skew()) || 0) : null;
-  return (at ? at.key : "-") + "|" + (v ? v.st + v.e0 + v.ctl + JSON.stringify([v.adj || {}, v.skip || []]) : "0") + "|" + (L.eid || "");
+  return (at ? clk(B, at, X).key : "-") + "|" + (v ? v.st + v.e0 + v.ctl + JSON.stringify([v.adj || {}, v.skip || []]) : "0") + "|" + (L.eid || "");
 }
 // Tik: odpočet, upozornění při čerstvém překročení hranic, při změně kola / stavu celé překreslení
 function tick() {
@@ -296,17 +319,19 @@ function tick() {
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), run = v && v.st === "run";
   // Skrytá aplikace (zhasnutý telefon) tiká řidčeji – hranice se poznají i později (oznámení na hodinky přijde se zpožděním)
   const hid = document.visibilityState === "hidden", win = hid ? HID_WIN : 3, sw = hid ? HID_WIN : 1.5;
-  if (run && L.prev && at && !at.done) {
-    if (L.prev.key === at.key) alertsDue(L.prev.left, at.left, undefined, win).forEach(k => alarm(k, at));
+  // Odpočet a upozornění podle kola, u řady cvičení na mé lince podle cvičení řady
+  const c = at && !at.done ? clk(B, at, X) : null;
+  if (run && L.prev && c) {
+    if (L.prev.key === c.key) alertsDue(L.prev.left, c.left, undefined, win).forEach(k => alarm(k, at));
     else if (L.prev.left <= sw) alarm("switch", at);
   } else if (run && L.prev && at && at.done && !L.prev.done && L.prev.left <= sw) alarm("end", at);
-  L.prev = at && !at.done ? {key: at.key, left: at.left, done: false} : {key: "end", left: 0, done: true};
+  L.prev = c ? {key: c.key, left: c.left, done: false} : {key: "end", left: 0, done: true};
   if (shownKey() !== L.shown) { paint(); return; }
   const set = (id, t) => { const e = L.el.querySelector(id); if (e && e.textContent !== t) e.textContent = t; };
   if (at && !at.done) {
-    set("#tlc", mmss(at.left)); set("#tlb", mmss(at.bleft)); set("#tlt", mmss(sec || 0));
-    const c = L.el.querySelector("#tlc");
-    if (c) c.className = "tlbig" + (run && at.left <= 10 ? " n" : run && at.left <= 60 ? " w" : "");
+    set("#tlc", mmss(c.left)); set("#tlb", mmss(at.bleft)); set("#tlt", mmss(sec || 0));
+    const ce = L.el.querySelector("#tlc");
+    if (ce) ce.className = "tlbig" + (run && c.left <= 10 ? " n" : run && c.left <= 60 ? " w" : "");
     const p = L.el.querySelector("#tlp");
     if (p) p.style.width = Math.min(100, Math.round((sec || 0) / at.total * 100)) + "%";
     const g = L.el.querySelector("#tlg"), gt = v && LIVE_ST[v.st] && v.st !== "end" ? budgetText(X, at.total, sec || 0) : "";
@@ -341,7 +366,8 @@ function bind() {
   // ⏲ Stopky měřeného cvičení: hráčky linky v tomto kole (u Společně bez skupin všechny hráčky v poli)
   el.querySelectorAll("[data-tsw]").forEach(b => b.onclick = () => {
     const X = L.getX ? L.getX() : null, B = (X && X.plan && X.plan.blocks) || [], [bid, lid] = b.dataset.tsw.split("|");
-    const blk = B.find(x => x.id === bid), lane = blk && (blk.lanes || []).find(x => x.id === lid);
+    // lid může být virtuální linka cvičení řady (blok_linka-cvičení) – stejné skupiny jako linka
+    const blk = B.find(x => x.id === bid), lane = blk && ((blk.lanes || []).find(x => x.id === lid) || expandLanes(blk).find(x => x.id === lid));
     if (!lane) return;
     const at = liveAt(B, liveSec(L.live, Date.now(), skew()) || 0), grp = (at && at.round && at.round.lanes[lid]) || lane.grp || [], R = X.roster || {};
     const pids = grp.length ? groupPids(blk, grp, R) : (R.skaters || []).map(p => p.id);

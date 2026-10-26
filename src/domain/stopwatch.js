@@ -5,6 +5,7 @@
 
 // ===== Importy =====
 import {UNITS} from "../config/skills.js";
+import {expandLanes} from "./training-plan.js";
 
 // ===== Konstanty =====
 export const TRMS_COLL = "trms";
@@ -41,8 +42,9 @@ export function fmtVal(v, u) {
 // Uložená jednotka má přednost (pokusy se nesmí míchat). Vrací [{key, bi, li, bid, lid, d, dn, u, low}] v pořadí plánu, nakonec výsledky bez linky.
 export function measLanes(plan, drills, res) {
   const D = drills || {}, R = (res && res.r) || {}, out = [], seen = new Set();
-  ((plan && plan.blocks) || []).forEach((b, bi) => (b.lanes || []).forEach((l, li) => {
-    const key = msKey(b.id, l.id), d = D[l.drill], m = d && d.meas && UNITS[d.meas.u] ? d.meas : null, r = R[key] && UNITS[R[key].u] ? R[key] : null;
+  // Linka s řadou cvičení = položka na každé cvičení řady (virtuální linka, klíč blok_linka-cvičení); li = pořadí linky v bloku
+  ((plan && plan.blocks) || []).forEach((b, bi) => expandLanes(b).forEach(l => {
+    const li = (b.lanes || []).findIndex(x => x.id === (l.pid || l.id)), key = msKey(b.id, l.id), d = D[l.drill], m = d && d.meas && UNITS[d.meas.u] ? d.meas : null, r = R[key] && UNITS[R[key].u] ? R[key] : null;
     if (!m && !r) return;
     seen.add(key);
     out.push({key, bi, li, bid: b.id, lid: l.id, d: l.drill || (r && r.d) || "", dn: (r && r.dn) || (d && d.name) || l.dn || "?",

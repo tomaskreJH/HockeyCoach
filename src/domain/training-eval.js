@@ -2,12 +2,12 @@
 // Hodnotí se každá hráčka na každé lince plánu (u stanovišť každé stanoviště zvlášť) stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc ·
 // 😴 vůbec se nesnaží, volitelně poznámka k hráčce a ke cvičení. Celkové hodnocení linky (r) se už nezadává (staré zůstává v datech).
 // 0 = bez hodnocení (zrušené hodnocení – zápis dávkou neumí smazat vnořené pole).
-// Dokument: {v, r: {klíč linky "blok_linka": {d (id cvičení), dn (název), r (0–4), n (poznámka), pl: {pid: {r, n}}}}, by, at}.
+// Dokument: {v, r: {klíč linky "blok_linka" (u řady cvičení "blok_linka-cvičení"): {d (id cvičení), dn (název), r (0–4), n (poznámka), pl: {pid: {r, n}}}}, by, at}.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Linky k hodnocení -> Živý trénink -> Zápis -> Souhrny.
 
 // ===== Importy =====
 import {msKey} from "./stopwatch.js";
-import {MODES, isBreak, isFixedLane, laneTags, rotation} from "./training-plan.js";
+import {MODES, expandLanes, isBreak, isFixedLane, laneTags, rotation} from "./training-plan.js";
 import {groupPids, liveAt} from "./training-live.js";
 
 // ===== Konstanty =====
@@ -29,16 +29,17 @@ export const entryOf = (res, key) => (res && res.r && res.r[key]) || null;
 
 // ===== Linky k hodnocení =====
 // Linky plánu s cvičením v pořadí plánu: {key, bi, li, bid, lid, d, dn, tag (A–D / 🥅 / ""), where ("Blok 2 · Stanoviště A")};
+// linka s řadou cvičení = jedna položka na cvičení (lid = blok_linka-cvičení, li = pořadí linky, where navíc „· 2/4“);
 // drills = banka {id: cvičení} – název z banky, jinak kopie v plánu
 export function evalLanes(plan, drills) {
   const out = [], D = drills || {};
   ((plan && plan.blocks) || []).forEach((b, bi) => {
-    const T = laneTags(b);
-    (b.lanes || []).forEach((l, li) => {
+    const T = laneTags(b), LI = Object.fromEntries((b.lanes || []).map((l, i) => [l.id, i]));
+    expandLanes(b).forEach(l => {
       if (!l.drill) return;
-      const dd = D[l.drill], tag = T[li];
+      const li = LI[l.pid || l.id], dd = D[l.drill], tag = T[li];
       out.push({key: msKey(b.id, l.id), bi, li, bid: b.id, lid: l.id, d: l.drill, dn: String((dd && dd.name) || l.dn || "Cvičení").slice(0, 80), tag,
-        where: "Blok " + (bi + 1) + (tag === "🥅" ? " · 🥅 Brankářky" : tag ? " · Stanoviště " + tag : " · " + (MODES[b.mode] || ""))});
+        where: "Blok " + (bi + 1) + (tag === "🥅" ? " · 🥅 Brankářky" : tag ? " · Stanoviště " + tag : " · " + (MODES[b.mode] || "")) + (l.sid ? " · " + (l.si + 1) + "/" + l.sn : "")});
     });
   });
   return out;

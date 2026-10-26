@@ -134,6 +134,20 @@ Předpoklad: publikovaná pravidla v21.9.1, členka s rolí Asistent (nebo Tren�
 | 10.5 | Členka: Moje platby | Vidí předpisy za hráčku i za člena týmu, bez chybové hlášky. |
 | 10.6 | Trenér bez propojené hráčky: karta události | Rychlá tlačítka za člena realizačního týmu jako dřív. |
 
+## 11. v22.0 – 🔁 řada cvičení v lince
+Předpoklad: trénink s plánem, přihlášené hráčky i brankářka, přihlášený hlavní trenér a asistent; v bloku 👥 Společně souběžná linka 🥅 brankářek (⚙ Další volby → + Souběžná linka, skupina 🥅) a u ní 🎓 asistent.
+
+| # | Postup | Očekávaný výsledek |
+|---|---|---|
+| 11.1 | Trenér: ✏️ Upravit → blok 15 min → linka hráček → 🔁 Víc cvičení s vlastním časem | Dvě cvičení: dosavadní (10 min) a nové prázdné (5 min); „Součet 15 z 15 min ✓“. |
+| 11.2 | Vybrat 2. cvičení, změnit časy −/+, ↑ pořadí, + Cvičení | Čas z banky se převezme, dokud ho neměníš; součet se přepočítá; přes 15 min „⛔ … blok jen 15 min“ a v kontrole plánu ⛔. |
+| 11.3 | 💾 Uložit plán → karta plánu | U linky „🔁 2 cvičení“ a pod ní čas začátku, cvičení a délka; klepnutí na cvičení otevře jeho okno. |
+| 11.4 | Asistent: ✏️ Upravit | Linka brankářek s ⭐; přepínač ⭐ Jen moje linky – ostatní bloky jen ke čtení. Naplánuje 4 cvičení brankářek v 15 min a uloží. |
+| 11.5 | Trenér měl úpravu otevřenou už předtím, změní délku jiného bloku a uloží | Hláška „… mezitím plán změnil; cvičení jeho linek zůstala“; v kartě jsou cvičení brankářek od asistenta i nová délka bloku. |
+| 11.6 | ⏱ Živý trénink (trenér) v bloku s řadou | Nahoře „🔁 moje cvičení 1/2“, velký odpočet do konce cvičení, menší „do konce bloku“; seznam řady s ▶; „Za m:ss → 🔁 cvičení 2/2“. 60 s a 10 s před koncem cvičení vibrace / ⌚ oznámení. |
+| 11.7 | Asistent ve stejném bloku | Odpočet podle cvičení brankářek (jiné časy); po skončeném cvičení výzva ⭐ „Jak šlo hráčkám?“ s brankářkami. |
+| 11.8 | Po tréninku: ⭐ Hodnocení cvičení | Každé cvičení řady zvlášť („Blok 1 · 🥅 Brankářky · 2/4“). |
+
 ## 6. Rychlá kontrola, že se nic nerozbilo (po každé verzi, 5 minut)
 - [ ] 🏠 Domů se načte bez chyby, nadcházející události a moje platby.
 - [ ] Události: odpověď ✅ / ❌ / ❓ u tréninku a zápasu, počty v tlačítkách.

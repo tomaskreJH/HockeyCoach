@@ -58,10 +58,11 @@
 | v21.6 | E4 | ⭐ hodnocení cvičení (linka plánu, 😃 🙂 😐 😴, poznámka, volitelně hráčky; kolekce `treval`, jen realizační tým), výzva v ⏱ živém tréninku po kole jedním klepnutím, 📋 docs/testy-rucni.md – **hotovo, k testu** (25. 10. 2026), pravidla publikovat před kódem |
 | v21.7 | K-T | 🖐 trénink jednodušeji (připomínky z testu 25.–26. 10.): ⭐ hodnocení po hráčkách (výzva po kole = seznam hráček stanoviště), detail události (hlavička, pořadí karet, úpravy pod rozbalením, podbarvené nadpisy karet), oprava skoku v ⭐ výkonnosti, kompaktní stopky, 📚 výběr cvičení s hledáním, ▶ / 📄 náhled videa a PDF – **hotovo, k testu** (26. 10. 2026), pravidla beze změny |
 | v21.8 | K-T2 | ⏱ živý trénink podle skutečnosti: kolik zbývá do konce tréninku, o kolik plán přetahuje, ✂ −1 min kolo, 📋 zbytek plánu (další bloky −/+ / ⏭ vypustit jen pro průběh – `trlive.adj` / `skip`), ☕ pauza v plánu (`brk`), živý trénink jen realizační tým, 🎽 dres hráčky, název HockeyCoach, nadpis události s datem, sbalená docházka, ✏️ / 🗑 v Team – **hotovo, k testu** (26. 10. 2026), **pravidla publikovat před kódem, pak 🔒 21.8** |
+| v22.0 | K-T4 | 🔁 řada cvičení v lince (každé cvičení vlastní čas v okně bloku, hráčky a brankářky odděleně), ⭐ Jen moje linky, sloučení uložení dvou trenérů, živý trénink po cvičeních řady – **hotovo, k testu** (26. 10. 2026), pravidla beze změny, 🔒 22.0 |
 | v21.9.1 | oprava | hrající člen realizačního týmu (role Manager / Trenér / Asistent s volitelnou hráčkou `pid`) se na události hlásí jako hráčka (`selfMember`), pravidla `plpay` – **hotovo, k testu** (26. 10. 2026), pravidla publikovat před kódem |
 | v21.9 | K-T3 | 🏃 štafeta ve stopkách: 2–4 skupiny, pořadí (střídavě nebo nasazením klepnutím), start všech skupin naráz, předávka klepnutím, čas hráčky (pokus) i skupiny (`trms…rl`) – **hotovo, k testu** (26. 10. 2026), pravidla beze změny |
 | (hned po) | G0 | ⌚ ověření aplikace pro hodinky Garmin (každý trenér své oznámení a ovládání) – zpráva bez kódu |
-| v22.0 | E | 🏒 **Modul Trénink**: E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
+| v22.1 | E | 🏒 **Modul Trénink**: E5 přehled a analýza (tabulky výsledků měření s porovnáním pro tým) – **podrobně `docs/plan-trenink.md`** |
 | v21.7 | K | 🖐 **Komfort zadávání, ovládání a přehledu** (priorita uživatele 25. 10. 2026): průchod hlavních toků na telefonu – méně klepnutí, výchozí hodnoty, rychlé akce, přehledy na jedné obrazovce – podrobně `docs/plan-trenink.md` kap. 4 |
 | v22.x | N | 🔔 Upozornění v aplikaci (sraz z UD1 jako čas připomínky; oznámení i na hodinky) – posunuto za Trénink a K |
 | potom | P2 | ⭐ Jistota plateb: účet opsaný v telefonu, jméno příjemce v QR, „odesláno – čeká na potvrzení“ – **publikovat firestore.rules** |
@@ -74,6 +75,7 @@
 ---
 
 ## Stav (aktualizováno 26. 10. 2026)
+- **v22.0 (K-T4) dodáno, k testu:** 🔁 řada cvičení v lince (`seq` v `trplan`, `expandLanes`, `laneSub`, `mergePlan`). Pravidla beze změny, po aktualizaci trenérů 🔒 22.0. Hodinky Garmin odloženy (uživatel 26. 10.). Další v22.1 E5.
 - **v21.9.1 dodáno, k testu:** člen realizačního týmu, který je zároveň hráčka, se na události hlásí jako hráčka (⚙️ → Členové týmu: vybrat i hráčku). Pravidla `plpay` publikovat před kódem. Další G0 – rozhodnuto datové pole Connect IQ v nativní aktivitě Lední hokej (`docs/plan-trenink.md`, řádek G).
 - **v21.9 (K-T3) dodáno, k testu:** 🏃 štafeta v okně stopek (`domain/relay.js`, běhy v `trms…rl`). Další G0 (ověření Garmin Connect IQ, bez kódu), pak E5.
 - **v21.8 (K-T2) dodáno, k testu:** ⏱ živý trénink podle skutečnosti (do konce tréninku, přetahování, ✂ −1 min, 📋 zbytek plánu jen pro průběh), ☕ pauza jako blok plánu, živý trénink jen realizační tým, název HockeyCoach, události (nadpis s datem, podbarvená hlavička, sbalená docházka), ✏️ / 🗑 v Team. Pravidla `trliveOk` před kódem, pak 🔒 Vyžadovat verzi 21.8.

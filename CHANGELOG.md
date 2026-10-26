@@ -4,6 +4,27 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v22.0 (26. 10. 2026) – K-T4: 🔁 řada cvičení v lince – každé cvičení vlastní čas v okně bloku
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat; musí být publikovaná pravidla v21.9.1). 3) Nahrát soubory (nový `tests/lane-seq.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v94`). 5) **Po aktualizaci všech trenérů nastavit 🔒 Vyžadovat verzi 22.0** – starší verze by při uložení plánu řady cvičení zahodila (nechá jen první cvičení linky).
+
+**Přidáno**
+- **🔁 Řada cvičení v lince** (přání 26. 10.: blok je pro všechny stejný, hráčky a brankářky v něm cvičí odděleně a jinak časově rozdělené): v úpravě plánu u linky, která se netočí (blok 👥 Společně, souběžná linka, 🥅 linka stanovišť) tlačítko **🔁 Víc cvičení s vlastním časem** – cvičení pod sebou, každé s ⏱ −/+ / číslem, ↑ pořadí, 🗑, **+ Cvičení** (nejvýš 8), „Jedno cvičení na celý blok“ vrátí linku zpět. Výběr cvičení převezme čas z banky, dokud ho trenér nezmění. Pod řadou **Součet x z y min · volno** (⛔ když se nevejde do bloku – čas bloku určuje hlavní trenér).
+- **Kontrola plánu:** ⛔ řada delší než blok, ⚠️ volno v řadě, ⚠️ cvičení řady bez výběru.
+- **Karta plánu:** u linky s řadou „🔁 N cvičení“ a pod tím čas začátku, cvičení a délka (klepnutím okno cvičení), případně volno do konce bloku.
+- **⭐ Moje linky:** v úpravě plánu ⭐ u linek, které vedu (🎓 trenér linky z „⚙ Další volby“), a přepínač **⭐ Jen moje linky** (ostatní bloky jen ke čtení) – asistent si naplánuje jen cvičení brankářek v čase bloku hlavního trenéra.
+- **Sloučení uložení:** když plán mezitím uložil jiný trenér, uložení ho nepřepíše naslepo – kdo měnil jen řady cvičení, uloží se do nejnovějšího plánu jen jeho řady; kdo měnil bloky, uloží svůj plán, ale řady linek, které neměnil, zůstanou z nejnovější verze (hláška řekne, s kým se sloučilo).
+- **⏱ Živý trénink:** na mé lince s řadou velký odpočet do konce **mého cvičení** („🔁 moje cvičení 2/3“, konec bloku menší), seznam řady s ✓ / ▶, „Za m:ss → 🔁 cvičení 3/3“, vibrace / zvuk 60 s a 10 s před koncem cvičení, ⌚ oznámení „Teď / Potom“ po cvičeních řady, ⭐ výzva k hodnocení hráček hned po skončeném cvičení řady, ⏲ stopky u měřeného cvičení řady.
+- Doména `src/domain/training-plan.js`: `seqOk`, `laneSeq`, `seqMinutes`, `seqBlank`, `seqStart`, `seqTimes`, `seqStep`, `seqLid`, `expandLanes`, `mergePlan`; `src/domain/training-live.js`: `laneSub`. Testy `tests/lane-seq.test.js`.
+
+**Změněno**
+- Plán `trplan` – linka může mít `seq: [{id, drill, dn, di, dur}]`; `drill` / `dn` / `di` linky = první cvičení řady (starší verze ukáže aspoň to). Šablony a ⧉ kopie řady přenesou.
+- ⭐ Hodnocení a ⏲ měření – cvičení řady má vlastní klíč `blok_linka-cvičení` (`evalLanes`, `measLanes`); 📊 pokrytí dovedností počítá minuty po cvičeních řady; použití cvičení v plánech (`drillUsage`) i z řad.
+- Trenér linky je vidět v hlavičce linky v úpravě plánu.
+
+**Beze změny:** pravidla databáze, točení stanovišť (točící se stanoviště řadu nemají), plány bez řad, živý zápis, pokladna, statistiky, docházka, žádosti, nepřítomnost, hostující.
+
+**Ověřeno:** `npm test` 359 / 359 (nový `tests/lane-seq.test.js` – normalizace, časy, kontrola, virtuální linky, pokrytí, živý trénink, sloučení). Kouřový test jsdom (scratchpad, zástupce Firebase s daty): trenér – karta plánu s dvěma řadami, okno cvičení řady, ⏱ živý trénink 200 s po startu → „🔁 moje cvičení 1/2“, odpočet 4:3x, „→ 🔁 cvičení 2/2“; úprava plánu – součty řad, +1 min, ⭐ Jen moje linky (1 z 2 bloků k úpravě), převod linky bloku 2 na řadu, uložení se sloučením se změnou jiného trenéra (hláška „sloučeno … petr“); asistent – „🔁 moje cvičení 2/3“, odpočet 3:3x, ⭐ výzva k hodnocení 1. cvičení brankářek; bez chyb v konzoli.
+
 ## v21.9.1 (26. 10. 2026) – oprava: člen realizačního týmu, který je zároveň hráčka, se hlásí na události jako hráčka
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules publikovat PŘED kódem** (`plpay` – číst smí i manager / trenér / asistent propojený s hráčkou, jen svůj dokument; nic jiného se nemění). 3) Nahrát soubory (nový `tests/self-member.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v93`). 5) ⚙️ → Členové týmu: u dotčené členky (role Asistent / Trenér + 💰 Pokladník) znovu zadat stejný e-mail, stejnou roli, člena realizačního týmu, pokladníka **a vybrat i její hráčku** („— je zároveň hráčka (volitelné) —“) → Přidat člena (= změna nastavení). 6) 🔒 Vyžadovat verzi **nenastavovat** (není potřeba; starší verze jen přihlásí člena týmu jako dřív).
 
