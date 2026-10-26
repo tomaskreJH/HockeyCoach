@@ -1,6 +1,7 @@
 // Události a docházka: seznam, kalendář, přihlašování (jdu / nejdu / nejsem jistý), detail události, rozdělení do pětek na tréninku.
 // Záložka Události řeší jen události (Nadcházející / Minulé / Kalendář / Docházka); správce odklikává docházku v detailu události;
-// rychlá tlačítka na kartě platí za přihlášenou hráčku, nebo za managera / trenéra / asistenta propojeného s realizačním týmem (jinak se na kartě nezobrazí).
+// rychlá tlačítka na kartě platí za přihlášenou hráčku; manager / trenér / asistent propojený i s hráčkou se hlásí jako hráčka (přednost),
+// jinak za člena realizačního týmu (members/{email}.tid); bez propojení se na kartě nezobrazí.
 // Režimy Platby, Pokladna, Měsíce a Rozpočet jsou v záložce Team (vykresluje je cashPanel() z tohoto souboru, volá ho views/team.js).
 // V detailu události je pokladna (vyúčtování) až na konci stránky, nahoře jsou údaje pro trénink a hokej.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Zápis dat -> Vykreslení (seznam, kalendář, detail, formulář, okno s důvodem) -> Eventy -> Export.
@@ -42,7 +43,7 @@ import {canNos, isNos, nosCount, nosPatch, startMs} from "../domain/attendance.j
 import {costTotal, cxOf, kc} from "../domain/cash.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
 import {memberBlocked} from "../domain/debtors.js";
-import {LINE_NOS, answerCounts, lineCounts, setLine, sortEvents, trKey} from "../domain/event-helpers.js";
+import {LINE_NOS, answerCounts, lineCounts, selfMember, setLine, sortEvents, trKey} from "../domain/event-helpers.js";
 import {MEET_MAX, clampMin, defEnd, endOk, evDefaults, meetAt, meetDefault, meetOf, okTime, timeFields, timeParts} from "../domain/event-time.js";
 import {NOTE_COLL, attDoc, noteDoc, noteId} from "../domain/private-data.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
@@ -237,10 +238,9 @@ ${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" s
 function list(a) {
   const P = activePl(), AT = atMap(), evs = allEvents(), today = td(), pl_ = isPl();
   if (!S.evc) { const n = new Date(); S.evc = {y: n.getFullYear(), m: n.getMonth()}; }
-  // Za koho platí rychlá tlačítka na kartě: hráčka vždy sama za sebe; manager / trenér / asistent jen když je propojen s realizačním týmem
-  if (pl_) S.evp = HK.pid();
-  else { const me = myTr(); S.evp = me ? me.id : null; }
-  if (S.evp && !P.some(p => p.id === S.evp) && !isTr(S.evp)) S.evp = null;
+  // Za koho platí rychlá tlačítka na kartě: propojená hráčka má přednost (i u managera / trenéra / asistenta, který je zároveň hráčka),
+  // jinak člen realizačního týmu (members/{email}.tid); hráčka nikdy za člena týmu (domain/event-helpers.js – selfMember)
+  S.evp = selfMember(HK.pid(), pl_ ? null : HK.tid(), P.map(p => p.id), S.tr.map(t => t.id), pl_);
   // Dřívější režimy pokladny (pay / cash / mon) jsou v záložce Team; tady zůstávají Nadcházející, Minulé, Kalendář a Docházka
   // Hostující nemá přehled Docházky (vidí jen sebe)
   const modes = [["up", "Nadcházející"], ["past", "Minulé"], ["cal", "Kalendář"], ...(guest() || !HK.perm("attview", "r") ? [] : [["att", "📊 Docházka"]])];
@@ -345,7 +345,7 @@ function detail(a, ev) {
     return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
   };
   const rows = P.map((p, i) => (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") + pRow(p)).join("");
-  const myP = ownP && me ? P.find(p => p.id === me) : null;
+  const myP = me ? P.find(p => p.id === me) : null;                   // vlastní řádek hráčky (i člena týmu, který je zároveň hráčka)
   // Realizační tým: odpovědi mění jen manager, trenér a asistent, hráčka je vidí jen ke čtení (bez důvodů)
   const trRows = T.map((t, i) => {
     const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP;

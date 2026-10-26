@@ -122,6 +122,18 @@ Předpoklad: cvičení s měřením času (banka → cvičení → měření „
 | 9.8 | Během štafety ✕ Hotovo | Zeptá se („Běží stopky – zavřít?“), druhé klepnutí zavře bez uložení. ✕ Zrušit štafetu taky druhým klepnutím. |
 | 9.9 | Hráčka (náhled) – detail tréninku | Vidí výsledky měření i řádek 🏃 Štafeta (jen čtení). |
 
+## 10. v21.9.1 – hrající člen realizačního týmu se hlásí jako hráčka
+Předpoklad: publikovaná pravidla v21.9.1, členka s rolí Asistent (nebo Trenér) + 💰 Pokladník, propojená s členem realizačního týmu.
+
+| # | Postup | Očekávaný výsledek |
+|---|---|---|
+| 10.1 | Manager: ⚙️ → Členové týmu → + Přidat člena ručně, role Asistent | Pod rolí výběr „— je zároveň hráčka (volitelné) —“, člen realizačního týmu a Pokladník. U role Hráčka „— vyber hráčku —“. |
+| 10.2 | Zadat e-mail členky, roli Asistent, její hráčku, člena týmu, Pokladník → Přidat člena | V seznamu členů: „Asistent · #číslo jméno · 🎓 jméno · 💰 pokladník“. Hostující hráčku 🎟 nejde vybrat (hláška). |
+| 10.3 | Členka: Načíst novou verzi, Události → karta nadcházejícího tréninku → ✅ Jdu | Přihlásí se **jako hráčka** (v docházce u hráček, počty Útočnice / Obránkyně se zvednou, ne Trenéři). |
+| 10.4 | Členka: detail události | Nahoře „Tvoje odpověď“ s jejím řádkem hráčky; v 👥 Docházce smí dál odkliknout i sebe jako člena týmu (odpověď zvlášť). |
+| 10.5 | Členka: Moje platby | Vidí předpisy za hráčku i za člena týmu, bez chybové hlášky. |
+| 10.6 | Trenér bez propojené hráčky: karta události | Rychlá tlačítka za člena realizačního týmu jako dřív. |
+
 ## 6. Rychlá kontrola, že se nic nerozbilo (po každé verzi, 5 minut)
 - [ ] 🏠 Domů se načte bez chyby, nadcházející události a moje platby.
 - [ ] Události: odpověď ✅ / ❌ / ❓ u tréninku a zápasu, počty v tlačítkách.

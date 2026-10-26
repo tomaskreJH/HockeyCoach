@@ -61,7 +61,7 @@ function gateHtml() {
 function teamHtml(coach) {
   const n = coach ? C().joinCount() : 0;
   const join = coach ? `<button class="s w" id="cjr" style="margin-bottom:8px${n ? ";border-color:var(--wa)" : ""}">✋ Žádosti o přijetí do týmu${n ? " (" + n + ")" : " – žádné otevřené"}</button>` : "";
-  const form = `<div class="mu" style="margin:8px 0">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? " Většinu členů přidáš přijetím ✋ žádosti." : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje manager."}</div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${opts(C().memberRoles())}</select><select id="cmp">${listOpts(C().playerList(), "— vyber hráčku —")}</select><select id="cmt">${listOpts(C().staffList(), "— člen realizačního týmu (volitelné) —")}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>`;
+  const form = `<div class="mu" style="margin:8px 0">Přístup mají jen zapsané e-maily (přesně tak, jak je používá Google účet). U role Hráčka vyber hráčku, za kterou se bude zapisovat docházka. Manager, trenér nebo asistent, který zároveň hraje, má vybranou i hráčku – na události se pak hlásí jako hráčka. Volitelně vyber člena realizačního týmu (Team → Realizační tým) a příznak Pokladník. Stejný e-mail znovu = změna nastavení.${coach ? " Většinu členů přidáš přijetím ✋ žádosti." : " Pokladník přidává a mění jen členy s rolí Hráčka a nemění vlastní účet; ostatní role spravuje manager."}</div><input id="cme" type="email" placeholder="e-mail@gmail.com"><select id="cmr">${opts(C().memberRoles())}</select><select id="cmp">${listOpts(C().playerList(), "— vyber hráčku —")}</select><select id="cmt">${listOpts(C().staffList(), "— člen realizačního týmu (volitelné) —")}</select><select id="cmc"><option value="">Bez práv pokladníka</option><option value="1">Pokladník</option></select><button class="p w" id="cma">Přidat člena</button>`;
   const body = `${join}<h3 style="margin-top:4px">Členové týmu</h3><div id="cmb" style="margin-bottom:8px"></div><button class="s w" id="cmo">${addOpen ? "▾ Skrýt přidání člena" : "+ Přidat člena ručně"}</button><div id="cmf"${addOpen ? "" : " hidden"}>${form}</div>`;
   return sec("team", "👥 Tým a členové", body, n ? "✋ " + n + (n === 1 ? " žádost" : n < 5 ? " žádosti" : " žádostí") : "", n > 0);
 }
@@ -150,8 +150,12 @@ function bindCommon(el, q, close) {
 function bindTeam(el, q, close, coach) {
   if (q("#cjr")) q("#cjr").onclick = () => { close(); if (HK.openJoin) HK.openJoin(); };
   q("#cmo").onclick = () => { addOpen = !addOpen; q("#cmf").hidden = !addOpen; q("#cmo").textContent = addOpen ? "▾ Skrýt přidání člena" : "+ Přidat člena ručně"; };
-  // Výběr hráčky jen u role Hráčka / Hostující; člen týmu a pokladník ne u hostující
-  const sync = () => { const r = q("#cmr").value; q("#cmp").style.display = C().needsPid(r) ? "" : "none"; q("#cmt").style.display = q("#cmc").style.display = C().staffOk(r) ? "" : "none"; };
+  // Výběr hráčky: povinný u role Hráčka / Hostující, volitelný u managera / trenéra / asistenta (je zároveň hráčka); člen týmu a pokladník ne u hostující
+  const sync = () => {
+    const r = q("#cmr").value, o = q("#cmp").options[0];
+    if (o) o.textContent = C().needsPid(r) ? "— vyber hráčku —" : "— je zároveň hráčka (volitelné) —";
+    q("#cmt").style.display = q("#cmc").style.display = C().staffOk(r) ? "" : "none";
+  };
   q("#cmr").onchange = sync; sync();
   // Výběr hráčky přepne roli Hráčka ↔ Hostující podle značky 🎟 (role Hostující je jen u managera)
   q("#cmp").onchange = () => { const p = q("#cmp").value, r = C().pidRoleOf(p); if (p && C().needsPid(q("#cmr").value) && q("#cmr").querySelector('option[value="' + r + '"]')) { q("#cmr").value = r; sync(); } };

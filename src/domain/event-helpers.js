@@ -2,6 +2,7 @@
 // Pravidla: Nadcházející vzestupně (nejbližší nahoře), Minulé a Kalendář sestupně (nejnovější nahoře);
 // pětky jsou v poli events.lines = {klíč: číslo pětky 1–4}; klíč hráčky = její id, klíč člena realizačního týmu = "t:" + id
 // (předpona brání záměně s hráčkou). Do pětky se přiřazují jen přihlášení („Jdu“) – hráčky bez brankářek a členové realizačního týmu.
+// Za koho se člen přihlašuje (selfMember): propojená aktivní hráčka má přednost před členem realizačního týmu.
 
 // ===== Konstanty =====
 export const TR_PRE = "t:";                     // předpona klíče člena realizačního týmu v events.lines
@@ -52,4 +53,13 @@ export function answerCounts(A, ids) {
   const r = {yes: 0, no: 0, maybe: 0, none: 0};
   (ids || []).forEach(id => { const a = (A || {})[id]; if (a && r[a.st] != null) r[a.st]++; else r.none++; });
   return r;
+}
+
+// ===== Vlastní přihlášení =====
+// Za koho platí rychlá tlačítka přihlášeného účtu: hráčka (pid) má přednost, když je v aktivní soupisce;
+// jinak člen realizačního týmu (tid), když existuje; jinak null. ownOnly = role Hráčka / Hostující (člen týmu se nepoužije).
+export function selfMember(pid, tid, plIds, trIds, ownOnly) {
+  if (pid && (plIds || []).includes(pid)) return pid;
+  if (ownOnly) return null;
+  return tid && (trIds || []).includes(tid) ? tid : null;
 }

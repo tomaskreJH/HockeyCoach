@@ -188,7 +188,8 @@ test("pravidla: staffpay a plpay jen správci pokladny (číst smí i vlastník)
   assert.match(s, /allow read: if isCash\(\) \|\| ownsMid\(id\);/);
   assert.match(s, /allow create, update: if isCash\(\) && request\.resource\.data\.keys\(\)\.hasOnly\(\['m', 'amt'\]\);/);
   assert.match(s, /allow delete: if isCash\(\);/);
-  assert.match(p, /allow read: if isCash\(\) \|\| \(isPlayer\(\) && id == myPid\(\)\);/);
+  // v21.9.1: číst smí i člen realizačního týmu, který je zároveň hráčkou (jen svůj dokument podle pid v members)
+  assert.match(p, /allow read: if isCash\(\) \|\| \(isPlayer\(\) && id == myPid\(\)\) \|\| \(isStaff\(\) && get\(memberPath\(\)\)\.data\.get\('pid', ''\) == id\);/);
   assert.match(p, /allow create, update: if isCash\(\) && request\.resource\.data\.keys\(\)\.hasOnly\(\['grp', 'fx', 'ex', 'note', 'grpH'\]\) && request\.resource\.data\.get\('grpH', \[\]\) is list;/);
   assert.match(p, /allow delete: if isCash\(\);/);
   [s, p].forEach(x => assert.ok(!x.includes("isMember()"), "nečte každý člen"));

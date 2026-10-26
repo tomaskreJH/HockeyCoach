@@ -82,6 +82,7 @@ Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci pi
 - Role v `members/{email}`: `role` (manager / trener / asistent / hracka / host) a `rv: 2` (role po převodu). Každý nový zápis člena (⚙️, přijetí žádosti, převod) zapisuje `rv`. Posledního managera nejde odebrat ani snížit (hlídá aplikace – `keepsManager`).
 - Odvozené dokumenty, které aplikace zapisuje sama (veřejné `evpub` / `lineuppub`, automatické omluvy z nepřítomnosti), jdou přes `HK.syncOps` (tichý zápis, jen rozdíly, bez hlášek) ze `src/views/auto-sync.js`.
 - Pokladník (bez role manager) spravuje jen členy s rolí Hráčka a nikdy vlastní dokument `members` (vynucují pravidla).
+- Manager / trener / asistent může mít v `members` kromě `tid` volitelně i `pid` (je zároveň hráčka, ne hostující; v21.9.1): na události se hlásí jako hráčka – `selfMember` v `domain/event-helpers.js` (aktivní hráčka má přednost, role Hráčka nikdy za člena týmu); pravidla `plpay` mu dovolí číst jen svůj dokument (`isStaff() && members.pid == id`).
 
 ## 4. Verze a vydání
 Číslování: `v18.8` = hlavní verze a fáze plánu, `v18.8.1` = oprava bez nových funkcí.

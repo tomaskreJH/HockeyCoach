@@ -4,6 +4,22 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v21.9.1 (26. 10. 2026) – oprava: člen realizačního týmu, který je zároveň hráčka, se hlásí na události jako hráčka
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules publikovat PŘED kódem** (`plpay` – číst smí i manager / trenér / asistent propojený s hráčkou, jen svůj dokument; nic jiného se nemění). 3) Nahrát soubory (nový `tests/self-member.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v93`). 5) ⚙️ → Členové týmu: u dotčené členky (role Asistent / Trenér + 💰 Pokladník) znovu zadat stejný e-mail, stejnou roli, člena realizačního týmu, pokladníka **a vybrat i její hráčku** („— je zároveň hráčka (volitelné) —“) → Přidat člena (= změna nastavení). 6) 🔒 Vyžadovat verzi **nenastavovat** (není potřeba; starší verze jen přihlásí člena týmu jako dřív).
+
+**Opraveno**
+- **Hrající člen realizačního týmu** (např. hráčka s rolí Asistent kvůli zadávání událostí a s příznakem Pokladník) se na kartě události přihlašovala jako člen realizačního týmu 🎓. Účet s rolí Manager / Trenér / Asistent teď může mít v ⚙️ → Členové týmu kromě člena realizačního týmu **volitelně i hráčku** (ne hostující 🎟); rychlá tlačítka na kartě události pak platí za **hráčku (přednost)**, v detailu události je nahoře „Tvoje odpověď“ za hráčku. Bez propojené hráčky beze změny (za člena realizačního týmu). Docházku člena realizačního týmu jde dál odkliknout v detailu události.
+
+**Změněno**
+- `src/domain/event-helpers.js` – `selfMember(pid, tid, hráčky, tým, jenVlastní)`: za koho se účet hlásí (aktivní hráčka má přednost, role Hráčka nikdy za člena týmu); `src/views/events.js` ho používá pro `S.evp`, „Tvoje odpověď“ i pro člena týmu, který je zároveň hráčka.
+- `src/data/storage.js` – `saveMember` zapíše `pid` i u rolí manager / trener / asistent, když je hráčka vybraná (kontrola: ne hostující); seznam členů a 👤 Účet ukazují i propojenou hráčku.
+- `src/views/settings-view.js` – výběr hráčky ve formuláři členů je vidět u všech rolí; u role Hráčka / Hostující povinný, u ostatních „— je zároveň hráčka (volitelné) —“.
+- `firestore.rules` – `plpay/{id}` čte i `isStaff()` s `members.pid == id` (vlastní platební pole hráčky, Moje platby). Členové (`members`) bez změny – zapisuje je manager.
+
+**Beze změny:** docházka za ostatní, 🚫, blokace dluhem (počítá se za hráčku), pokladna a předpisy, živý zápis, statistiky, trénink, žádosti, nepřítomnost, hostující, práva rolí (role zůstává Asistent / Trenér).
+
+**Ověřeno:** `npm test` 347 / 347 (nový `tests/self-member.test.js`, upraven test pravidel `plpay` v `tests/privacy.test.js`). Kouřový test jsdom (scratchpad, zástupce Firebase s `getDocs` / `getDoc` z dat): asistent + pokladník s hráčkou i členem týmu → rychlá tlačítka za hráčku, „Jdu“ zapíše `attendance/e1_p1`; trenér jen s členem týmu → `attendance/e1_t1` (beze změny); hráčka → `attendance/e1_p1`; manager ⚙️ → Členové: výběr hráčky u Asistenta s popiskem „volitelné“, u Hostující skrytý člen týmu, uložení asistenta s hráčkou zapíše `members/{e-mail}` = {role: asistent, rv: 2, pid, tid, cash}; bez chyb v konzoli.
+
 ## v21.9 (26. 10. 2026) – K-T3: 🏃 štafeta ve stopkách
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat; musí být publikovaná pravidla v21.8). 3) Nahrát soubory (nové `src/domain/relay.js`, `tests/relay.test.js`; nic se nemaže). 4) Na telefonech ⚙️ → 👤 Účet → Načíst novou verzi (v21.9, cache `hokej-v92`). 5) Test podle **docs/testy-rucni.md – sekce 9**. **🔒 Vyžadovat verzi: ne** (nové pole `rl` starší verze nemaže ani nečte; 🔒 21.8 z minulé verze platí).
 

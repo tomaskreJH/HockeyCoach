@@ -315,10 +315,11 @@ service cloud.firestore {
       allow create, update: if isCash() && request.resource.data.keys().hasOnly(['m', 'amt']);
       allow delete: if isCash();
     }
-    // Platební pole hráčky plpay/{pid} = {grp, fx, ex, note, grpH}: čte a zapisuje správce pokladny, číst smí i hráčka sama (pid z členství);
+    // Platební pole hráčky plpay/{pid} = {grp, fx, ex, note, grpH}: čte a zapisuje správce pokladny, číst smí i hráčka sama (pid z členství)
+    // a člen realizačního týmu, který je zároveň hráčkou (v21.9.1 – pid v members u role manager / trener / asistent);
     // grpH = historie způsobu placení [{ym, grp}] (seznam)
     match /plpay/{id} {
-      allow read: if isCash() || (isPlayer() && id == myPid());
+      allow read: if isCash() || (isPlayer() && id == myPid()) || (isStaff() && get(memberPath()).data.get('pid', '') == id);
       allow create, update: if isCash() && request.resource.data.keys().hasOnly(['grp', 'fx', 'ex', 'note', 'grpH']) && request.resource.data.get('grpH', []) is list;
       allow delete: if isCash();
     }

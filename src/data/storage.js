@@ -423,7 +423,7 @@ async function boot() {
 const meEmail = () => (user ? user.email.toLowerCase() : "");
 // Přihlášený účet pro záhlaví ⚙️: e-mail, popis role, náhled, pokladník, propojená hráčka / člen týmu
 const acct = () => ({email: user ? user.email : "", label: pv ? ROLES[role] || role || "?" : roleLabel(stored.role), preview: !!pv, cash: cash && role !== "manager",
-  player: PID_ROLES.includes(role) && data.players[pid] ? data.players[pid].name : "", staff: isStaff() && tid && data.staff[tid] ? data.staff[tid].name || "" : ""});
+  player: pid && data.players[pid] ? data.players[pid].name : "", staff: isStaff() && tid && data.staff[tid] ? data.staff[tid].name || "" : ""});
 // Hráčky pro výběr při propojení účtu (bez ukončených), seřazené podle jména; hostující mají značku 🎟
 const playerList = () => Object.entries(data.players).filter(([, p]) => (p.st || "act") !== "end").sort((a, b) => a[1].name.localeCompare(b[1].name, "cs"))
   .map(([id, p]) => ({id, label: (p.num ? "#" + p.num + " " : "") + p.name + (isGuest(p) ? " 🎟" : "")}));
@@ -454,7 +454,7 @@ function rowsOf(docs) {
 // Popis propojení pro seznam členů (neplatná role dostane poznámku „bez přístupu“)
 const memberInfo = r => {
   const p = r.pid && data.players[r.pid], t = r.tid && data.staff[r.tid];
-  return {label: roleLabel(r.role), player: PID_ROLES.includes(r.role) ? (p ? (p.num ? "#" + p.num + " " : "") + p.name : null) : undefined, staff: r.tid ? (t ? t.name || "" : null) : undefined};
+  return {label: roleLabel(r.role), player: PID_ROLES.includes(r.role) || r.pid ? (p ? (p.num ? "#" + p.num + " " : "") + p.name : null) : undefined, staff: r.tid ? (t ? t.name || "" : null) : undefined};
 };
 // Odebrat smí: nikdy vlastní účet ani posledního managera; pokladník (bez role manager) jen členy s rolí Hráčka
 const canRemove = r => r.email !== meEmail() && (can("admin") || r.role === "hracka") && keepsManager(memCache, r.email, null);
@@ -472,12 +472,14 @@ async function saveMember(em, rl, pp, tt, cc) {
   if (!/^\S+@\S+\.\S+$/.test(em)) { say("Zadej platný e-mail"); return false; }
   if (!ROLE_KEYS.includes(rl)) { say("Vyber roli"); return false; }
   if (needsPid(rl) && pidRoleErr(rl, pp)) { say(pidRoleErr(rl, pp)); return false; }
+  // Manager / trenér / asistent smí být volitelně zároveň hráčkou (ne hostující) – přihlašuje se pak na události jako hráčka
+  if (pp && STAFF.includes(rl) && pidRoleErr("hracka", pp)) { say(pidRoleErr("hracka", pp)); return false; }
   // Pokladník bez role manager: jen role Hráčka a ne vlastní účet (pravidla databáze by zápis odmítla)
   if (!can("admin") && (rl !== "hracka" || em === meEmail())) { say("Pokladník spravuje jen jiné členy s rolí Hráčka"); return false; }
   if (blocked()) return false;
   // Nová role zapisuje rv (verze rolí ROLE_VER); pokladník jen u rolí, které ho nemají vždy (manager je správce pokladny vždy)
   const d = {role: rl, rv: ROLE_VER, addedBy: user.email};
-  if (needsPid(rl)) d.pid = pp;
+  if (needsPid(rl) || (pp && STAFF.includes(rl))) d.pid = pp;
   if (tt && staffOk(rl)) d.tid = tt;
   if (cc && cashOk(rl)) d.cash = true;
   try {
