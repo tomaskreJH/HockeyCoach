@@ -88,6 +88,25 @@ Po každé verzi se doplní nová sekce (postup vydání v `docs/KONVENCE.md`, k
 | 7.10 | ✏️ Upravit plán → u cvičení tlačítko 📚 | Okno s 🔍 hledáním (diakritika nevadí: „strel“ najde Střelba), část tréninku, dovednost, ⭐ oblíbená; klepnutí vybere a vrátí se do plánu na stejné místo; Zpět okno zavře. |
 | 7.11 | Cvičení s odkazem na YouTube / Google Disk (video, PDF) / .mp4 | V okně cvičení (plán i banka) ▶ Přehrát video / 📄 Zobrazit PDF → přehraje se přímo v aplikaci; „otevřít zvlášť ↗“ otevře v novém okně. Soubor na Disku musí mít sdílení „Kdokoli s odkazem“. |
 
+## 8. v21.8 – živý trénink podle skutečnosti, ☕ pauza, HockeyCoach
+Předpoklad: pravidla v21.8 publikovaná, na všech telefonech realizačního týmu v21.8 (pak manager 🔒 Vyžadovat verzi 21.8).
+
+| # | Postup | Očekávaný výsledek |
+|---|---|---|
+| 8.1 | Otevřít aplikaci | Záhlaví „🏒 HockeyCoach“, přihlašovací obrazovka i titulek okna HockeyCoach. Ikona na ploše má nový název až po přeinstalaci. |
+| 8.2 | Události – seznam | Karta: „🏒 Trénink · Po 27. 10.“ v jednom řádku, pod tím čas, sraz, místo (bez data), počty bez slova „Přihlášeno“. |
+| 8.3 | Detail tréninku | Hlavička podbarvená, první řádek název · datum. **👥 Docházka** sbalená, v záhlaví ✅ ❓ ❌ (🚫). Rozbalit → klepnout na odpověď / 🚫 → zůstane rozbalená. Jiná událost → zase sbalená. |
+| 8.4 | Team → Soupiska / Realizační tým | Vpravo malá tlačítka ✏️ a 🗑, text se nezalamuje do více řádků. 🗑 → „🗑 Smazat?“ → druhé klepnutí smaže (zkoušej na testovací hráčce). |
+| 8.5 | ✏️ Upravit plán → **+ ☕ Pauza** | Nový blok „☕ Pauza“ s popiskem „Pití“ (lze přepsat) a časem 3 min (2 / 3 / 5 / 10, −/+), ↑ ↓ 🗑. Uložit → v kartě šedý řádek „☕ Pití · 3 min“, časy dalších bloků se posunou. Bez upozornění „bez cvičení“. |
+| 8.6 | Hráčka (účet / 👁 náhled): detail tréninku s plánem | Plán vidí, u „Tvoje skupina“ text „🎽 vezmi si modrý dres“ (podle pětky). Tlačítko **⏱ Živý trénink tam není.** |
+| 8.7 | Trenér: ⏱ Živý trénink → ▶ Spustit | Pod časem řádek „do konce tréninku m:ss · plán sedí / plán přetahuje o N min / rezerva N min“ (podle konce tréninku v události). |
+| 8.8 | ⏸ Pauza na 2 min, pak ▶ | „plán přetahuje“ vzroste o ~2 min. |
+| 8.9 | **✂ −1 min** | Odpočet kola se zkrátí o minutu; při méně než minutě do konce kola začne hned další kolo / blok. |
+| 8.10 | Dole **📋 Zbytek plánu** (při přetahování je rozbalený sám) | Seznam dalších bloků s minutami. − / + změní minuty (a „(plán N)“), ⏭ blok přeškrtne (↩ Vrátit ho vrátí). „Zbývá plán“ i „přetahuje“ se hned přepočítají. Běžící blok v seznamu není. |
+| 8.11 | Druhý telefon (jiný trenér) | Vidí stejný čas i úpravy (vypuštěný blok se přeskočí). Úprava ze druhého telefonu se zeptá na převzetí řízení (druhé klepnutí). |
+| 8.12 | Plán po tréninku (✏️ Upravit) | Uložený plán je beze změny (vypuštění / zkrácení platilo jen pro živý průběh). ↺ Spustit znovu začne bez úprav. |
+| 8.13 | ☕ Pauza v živém tréninku | Velký nápis „☕ Pití“, ⌚ oznámení „☕ Pauza“; výzva ⭐ „Jak šlo hráčkám?“ nabídne cvičení **před** pauzou. |
+
 ## 6. Rychlá kontrola, že se nic nerozbilo (po každé verzi, 5 minut)
 - [ ] 🏠 Domů se načte bez chyby, nadcházející události a moje platby.
 - [ ] Události: odpověď ✅ / ❌ / ❓ u tréninku a zápasu, počty v tlačítkách.

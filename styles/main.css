@@ -78,6 +78,9 @@ label { font-size: 13px; color: var(--mu); display: block; margin-bottom: 3px; }
    ========================================================== */
 .it { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--bd); cursor: pointer; }
 .it:last-child { border: 0; }
+/* Malé ikonové tlačítko v řádku seznamu (✏️ / 🗑) – nezalamuje text, nezabírá šířku */
+.ib { flex: none; min-width: 44px; min-height: 40px; padding: 6px 10px; white-space: nowrap; }
+.it > div:first-child { min-width: 0; }
 .sc { font-size: 34px; font-weight: 800; text-align: center; margin: 4px 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .chip { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--bd); background: var(--bg); color: var(--tx); font-weight: 600; }

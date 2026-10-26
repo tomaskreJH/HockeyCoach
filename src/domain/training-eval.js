@@ -7,7 +7,7 @@
 
 // ===== Importy =====
 import {msKey} from "./stopwatch.js";
-import {MODES, isFixedLane, laneTags, rotation} from "./training-plan.js";
+import {MODES, isBreak, isFixedLane, laneTags, rotation} from "./training-plan.js";
 import {groupPids, liveAt} from "./training-live.js";
 
 // ===== Konstanty =====
@@ -73,11 +73,13 @@ export function unratedCount(lanes, res) {
 
 // ===== Živý trénink =====
 // Kolo, které právě skončilo (k hodnocení po kole / bloku): poloha těsně před začátkem současného kola, po konci plánu poslední kolo;
-// null = trénink ještě nezačal (první kolo). at = liveAt(blocks, sec).
+// ☕ pauza se přeskočí; null = trénink ještě nezačal (první kolo). at = liveAt(blocks, sec).
 export function prevSpot(blocks, at) {
   if (!at) return null;
-  if (at.done) return at.total > 0 ? liveAt(blocks, at.total - 0.01) : null;
-  return at.a > 0 ? liveAt(blocks, at.a - 0.01) : null;
+  let p = at.done ? (at.total > 0 ? liveAt(blocks, at.total - 0.01) : null) : at.a > 0 ? liveAt(blocks, at.a - 0.01) : null;
+  // ☕ Pauza se přeskočí – hodnotí se cvičení před ní
+  while (p && !p.done && isBreak((blocks || [])[p.bi])) p = p.a > 0 ? liveAt(blocks, p.a - 0.01) : null;
+  return p;
 }
 
 // ===== Zápis =====

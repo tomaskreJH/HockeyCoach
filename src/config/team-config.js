@@ -4,5 +4,5 @@
 
 // ===== Konstanty =====
 export const TEAM_NAME = "HC Střely";                   // náš tým v zápasech, statistikách a zápisu utkání
-export const APP_NAME = "Hokej – zápasy";              // název aplikace na přihlašovací obrazovce a v hláškách
+export const APP_NAME = "HockeyCoach";                 // název aplikace na přihlašovací obrazovce a v hláškách
 export const DEV_EMAILS = ["tomaskre@gmail.com"];      // účty vývojáře se smí přepnout do náhledu role

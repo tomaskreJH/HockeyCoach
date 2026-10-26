@@ -58,7 +58,7 @@ test("posuny: začátky kol, další / předchozí", () => {
 // ===== Řízení =====
 test("liveCtl: start, pauza, pokračování, posun, prodloužení a konec", () => {
   const me = "Trener@x.cz", s = liveCtl("start", null, {now: T0, me});
-  assert.deepEqual({...s}, {v: 1, wAt: T0, sAt: "__now", ctl: "trener@x.cz", st: "run", e0: 0});
+  assert.deepEqual({...s}, {v: 1, wAt: T0, sAt: "__now", ctl: "trener@x.cz", st: "run", e0: 0, adj: {}, skip: []});
   const run = {...s, sAt: T0};
   assert.equal(liveCtl("pause", run, {now: T0 + 65_000, me}).e0, 65);
   const ps = {...liveCtl("pause", run, {now: T0 + 65_000, me}), sAt: T0 + 65_000};

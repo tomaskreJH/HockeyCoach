@@ -211,10 +211,12 @@ service cloud.firestore {
     }
 
     // ===== ⏱ Živý trénink trlive/{eid} (id = id tréninku): společné hodiny – čte, kdo smí číst plán, řídí, kdo smí plán upravovat =====
+    // adj {id bloku: min} a skip [id bloku] = úpravy jen pro tento průběh (vypustit / zkrátit blok), plán trplan se nemění
     // {v, st (run / pause / end), e0 (s od začátku plánu), wAt (čas zařízení), sAt (čas serveru = čas zápisu), ctl (řídící = zapisující), by, at}
     function trliveOk(d) {
-      return d.keys().hasOnly(['v', 'st', 'e0', 'wAt', 'sAt', 'ctl', 'by', 'at']) && d.st in ['run', 'pause', 'end']
-        && d.e0 is number && d.e0 >= 0 && d.e0 <= 21600 && d.sAt == request.time && d.ctl == mail();
+      return d.keys().hasOnly(['v', 'st', 'e0', 'wAt', 'sAt', 'ctl', 'adj', 'skip', 'by', 'at']) && d.st in ['run', 'pause', 'end']
+        && d.e0 is number && d.e0 >= 0 && d.e0 <= 21600 && d.sAt == request.time && d.ctl == mail()
+        && (!('adj' in d) || (d.adj is map && d.adj.size() <= 30)) && (!('skip' in d) || (d.skip is list && d.skip.size() <= 30));
     }
     match /trlive/{id} {
       allow read: if can('trplan', 'r');

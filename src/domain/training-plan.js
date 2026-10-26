@@ -1,6 +1,7 @@
 // Doména: plán tréninku trplan/{eid} – bloky Společně / Stanoviště, časy od začátku tréninku, rozpis točení skupin, kontrola plánu.
 // Skupiny bloku: pětky z rozdělení (1–4) nebo posty (blok by: "pos" – "F" útočnice, "D" obránkyně) + 🥅 brankářky "G" (linka se netočí).
-// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp}]}], by, at}.
+// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, brk?, dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp}]}], by, at}.
+// ☕ Pauza = blok s brk (popisek, např. „Pití“) bez linek – nepočítá se do cvičení, hodnocení, měření ani pokrytí dovedností.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Skupiny -> Úprava plánu -> Časy a točení -> Kontrola -> Hráčka -> Exporty (u funkcí).
 
 // ===== Importy =====
@@ -16,6 +17,7 @@ export const BY = {ln: "🎽 Pětky", pos: "⚔ Útok / obrana"};      // čím 
 export const MODES = {all: "👥 Společně", st: "🔄 Stanoviště"};
 export const PLAN_MAX = {blocks: 30, lanes: 4, goal: 200, dn: 80, di: 3};
 export const BLK_DUR_MIN = 1, BLK_DUR_MAX = 90, BLK_DUR_DEF = 10;
+export const BRK_DEF = "Pití", BRK_DUR = 3, BRK_MAX = 40;    // ☕ pauza: výchozí popisek a délka (min), nejdelší popisek
 
 // ===== Pomocné funkce =====
 const int = (v, d) => { const n = Number(v); return Number.isInteger(n) ? n : d; };
@@ -27,6 +29,8 @@ const grpKey = (g, pos) => (g === GK ? GK : pos ? (POS_GRPS.includes(g) ? g : nu
 // Pořadí skupin: pětky vzestupně, útočnice, obránkyně, brankářky na konci
 const grpRank = g => (g === GK ? 9 : g === FW ? 7 : g === DF ? 8 : +g);
 const grpSort = (a, b) => grpRank(a) - grpRank(b);
+// Je blok ☕ pauza (bez cvičení)?
+export const isBreak = b => !!b && b.brk != null && b.brk !== false;
 // Dělí blok skupiny podle postů?
 export const isPosBlock = b => !!b && b.by === "pos";
 // Skupina hráčky podle postu (Obránkyně = "D", jinak útočnice "F")
@@ -34,7 +38,7 @@ export const posGrp = pos => (pos === "Obránkyně" ? DF : FW);
 // Linka s brankářkami se netočí
 export const isFixedLane = l => (l.grp || []).includes(GK);
 // Používá blok „Další volby“ úpravy plánu? (podle postů, vlastní točení, trenéři u linek, souběžná linka u Společně) – pak je sekce otevřená
-export const blockExtras = b => !!b && (isPosBlock(b) || !!b.rot || (b.lanes || []).some(l => (l.co || []).length > 0) || (b.mode !== "st" && (b.lanes || []).length > 1));
+export const blockExtras = b => !!b && !isBreak(b) && (isPosBlock(b) || !!b.rot || (b.lanes || []).some(l => (l.co || []).length > 0) || (b.mode !== "st" && (b.lanes || []).length > 1));
 // Nové krátké id bloku / linky (unikátní v rámci plánu)
 export const newPid = (p = "b") => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Označení linek bloku: stanoviště A–D (jen linky, které se točí), linka brankářek 🥅, u bloku Společně prázdný text
@@ -91,6 +95,8 @@ export function blockBlank(mode, groups, by) {
   }
   return b;
 }
+// Nový blok ☕ pauza (pití, odpočinek) – Společně, bez linek
+export const breakBlank = () => ({id: newPid("b"), mode: "all", dur: BRK_DUR, rot: null, lanes: [], brk: BRK_DEF});
 export const planBlank = () => ({v: PLAN_VER, goal: "", blocks: []});
 // Normalizovaný plán k uložení (jen známá pole, meze délek a počtů); drills = mapa id → cvičení z banky (kopie názvu a obrázků pro hráčky)
 export function planDoc(p, drills) {
@@ -102,6 +108,7 @@ export function planDoc(p, drills) {
       co: uniq((l.co || []).filter(x => typeof x === "string" && x)).slice(0, 6), grp: mode === "all" && !grp.includes(GK) ? grp.filter(g => g !== GK) : grp};
   };
   const blocks = (Array.isArray(src.blocks) ? src.blocks : []).slice(0, PLAN_MAX.blocks).map(b => {
+    if (isBreak(b)) return {id: str(b.id, 24) || newPid("b"), mode: "all", dur: clamp(int(b.dur, BRK_DUR), BLK_DUR_MIN, BLK_DUR_MAX), rot: null, lanes: [], brk: str(b.brk === true ? "" : b.brk, BRK_MAX) || BRK_DEF};
     const mode = b.mode === "st" ? "st" : "all", dur = clamp(int(b.dur, BLK_DUR_DEF), BLK_DUR_MIN, BLK_DUR_MAX), rot = int(b.rot, null), pos = isPosBlock(b);
     const o = {id: str(b.id, 24) || newPid("b"), mode, dur, rot: mode === "st" && rot && rot >= 1 && rot <= dur ? rot : null,
       lanes: (Array.isArray(b.lanes) ? b.lanes : []).slice(0, PLAN_MAX.lanes).map(l => lane(l, mode, pos))};
@@ -164,6 +171,7 @@ export function planIssues(p, ctx = {}) {
   if (total && used > total) add("err", null, "Plán přesahuje konec tréninku o " + (used - total) + " min.");
   else if (total && used < total && B.length) add("warn", null, "Nenaplánováno zbývá " + (total - used) + " min.");
   B.forEach((b, bi) => {
+    if (isBreak(b)) return;                                     // ☕ pauza nemá linky ani skupiny
     const L = b.lanes || [], nm = "Blok " + (bi + 1) + ": ", G = groupsFor(b, G0, ctx.pgroups || POS_GRPS), field = G.filter(g => g !== GK);
     if (!L.length) add("warn", bi, nm + "bez linky.");
     L.forEach((l, li) => {

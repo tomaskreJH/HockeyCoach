@@ -18,7 +18,7 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {BY, DF, FW, GK, MODES, PLAN_MAX, POS_GRPS, TRPLAN_COLL, blockBlank, blockExtras, clock, groupIn, groupsFor, grpLabel, hm2min, isFixedLane, isPosBlock, laneBlank, laneOf, laneTags, moveBlock, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, posGroups, posGrp, rotation} from "../domain/training-plan.js";
+import {BRK_MAX, BY, DF, FW, GK, MODES, PLAN_MAX, POS_GRPS, TRPLAN_COLL, blockBlank, blockExtras, breakBlank, clock, groupIn, groupsFor, grpLabel, hm2min, isBreak, isFixedLane, isPosBlock, laneBlank, laneOf, laneTags, moveBlock, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, posGroups, posGrp, rotation} from "../domain/training-plan.js";
 import {bindMedia, bindThumbs, mediaHtml, thumbsHtml} from "./drill-media.js";
 import {openDrillPicker} from "./drill-picker.js";
 import {bindCover, bindReuse, coverHtml, loadPrep, reuseHtml} from "./trplan-reuse.js";
@@ -35,6 +35,8 @@ import {render} from "./shell.js";
 let sub = {eid: null, un: null};                         // poslech plánu otevřeného tréninku
 const LETTERS = ["A", "B", "C", "D"];
 const QUICK_DUR = [5, 8, 10, 12, 15, 20, 30];             // rychlá volba délky bloku (min)
+const QUICK_BRK = [2, 3, 5, 10];                          // rychlá volba délky ☕ pauzy (min)
+const DRESS = {1: "modrý", 2: "žlutý", 3: "zelený", 4: "růžový"};   // barva dresu pětky (jako štítky L1–L4)
 const CSS = `<style>
 #evw .tpb{border-top:1px solid var(--bd);padding:10px 0}
 #evw .tph{display:flex;justify-content:space-between;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
@@ -55,6 +57,8 @@ const CSS = `<style>
 #evw .tpq button{padding:4px 10px;min-height:36px;font-size:13px}
 #evw .tpmo{margin-top:8px;border-top:1px dashed var(--bd);padding-top:6px}
 #evw .tpmo>summary{cursor:pointer;color:var(--ac);font-weight:600;padding:8px 0;min-height:40px}
+#evw .tpb.brk{color:var(--mu)}
+#evw .tpe.brk{border-style:dashed}
 #evw .tpsv{position:sticky;bottom:0;background:var(--bg);padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));z-index:3}
 </style>`;
 
@@ -117,6 +121,7 @@ function roundsHtml(b, t0, X) {
 }
 // Jeden blok plánu (karta i náhled v úpravě)
 function blockHtml(b, bi, t, X, D, ro) {
+  if (isBreak(b)) return `<div class="tpb brk"><div class="tph"><b>${ro ? "" : bi + 1 + ". "}${clock(X.start, t.a)}–${clock(X.start, t.b)}</b><span>☕ ${esc(b.brk || "Pauza")} · ${b.dur} min</span></div></div>`;
   const tags = laneTags(b), r0 = rotation(b)[0];
   const lanes = (b.lanes || []).map((l, li) => {
     const d = D[l.drill], name = d ? d.name : l.dn || (l.drill ? "?" : "— bez cvičení —");
@@ -136,7 +141,7 @@ function issuesHtml(p, X, D) {
 function bodyHtml(p, X, D, staff) {
   const T = planTimes(p.blocks), used = planMinutes(p.blocks);
   const head = `${p.goal ? `<div style="margin-bottom:4px">🎯 <b>${esc(p.goal)}</b></div>` : ""}<div class="mu">${p.blocks.length} ${p.blocks.length === 1 ? "blok" : p.blocks.length < 5 ? "bloky" : "bloků"} · ${used} min${X.total ? " z " + X.total : ""}</div>
-${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}</div>` : !staff && HK.pid() ? '<div class="mu" style="margin:6px 0">Zatím nejsi v žádné pětce (rozdělení dělá trenér po přihlášení).</div>' : ""}`;
+${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}${!staff && DRESS[X.mine] ? ` · 🎽 vezmi si <b>${DRESS[X.mine]}</b> dres` : ""}</div>` : !staff && HK.pid() ? '<div class="mu" style="margin:6px 0">Zatím nejsi v žádné pětce (rozdělení dělá trenér po přihlášení).</div>' : ""}`;
   return head + (staff ? issuesHtml(p, X, D) : "") + p.blocks.map((b, bi) => blockHtml(b, bi, T[bi], X, D)).join("");
 }
 // Okno cvičení: obrázky (klepnutí = celá obrazovka), popis a odkazy; hráčka vidí název a obrázky z kopie v plánu
@@ -201,12 +206,17 @@ function bankDur(b, D) {
   return Math.max(1, Math.min(90, Math.round(v)));
 }
 function blockEditHtml(b, bi, t, X, D, n) {
+  const mv = `<button class="s" data-tpmv="${bi}|-1" style="flex:none;padding:4px 10px;min-height:0" ${bi ? "" : "disabled"}>↑</button><button class="s" data-tpmv="${bi}|1" style="flex:none;padding:4px 10px;min-height:0" ${bi < n - 1 ? "" : "disabled"}>↓</button><button class="d" data-tpbd="${bi}" style="flex:none;padding:4px 10px;min-height:0">🗑</button>`;
+  const durRow = q => `<div class="row" style="align-items:center;flex-wrap:nowrap;gap:6px" title="Čas platí jen pro tento trénink (cvičení v bance ani šablona se nemění)"><span class="mu" style="flex:none">⏱ Čas</span><button class="s" data-tpdu="${bi}|-1" style="flex:none;min-width:48px">−</button><input type="number" inputmode="numeric" data-tpdi="${bi}" value="${b.dur}" style="width:70px;flex:none;margin:0;text-align:center"><button class="s" data-tpdu="${bi}|1" style="flex:none;min-width:48px">+</button><span class="mu" style="flex:none">min</span></div>
+<div class="tpq">${q.map(m => `<button class="${b.dur === m ? "p" : "s"}" data-tpdq="${bi}|${m}">${m}</button>`).join("")}`;
+  // ☕ Pauza: jen popisek a čas
+  if (isBreak(b)) return `<div class="tpe brk"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${bi + 1}. ☕ Pauza · ${clock(X.start, t.a)}–${clock(X.start, t.b)}</b>${mv}</div>
+<input data-tpbn="${bi}" maxlength="${BRK_MAX}" value="${esc(b.brk || "")}" placeholder="Pití, odpočinek…" style="margin:6px 0">${durRow(QUICK_BRK)}</div></div>`;
   const tags = laneTags(b), rl = b.lanes.filter(l => !isFixedLane(l)).length, auto = rl > 1 ? Math.round(b.dur / rl * 10) / 10 : b.dur;
   return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)}</b>
-<button class="s" data-tpmv="${bi}|-1" style="flex:none;padding:4px 10px;min-height:0" ${bi ? "" : "disabled"}>↑</button><button class="s" data-tpmv="${bi}|1" style="flex:none;padding:4px 10px;min-height:0" ${bi < n - 1 ? "" : "disabled"}>↓</button><button class="d" data-tpbd="${bi}" style="flex:none;padding:4px 10px;min-height:0">🗑</button></div>
+${mv}</div>
 <div class="mu" style="font-size:12px;margin:2px 0 6px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${b.mode === "st" && b.rot ? " · točení po " + b.rot + " min" : ""}</div>
-<div class="row" style="align-items:center;flex-wrap:nowrap;gap:6px" title="Čas platí jen pro tento trénink (cvičení v bance ani šablona se nemění)"><span class="mu" style="flex:none">⏱ Čas</span><button class="s" data-tpdu="${bi}|-1" style="flex:none;min-width:48px">−</button><input type="number" inputmode="numeric" data-tpdi="${bi}" value="${b.dur}" style="width:70px;flex:none;margin:0;text-align:center"><button class="s" data-tpdu="${bi}|1" style="flex:none;min-width:48px">+</button><span class="mu" style="flex:none">min</span></div>
-<div class="tpq">${QUICK_DUR.map(m => `<button class="${b.dur === m ? "p" : "s"}" data-tpdq="${bi}|${m}">${m}</button>`).join("")}${bankDur(b, D) && bankDur(b, D) !== b.dur ? `<button class="s" data-tpdq="${bi}|${bankDur(b, D)}">↺ z banky ${bankDur(b, D)}</button>` : ""}</div>
+${durRow(QUICK_DUR)}${bankDur(b, D) && bankDur(b, D) !== b.dur ? `<button class="s" data-tpdq="${bi}|${bankDur(b, D)}">↺ z banky ${bankDur(b, D)}</button>` : ""}</div>
 ${b.lanes.map((l, li) => laneEditHtml(b, bi, l, li, X, D, tags[li])).join("")}
 ${b.mode === "st" && b.lanes.length < PLAN_MAX.lanes ? `<button class="s w" data-tpla="${bi}" style="margin-top:8px">+ Stanoviště / linka</button>` : ""}
 ${b.mode === "st" ? `<div class="mu" style="font-size:12px;margin-top:8px">Rozpis točení</div>${roundsHtml(b, t.a, {...X, mine: null, tid: null}) || '<div class="mu">Pro točení přidej aspoň 2 stanoviště se skupinami.</div>'}` : ""}
@@ -224,7 +234,7 @@ function editorHtml(ctx) {
 ${issuesHtml(p, X, D)}${(S.dr || []).length ? "" : '<div class="msg">Banka cvičení je prázdná nebo se nenačetla – cvičení přidej v Team → 📚 Cvičení.</div>'}
 ${reuseHtml(ev.id)}${coverHtml(ev.id, X)}</div>
 ${p.blocks.map((b, bi) => blockEditHtml(b, bi, T[bi], X, D, p.blocks.length)).join("")}
-${p.blocks.length < PLAN_MAX.blocks ? `<div class="row" style="margin-bottom:12px"><button class="s" data-tpadd="all">+ 👥 Společně</button><button class="s" data-tpadd="st">+ 🔄 Stanoviště</button></div>` : ""}
+${p.blocks.length < PLAN_MAX.blocks ? `<div class="row" style="margin-bottom:12px"><button class="s" data-tpadd="all">+ 👥 Společně</button><button class="s" data-tpadd="st">+ 🔄 Stanoviště</button><button class="s" data-tpadd="brk">+ ☕ Pauza</button></div>` : ""}
 <div class="tpsv"><div class="row"><button class="p" id="tpok" style="flex:2;min-height:52px">💾 Uložit plán</button>${had ? `<button class="d" id="tpdel" style="flex:1;${armed(kd) ? "background:var(--no);color:#fff" : ""}">${armed(kd) ? "Opravdu smazat?" : "🗑 Smazat plán"}</button>` : ""}</div></div></div>`;
 }
 
@@ -238,7 +248,9 @@ function bindEditor(a, ctx) {
   const lane = (bi, li) => E.p.blocks[+bi].lanes[+li];
   const flip = (arr, v) => (arr || []).includes(v) ? arr.filter(x => x !== v) : [...(arr || []), v];
   a.querySelector("#tpg").oninput = e => { E.p.goal = e.target.value; E.dirty = true; };
-  on("data-tpadd", ([m]) => edit(p => { p.blocks.push(blockBlank(m, X.groups)); }));
+  on("data-tpadd", ([m]) => edit(p => { p.blocks.push(m === "brk" ? breakBlank() : blockBlank(m, X.groups)); }));
+  // ☕ Popisek pauzy: bez překreslení (psaní nepřeruší), uloží se s plánem
+  a.querySelectorAll("[data-tpbn]").forEach(el => { el.oninput = () => { E.p.blocks[+el.dataset.tpbn].brk = el.value; E.dirty = true; }; });
   on("data-tpmv", ([bi, d]) => edit(p => { p.blocks = moveBlock(p.blocks, p.blocks[+bi].id, +d); }));
   on("data-tpbd", ([bi]) => edit(p => { p.blocks.splice(+bi, 1); }));
   on("data-tpm", ([bi, m]) => edit(p => { const b = p.blocks[+bi]; b.mode = m; if (m === "st" && b.lanes.length < 2) b.lanes.push(laneBlank()); if (m === "all") b.rot = null; }));

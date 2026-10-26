@@ -94,7 +94,10 @@ const CSS = `<style>
 #evw .evln .chip{padding:8px 0;min-width:38px;text-align:center}
 #evw .dbt{display:inline-block;padding:1px 6px;border-radius:4px;font-weight:700;font-size:12px;color:#fff;border:1px solid #222;background:repeating-linear-gradient(90deg,#333 0 3px,#777 3px 7px);text-shadow:0 0 2px #000;white-space:nowrap}
 #evw .tw table td,#evw .tw table th{white-space:nowrap}
+#evw .evhd{background:var(--a2)}
 #evw .evhd>div{margin-top:2px}
+#evw .evt{font-size:18px;font-weight:700}
+#evw .evt .evdt{font-weight:600;white-space:nowrap}
 #evw .evs{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:15px}
 #evw .evx>summary{cursor:pointer;min-height:36px;padding:4px 0}
 </style>`;
@@ -152,6 +155,12 @@ const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl
 const defs = () => evDefaults(S.es);
 const timeTxt = e => { const t = timeParts(e, defs()); return (t.range ? " · " + esc(t.range) : "") + (t.meet ? " · ⏰ sraz " + t.meet : ""); };
 const whenLine = e => fDay(e.date) + timeTxt(e) + (e.place ? " · " + esc(e.place) : "");
+// Zkrácené datum bez roku („Po 27. 10.“) a zbytek řádku bez data (čas, sraz, místo)
+const shortDay = s => fDay(s).replace(/ \d{4}$/, "");
+const restLine = e => (timeTxt(e) + (e.place ? " · " + esc(e.place) : "")).replace(/^ · /, "");
+// Nadpis události v jednom řádku: ikona, název a zkrácené datum (seznam i detail)
+const titleLine = (e, cn) => `${e.type === "match" ? "🆚" : "🏒"} ${cn ? "<s>" + esc(e.title) + "</s>" : esc(e.title)} · <span class="evdt">${esc(shortDay(e.date))}</span>`;
+let attOpen = null;                                                     // id události s rozbalenou docházkou (jinak sbalená)
 
 // ===== Zápis dat =====
 // Odpověď a důvod v jedné dávce: attendance bez důvodu (set celého dokumentu smaže i starý attendance.reason), důvod do attnote;
@@ -218,10 +227,11 @@ function card(e, AT, P) {
   const tot = cashMgr() ? costTotal(e.cx) : 0, pay = tot ? " · 💰 náklady " + kc(tot) : "";   // náklady jen pro správce pokladny
   // Hostující nevidí počty ostatních: rychlá tlačítka bez čísel, bez řádku Přihlášeno
   const cq = g ? {yes: "", no: "", maybe: ""} : c;
-  return `<div class="cd evi" data-eo="${e.id}"${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${mt ? "🆚" : "🏒"} ${cn ? "<s>" + esc(e.title) + "</s>" : esc(e.title)}</b>${sc}</div>
-<div class="mu">${whenLine(e)}${mt ? (m.home ? " · doma" : " · venku") : ""}${pay}</div>
+  const rl = restLine(e);
+  return `<div class="cd evi" data-eo="${e.id}"${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
+<div class="mu">${rl}${mt ? (m.home ? " · doma" : " · venku") : ""}${pay}</div>
 <div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
-${g ? "" : `<div class="mu">Přihlášeno: ${rosterLine(roster(e, AT))}</div>`}
+${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}
 ${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" style="margin-top:6px">${esc(mine.reason)}</div>` : ""}</div>`;
 }
 function list(a) {
@@ -283,7 +293,7 @@ export function cashPanel(a, head) {
 export {CASH_MODES};
 
 // ===== Vykreslení: detail události =====
-// Pořadí: hlavička → docházka → výsledek a statistiky zápasu → rozdělení do pětek → 📋 plán tréninku (views/trplan-view.js) → pokladna (jen správci, na konci stránky)
+// Pořadí: hlavička (nadpis s datem, čas, místo, počty, moje odpověď) → výsledek zápasu → pětky → 📋 plán tréninku → 👥 docházka (sbalená) → žádosti → pokladna → ⚙ Úpravy
 // Úprava plánu tréninku se vykreslí místo celého detailu (planEditor).
 // Rozdělení do pětek (jen trénink): přihlášené hráčky (bez brankářek) a přihlášení členové realizačního týmu, barevné volby 1.–4. pětky;
 // hráčka vidí rozdělení jen ke čtení. Člen týmu má v lines klíč "t:" + id (vede stanoviště / jde s pětkou). Nad výběrem panel
@@ -358,8 +368,7 @@ function detail(a, ev) {
   const tp = timeParts(ev, defs());
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
-<div class="cd evhd"><div class="evh"><b style="font-size:18px">${mt ? "🆚" : "🏒"} ${esc(fDay(ev.date).replace(/ \d{4}$/, ""))}</b>${cn ? '<span class="tag red">❌ Zrušeno</span>' : ""}</div>
-<div style="font-weight:600">${cn ? "<s>" + esc(ev.title) + "</s>" : esc(ev.title)}</div>
+<div class="cd evhd"><div class="evh"><span class="evt">${titleLine(ev, cn)}</span>${cn ? '<span class="tag red">❌ Zrušeno</span>' : ""}</div>
 ${tp.range || tp.meet ? `<div>🕔 ${esc(tp.range)}${tp.meet ? " · ⏰ sraz " + esc(tp.meet) : ""}</div>` : ""}
 ${ev.place || mt ? `<div>📍 ${esc(ev.place || "")}${mt ? (ev.raw.home ? (ev.place ? " · " : "") + "doma" : (ev.place ? " · " : "") + "venku") : ""}</div>` : ""}
 ${stats}
@@ -369,7 +378,7 @@ ${attReqBanner()}
 ${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${HK.perm("stats", "r") ? '<button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>' + matchStatsHtml(ev.raw) : ""}</div>` : ""}
 ${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, T, ownP)}
 ${tpOn ? planCardHtml(tpCtx) : ""}
-<div class="cd"><h2>Docházka</h2>${lk && !cn ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." + (st0 <= now ? " 🚫 = přihlášená hráčka nedorazila bez omluvy (klepni znovu pro zrušení)." : "") : "Přihlašování je uzavřeno." + (reqMid && st0 > now ? " O změnu můžeš požádat níže." : "")}</div>` : ""}${ownP && !g ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div>
+<details class="cd evx" id="evatt" ${attOpen === ev.id ? "open" : ""}><summary><b>👥 Docházka</b> <span class="mu">✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}${nn ? " · 🚫 " + nn : ""}</span></summary><div style="margin-top:8px">${lk && !cn ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." + (st0 <= now ? " 🚫 = přihlášená hráčka nedorazila bez omluvy (klepni znovu pro zrušení)." : "") : "Přihlašování je uzavřeno." + (reqMid && st0 > now ? " O změnu můžeš požádat níže." : "")}</div>` : ""}${ownP && !g ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}</div></details>
 ${cn ? "" : attReqBox(ev, reqMid)}
 ${payHtml(ev)}
 ${edits}
@@ -377,6 +386,9 @@ ${cancelHtml(ev, mt)}</div>` + sheetHtml() + attReqModal();
   // Eventy detailu
   // Zpět: do Teamu (otevřeno z přehledu plateb), jinak do seznamu událostí
   a.querySelector("#evb").onclick = () => { S.evid = null; S.evx = null; S.tpv = null; S.tpe = null; if (S.evBack) { S.tab = S.evBack; S.evBack = null; } render(); window.scrollTo(0, 0); };
+  // Docházka sbalená: rozbalení se pamatuje pro otevřenou událost (klepnutí na odpověď ji nezavře)
+  const att = a.querySelector("#evatt");
+  if (att) att.ontoggle = () => { attOpen = att.open ? ev.id : attOpen === ev.id ? null : attOpen; };
   a.querySelectorAll("[data-pa]").forEach(b => b.onclick = () => { const [pid, st] = b.dataset.pa.split("|"); answer(ev.id, pid, st); });
   // Zápis utkání uzavřeného zápasu: stejné okno jako v záložce Soupeři (pro všechny role, jen čtení a export)
   const rp = a.querySelector("#evrp");

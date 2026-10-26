@@ -1,12 +1,13 @@
 // Doména: ⏱ živý trénink – společné hodiny trlive/{eid} a výpočet „kde jsme teď“ v plánu (blok, kolo točení, zbývající čas).
 // Dokument: {v, st ("run" | "pause" | "end"), e0 (s od začátku plánu v okamžiku zápisu), wAt (čas zařízení zapisujícího, ms),
-// sAt (čas serveru zápisu – serverTimestamp), ctl (e-mail řídícího), by, at}. Čas běží jen při st "run": e0 + (teď − sAt).
+// sAt (čas serveru zápisu – serverTimestamp), ctl (e-mail řídícího), adj ({id bloku: min} – jiná délka jen pro tento průběh),
+// skip ([id bloku] – vypuštěné bloky), by, at}. Čas běží jen při st "run": e0 + (teď − sAt). Plán se nemění – úpravy platí jen v trlive.
 // Posun hodin zařízení se dorovná odhadem skew (teď zařízení − čas serveru) z čerstvých změn dokumentu. Čisté funkce bez DOM.
 // Upozornění: vibrace a zvuk v aplikaci a volitelně systémové oznámení (zrcadlí se i na hodinky) s textem „co teď / co potom“ – liveNote.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Hodiny -> Poloha v plánu -> Řízení -> Upozornění -> Lidé na lince.
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Hodiny -> Úpravy průběhu -> Poloha v plánu -> Řízení -> Upozornění -> Lidé na lince.
 
 // ===== Importy =====
-import {GK, groupIn, isPosBlock, planTimes, posGrp, rotation} from "./training-plan.js";
+import {BLK_DUR_MAX, GK, groupIn, isPosBlock, planTimes, posGrp, rotation} from "./training-plan.js";
 
 // ===== Konstanty =====
 export const TRLIVE_COLL = "trlive";
@@ -15,6 +16,7 @@ export const LIVE_ST = {run: "▶ Běží", pause: "⏸ Pozastaveno", end: "⏹ 
 export const ALERT_AT = [60, 10];                       // upozornění tolik sekund před koncem kola / bloku
 export const LIVE_MAX = 6 * 3600;                       // nejdelší možný čas od začátku (s) – pojistka proti chybným hodnotám
 export const SKEW_MAX = 12 * 3600 * 1000;               // větší odchylka hodin se nebere vážně (ms)
+export const ADJ_MAX = 30;                              // nejvýš tolik upravených / vypuštěných bloků (jako bloků plánu)
 const NOW_MARK = "__now";                               // značka pro storage.js: čas serveru (serverTimestamp)
 
 // ===== Pomocné funkce =====
@@ -48,6 +50,55 @@ export function skewObs(live, recvMs) {
 }
 // Nový odhad odchylky: nejmenší pozorování (zpoždění sítě je vždy kladné, minimum se blíží skutečné odchylce)
 export const skewNext = (prev, obs) => (obs == null ? prev : prev == null ? obs : Math.min(prev, obs));
+
+// ===== Úpravy průběhu =====
+// Bloky pro tento průběh: vypuštěný blok má délku 0 (poloha ho přeskočí), upravený blok délku z adj; plán sám se nemění.
+// Indexy bloků zůstávají stejné (klíče hodnocení a měření platí dál).
+export function liveBlocks(blocks, live) {
+  const B = blocks || [], A = (live && live.adj && typeof live.adj === "object") ? live.adj : {}, K = new Set(Array.isArray(live && live.skip) ? live.skip : []);
+  if (!K.size && !Object.keys(A).length) return B;
+  return B.map(b => {
+    if (K.has(b.id)) return {...b, dur: 0, rot: null, skip: true};
+    const m = num(A[b.id]);
+    return m != null && m >= 1 && m <= BLK_DUR_MAX ? {...b, dur: m, rot: b.rot && b.rot > m ? null : b.rot, adj: true} : b;
+  });
+}
+// Lze blok bi upravit / vypustit? Jen bloky, které ještě nezačaly (změna minulých by posunula polohu v plánu)
+export const canAdj = (at, bi) => !!at && !at.done && bi > at.bi;
+// Nové úpravy po akci řídícího: op = "skip" (vypustit / vrátit), "+" / "−" (o 1 min), "reset" (zrušit úpravy bloku).
+// plan = bloky plánu (původní délky), live = dokument; vrací {adj, skip} k zápisu nebo null (blok nejde upravit)
+export function adjPatch(plan, live, bid, op, at) {
+  const B = plan || [], bi = B.findIndex(b => b.id === bid);
+  if (bi < 0 || !canAdj(at, bi)) return null;
+  const adj = {...((live && live.adj) || {})}, skip = (Array.isArray(live && live.skip) ? live.skip : []).filter(x => B.some(b => b.id === x));
+  Object.keys(adj).forEach(k => { if (!B.some(b => b.id === k)) delete adj[k]; });
+  const has = skip.includes(bid), base = +B[bi].dur || 1, cur = num(adj[bid]) || base;
+  if (op === "skip") return {adj, skip: has ? skip.filter(x => x !== bid) : [...skip, bid].slice(0, ADJ_MAX)};
+  if (op === "reset") { delete adj[bid]; return {adj, skip: skip.filter(x => x !== bid)}; }
+  const n = clamp(cur + (op === "+" ? 1 : -1), 1, BLK_DUR_MAX);
+  if (n === base) delete adj[bid]; else adj[bid] = n;
+  if (Object.keys(adj).length > ADJ_MAX) return null;
+  return {adj, skip: skip.filter(x => x !== bid)};
+}
+// Zbytek plánu pro úpravy: bloky po současném [{bi, id, dur (plán), eff (tento průběh), skip, adj}]
+export function liveRest(plan, live, at) {
+  const B = plan || [], E = liveBlocks(B, live);
+  return at && !at.done ? B.map((b, bi) => ({bi, id: b.id, dur: +b.dur || 0, eff: +E[bi].dur || 0, skip: !!E[bi].skip, adj: !!E[bi].adj})).filter(x => x.bi > at.bi) : [];
+}
+// Rozpočet času: planLeft = zbývá podle plánu (s), realLeft = zbývá do konce tréninku (s, null bez konce), over = o kolik plán
+// přetahuje (s, záporné = rezerva). total / sec = délka a poloha plánu tohoto průběhu, endMs = konec tréninku (ms), nowMs = teď
+export function liveBudget(total, sec, endMs, nowMs) {
+  const planLeft = Math.max(0, (num(total) || 0) - (num(sec) || 0));
+  if (num(endMs) == null || num(nowMs) == null) return {planLeft, realLeft: null, over: null};
+  const realLeft = (endMs - nowMs) / 1000;
+  return {planLeft, realLeft, over: planLeft - Math.max(0, realLeft)};
+}
+// Zkrácení současného kola o by sekund: posun hodin dopředu, nejdál na konec kola (pak začne další kolo / blok)
+export function cutSec(blocks, sec, by) {
+  const at = liveAt(blocks, sec);
+  if (!at || at.done) return num(sec) || 0;
+  return Math.min(at.b, at.sec + Math.max(0, num(by) || 0));
+}
 
 // ===== Poloha v plánu =====
 // Kde je trénink v čase sec: {done, total, sec, bi (blok), ri (kolo), nr (kol v bloku), a, b (kolo od – do, s od začátku plánu),
@@ -84,18 +135,20 @@ export function stepSec(blocks, sec, dir) {
 export const blockStart = (blocks, bi) => { const T = planTimes(blocks || []); return T[bi] ? T[bi].a : 0; };
 
 // ===== Řízení =====
-// Nový stav hodin po akci řídícího: start | pause | resume | jump (sec) | extend (sec = o kolik prodloužit) | end.
+// Nový stav hodin po akci řídícího: start | pause | resume | jump (sec) | extend (sec = o kolik prodloužit) | keep (beze změny
+// stavu – zápis úprav průběhu) | end. Start začíná bez úprav průběhu (adj / skip prázdné).
 // live = současný dokument, now / skew = hodiny tohoto zařízení, me = e-mail. Vrací pole k zápisu (sAt = čas serveru).
 export function liveCtl(kind, live, {now, skew = 0, me, sec} = {}) {
   const cur = liveSec(live, now, skew), base = {v: LIVE_VER, wAt: now, sAt: NOW_MARK, ctl: String(me || "").toLowerCase()};
   const st = live && LIVE_ST[live.st] ? live.st : null, keep = st === "pause" ? "pause" : "run";
   const at = v => clamp(Math.round((num(v) || 0) * 10) / 10, 0, LIVE_MAX);
-  if (kind === "start") return {...base, st: "run", e0: at(sec)};
+  if (kind === "start") return {...base, st: "run", e0: at(sec), adj: {}, skip: []};
   if (cur == null) return null;
   if (kind === "pause") return {...base, st: "pause", e0: at(cur)};
   if (kind === "resume") return {...base, st: "run", e0: at(cur)};
   if (kind === "jump") return {...base, st: keep === "pause" ? "pause" : "run", e0: at(sec)};
   if (kind === "extend") return {...base, st: st === "end" ? "run" : keep, e0: at(cur - (num(sec) || 60))};
+  if (kind === "keep") return {...base, st: st || "run", e0: at(cur)};
   if (kind === "end") return {...base, st: "end", e0: at(cur)};
   return null;
 }
