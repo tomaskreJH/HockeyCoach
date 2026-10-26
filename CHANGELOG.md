@@ -4,6 +4,35 @@ Historie verzí aplikace, nejnovější nahoře. Formát podle zvyklosti „Keep
 Číslování: hlavní verze (v18) = větší celek podle plánu, druhé číslo (v18.2) = fáze plánu, třetí číslo (v18.1.1) = oprava bez nových funkcí.
 Číslo verze je od v18.8 v `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`), v `package.json` (shodu hlídá `npm test`) a v názvu cache v `sw.js` (`hokej-vNN`) – mění se vždy všechna tři. Do v18.7.1 bylo v `src/data/storage.js` (`VERSION`). Úplný postup vydání: `docs/KONVENCE.md`, kapitola 4.
 
+## v21.7 (26. 10. 2026) – K-T: trénink jednodušeji – hodnocení po hráčkách, přehlednější detail události, kompaktní stopky, výběr cvičení s hledáním, náhled videa a PDF
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat; pravidla v21.6 – kolekce `treval` – musí být publikovaná). 3) Nahrát soubory (nové `src/views/drill-picker.js`; nic se nemaže). 4) Na telefonech ⚙️ → 👤 Účet → Načíst novou verzi (v21.7, cache `hokej-v90`). 5) Test podle **docs/testy-rucni.md – sekce 7** (+ rychlá kontrola sekce 6). **🔒 Vyžadovat verzi: ne** (tvar dat se nemění).
+
+**Změněno (připomínky z testu 25.–26. 10. 2026)**
+- **⭐ Hodnocení po hráčkách** (celkové hodnocení skupiny / cvičení je zbytečné): v ⏱ živém tréninku po skončeném kole vyjede „⭐ Jak šlo hráčkám?“ – seznam hráček, které byly na mém stanovišti v tom kole, řádek = jméno + 😃 🙂 😐 😴 (rychle označit, bez psaní, opětovné klepnutí zruší). Karta v detailu tréninku se jmenuje **⭐ Hodnocení hráček** („neohodnoceno N z M“), po stanovištích jako rozbalovací řádky (otevřené první s neohodnocenou hráčkou), u hráčky 📝 poznámka, u stanoviště 📝 Poznámka ke cvičení; okno linky `#tev` zrušeno. Data beze změny tvaru (`treval/{eid}.r.{linka}.pl.{pid}`), starší celkové hodnocení linky zůstává v datech.
+- **Detail události:** hlavička = den a datum, název, 🕔 čas · ⏰ sraz, 📍 místo, ✅ / ❓ / ❌ v jednom řádku a „Útočnice · Obránkyně · Brankářky · Trenéři“ (bez slova „Přihlášeno“); hráčka má v hlavičce **Tvoje odpověď**. Pořadí: výsledek zápasu → rozdělení do pětek → 📋 plán tréninku → docházka → žádosti → pokladna → **⚙ Úpravy události** (✏️ Upravit, ❌ Zrušit, 🗑 Smazat, 🧨) pod rozbalením (otevřené samo při potvrzení), formulář zrušení pod nimi. 🏒 Otevřít zápas zůstává v hlavičce.
+- **Podbarvené záhlaví karet** v celé aplikaci (`.cd > h2` nebo řádek s nadpisem na začátku karty – barva `--a2`, světlý i tmavý režim).
+- **↻ Rozdělit automaticky** je sbalený, když už je někdo v pětce (ručně rozbalený zůstane otevřený).
+- **⏲ Stopky kompaktní:** jeden řádek na hráčku (jméno + pokusy drobně, čas vpravo, ↩ na kraji), název cvičení na jeden řádek – na obrazovku se vejde ~10 hráček; ovládání beze změny.
+- **📚 Výběr cvičení v úpravě plánu:** místo dlouhého seznamu tlačítko 📚 → okno přes celou obrazovku s 🔍 hledáním (název, pomůcky, popis, bez ohledu na diakritiku), částí tréninku, dovedností a ⭐ oblíbenými; ✕ Bez cvičení; Zpět zavře.
+- **▶ Video a 📄 PDF přímo v aplikaci:** v okně cvičení (plán i banka) ▶ Přehrát video / 📄 Zobrazit PDF – YouTube, Google Disk (video i PDF) a přímý soubor .mp4 / .webm / .mov se přehrají v náhledu (načte se až po klepnutí), jinak odkaz; „otevřít zvlášť ↗“. Popisky polí ve formuláři cvičení vysvětlují týmový Google účet a sdílení „Kdokoli s odkazem“.
+
+**Opraveno**
+- **⭐ Výkonnost:** po označení hvězd seznam skočil nahoru – posun okna se pamatuje (`S.plvo.y`).
+
+**Přidáno**
+- `src/views/drill-picker.js` (výběr cvičení), `domain/training-eval.js` – `lanePids`, `rateLanes`, `unratedCount`; `domain/drills.js` – `mediaOf`; `views/drill-media.js` – `mediaHtml`, `bindMedia`.
+- README – **Provoz a správa**: týmový Google účet spravuje manager (vedoucí týmu), doporučení pro předání provozu.
+- Testy: hráčky linky a počty neohodnocených (`training-eval.test.js`), `mediaOf` (`drills.test.js`) – celkem 325.
+- `docs/testy-rucni.md` – sekce 7 (v21.7); `docs/plan-v18.md`, `docs/plan-trenink.md` – nové pořadí: v21.8 živý trénink podle skutečnosti, v21.9 štafeta, G0 hodinky, v22.0 E5.
+
+**Soubory**
+- `src/views/events.js` (detail události), `src/views/line-split-view.js`, `src/views/treval-view.js`, `src/views/trlive-view.js`, `src/views/trplan-view.js`, `src/views/stopwatch-view.js`, `src/views/drills-view.js`, `src/views/drill-media.js`, `src/views/drill-picker.js` (nový), `src/domain/training-eval.js`, `src/domain/drills.js`, `src/core/nav.js` (Zpět zavře výběr cvičení), `styles/main.css`, `src/views/help.js`, verze `app-version.js`, `package.json`, `sw.js` → `hokej-v90`, `README.md`, `docs/KONVENCE.md`, `docs/plan-v18.md`, `docs/plan-trenink.md`, `docs/testy-rucni.md`, `docs/prompt-dalsi-vlakno.md`, `tests/training-eval.test.js`, `tests/drills.test.js`.
+- **Návod pro trenéry (Claude Docs) upravit:** hodnocení po hráčkách (výzva po kole, karta ⭐ Hodnocení hráček), výběr cvičení 📚 s hledáním, videa a PDF na týmovém Google Disku (sdílení „Kdokoli s odkazem“), úpravy události dole pod ⚙.
+
+**Beze změny**
+- Pravidla databáze, tvar dat, `HK.can` a matice práv, živý zápis zápasu, statistiky, docházka (jen jinde na stránce), pokladna, žádosti, nepřítomnost, hostující, hodiny živého tréninku, výpočty stopek.
+- Ověřeno: `npm test` (325/325); kouřový test v jsdom (Manager, Trenér, Trenér bez `rv`, Asistent, Hráčka, Pokladník-hráčka, Hostující, Kustod, vývojář; asistent bez `treval e`): start bez chyb, hlavička a pořadí detailu, „Tvoje odpověď“ jen u hráčky, ⚙ Úpravy jen u realizačního týmu, hodnocení hráčky zapíše jen `treval/e1` (`pl.p1.r`, druhé klepnutí `0`, poznámky hráčky i cvičení, starší data linky zachována), výzva v živém tréninku s hráčkami kola, hráčka / hostující hodnocení nevidí; Chromium (Playwright) 360 px – detail tréninku, karta hodnocení s poznámkou, stopky s 12 hráčkami, živý trénink s výzvou, výběr cvičení (hledání „stř“), záložky 🏠 / Události / Team / Statistiky / Soupeři: `scrollWidth = 360`, bez chyb JavaScriptu.
+
 ## v21.6 (25. 10. 2026) – E4: ⭐ hodnocení cvičení a hráček, výzva v živém tréninku, ruční testovací plán (modul Trénink)
 > **Nasazení:** 1) Záloha (⚙️ → 💾 Data → Stáhnout zálohu) a zip současného repozitáře. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nová kolekce `treval` – hodnocení; jen rozšíření, v21.5 s novými pravidly funguje beze změny; pokladny a plateb se změna netýká). Zkontroluj, že jsou publikovaná i pravidla v21.4 (`trms`). 3) Nahrát soubory (nové `src/domain/training-eval.js`, `src/views/treval-view.js`, `tests/training-eval.test.js`, `docs/testy-rucni.md`; nic se nemaže). 4) Na telefonech ⚙️ → 👤 Účet → Načíst novou verzi (v21.6, cache `hokej-v89`). 5) Test na Androidu podle **docs/testy-rucni.md** – sekce 5 (hodnocení), a protože v21.3 – v21.5 zatím nebyly otestované, i sekce 1 – 4 a 6. **🔒 Vyžadovat verzi: ne** (stávající data se nemění).
 > Pokud se pravidla nepublikují, karta ⭐ Hodnocení ukáže „Hodnocení se nepodařilo načíst … v21.6“ a uložení skončí hláškou „Uložení se nepovedlo“; zbytek funguje. Návrat: nahrát zip v21.5 (pravidla v21.6 mohou zůstat).

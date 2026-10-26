@@ -105,3 +105,21 @@ test("pravidla: treval čte treval r, zapisuje a maže treval e, dokument jen se
   assert.match(m[1], /allow delete: if can\('treval', 'e'\);/);
   assert.match(R, /function trevalOk\(d\) \{\s+return d\.keys\(\)\.hasOnly\(\['v', 'r', 'by', 'at'\]\) && d\.r is map && d\.r\.size\(\) <= 120 && d\.get\('by', mail\(\)\) == mail\(\);/);
 });
+
+// ===== Hráčky na lince (v21.7 – hodnocení po hráčkách) =====
+test("lanePids a rateLanes: hráčky linky v kole i za celý blok, brankářky, Společně bez skupin = všechny v poli", async () => {
+  const {lanePids, rateLanes, unratedCount} = await import("../src/domain/training-eval.js");
+  const {rotation} = await import("../src/domain/training-plan.js");
+  const R = {lines: {a: 1, b: 1, c: 2, d: 2}, skaters: [{id: "a", pos: "Útočnice"}, {id: "b", pos: "Obránkyně"}, {id: "c", pos: "Útočnice"}, {id: "d", pos: "Útočnice"}], goalies: ["g"]};
+  const P = {blocks: [{id: "b1", mode: "all", dur: 10, lanes: [{id: "l1", drill: "d3", grp: []}]},
+    {id: "b2", mode: "st", dur: 20, lanes: [{id: "l2", drill: "d1", grp: [1]}, {id: "l3", drill: "d2", grp: [2]}, {id: "l4", drill: "d2", grp: ["G"]}]}]};
+  const b2 = P.blocks[1], r = rotation(b2);
+  assert.deepEqual(lanePids(P.blocks[0], P.blocks[0].lanes[0], R), ["a", "b", "c", "d"]);
+  assert.deepEqual(lanePids(b2, b2.lanes[0], R, r[0]), ["a", "b"], "1. kolo: pětka 1");
+  assert.deepEqual(lanePids(b2, b2.lanes[0], R, r[1]), ["c", "d"], "2. kolo: pětka 2");
+  assert.deepEqual(lanePids(b2, b2.lanes[0], R), ["a", "b", "c", "d"], "za celý blok všechny, které linkou projdou");
+  assert.deepEqual(lanePids(b2, b2.lanes[2], R), ["g"]);
+  const L = rateLanes(P, D, R);
+  assert.deepEqual(L.map(l => l.pids.length), [4, 4, 4, 1]);
+  assert.deepEqual(unratedCount(L, {r: {b2_l2: {pl: {a: {r: 4}, b: {r: 0}}}}}), {n: 12, all: 13});
+});

@@ -26,18 +26,19 @@ let W = null;
 const CSS = `<style>
 #tsw{position:fixed;inset:0;z-index:45;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
 #tsw .swh{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-#tsw .swh h2{flex:1;margin:0;font-size:18px}
-#tsw .swr{border:2px solid var(--bd);border-radius:12px;padding:6px;margin-bottom:8px}
+#tsw .swh h2{flex:1;min-width:0;margin:0;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tsw .swr{display:flex;align-items:stretch;gap:4px;border:2px solid var(--bd);border-radius:10px;margin-bottom:3px;background:var(--cd,transparent)}
 #tsw .swr.on{border-color:var(--no)}
-#tsw .swn{display:flex;width:100%;align-items:center;gap:8px;min-height:62px;font-size:18px;text-align:left;background:var(--cd,transparent);border:0;color:var(--tx)}
-#tsw .swn b{flex:1}
-#tsw .swt{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;min-width:110px;text-align:right}
+#tsw .swn{display:flex;flex:1;min-width:0;align-items:center;gap:6px;min-height:46px;padding:2px 8px;font-size:16px;text-align:left;background:none;border:0;color:var(--tx)}
+#tsw .swnm{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.15}
+#tsw .swnm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tsw .swnm small{font-size:12px;color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tsw .swt{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;min-width:84px;text-align:right}
 #tsw .swr.on .swt{color:var(--no)}
-#tsw .swi{display:flex;gap:6px;align-items:center;font-size:13px;flex-wrap:wrap}
-#tsw .swi span{flex:1}
-#tsw .swc{display:flex;gap:6px;align-items:center;margin-top:4px}
-#tsw .swc input{width:90px;margin:0;text-align:center;font-size:20px}
-#tsw .swc button{min-height:48px;min-width:52px}
+#tsw .swu{flex:none;min-width:40px;padding:0 6px;border:0;border-left:1px solid var(--bd);background:none;color:var(--tx);border-radius:0 8px 8px 0}
+#tsw .swc{display:flex;gap:4px;align-items:center;padding:4px 6px 4px 0}
+#tsw .swc input{width:62px;margin:0;text-align:center;font-size:18px}
+#tsw .swc button{min-height:44px;min-width:40px;padding:0 8px}
 #evw .mst{width:100%;border-collapse:collapse;margin:4px 0 8px}
 #evw .mst td,#evw .mst th{padding:4px 3px;border-bottom:1px solid var(--bd);font-size:13px;text-align:left}
 #evw .mst tr.me td{font-weight:800;background:color-mix(in srgb,var(--ac) 14%,transparent)}
@@ -94,24 +95,26 @@ ${show.map((m, i) => { const e = entryOf(m.key) || {u: m.u, low: m.low, ms: {}};
 }
 
 // ===== Vykreslení: okno stopek =====
+// Jeden kompaktní řádek na hráčku (víc hráček na obrazovce bez posouvání): jméno + pokusy drobně, čas vpravo, ↩ smazat poslední
 function rowHtml(pid, now) {
   const m = W.m, vals = triesOf(pid), best = bestOf(vals, m.low), run = W.run[pid] != null, last = vals[vals.length - 1];
-  const undo = vals.length ? `<button class="s" data-swu="${esc(pid)}" style="flex:none;padding:4px 10px;min-height:40px;${armed("swu" + pid) ? "background:var(--wa);color:#fff" : ""}">${armed("swu" + pid) ? "Smazat poslední?" : "↩"}</button>` : "";
-  const info = `<div class="swi"><span class="mu">${vals.length ? vals.length + "× · " + vals.slice(-5).map(v => esc(fmtVal(v, m.u).replace(/ (s|ks|b)$/, ""))).join(" · ") : "bez pokusu"}${best != null ? ` · ⭐ <b>${esc(fmtVal(best, m.u))}</b>` : ""}</span>${undo}</div>`;
+  const ku = "swu" + pid, undo = vals.length ? `<button class="swu" data-swu="${esc(pid)}" style="${armed(ku) ? "background:var(--wa);color:#fff" : ""}" title="Smazat poslední pokus">${armed(ku) ? "Smazat?" : "↩"}</button>` : "";
+  const info = vals.length ? vals.length + "× · " + vals.slice(-4).map(v => fmtVal(v, m.u).replace(/ (s|ks|b)$/, "")).join(" · ") + (best != null ? " · ⭐ " + fmtVal(best, m.u) : "") : "bez pokusu";
+  const name = `<span class="swnm"><b>${esc(nm(pid))}</b><small>${esc(info)}</small></span>`;
   if (m.u === "s") {
     const t = run ? swText(swSec(W.run, pid, now)) : last != null ? fmtVal(last, "s").replace(" s", "") : "–";
-    return `<div class="swr ${run ? "on" : ""}"><button class="swn" data-sw="${esc(pid)}"><b>${run ? "⏹ " : "▶ "}${esc(nm(pid))}</b><span class="swt" data-swt="${esc(pid)}">${esc(t)}</span></button>${info}</div>`;
+    return `<div class="swr ${run ? "on" : ""}"><button class="swn" data-sw="${esc(pid)}">${run ? "⏹" : "▶"} ${name}<span class="swt" data-swt="${esc(pid)}">${esc(t)}</span></button>${undo}</div>`;
   }
   const v = W.val[pid] != null ? W.val[pid] : "";
-  return `<div class="swr"><div style="font-size:18px;font-weight:700">${esc(nm(pid))}</div><div class="swc"><button class="s" data-swm="${esc(pid)}|-1">−</button><input type="text" inputmode="decimal" data-swv="${esc(pid)}" value="${esc(v)}" placeholder="0"><button class="s" data-swm="${esc(pid)}|1">+</button><button class="p" data-swok="${esc(pid)}" style="flex:1">✓ Zapsat</button></div>${info}</div>`;
+  return `<div class="swr"><div class="swn" style="cursor:default">${name}</div><div class="swc"><button class="s" data-swm="${esc(pid)}|-1">−</button><input type="text" inputmode="decimal" data-swv="${esc(pid)}" value="${esc(v)}" placeholder="0"><button class="s" data-swm="${esc(pid)}|1">+</button><button class="p" data-swok="${esc(pid)}">✓</button></div>${undo}</div>`;
 }
 function screenHtml() {
   const m = W.m, now = Date.now(), nRun = Object.keys(W.run).length, rest = W.all.filter(p => !W.pids.includes(p));
   const kx = "swx" + W.eid;
   return CSS + `<div class="swh"><button class="s" id="tswx" style="flex:none;min-height:48px;${armed(kx) ? "background:var(--wa);color:#fff" : ""}">${armed(kx) ? "Běží stopky – zavřít?" : "✕ Hotovo"}</button><h2>⏲ ${esc(m.dn)}</h2></div>
-<div class="mu" style="margin-bottom:8px">${esc(UNITS[m.u] || "")} · ${m.low ? "nižší je lepší" : "vyšší je lepší"} · ${m.u === "s" ? "klepnutí na jméno = start / stop, každé zastavení je pokus" : "zadej číslo a ✓ Zapsat"} · nejvýš ${MS_MAX} pokusů</div>
+<div class="mu" style="margin-bottom:6px;font-size:13px">${esc(UNITS[m.u] || "")} · ${m.low ? "nižší je lepší" : "vyšší je lepší"} · ${m.u === "s" ? "klepnutí na jméno = start / stop, každé zastavení je pokus" : "zadej číslo a ✓"} · nejvýš ${MS_MAX} pokusů</div>
 ${M.err ? `<div class="msg">Výsledky se nepodařilo načíst (${esc(M.err)}) – uložení nejspíš neprojde.</div>` : ""}
-${m.u === "s" && W.pids.length ? `<div class="row" style="margin-bottom:8px"><button class="p" id="tswa" style="min-height:52px">▶ Start všech (${W.pids.length - nRun})</button><button class="d" id="tswz" style="min-height:52px" ${nRun ? "" : "disabled"}>⏹ Stop všech (${nRun})</button></div>` : ""}
+${m.u === "s" && W.pids.length ? `<div class="row" style="margin-bottom:6px"><button class="p" id="tswa" style="min-height:48px">▶ Start všech (${W.pids.length - nRun})</button><button class="d" id="tswz" style="min-height:48px" ${nRun ? "" : "disabled"}>⏹ Stop všech (${nRun})</button></div>` : ""}
 ${W.pids.map(p => rowHtml(p, now)).join("") || '<div class="mu">Na lince teď nikdo není – přidej hráčku.</div>'}
 ${rest.length ? `<label>+ Přidat hráčku</label><select id="tswp"><option value="">— vyber —</option>${rest.map(p => `<option value="${esc(p)}">${esc(nm(p))}</option>`).join("")}</select>` : ""}`;
 }
@@ -201,8 +204,6 @@ export function openStopwatch(eid, m, pids, all) {
 export function msData(eid) { ensureMs(eid); return M.res; }
 // Smí přihlášený měřit (stopky v ⏱ živém tréninku)
 export const mayMeasure = () => canMs();
-// Hráčky linky plánu (pro ⭐ hodnocení hráček): brankářská linka = brankářky, stanoviště = hráčky v poli, společný blok = vybrané skupiny
-export const lanePlayers = (b, l, X) => lanePids(b, l, X);
 // Karta „⏲ Výsledky měření“ do karty plánu (prázdný text, když plán nic neměří a výsledky nejsou); D = banka cvičení {id: cvičení}
 export function msCardHtml(eid, plan, D) { return HK.perm("trplan", "r") ? cardHtml(eid, plan, D) : ""; }
 // getX = údaje tréninku (plan, D, X z trplan-view) – ⏲ Měřit otevře stopky pro hráčky linky

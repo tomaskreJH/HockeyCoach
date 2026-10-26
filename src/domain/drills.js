@@ -2,6 +2,7 @@
 // Dokument drills/{id}: name, cat, sk [dovednosti], lvl 1–3, dur (min), grp [all|st|gk], eq, desc, url, pdf, img [id obrázků], meas {u, low} | null, by, at, arch.
 // Obrázky jsou samostatné dokumenty drillimg/{id} = {d (data:image/jpeg;base64), did, w, h, by, at} – zmenšené v zařízení, nejvýš IMG_MAX na cvičení.
 // Cvičení se z banky nemaže, ale vyřazuje (arch: true) – plány tréninku na něj mohou odkazovat; smazat jde jen vyřazené.
+// Odkazy url (video) a pdf se v aplikaci přehrají v náhledu (mediaOf – YouTube, Google Disk, soubor .mp4 / .webm), jinak se otevřou.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Kontrola a úprava -> Obrázky -> Seznam a filtr -> Kopie a vyřazení.
 
 // ===== Importy =====
@@ -117,3 +118,17 @@ export function drillCopy(d) {
 }
 // Smí se cvičení smazat? Jen vyřazené (aktivní se nejdřív vyřadí); used = počet plánů, které ho používají (od E2)
 export const drillCanDelete = (d, used = 0) => !!(d && d.arch) && !used;
+
+// ===== Náhled videa a dokumentu =====
+// Jak zobrazit odkaz cvičení přímo v aplikaci: {kind: "yt" | "drive" | "video" | "link", src} – YouTube a Google Disk (video i PDF)
+// v rámečku přehrávače, soubor .mp4 / .webm / .mov přímo v přehrávači, ostatní jen odkazem (otevře se v novém okně)
+export function mediaOf(url) {
+  const u = String(url || "").trim();
+  if (!/^https?:\/\//i.test(u)) return null;
+  let m = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/i.exec(u);
+  if (m) return {kind: "yt", src: "https://www.youtube-nocookie.com/embed/" + m[1]};
+  m = /drive\.google\.com\/(?:file\/d\/|open\?(?:.*&)?id=|uc\?(?:.*&)?id=)([\w-]{10,})/i.exec(u);
+  if (m) return {kind: "drive", src: "https://drive.google.com/file/d/" + m[1] + "/preview"};
+  if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return {kind: "video", src: u};
+  return {kind: "link", src: u};
+}

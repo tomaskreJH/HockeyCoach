@@ -16,7 +16,7 @@ import {HK} from "../data/storage.js";
 import {DRILLIMG_COLL, DRILL_COLL, DRILL_MAX, DUR_MAX, DUR_MIN, IMG_MAX, drillBlank, drillCanDelete, drillCopy, drillCounts, drillDoc, drillError, drillFilter, imgChanges, imgDoc} from "../domain/drills.js";
 import {TRTPL_COLL} from "../domain/plan-reuse.js";
 import {TRPLAN_COLL, drillUsage} from "../domain/training-plan.js";
-import {bindThumbs, imgForget, imgRemember, imgSrc, loadImgs, shrinkImage, thumbsHtml} from "./drill-media.js";
+import {bindMedia, bindThumbs, imgForget, imgRemember, imgSrc, loadImgs, mediaHtml, shrinkImage, thumbsHtml} from "./drill-media.js";
 import {bindImportBtns, importBtnsHtml, importOpen, importView} from "./drill-import-view.js";
 import {render} from "./shell.js";
 
@@ -102,8 +102,8 @@ ${d.eq ? `<div class="mu">Pomůcky: ${esc(d.eq)}</div>` : ""}
 ${d.meas ? `<div class="mu">⏲ Měření: ${esc(measText(d.meas))}</div>` : ""}
 ${d.desc ? `<div style="white-space:pre-wrap;margin:6px 0">${esc(d.desc)}</div>` : ""}
 ${thumbsHtml(d.img, 96, render)}
-${d.url ? `<div><a href="${esc(d.url)}" target="_blank" rel="noopener">▶ Video / odkaz</a></div>` : ""}
-${d.pdf ? `<div><a href="${esc(d.pdf)}" target="_blank" rel="noopener">📄 PDF / dokument</a></div>` : ""}
+${d.url ? mediaHtml(d.url, "▶ Přehrát video") : ""}
+${d.pdf ? mediaHtml(d.pdf, "📄 Zobrazit PDF") : ""}
 <div class="mu" style="font-size:12px;margin-top:4px">${d.by ? "Upravil(a) " + esc(d.by) : ""}${d.at ? " · " + esc(String(d.at).slice(0, 10)) : ""}</div>
 <div class="row" style="margin-top:8px;flex-wrap:wrap">
 <button class="s" data-fav="${esc(d.id)}" style="flex:none">${F.has(d.id) ? "☆ Odebrat z oblíbených" : "⭐ Oblíbené"}</button>
@@ -125,8 +125,8 @@ function formHtml(E) {
 <div class="row"><div><label>Délka (min, ${DUR_MIN}–${DUR_MAX})</label><input id="dfd" type="number" inputmode="numeric" min="${DUR_MIN}" max="${DUR_MAX}" value="${esc(d.dur)}"></div>
 <div style="flex:2"><label>Pomůcky</label><input id="dfe" maxlength="${DRILL_MAX.eq}" value="${esc(d.eq)}" placeholder="kužely, puky, …"></div></div>
 <label>Popis</label><textarea id="dfs" rows="5" maxlength="${DRILL_MAX.desc}">${esc(d.desc)}</textarea>
-<label>Odkaz na video (nepovinné)</label><input id="dfu" maxlength="${DRILL_MAX.url}" inputmode="url" value="${esc(d.url)}" placeholder="https://…">
-<label>📄 Odkaz na PDF (nepovinné – např. sdílený soubor na Google Disku)</label><input id="dfp" maxlength="${DRILL_MAX.url}" inputmode="url" value="${esc(d.pdf || "")}" placeholder="https://…">
+<label>▶ Odkaz na video (nepovinné – YouTube, Google Disk, soubor .mp4 / .webm; přehraje se v aplikaci)</label><input id="dfu" maxlength="${DRILL_MAX.url}" inputmode="url" value="${esc(d.url)}" placeholder="https://…">
+<label>📄 Odkaz na PDF (nepovinné – Google Disk týmového účtu, sdílení „Kdokoli s odkazem“)</label><input id="dfp" maxlength="${DRILL_MAX.url}" inputmode="url" value="${esc(d.pdf || "")}" placeholder="https://…">
 ${imgFormHtml(E)}
 <label>⏲ Měření pro stopky a testy</label><select id="dfm"><option value="">Neměří se</option>${Object.entries(UNITS).map(([k, t]) => `<option value="${k}" ${m && m.u === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
 ${m ? `<label class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><input id="dfl" type="checkbox" style="width:auto;margin:0" ${m.low ? "checked" : ""}> Nižší hodnota je lepší (např. čas)</label>` : ""}
@@ -228,6 +228,7 @@ function bindItems(a) {
   a.querySelectorAll("[data-ded]").forEach(b => b.onclick = () => { const d = byId(b.dataset.ded); if (d) { S.dre = draft(d.id, drillDoc(d)); render(); window.scrollTo(0, 0); } });
   a.querySelectorAll("[data-dcp]").forEach(b => b.onclick = () => { const d = byId(b.dataset.dcp); if (d) { S.dre = draft(null, drillCopy(d)); render(); window.scrollTo(0, 0); } });
   bindThumbs(a);
+  bindMedia(a);
   a.querySelectorAll("[data-dar]").forEach(b => b.onclick = () => archToggle(b.dataset.dar));
   a.querySelectorAll("[data-ddl]").forEach(b => b.onclick = () => { const id = b.dataset.ddl; confirm2("dr-del:" + id, () => removeDrill(id)); });
 }

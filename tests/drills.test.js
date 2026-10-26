@@ -131,3 +131,18 @@ test("pravidla: kolekce drills podle matice (číst r, zakládat a upravovat e s
   [...DRILL_FIELDS, "by", "at", "arch"].forEach(f => assert.ok(ok[1].includes("'" + f + "'"), "drillOk nezná pole " + f));
   assert.match(ok[1], /d\.name\.size\(\) <= 80/);
 });
+
+// ===== Náhled videa a PDF (v21.7) =====
+test("mediaOf: YouTube, Google Disk, soubor videa, ostatní odkaz, neplatné", async () => {
+  const {mediaOf} = await import("../src/domain/drills.js");
+  assert.deepEqual(mediaOf("https://www.youtube.com/watch?v=abcDEF12345"), {kind: "yt", src: "https://www.youtube-nocookie.com/embed/abcDEF12345"});
+  assert.equal(mediaOf("https://youtu.be/abcDEF12345?t=3").src, "https://www.youtube-nocookie.com/embed/abcDEF12345");
+  assert.equal(mediaOf("https://youtube.com/shorts/abcDEF12345").kind, "yt");
+  assert.deepEqual(mediaOf("https://drive.google.com/file/d/1AbCdEfGhIjKlMn/view?usp=sharing"), {kind: "drive", src: "https://drive.google.com/file/d/1AbCdEfGhIjKlMn/preview"});
+  assert.equal(mediaOf("https://drive.google.com/open?id=1AbCdEfGhIjKlMn").kind, "drive");
+  assert.deepEqual(mediaOf("https://x.cz/cviceni.webm"), {kind: "video", src: "https://x.cz/cviceni.webm"});
+  assert.equal(mediaOf("https://x.cz/a.MP4?x=1").kind, "video");
+  assert.equal(mediaOf("https://x.cz/plan.pdf").kind, "link");
+  assert.equal(mediaOf("javascript:alert(1)"), null);
+  assert.equal(mediaOf(""), null);
+});

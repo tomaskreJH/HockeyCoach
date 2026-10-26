@@ -3,7 +3,7 @@
 // převzetí řízení od jiného trenéra druhým klepnutím. Každý vidí „Moje stanoviště“ (trenér své linky, hráčka linku své skupiny),
 // odpočet kola, hráčky na lince, co následuje; vibrace a zvuk 60 s a 10 s před koncem kola, obrazovka nezhasíná. Výpočty domain/training-live.js.
 // ⌚ Oznámení (volitelně, hk-tl-ntf): systémové oznámení „co teď / co potom“ – Android ho zrcadlí na hodinky; řídící má v oznámení ⏸ / ⏭.
-// ⏲ Stopky u měřeného cvičení na mé lince (views/stopwatch-view.js), ⭐ hodnocení kola, které skončilo, jedním klepnutím
+// ⏲ Stopky u měřeného cvičení na mé lince (views/stopwatch-view.js), ⭐ hodnocení hráček kola, které skončilo (seznam, jedno klepnutí na hráčku)
 // (views/treval-view.js) – obojí smí HK.perm("treval", "e").
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Zvuk, oznámení a obrazovka -> Poslech -> Vykreslení (karta, obrazovka; tik mění jen čísla) -> Eventy -> Exporty.
 
@@ -14,7 +14,7 @@ import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {laneMeas} from "../domain/stopwatch.js";
-import {evalLanes, prevSpot} from "../domain/training-eval.js";
+import {prevSpot} from "../domain/training-eval.js";
 import {LIVE_ST, TRLIVE_COLL, alertsDue, coachLanes, groupPids, liveAt, liveCtl, liveNote, liveSec, mmss, skewNext, skewObs, stepSec} from "../domain/training-live.js";
 import {DF, FW, GK, MODES, clock, grpLabel, isPosBlock, laneOf, laneTags, planTimes} from "../domain/training-plan.js";
 import {render} from "./shell.js";
@@ -188,13 +188,15 @@ function nextHtml(B, at, X) {
   const what = n.bi !== at.bi ? `blok ${n.bi + 1} · ${MODES[b.mode]}` : `kolo ${n.ri + 1}/${n.nr} (točení)`;
   return `<div class="tlln" style="margin-top:8px"><div class="mu">Za ${mmss(at.left)} → ${what}</div>${l ? `<div><b>${esc(d ? d.name : l.dn || "?")}</b> · ${((n.round.lanes[l.id]) || l.grp || []).map(chip).join("") || "všichni"}</div>` : ""}</div>`;
 }
-// ⭐ Výzva k hodnocení skončeného kola (realizační tým s právem hodnotit): moje linky předchozího kola, po konci plánu poslední kolo
+// ⭐ Výzva k hodnocení hráček skončeného kola (realizační tým s právem hodnotit): hráčky mých linek předchozího kola, po konci plánu poslední kolo
 function rateHtml(B, at, X) {
   if (!L.live || !LIVE_ST[L.live.st]) return "";
-  const pv = prevSpot(B, at), all = evalLanes(X.plan, X.D);
-  if (!pv || pv.done) return at && at.done ? liveEvalHtml(L.eid, [], all, true) : "";
+  const pv = prevSpot(B, at);
+  if (!pv || pv.done) return at && at.done ? liveEvalHtml(L.eid, [], X, true) : "";
+  // Trenér hodnotí hráčky svých linek; kdo žádnou linku nevede, vidí všechny linky skončeného kola
   const b = B[pv.bi], M = mine(b, pv.round, X), ids = M == null || !M.length ? (b.lanes || []).map(l => l.id) : M;
-  return liveEvalHtml(L.eid, all.filter(l => l.bid === b.id && ids.includes(l.lid)), all, !!(at && at.done));
+  const spots = (b.lanes || []).filter(l => ids.includes(l.id) && l.drill).map(lane => ({block: b, lane, round: pv.round}));
+  return liveEvalHtml(L.eid, spots, X, !!(at && at.done));
 }
 function controlsHtml(v, at) {
   if (!canE()) return "";
@@ -279,9 +281,9 @@ function bind() {
   el.querySelector("#tlx").onclick = close;
   el.querySelector("#tlm").onclick = () => { try { localStorage.setItem(MUTE_KEY, muted() ? "0" : "1"); } catch (e) { /* bez paměti */ } paint(); if (!muted()) beep(1); };
   el.querySelector("#tln").onclick = toggleNtf;
-  // ⭐ Hodnocení skončeného kola jedním klepnutím (bez psaní)
+  // ⭐ Hodnocení hráček skončeného kola (bez psaní)
   const X0 = L.getX ? L.getX() : null;
-  if (X0 && X0.plan) bindLiveEval(el, L.eid, evalLanes(X0.plan, X0.D), paint);
+  if (X0 && X0.plan) bindLiveEval(el, L.eid, X0, paint);
   // ⏲ Stopky měřeného cvičení: hráčky linky v tomto kole (u Společně bez skupin všechny hráčky v poli)
   el.querySelectorAll("[data-tsw]").forEach(b => b.onclick = () => {
     const X = L.getX ? L.getX() : null, B = (X && X.plan && X.plan.blocks) || [], [bid, lid] = b.dataset.tsw.split("|");

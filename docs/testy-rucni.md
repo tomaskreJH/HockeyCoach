@@ -1,4 +1,4 @@
-# Ruční testy na Androidu – modul Trénink (v21.3 – v21.6)
+# Ruční testy na Androidu – modul Trénink (v21.3 – v21.7)
 
 Kontrolní seznam pro test na telefonu po nasazení. Automatické testy (`npm test`) a kouřový test v jsdom ověřují výpočty a zápisy,
 **ne** skutečné chování telefonu, pravidla databáze, vibrace, oznámení ani hodinky – to ověří jen tento seznam.
@@ -58,7 +58,7 @@ Po každé verzi se doplní nová sekce (postup vydání v `docs/KONVENCE.md`, k
 | 4.3 | Nový trénink bez plánu, s přihlášenými → ✨ **Připravit trénink** | Hláška „Pětky rozděleny: …“ (jen když ještě nikdo není v pětce), otevře se plán s ⧉ Jako minule a 📑 Šablona → vybrat → 💾 Uložit. Už rozdělené pětky se nepřepíšou. |
 | 4.4 | ✏️ Upravit plán → blok | Vidíš jen cvičení, ⏱ čas a skupiny; ⚙ **Další volby** otevře režim, skupiny, točení, trenéry, souběžnou linku. Blok, který je používá, má volby otevřené sám. |
 
-## 5. v21.6 – ⭐ hodnocení cvičení
+## 5. v21.6 – ⭐ hodnocení (od v21.7 po hráčkách – viz sekce 7; kroky 5.2–5.7 platí jen pro v21.6)
 | # | Postup | Očekávaný výsledek |
 |---|---|---|
 | 5.1 | Karta plánu (trénink dnes nebo dřív) | Pod výsledky měření rozbalená karta **⭐ Hodnocení cvičení · neohodnoceno N z M** (budoucí trénink sbalená). |
@@ -72,6 +72,21 @@ Po každé verzi se doplní nová sekce (postup vydání v `docs/KONVENCE.md`, k
 | 5.9 | 🔐 asistent bez ⭐ hodnocení (viz 3.11) | Asistent kartu vidí jen ke čtení (bez tlačítek), výzva v živém tréninku není. |
 | 5.10 | ⚙️ → 💾 Data → Stáhnout zálohu | V záloze je `treval` (otevřít soubor, hledat „treval“). |
 | 5.11 | Pravidla nepublikovaná (jen pokud se testuje před publikováním) | Karta ukáže „Hodnocení se nepodařilo načíst… v21.6“, nic jiného se nerozbije. |
+
+## 7. v21.7 – trénink jednodušeji
+| # | Postup | Očekávaný výsledek |
+|---|---|---|
+| 7.1 | Detail tréninku | Hlavička: den a datum, název, 🕔 čas · ⏰ sraz, 📍 místo, ✅ / ❓ / ❌ počty, „Útočnice: … · Obránkyně: … · Brankářky: … · Trenéři: …“ (bez slova Přihlášeno). Pod tím pětky, plán; docházka níž; dole ⚙ Úpravy události (rozbalit → ✏️ / ❌ / 🗑). |
+| 7.2 | Nadpisy karet (Docházka, Rozdělení do pětek, Plán tréninku, Team, Statistiky …) | Záhlaví karty je podbarvené, bloky jsou na první pohled oddělené. Tmavý režim čitelný. |
+| 7.3 | Hráčka (účet / náhled): detail tréninku | V hlavičce „Tvoje odpověď“ s ✅ ❓ ❌ – odpoví bez posouvání dolů. |
+| 7.4 | Rozdělení do pětek, když už jsou rozdělené | Panel „↻ Rozdělit automaticky“ je sbalený; rozbalit klepnutím – zůstane otevřený. |
+| 7.5 | ⭐ Výkonnost → dole v seznamu klepnout na hvězdy u několika hráček | Seznam **neskočí nahoru**, zůstává na místě. |
+| 7.6 | ❌ Zrušit (v ⚙ Úpravy události) → formulář s důvodem | Formulář se ukáže dole pod úpravami, zrušení i obnovení funguje jako dřív. |
+| 7.7 | Živý trénink, po skončeném kole | „⭐ Jak šlo hráčkám?“ – seznam hráček tvého stanoviště z kola, řádek = jméno + 4 smajlíky. Klepnutí označí (vibrace), opětovné klepnutí zruší. Žádné psaní. |
+| 7.8 | Detail tréninku → ⭐ Hodnocení hráček | „neohodnoceno N z M“; stanoviště jako rozbalovací řádky (první neohodnocené otevřené); 📝 u hráčky = poznámka, 📝 Poznámka ke cvičení; uložení hned, na B se objeví. |
+| 7.9 | ⏲ Stopky s 10–12 hráčkami | Řádky kompaktní – na obrazovku se vejde ~10 hráček; klepnutí na řádek = start / stop, ↩ vpravo smaže poslední pokus (druhým klepnutím). |
+| 7.10 | ✏️ Upravit plán → u cvičení tlačítko 📚 | Okno s 🔍 hledáním (diakritika nevadí: „strel“ najde Střelba), část tréninku, dovednost, ⭐ oblíbená; klepnutí vybere a vrátí se do plánu na stejné místo; Zpět okno zavře. |
+| 7.11 | Cvičení s odkazem na YouTube / Google Disk (video, PDF) / .mp4 | V okně cvičení (plán i banka) ▶ Přehrát video / 📄 Zobrazit PDF → přehraje se přímo v aplikaci; „otevřít zvlášť ↗“ otevře v novém okně. Soubor na Disku musí mít sdílení „Kdokoli s odkazem“. |
 
 ## 6. Rychlá kontrola, že se nic nerozbilo (po každé verzi, 5 minut)
 - [ ] 🏠 Domů se načte bez chyby, nadcházející události a moje platby.

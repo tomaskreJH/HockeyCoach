@@ -33,6 +33,7 @@ import {render} from "../views/shell.js";
 const DOM_LAYERS = [
   "#imv #imx",                 // obrázek cvičení přes celou obrazovku (views/drill-media.js)
   "#hlp #hlx",                 // nápověda
+  "#dpk #dpx",                 // 📚 výběr cvičení v úpravě plánu (views/drill-picker.js)
   "#tsw #tswx",                // ⏲ stopky (nad živým tréninkem; s běžícími stopkami se ptá druhým klepnutím)
   "#tev #tevx",                // ⭐ hodnocení linky tréninku (poznámka a hráčky; views/treval-view.js)
   "#tlv #tlx",                 // ⏱ živý trénink přes celou obrazovku (views/trlive-view.js; hodiny běží dál ostatním)

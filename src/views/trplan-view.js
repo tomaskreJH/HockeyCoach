@@ -19,7 +19,8 @@ import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {BY, DF, FW, GK, MODES, PLAN_MAX, POS_GRPS, TRPLAN_COLL, blockBlank, blockExtras, clock, groupIn, groupsFor, grpLabel, hm2min, isFixedLane, isPosBlock, laneBlank, laneOf, laneTags, moveBlock, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, posGroups, posGrp, rotation} from "../domain/training-plan.js";
-import {bindThumbs, thumbsHtml} from "./drill-media.js";
+import {bindMedia, bindThumbs, mediaHtml, thumbsHtml} from "./drill-media.js";
+import {openDrillPicker} from "./drill-picker.js";
 import {bindCover, bindReuse, coverHtml, loadPrep, reuseHtml} from "./trplan-reuse.js";
 import {quickSplit} from "./line-split-view.js";
 import {bindLiveCard, liveCardHtml} from "./trlive-view.js";
@@ -150,7 +151,7 @@ function drillSheetHtml(p, X, D) {
 ${d ? `<div class="mu">${esc(CATS[d.cat] || "")} · ${LEVELS[d.lvl] || ""} · ${+d.dur || "?"} min</div>` : ""}${co ? `<div class="mu">${co}</div>` : ""}
 ${thumbsHtml(img, 160, render) || '<div class="mu" style="margin:6px 0">Bez obrázku.</div>'}
 ${d && d.eq ? `<div class="mu">Pomůcky: ${esc(d.eq)}</div>` : ""}${d && d.desc ? `<div style="white-space:pre-wrap;margin:6px 0">${esc(d.desc)}</div>` : ""}
-${d && d.url ? `<div><a href="${esc(d.url)}" target="_blank" rel="noopener">▶ Video / odkaz</a></div>` : ""}${d && d.pdf ? `<div><a href="${esc(d.pdf)}" target="_blank" rel="noopener">📄 PDF / dokument</a></div>` : ""}
+${d && d.url ? mediaHtml(d.url, "▶ Přehrát video") : ""}${d && d.pdf ? mediaHtml(d.pdf, "📄 Zobrazit PDF") : ""}
 <button class="s w" id="tpdx" style="margin-top:10px;min-height:52px">Zavřít</button></div></div>`;
 }
 // Karta „📋 Plán tréninku“ v detailu tréninku (ctx z events.js: ev, P, A, T, end)
@@ -163,17 +164,16 @@ function cardHtml(ctx) {
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
   else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do pětek.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do pětek (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
-  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
+  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
 
 // ===== Vykreslení: úprava plánu =====
 function laneEditHtml(b, bi, l, li, X, D, tag) {
-  const act = (S.dr || []).filter(d => !d.arch || d.id === l.drill);
-  const opts = Object.entries(CATS).map(([c, t]) => { const L = act.filter(d => d.cat === c).sort((x, y) => String(x.name).localeCompare(String(y.name), "cs")); return L.length ? `<optgroup label="${esc(t)}">${L.map(d => `<option value="${esc(d.id)}" ${d.id === l.drill ? "selected" : ""}>${esc(d.name)} · ${+d.dur || "?"} min${d.arch ? " (vyřazené)" : ""}</option>`).join("")}</optgroup>` : ""; }).join("");
-  const miss = l.drill && !D[l.drill] ? `<option value="${esc(l.drill)}" selected>${esc(l.dn || "?")} (není v bance)</option>` : "";
+  // Cvičení se vybírá v okně s hledáním a filtrem (views/drill-picker.js); vyřazené / smazané z banky se jen označí
+  const d = D[l.drill], dn = d ? d.name + " · " + (+d.dur || "?") + " min" + (d.arch ? " (vyřazené)" : "") : l.drill ? (l.dn || "?") + " (není v bance)" : "";
   const gc = [...new Set([...groupsFor(b, X.groups, X.pgFull), ...(l.grp || [])])];
   return `<div style="border-top:1px dashed var(--bd);padding-top:6px;margin-top:6px"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${tag ? (tag === "🥅" ? "🥅 Linka brankářek" : "Stanoviště " + tag) : b.lanes.length > 1 ? "Linka " + (li + 1) : "Cvičení"}</b>${b.lanes.length > 1 ? `<button class="d" data-tplr="${bi}|${li}" style="flex:none;padding:4px 10px;min-height:0">🗑</button>` : ""}</div>
-<select data-tpdl="${bi}|${li}"><option value="">— vyber cvičení z banky —</option>${miss}${opts}</select>
+<button class="s w" data-tpdl="${bi}|${li}" style="text-align:left;min-height:46px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dn ? "📚 " + esc(dn) : "📚 Vybrat cvičení z banky…"}</button>
 <div class="mu" style="font-size:12px">Skupiny${b.mode === "all" ? " (bez výběru = všichni)" : " (na začátku bloku; 🥅 = linka se netočí)"}</div><div class="chips">${gc.map(g => `<button class="chip ${(l.grp || []).includes(g) ? "on" : ""}" data-tpgr="${bi}|${li}|${g}">${GRP_ICON[g] ? GRP_ICON[g][0] + (g === GK ? "" : GRP_ICON[g][1]) : g + "."}</button>`).join("")}${gc.length ? "" : '<span class="mu">Nikdo zatím není v pětce.</span>'}</div></div>`;
 }
 // Trenéři linky (v „Další volby“): přihlášený realizační tým, navíc už vybraný nepřihlášený
@@ -251,12 +251,13 @@ function bindEditor(a, ctx) {
   on("data-tpla", ([bi]) => edit(p => { p.blocks[+bi].lanes.push(laneBlank()); }));
   on("data-tplr", ([bi, li]) => edit(p => { p.blocks[+bi].lanes.splice(+li, 1); }));
   // Výběr cvičení: kopie názvu a obrázků; délku bloku převezme z banky, dokud ji trenér v této úpravě ručně nezměnil
-  on("data-tpdl", ([bi, li], el) => edit(p => {
-    const b = p.blocks[+bi], l = lane(bi, li), d = D[el.value];
-    l.drill = el.value; l.dn = d ? d.name : ""; l.di = d ? d.img || [] : [];
+  // 📚 Výběr cvičení: okno s hledáním a filtrem; výběr převezme délku z banky, dokud ji trenér ručně nezměnil
+  on("data-tpdl", ([bi, li]) => openDrillPicker(lane(bi, li).drill, id => edit(p => {
+    const b = p.blocks[+bi], l = lane(bi, li), d = D[id];
+    l.drill = id; l.dn = d ? d.name : ""; l.di = d ? d.img || [] : [];
     const bd = bankDur(b, D);
     if (bd && !(E.man || []).includes(b.id)) { b.dur = bd; if (b.rot && b.rot > b.dur) b.rot = null; }
-  }), "onchange");
+  })));
   on("data-tpco", ([bi, li, id]) => edit(() => { const l = lane(bi, li); l.co = flip(l.co, id); }));
   // ⚙ Další volby: ručně otevřené zůstanou otevřené i po překreslení (bez změny plánu)
   a.querySelectorAll("[data-tpmo]").forEach(d => d.ontoggle = () => { const id = d.dataset.tpmo, mo = E.mo || []; E.mo = d.open ? [...new Set([...mo, id])] : mo.filter(x => x !== id); });
@@ -315,6 +316,7 @@ function bindCard(a, ctx) {
   const x = a.querySelector("#tpdx");
   if (x) x.onclick = () => { S.tpv = null; render(); };
   bindThumbs(a.querySelector("#tpd"));
+  bindMedia(a.querySelector("#tpd"));
 }
 
 // ===== Exporty =====

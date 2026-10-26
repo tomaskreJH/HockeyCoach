@@ -1,13 +1,14 @@
-// Doména: ⭐ hodnocení cvičení tréninku – kolekce treval/{eid} (jeden dokument na trénink, jen realizační tým; hráčka ho nečte).
-// Hodnotí se linka plánu (u stanovišť každé stanoviště zvlášť) stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc · 😴 vůbec se nesnaží,
-// volitelně poznámka a hodnocení jednotlivých hráček. 0 = bez hodnocení (zrušené hodnocení – zápis dávkou neumí smazat vnořené pole).
+// Doména: ⭐ hodnocení hráček v tréninku – kolekce treval/{eid} (jeden dokument na trénink, jen realizační tým; hráčka ho nečte).
+// Hodnotí se každá hráčka na každé lince plánu (u stanovišť každé stanoviště zvlášť) stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc ·
+// 😴 vůbec se nesnaží, volitelně poznámka k hráčce a ke cvičení. Celkové hodnocení linky (r) se už nezadává (staré zůstává v datech).
+// 0 = bez hodnocení (zrušené hodnocení – zápis dávkou neumí smazat vnořené pole).
 // Dokument: {v, r: {klíč linky "blok_linka": {d (id cvičení), dn (název), r (0–4), n (poznámka), pl: {pid: {r, n}}}}, by, at}.
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Linky k hodnocení -> Živý trénink -> Zápis -> Souhrny.
 
 // ===== Importy =====
 import {msKey} from "./stopwatch.js";
-import {MODES, laneTags} from "./training-plan.js";
-import {liveAt} from "./training-live.js";
+import {MODES, isFixedLane, laneTags, rotation} from "./training-plan.js";
+import {groupPids, liveAt} from "./training-live.js";
 
 // ===== Konstanty =====
 export const TREVAL_COLL = "treval";
@@ -42,8 +43,33 @@ export function evalLanes(plan, drills) {
   });
   return out;
 }
-// Linky bez hodnocení cvičení (seznam k doplnění po tréninku)
+// Linky bez hodnocení cvičení (starší celkové hodnocení linky – jen pro přehledy)
 export const unrated = (lanes, res) => (lanes || []).filter(l => !rateOk((entryOf(res, l.key) || {}).r));
+
+// ===== Hráčky na lince =====
+// Hráčky linky: roster = {lines, skaters [{id, pos}], goalies [id]} (přihlášené); round = kolo z rotation (jen hráčky v tomto kole),
+// bez kola všechny hráčky, které linkou během bloku projdou. Linka 🥅 = brankářky, Společně bez skupin = všechny hráčky v poli.
+export function lanePids(block, lane, roster, round) {
+  const R = roster || {};
+  if (!lane) return [];
+  if (isFixedLane(lane)) return [...(R.goalies || [])];
+  const grpOf = r => (r && r.lanes && r.lanes[lane.id]) || lane.grp || [];
+  const rounds = round ? [round] : rotation(block);
+  const G = [...new Set(rounds.flatMap(grpOf))];
+  if (!G.length) return block && block.mode === "st" ? [] : (R.skaters || []).map(p => p.id);
+  return groupPids(block, G, R);
+}
+// Linky plánu k hodnocení i s hráčkami: evalLanes + pids (všechny hráčky, které linkou projdou)
+export function rateLanes(plan, drills, roster) {
+  const B = (plan && plan.blocks) || [];
+  return evalLanes(plan, drills).map(l => ({...l, pids: lanePids(B[l.bi], B[l.bi].lanes[l.li], roster)}));
+}
+// Počet neohodnocených hráček na linkách (rateLanes) a celkový počet; res = dokument treval
+export function unratedCount(lanes, res) {
+  let n = 0, all = 0;
+  (lanes || []).forEach(l => { const pl = (entryOf(res, l.key) || {}).pl || {}; (l.pids || []).forEach(pid => { all++; if (!rateOk((pl[pid] || {}).r)) n++; }); });
+  return {n, all};
+}
 
 // ===== Živý trénink =====
 // Kolo, které právě skončilo (k hodnocení po kole / bloku): poloha těsně před začátkem současného kola, po konci plánu poslední kolo;

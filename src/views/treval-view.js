@@ -1,41 +1,37 @@
-// ⭐ Hodnocení cvičení tréninku: karta „⭐ Hodnocení cvičení“ v kartě plánu (jen realizační tým – treval r), okno #tev pro poznámku
-// a hodnocení hráček jedné linky, a výzva v ⏱ živém tréninku po skončeném kole (1 klepnutí – 😃 🙂 😐 😴, bez psaní na ledě).
-// Data treval/{eid} (jeden dokument na trénink, poslech jen u otevřeného tréninku), zápis dávkou s hlubokým sloučením (jen daná linka /
-// hráčka); hodnotit smí HK.perm("treval", "e"). Klepnutí na zvolené hodnocení ho zruší (r 0). Výpočty domain/training-eval.js.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Poslech -> Vykreslení (karta, okno, výzva) -> Eventy -> Exporty.
+// ⭐ Hodnocení hráček v tréninku: karta „⭐ Hodnocení hráček“ v kartě plánu (jen realizační tým – treval r) a výzva v ⏱ živém tréninku
+// po skončeném kole – seznam hráček, které byly na mé lince, jeden řádek = jméno + 😃 🙂 😐 😴 (rychle označit a jet dál).
+// Co se nestihne, doplní se po tréninku v kartě (po linkách, neohodnocené nahoře v záhlaví); 📝 poznámka k hráčce i ke cvičení.
+// Data treval/{eid} (jeden dokument na trénink, poslech jen u otevřeného tréninku), zápis dávkou s hlubokým sloučením (jen daná hráčka /
+// poznámka); hodnotit smí HK.perm("treval", "e"), klepnutí na zvolené hodnocení ho zruší (r 0). Výpočty domain/training-eval.js.
+// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Poslech -> Vykreslení (karta, výzva) -> Eventy -> Exporty.
 
 // ===== Importy =====
 import {nm} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {NOTE_MAX, RATE, RATES, TREVAL_COLL, entryOf, evalLanes, evalPatch, noteOf, playerPatch, playerRates, rateIcon, rateOk, unrated} from "../domain/training-eval.js";
+import {NOTE_MAX, RATE, RATES, TREVAL_COLL, entryOf, evalLanes, evalPatch, lanePids, noteOf, playerPatch, rateLanes, rateOk, unratedCount} from "../domain/training-eval.js";
 import {render} from "./shell.js";
-import {lanePlayers} from "./stopwatch-view.js";
 
 // ===== Konstanty a stav =====
 // E = poslech hodnocení otevřeného tréninku: eid, un (konec poslechu), res (dokument | null | undefined = načítá se), err,
-// loc ({klíč linky: hodnocení} – vlastní zápis, než dorazí z databáze), hook (překreslení ⏱ živého tréninku), open ({eid: rozbalená karta})
-let E = {eid: null, un: null, res: undefined, err: null, loc: {}, hook: null, open: {}};
-// W = otevřené okno linky: eid, lane (z evalLanes), pids (hráčky linky), all (přihlášené pro „+ Přidat“), nt ({pid: otevřená poznámka}), el
-let W = null;
+// loc ({klíč linky: {n, pl}} – vlastní zápis, než dorazí z databáze), hook (překreslení ⏱ živého tréninku),
+// open ({eid: rozbalená karta}), lo ({eid: {klíč linky: rozbalená}}), nt ({klíč|pid: otevřená poznámka})
+let E = {eid: null, un: null, res: undefined, err: null, loc: {}, hook: null, open: {}, lo: {}, nt: {}};
 const CSS = `<style>
-#evw .tev{border-top:1px solid var(--bd);margin-top:8px;padding-top:8px}
-#evw .tev>summary{cursor:pointer;padding:6px 0;min-height:40px;list-style-position:inside}
-#evw .tevl{padding:8px 0;border-bottom:1px solid var(--bd)}
-#evw .tevk,#tev .tevk,#tlv .tevk{display:inline-block;min-width:22px;font-weight:800;color:var(--ac)}
-.tevg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}
-.tevg button{min-height:48px;font-size:22px;padding:2px;border:2px solid var(--bd);border-radius:12px;background:var(--cd,transparent);color:var(--tx)}
-.tevg button small{display:block;font-size:11px;line-height:13px}
-.tevg button.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 18%,transparent);font-weight:800}
-.tevg.big button{min-height:62px;font-size:28px}
-.tevg.sm button{min-height:42px;font-size:20px}
-#tev{position:fixed;inset:0;z-index:45;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
-#tev .tevh{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-#tev .tevh h2{flex:1;margin:0;font-size:18px;min-width:0}
-#tev textarea{width:100%;min-height:70px}
-#tev .tevp{border:2px solid var(--bd);border-radius:12px;padding:6px 8px;margin-bottom:8px}
-#tev .tevp .row{align-items:center;flex-wrap:nowrap}
+.tev{border-top:1px solid var(--bd);margin-top:8px;padding-top:8px}
+.tev>summary,.tevl>summary{cursor:pointer;padding:6px 0;min-height:40px}
+.tevl{border-bottom:1px solid var(--bd);padding:2px 0}
+.tevk{display:inline-block;min-width:22px;font-weight:800;color:var(--ac)}
+.tevr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:4px 0;border-top:1px solid color-mix(in srgb,var(--bd) 60%,transparent)}
+.tevr .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.tevg{display:flex;gap:4px}
+.tevg button{width:42px;height:44px;font-size:20px;padding:0;border:2px solid var(--bd);border-radius:10px;background:var(--cd,transparent);color:var(--tx)}
+.tevl .tevg button{width:38px;height:40px;font-size:18px}
+.tevg button.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 22%,transparent)}
+.tevg button.nt,.tevl .tevg button.nt{font-size:15px;width:32px}
+.tevr input{grid-column:1/-1;margin:0}
+.tevn{margin:4px 0}
 </style>`;
 
 // ===== Pomocné funkce =====
@@ -50,172 +46,130 @@ function entry(key) {
   return {...db, ...lo, pl: {...(db.pl || {}), ...(lo.pl || {})}};
 }
 const plOf = (key, pid) => (entry(key).pl || {})[pid] || {};
-// Čtyři tlačítka hodnocení; cur = zvolené, attr = data atribut s předponou hodnoty, size = "big" | "sm" | ""
-function rateBtns(cur, attr, size, label) {
-  return `<div class="tevg ${size || ""}">${RATES.map(r => `<button class="${cur === r ? "on" : ""}" ${attr}|${r}" title="${esc(RATE[r].t)}">${RATE[r].i}${label ? `<small>${esc(RATE[r].t)}</small>` : ""}</button>`).join("")}</div>`;
+// Řádek hráčky: jméno + 4 smajlíky (+ 📝 poznámka v kartě); can = smí hodnotit, note = zobrazit 📝
+function rowHtml(l, pid, can, note) {
+  const x = plOf(l.key, pid), k = l.key + "|" + pid, nOpen = note && (E.nt[k] || !!x.n);
+  const btns = can ? RATES.map(r => `<button class="${x.r === r ? "on" : ""}" data-tevp="${esc(k)}|${r}" title="${esc(RATE[r].t)}">${RATE[r].i}</button>`).join("")
+    : `<span style="font-size:20px">${rateOk(x.r) ? RATE[x.r].i : "–"}</span>`;
+  const nb = note && can ? `<button class="nt ${x.n ? "on" : ""}" data-tevpn="${esc(k)}" title="Poznámka">📝</button>` : "";
+  const nIn = nOpen ? (can ? `<input data-tevpt="${esc(k)}" maxlength="${NOTE_MAX}" placeholder="Poznámka k hráčce" value="${esc(x.n || "")}">` : `<div class="mu" style="grid-column:1/-1;font-size:13px">📝 ${esc(x.n)}</div>`) : "";
+  return `<div class="tevr"><div class="nm">${esc(nm(pid))}</div><div class="tevg">${btns}${nb}</div>${nIn}</div>`;
 }
-// Text hodnocení pro čtení (bez práva hodnotit)
-const rateTxt = r => (rateOk(r) ? RATE[r].i + " " + esc(RATE[r].t) : '<span class="mu">neohodnoceno</span>');
 
 // ===== Poslech hodnocení =====
-// Jeden poslech treval/{eid} pro otevřený trénink (karta, okno i výzva v živém tréninku); předchozí trénink se odhlásí
+// Jeden poslech treval/{eid} pro otevřený trénink (karta i výzva v živém tréninku); předchozí trénink se odhlásí
 function ensureEv(eid) {
   if (E.eid === eid) return;
   if (E.un) try { E.un(); } catch (e) { /* poslech už skončil */ }
-  E = {eid, un: null, res: undefined, err: null, loc: {}, hook: null, open: E.open};
+  E = {...E, eid, un: null, res: undefined, err: null, loc: {}, hook: null};
   E.un = S.db.collection(TREVAL_COLL).part(eid).onSnapshot(v => {
     const d = v.docs.find(x => x.id === eid);
     E.res = d ? d.data() : null; E.err = null; E.loc = {};
-    if (W && W.el && W.eid === eid) paint();
     if (E.hook) E.hook();
-    if (S.evid === eid && !S.tpe && !(W && W.el)) render();
+    // Rozepsaná poznámka v kartě se nepřekresluje pod rukama
+    const a = document.activeElement;
+    if (S.evid === eid && !S.tpe && !(a && a.dataset && (a.dataset.tevpt || a.dataset.tevln))) render();
   }, e => { E.err = (e && (e.code || e.message)) || "chyba"; E.res = null; if (S.evid === eid) render(); });
 }
 
 // ===== Vykreslení: karta =====
-function laneRowHtml(l, can) {
-  const e = entry(l.key), pr = playerRates(e), tag = l.tag ? `<span class="tevk">${esc(l.tag)}</span>` : "";
-  const extra = [e.n ? "📝 " + esc(e.n) : "", pr.length ? "👤 " + pr.map(x => esc(nm(x.pid)) + " " + rateIcon(x.r)).join(", ") : ""].filter(Boolean).join(" · ");
-  return `<div class="tevl"><div>${tag}<b>${esc(l.dn)}</b> <span class="mu" style="font-size:12px">${esc(l.where)}</span></div>
-${can ? rateBtns(e.r, `data-tevr="${esc(l.key)}`, "sm") : `<div style="margin:4px 0">${rateTxt(e.r)}</div>`}
-${extra ? `<div class="mu" style="font-size:13px">${extra}</div>` : ""}${can ? `<button class="s" data-tevo="${esc(l.key)}" style="min-height:40px;margin-top:4px">📝 Poznámka a hráčky</button>` : ""}</div>`;
+function laneHtml(eid, l, can, firstOpen) {
+  const pl = entry(l.key).pl || {}, un = l.pids.filter(p => !rateOk((pl[p] || {}).r)).length, lo = E.lo[eid] || {};
+  const open = lo[l.key] != null ? lo[l.key] : firstOpen, e = entry(l.key), nk = "L|" + l.key, nOpen = E.nt[nk] || !!e.n;
+  const note = can ? (nOpen ? `<input class="tevn" data-tevln="${esc(l.key)}" maxlength="${NOTE_MAX}" placeholder="Poznámka ke cvičení (co změnit příště)" value="${esc(e.n || "")}">` : `<button class="s" data-tevpn="${esc(nk)}" style="min-height:36px;padding:4px 10px;margin:4px 0">📝 Poznámka ke cvičení</button>`)
+    : e.n ? `<div class="mu" style="font-size:13px">📝 ${esc(e.n)}</div>` : "";
+  return `<details class="tevl" data-tevlo="${esc(l.key)}" ${open ? "open" : ""}><summary>${l.tag ? `<span class="tevk">${esc(l.tag)}</span>` : ""}<b>${esc(l.dn)}</b> <span class="mu" style="font-size:12px">${esc(l.where)} · ${un ? "zbývá " + un : "✓"}</span></summary>
+${note}${l.pids.map(p => rowHtml(l, p, can, true)).join("")}</details>`;
 }
-function cardHtml(eid, plan, D, past) {
+function cardHtml(eid, plan, D, roster, past) {
   ensureEv(eid);
   if (E.res === undefined) return "";
-  const L = evalLanes(plan, D);
+  const L = rateLanes(plan, D, roster).filter(l => l.pids.length);
   if (!L.length) return "";
-  const can = canE(), un = unrated(L, E.res).length, open = E.open[eid] != null ? E.open[eid] : past;
-  return CSS + `<details class="tev" id="tevd" ${open ? "open" : ""}><summary><b>⭐ Hodnocení cvičení</b> <span class="mu">${un ? `neohodnoceno ${un} z ${L.length}` : "vše ohodnoceno ✓"}</span></summary>
+  const can = canE(), c = unratedCount(L, E.res), open = E.open[eid] != null ? E.open[eid] : past;
+  // Rozbalená je první linka s neohodnocenou hráčkou (ostatní klepnutím)
+  const first = L.findIndex(l => { const pl = entry(l.key).pl || {}; return l.pids.some(p => !rateOk((pl[p] || {}).r)); });
+  return CSS + `<details class="tev" id="tevd" ${open ? "open" : ""}><summary><b>⭐ Hodnocení hráček</b> <span class="mu">${c.n ? `neohodnoceno ${c.n} z ${c.all}` : "vše ohodnoceno ✓"}</span></summary>
 ${E.err ? `<div class="msg">Hodnocení se nepodařilo načíst (${esc(E.err)}). Manager musí publikovat pravidla databáze ve verzi v21.6.</div>` : ""}
-<div class="mu" style="font-size:12px;margin-bottom:4px">Vidí jen realizační tým, hráčky ne. ${can ? "Na ledě stačí jedno klepnutí (i v ⏱ živém tréninku po kole), poznámky a hráčky doplň po tréninku. Druhé klepnutí hodnocení zruší." : ""}</div>
-${L.map(l => laneRowHtml(l, can)).join("")}</details>`;
-}
-
-// ===== Vykreslení: okno linky =====
-function playerHtml(pid) {
-  const x = plOf(W.lane.key, pid), open = W.nt[pid] || !!x.n;
-  return `<div class="tevp"><div class="row"><b style="flex:1;min-width:0">${esc(nm(pid))}</b><button class="s" data-tevpn="${esc(pid)}" style="flex:none;min-height:40px">📝</button></div>
-${rateBtns(x.r, `data-tevp="${esc(pid)}`, "sm")}${open ? `<input data-tevpt="${esc(pid)}" maxlength="${NOTE_MAX}" placeholder="Poznámka k hráčce" value="${esc(x.n || "")}">` : ""}</div>`;
-}
-function screenHtml() {
-  const l = W.lane, e = entry(l.key), rest = W.all.filter(p => !W.pids.includes(p));
-  return CSS + `<div class="tevh"><button class="s" id="tevx" style="flex:none;min-height:48px">✕ Hotovo</button><h2>⭐ ${l.tag ? esc(l.tag) + " · " : ""}${esc(l.dn)}</h2></div>
-<div class="mu" style="margin-bottom:6px">${esc(l.where)} · vidí jen realizační tým · ukládá se hned</div>
-${E.err ? `<div class="msg">Hodnocení se nepodařilo načíst (${esc(E.err)}) – uložení nejspíš neprojde.</div>` : ""}
-<label>Cvičení</label>${rateBtns(e.r, 'data-tevw="x', "big", true)}
-<label>Poznámka ke cvičení</label><textarea id="tevn" maxlength="${NOTE_MAX}" placeholder="Co fungovalo, co změnit příště">${esc(e.n || "")}</textarea>
-<h3 style="margin:12px 0 4px">Hráčky <span class="mu" style="font-weight:400;font-size:13px">(volitelně)</span></h3>
-${W.pids.map(playerHtml).join("") || '<div class="mu">Na lince nikdo není – přidej hráčku.</div>'}
-${rest.length ? `<label>+ Přidat hráčku</label><select id="tevadd"><option value="">— vyber —</option>${rest.map(p => `<option value="${esc(p)}">${esc(nm(p))}</option>`).join("")}</select>` : ""}`;
-}
-function paint() {
-  if (!W || !W.el) return;
-  const y = W.el.scrollTop;
-  W.el.innerHTML = screenHtml();
-  W.el.scrollTop = y;
-  bindScreen();
+<div class="mu" style="font-size:12px;margin-bottom:4px">Vidí jen realizační tým, hráčky ne. ${can ? "Na ledě se seznam ukáže v ⏱ živém tréninku po každém kole; tady doplníš zbytek. Klepnutí na zvolený smajlík hodnocení zruší." : ""}</div>
+${L.map((l, i) => laneHtml(eid, l, can, i === first)).join("")}</details>`;
 }
 
 // ===== Vykreslení: výzva v živém tréninku =====
-// lanes = linky skončeného kola, které přihlášený hodnotí (z evalLanes); done = plán skončil (připomenutí neohodnocených);
-// ohodnocená linka má menší tlačítka (méně místa na ledě, oprava jde dál)
-function liveHtml(lanes, all, done) {
-  if (!canE() || (!lanes.length && !done)) return "";
-  const un = done ? unrated(all, E.res).length : 0;
-  return CSS + `<div class="tlln" style="border-color:var(--ok)"><div class="mu">⭐ Jak šlo cvičení? ${done ? "(poslední kolo)" : "(kolo, které skončilo)"}</div>
-${lanes.map(l => { const r = entry(l.key).r; return `<div style="margin-top:4px">${l.tag ? `<span class="tevk">${esc(l.tag)}</span>` : ""}<b>${esc(l.dn)}</b>${rateOk(r) ? ' <span class="mu">✓</span>' : ""}</div>${rateBtns(r, `data-tevr="${esc(l.key)}`, rateOk(r) ? "sm" : "big")}`; }).join("")}
-${un ? `<div class="mu" style="font-size:13px">Neohodnoceno ${un} – poznámky a hráčky doplníš v detailu tréninku.</div>` : ""}</div>`;
+// items = [{lane (z evalLanes), pids (hráčky linky ve skončeném kole)}]; done = plán skončil; left = neohodnoceno celkem
+function liveHtml(items, done, left) {
+  if (!items.length && !done) return "";
+  return CSS + `<div class="tlln" style="border-color:var(--ok)"><div class="mu">⭐ Jak šlo hráčkám? ${done ? "(poslední kolo)" : "(kolo, které skončilo)"}</div>
+${items.map(x => `<div style="margin-top:4px">${x.lane.tag ? `<span class="tevk">${esc(x.lane.tag)}</span>` : ""}<b>${esc(x.lane.dn)}</b></div>${x.pids.map(p => rowHtml(x.lane, p, true, false)).join("")}`).join("")}
+${left ? `<div class="mu" style="font-size:13px;margin-top:4px">Neohodnoceno ${left} – doplníš v detailu tréninku (⭐ Hodnocení hráček).</div>` : ""}</div>`;
 }
 
 // ===== Eventy =====
-// Zápis dávkou s hlubokým sloučením (jen daná linka / hráčka); vlastní zápis se ukáže hned
+// Zápis dávkou s hlubokým sloučením (jen daná hráčka / poznámka); vlastní zápis se ukáže hned
 function put(lane, patch, local) {
   if (!canE()) { toast("Hodnotit smí jen realizační tým"); return; }
   const cur = E.loc[lane.key] || {}, lo = local || {};
   E.loc[lane.key] = {...cur, ...lo, pl: {...(cur.pl || {}), ...(lo.pl || {})}};
   S.db.batch().merge(TREVAL_COLL + "/" + E.eid, {...patch, by: me(), at: new Date().toISOString()}).commit();
 }
-// Hodnocení cvičení linky (stejná volba znovu = zrušit)
-function rateLane(lane, r) {
-  const v = entry(lane.key).r === r ? 0 : r;
-  put(lane, evalPatch(lane, {r: v}), {r: v});
-  buzz(v ? 40 : [20, 30, 20]);
-  if (!v) toast("Hodnocení zrušeno");
+// Hodnocení hráčky (stejná volba znovu = zrušit)
+function ratePl(lane, pid, r) {
+  const v = plOf(lane.key, pid).r === r ? 0 : r;
+  put(lane, playerPatch(lane, pid, {r: v}), {pl: {[pid]: {...plOf(lane.key, pid), r: v}}});
+  buzz(v ? 30 : [20, 30, 20]);
 }
-function bindRates(root, lanes, redraw) {
-  root.querySelectorAll("[data-tevr]").forEach(b => b.onclick = () => {
-    const [key, r] = b.dataset.tevr.split("|"), lane = lanes.find(l => l.key === key);
-    if (!lane) return;
-    rateLane(lane, +r);
-    redraw();
+// Obsluha řádků hráček; lanes = linky plánu (evalLanes), redraw = překreslení
+function bindRows(root, lanes, redraw) {
+  const laneOf = key => lanes.find(l => l.key === key);
+  root.querySelectorAll("[data-tevp]").forEach(b => b.onclick = () => {
+    const [key, pid, r] = b.dataset.tevp.split("|"), l = laneOf(key);
+    if (l) { ratePl(l, pid, +r); redraw(); }
   });
-}
-function bindScreen() {
-  const el = W.el, l = W.lane;
-  el.querySelector("#tevx").onclick = close;
-  el.querySelectorAll("[data-tevw]").forEach(b => b.onclick = () => { rateLane(l, +b.dataset.tevw.split("|")[1]); paint(); });
-  const n = el.querySelector("#tevn");
-  if (n) n.onchange = () => { put(l, evalPatch(l, {n: n.value}), {n: noteOf(n.value)}); toast("Poznámka uložena"); };
-  el.querySelectorAll("[data-tevp]").forEach(b => b.onclick = () => {
-    const [pid, r] = b.dataset.tevp.split("|"), v = plOf(l.key, pid).r === +r ? 0 : +r;
-    put(l, playerPatch(l, pid, {r: v}), {pl: {[pid]: {...plOf(l.key, pid), r: v}}});
-    buzz(30); paint();
+  root.querySelectorAll("[data-tevpn]").forEach(b => b.onclick = () => {
+    const k = b.dataset.tevpn;
+    E.nt[k] = true; redraw();
+    const i = root.querySelector(k.startsWith("L|") ? `[data-tevln="${k.slice(2)}"]` : `[data-tevpt="${k}"]`);
+    if (i) i.focus();
   });
-  el.querySelectorAll("[data-tevpn]").forEach(b => b.onclick = () => { W.nt[b.dataset.tevpn] = true; paint(); const i = el.querySelector(`[data-tevpt="${b.dataset.tevpn}"]`); if (i) i.focus(); });
-  el.querySelectorAll("[data-tevpt]").forEach(i => i.onchange = () => {
-    const pid = i.dataset.tevpt;
-    put(l, playerPatch(l, pid, {n: i.value}), {pl: {[pid]: {...plOf(l.key, pid), n: noteOf(i.value)}}});
+  root.querySelectorAll("[data-tevpt]").forEach(i => i.onchange = () => {
+    const [key, pid] = i.dataset.tevpt.split("|"), l = laneOf(key);
+    if (!l) return;
+    put(l, playerPatch(l, pid, {n: i.value}), {pl: {[pid]: {...plOf(key, pid), n: noteOf(i.value)}}});
     toast("Poznámka uložena");
   });
-  const add = el.querySelector("#tevadd");
-  if (add) add.onchange = () => { if (add.value && !W.pids.includes(add.value)) W.pids = [...W.pids, add.value]; paint(); };
-}
-// Zavření okna: rozepsaná poznámka (bez opuštění pole) se ještě uloží
-function close() {
-  if (!W) return;
-  const a = W.el && document.activeElement;
-  if (a && W.el.contains(a) && a.onchange) a.onchange();
-  if (W.el) W.el.remove();
-  W = null;
-  render();
-}
-function openLane(eid, lane, X) {
-  if (!canE()) { toast("Hodnotit smí jen realizační tým"); return; }
-  if (W) close();
-  ensureEv(eid);
-  const b = X.plan.blocks[lane.bi], ln = b && b.lanes[lane.li], R = X.roster || {};
-  const pids = ln ? lanePlayers(b, ln, X) : [], all = [...(R.skaters || []).map(p => p.id), ...(R.goalies || [])];
-  // Hráčky s hodnocením z dřívějška zůstanou v okně, i když už na lince nejsou
-  const had = Object.keys(entry(lane.key).pl || {});
-  const el = document.createElement("div");
-  el.id = "tev";
-  document.body.appendChild(el);
-  W = {eid, lane, pids: [...new Set([...pids, ...had])], all: [...new Set([...pids, ...all])], nt: {}, el};
-  paint();
+  root.querySelectorAll("[data-tevln]").forEach(i => i.onchange = () => {
+    const l = laneOf(i.dataset.tevln);
+    if (!l) return;
+    put(l, evalPatch(l, {n: i.value}), {n: noteOf(i.value)});
+    toast("Poznámka uložena");
+  });
 }
 
 // ===== Exporty =====
-// Karta „⭐ Hodnocení cvičení“ do karty plánu (jen s právem číst hodnocení); past = trénink už začal / proběhl (karta rozbalená)
-export function evalCardHtml(eid, plan, D, date) { return canR() ? cardHtml(eid, plan, D, !!date && date <= td()) : ""; }
-// getX = údaje tréninku (derive z trplan-view + D, plan) – okno linky potřebuje hráčky a soupisku
+// Karta „⭐ Hodnocení hráček“ do karty plánu (jen s právem číst hodnocení); roster = přihlášené {lines, skaters, goalies};
+// date = datum tréninku (dnešní a minulý trénink má kartu rozbalenou)
+export function evalCardHtml(eid, plan, D, roster, date) { return canR() ? cardHtml(eid, plan, D, roster, !!date && date <= td()) : ""; }
+// getX = údaje tréninku (derive z trplan-view + D, plan)
 export function bindEvalCard(a, eid, getX) {
   if (!canR()) return;
   const d = a.querySelector("#tevd");
-  if (d) d.ontoggle = () => { E.open[eid] = d.open; };
-  const lanes = () => { const X = getX(); return evalLanes(X.plan, X.D); };
-  bindRates(a, lanes(), render);
-  a.querySelectorAll("[data-tevo]").forEach(b => b.onclick = () => { const X = getX(), l = evalLanes(X.plan, X.D).find(x => x.key === b.dataset.tevo); if (l) openLane(eid, l, X); });
+  if (d) { const was = d.open; d.ontoggle = () => { if (d.open !== was) E.open[eid] = d.open; }; }
+  a.querySelectorAll("[data-tevlo]").forEach(x => { const was = x.open; x.ontoggle = () => { if (x.open !== was) (E.lo[eid] = E.lo[eid] || {})[x.dataset.tevlo] = x.open; }; });
+  if (!canE()) return;
+  const X = getX();
+  bindRows(a, evalLanes(X.plan, X.D), render);
 }
-// Výzva k hodnocení v ⏱ živém tréninku: lanes = moje linky skončeného kola, all = všechny linky plánu (evalLanes), done = plán skončil
-export function liveEvalHtml(eid, lanes, all, done) {
+// Výzva v ⏱ živém tréninku: spots = [{block, lane, round}] moje linky skončeného kola; X = údaje tréninku; done = plán skončil
+export function liveEvalHtml(eid, spots, X, done) {
   if (!canE()) return "";
   ensureEv(eid);
-  return liveHtml(lanes, all, done);
+  const all = evalLanes(X.plan, X.D), items = spots.map(s => ({lane: all.find(l => l.bid === s.block.id && l.lid === s.lane.id), pids: lanePids(s.block, s.lane, X.roster, s.round)})).filter(x => x.lane && x.pids.length);
+  const left = done ? unratedCount(rateLanes(X.plan, X.D, X.roster), {r: Object.fromEntries(all.map(l => [l.key, entry(l.key)]))}).n : 0;
+  return liveHtml(items, done, left);
 }
 // Obsluha výzvy; redraw = překreslení obrazovky živého tréninku (i po změně z databáze)
-export function bindLiveEval(el, eid, all, redraw) {
+export function bindLiveEval(el, eid, X, redraw) {
   if (!canE()) return;
   E.hook = redraw;
-  bindRates(el, all, redraw);
+  bindRows(el, evalLanes(X.plan, X.D), redraw);
 }

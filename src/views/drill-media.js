@@ -1,12 +1,13 @@
 // Obrázky cvičení (drillimg/{id}): zmenšení fotky v zařízení před uložením, načtení na vyžádání s pamětí v zařízení,
 // náhledy (klepnutí = prohlížeč přes celou obrazovku #imv, ‹ › mezi obrázky, klepnutí na obrázek = zvětšení 2×, ✕ / Zpět zavře).
 // Obrázek se čte jednorázově (S.db.doc().get – i z offline paměti Firestore); výsledek zůstává v paměti do zavření aplikace.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Zmenšení obrázku -> Načtení a náhledy -> Prohlížeč -> Exporty (u funkcí).
+// ▶ Video a 📄 PDF cvičení (odkaz) se přehrají v náhledu přímo v okně cvičení (mediaHtml / bindMedia – YouTube, Google Disk, .mp4 / .webm).
+// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Zmenšení obrázku -> Načtení a náhledy -> Prohlížeč -> Náhled videa a PDF -> Exporty (u funkcí).
 
 // ===== Importy =====
 import {S} from "../core/state.js";
 import {esc} from "../core/utils.js";
-import {DRILLIMG_COLL, IMG_LEN, IMG_PX, imgFit} from "../domain/drills.js";
+import {DRILLIMG_COLL, IMG_LEN, IMG_PX, imgFit, mediaOf} from "../domain/drills.js";
 
 // ===== Konstanty a stav =====
 const cache = new Map();                 // id → data:URL | "err" (načtení selhalo)
@@ -97,4 +98,28 @@ ${n > 1 ? `<button data-imn="-1" style="${btn};left:8px;top:50%">‹</button><bu
   el.querySelector("#imx").onclick = closeViewer;
   el.querySelector("#imi").onclick = () => { viewer.zoom = !viewer.zoom; drawViewer(); };
   el.querySelectorAll("[data-imn]").forEach(b => b.onclick = () => { viewer.i = (viewer.i + +b.dataset.imn + n) % n; viewer.zoom = false; drawViewer(); });
+}
+
+// ===== Náhled videa a PDF =====
+// Odkaz cvičení jako tlačítko ▶ Přehrát (nic se nestahuje, dokud trenér neklepne) a po klepnutí přehrávač přímo v okně cvičení:
+// YouTube a Google Disk (video i PDF) v rámečku, soubor .mp4 / .webm v přehrávači, ostatní odkazem. label = text tlačítka.
+export function mediaHtml(url, label) {
+  const m = mediaOf(url);
+  if (!m) return "";
+  const open = `<a href="${esc(url)}" target="_blank" rel="noopener" class="mu" style="font-size:12px">otevřít zvlášť ↗</a>`;
+  if (m.kind === "link") return `<div style="margin:6px 0"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)} ↗</a></div>`;
+  return `<div class="dmv" style="margin:6px 0"><button class="s w" data-dmv="${esc(m.kind)}|${esc(m.src)}" style="min-height:46px">${esc(label)}</button><div style="text-align:right">${open}</div></div>`;
+}
+// Klepnutí na ▶ nahradí tlačítko přehrávačem (16 : 9, u PDF vyšší)
+export function bindMedia(root) {
+  if (!root) return;
+  root.querySelectorAll("[data-dmv]").forEach(b => b.onclick = () => {
+    const i = b.dataset.dmv.indexOf("|"), kind = b.dataset.dmv.slice(0, i), src = b.dataset.dmv.slice(i + 1), pdf = /pdf/i.test(b.textContent);
+    const box = document.createElement("div");
+    box.style.cssText = "position:relative;width:100%;border-radius:10px;overflow:hidden;background:#000;" + (pdf ? "height:70vh" : "aspect-ratio:16/9");
+    box.innerHTML = kind === "video"
+      ? `<video src="${esc(src)}" controls playsinline autoplay style="width:100%;height:100%"></video>`
+      : `<iframe src="${esc(src)}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="border:0;width:100%;height:100%"></iframe>`;
+    b.replaceWith(box);
+  });
 }

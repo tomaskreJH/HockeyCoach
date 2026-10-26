@@ -17,7 +17,7 @@ import {DF, posGrp} from "../domain/training-plan.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
-// S.plv = mapa výkonnosti {pid: 1–5} | undefined (načítá se), S.plvErr = chyba, S.plvo = otevřené okno ⭐ {eid}, S.lsp = volby rozdělení
+// S.plv = mapa výkonnosti {pid: 1–5} | undefined (načítá se), S.plvErr = chyba, S.plvo = otevřené okno ⭐ {eid, y – posun seznamu}, S.lspo = id tréninku s ručně rozbaleným panelem, S.lsp = volby rozdělení
 const KEY = "hk-split";
 const HINT = {
   even: "Každá pětka podobně silná (silné a slabší hráčky promíchané).",
@@ -62,15 +62,17 @@ function panelHtml(ev, going) {
   const o = opts(), lv = S.plv || {}, L = ev.raw.lines || {}, k = "lsp" + ev.id, staff = HK.can("sport");
   const rated = going.filter(p => hasLvl(lv, p.id)).length, sum = lineSummary(L, going, lv);
   const used = LINE_NOS.filter(n => sum[n].c);
-  return `<div style="border:1px solid var(--bd);border-radius:12px;padding:8px;margin-bottom:10px">
-<div class="mu" style="font-size:12px">Rozdělit automaticky</div>
+  // Panel je sbalený, když už je někdo v pětce (méně posouvání); otevřený, když se teprve rozděluje nebo ho trenér rozbalil
+  const open = S.lspo === ev.id || !going.some(p => L[p.id]) || armed(k);
+  return `<details id="lsdt" style="border:1px solid var(--bd);border-radius:12px;padding:8px;margin-bottom:10px" ${open ? "open" : ""}>
+<summary style="cursor:pointer;min-height:36px;padding:4px 0"><b>↻ Rozdělit automaticky</b> <span class="mu" style="font-size:12px">${esc(SPLIT_MODES[o.mode])} · ${o.n} pětky${o.pos ? " · ⚔" : ""}</span></summary>
 <div class="chips" style="margin:4px 0">${Object.entries(SPLIT_MODES).map(([m, t]) => `<button class="chip ${o.mode === m ? "on" : ""}" data-lsm="${m}">${t}</button>`).join("")}</div>
 <div class="mu" style="font-size:12px;margin-bottom:4px">${esc(HINT[o.mode])}</div>
 <div class="chips" style="margin:4px 0;align-items:center"><span class="mu" style="font-size:12px">Pětek</span>${[2, 3, 4].map(n => `<button class="chip ${o.n === n ? "on" : ""}" data-lsn="${n}">${n}</button>`).join("")}
 <button class="chip ${o.pos ? "on" : ""}" id="lspos" title="V každé pětce poměrně útočnic i obránkyň">⚔ Poměr útok / obrana</button></div>
 <div class="row" style="margin-top:6px"><button class="p" id="lsgo" style="flex:2;${armed(k) ? "background:var(--wa);color:#fff" : ""}">${armed(k) ? "Přepsat pětky? Klepni znovu" : "↻ Rozdělit"}</button>${staff ? '<button class="s" id="lslv" style="flex:1">⭐ Výkonnost</button>' : ""}<button class="s" id="evlc" style="flex:1">Vymazat</button></div>
 ${staff ? `<div class="mu" style="font-size:12px;margin-top:6px">${S.plv === undefined ? "Načítám výkonnost…" : S.plvErr ? "Výkonnost se nenačetla (" + esc(S.plvErr) + ") – manager musí publikovat pravidla v21.3." : `⭐ hodnoceno ${rated} z ${going.length} přihlášených (bez hodnocení = ⭐3)`}</div>` : ""}
-${used.length ? `<div style="margin-top:6px">${used.map(n => `<span class="evl L${n}">${n}.: ${sum[n].c} · Ú ${sum[n].f} / O ${sum[n].d}${staff && sum[n].avg != null ? " · Ø⭐" + String(sum[n].avg).replace(".", ",") : ""}</span>`).join("")}</div>` : ""}</div>`;
+${used.length ? `<div style="margin-top:6px">${used.map(n => `<span class="evl L${n}">${n}.: ${sum[n].c} · Ú ${sum[n].f} / O ${sum[n].d}${staff && sum[n].avg != null ? " · Ø⭐" + String(sum[n].avg).replace(".", ",") : ""}</span>`).join("")}</div>` : ""}</details>`;
 }
 // Okno ⭐ Výkonnost: přihlášené na trénink nahoře, pak ostatní aktivní hráčky (bez brankářek); klepnutí ukládá hned
 function sheetHtml(going, all) {
@@ -86,7 +88,9 @@ ${rest.length ? '<div class="lnl">Ostatní</div>' + rest.map(row).join("") : ""}
 
 // ===== Eventy =====
 function bindPanel(a, ev, going) {
-  const o = opts();
+  const o = opts(), dt = a.querySelector("#lsdt");
+  // Jen změna trenérem (událost toggle přijde i při vložení otevřeného panelu)
+  if (dt) { const was = dt.open; dt.ontoggle = () => { if (dt.open !== was) S.lspo = dt.open ? ev.id : null; }; }
   a.querySelectorAll("[data-lsm]").forEach(b => b.onclick = () => { saveOpts({...o, mode: b.dataset.lsm}); render(); });
   a.querySelectorAll("[data-lsn]").forEach(b => b.onclick = () => { saveOpts({...o, n: +b.dataset.lsn}); render(); });
   const ps = a.querySelector("#lspos");
@@ -110,6 +114,9 @@ function bindSheet(a) {
   const m = a.querySelector("#plvm");
   if (!m) return;
   m.querySelector("#plvx").onclick = () => { S.plvo = null; render(); };
+  // Překreslení po klepnutí okno vytvoří znovu – posun seznamu se pamatuje (S.plvo.y), aby obrazovka neskočila nahoru
+  const box = m.querySelector(".mb");
+  if (box) { box.scrollTop = (S.plvo && S.plvo.y) || 0; box.onscroll = () => { if (S.plvo) S.plvo.y = box.scrollTop; }; }
   m.querySelectorAll("[data-lsl]").forEach(b => b.onclick = () => {
     const [id, n] = b.dataset.lsl.split("|"), lv = lvlSet(S.plv || {}, id, +n);
     S.plv = lv;
