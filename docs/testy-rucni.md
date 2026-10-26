@@ -37,3 +37,14 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 5.3 Pokladník: Team → 💰 Platby → čip **⚖️ Tarify** – hráčky s verdiktem (nevyužívá / 💡 příspěvek / stejně / využívá), docházka sezóny, sezóna skutečně → druhý způsob; dole osvobozené. Bez brankářek, ukončených a hostujících.
 - [ ] 5.4 Pokladník: okno ✋ žádosti o změnu placení dál ukazuje dopad (porovnání sezóny).
 - [ ] 5.5 Rychlá kontrola z kap. 1.
+
+## 6. v22.2 – ▶ Teď v živém tréninku, ☑ hromadné úhrady, 🏦 výpis z banky
+- [ ] 6.1 V záhlaví je **v22.2**.
+- [ ] 6.2 ⏱ Živý trénink (plán aspoň se 4 bloky): ▶ spustit, rozbalit 📋 Zbytek plánu – přeskočit / zkrátit. U posledního bloku **▶ Teď** → „Klepni znovu“ → druhé klepnutí: hodiny skočí na začátek posledního bloku, bloky mezi zmizí ze zbytku plánu, druhý telefon ukazuje totéž. Uložený plán (✏️ Upravit) je beze změny.
+- [ ] 6.3 ⏮ Zpět po skoku vrátí na začátek bloku; ▶ Teď na sousední blok = jako ⏭ (nic se nevypustí).
+- [ ] 6.4 Pokladník: Team → 💰 Platby → **☑ Hromadně**: ruční výběr – zaškrtnout 2 předpisy (lišta dole ukáže počet a součet, obrazovka neposkočí), Vybrat vše u události, 🔍 hledání jména. ✅ Zapsat → „Klepni znovu“ → zapsáno; v Pokladně 2 příjmy, dluhy klesly.
+- [ ] 6.5 🏦 Výpis: v bankovnictví týmu stáhnout pohyby jako CSV, 📥 Načíst výpis. Souhrn (spárováno / přesně / nespárováno / výdaje), přesné shody zaškrtnuté, platba se souhrnným osobním VS rozdělená do předpisů. Zapsat → v Pokladně datum platby z výpisu.
+- [ ] 6.6 Stejný výpis načíst znovu – zapsané platby se nenabídnou („už zapsáno“).
+- [ ] 6.7 Dva účty (pokud jsou nastavené): volba účtu výpisu – páruje se jen s předpisy na tento účet.
+- [ ] 6.8 Hráčka: Moje platby beze změny, ☑ Hromadně nevidí.
+- [ ] 6.9 Rychlá kontrola z kap. 1.

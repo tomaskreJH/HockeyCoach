@@ -1,7 +1,7 @@
 // ⚠️ Pokladna u události (správce pokladny): šablona, náklady, kdo platí, pokrytí nákladů (domain/economy.js), vyúčtování, úhrady předpisů.
 // Data v evcash/{id} (ev.cx), v události jen příznak ss. Uzavření i znovuotevření = JEDNA dávka (evcash + ss + předpisy + audit + debtors);
 // po uzavření se nic automaticky nepřepočítává. Cena na hlavu evprice/{id} se zapíše po dávce zvlášť (chyba ji nesmí zastavit).
-// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny. Přehled dluhů: finance.js, pohyby: cashbook.js, měsíce: money.js.
+// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny (i hromadně – payMany). Přehled dluhů: finance.js, pohyby: cashbook.js.
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
@@ -104,6 +104,39 @@ export function payCharge(cid, amt, extra) {
   withDebtors(b, [{id: cid, d}], []).commit();
   toast(a < rest ? "Částečná úhrada zapsána" : "Úhrada zapsána");
   return true;
+}
+// Hromadná úhrada (☑ Hromadně, 🏦 výpis): list = [{cid, amt (null = celý zbytek), note, d (datum platby), bt (značka pohybu výpisu)}].
+// Každá položka = příjem do pokladny + nová zaplacená částka; předpisy jedné osoby vždy v jedné dávce (souhrn dlužníků
+// se počítá po osobách), nejvýš PAY_CHUNK předpisů na dávku (limit 500 zápisů). Vrací počet zapsaných úhrad.
+const PAY_CHUNK = 120;
+export function payMany(list) {
+  const cfg = cashCfg(S.cc), paid = new Map(), byMid = new Map();
+  (list || []).forEach(o => {
+    const x = S.ch.find(c => c.id === o.cid);
+    if (!x || busy.has(x.id)) return;
+    const rest = r2(restOf(x) - (paid.get(x.id) || 0)), a = o.amt == null ? rest : r2(Math.min(+o.amt || 0, rest));
+    if (!(a > 0)) return;
+    paid.set(x.id, r2((paid.get(x.id) || 0) + a));
+    const note = [chargeMsg(x, S), a < restOf(x) ? "částečná úhrada" : "", o.note || ""].filter(Boolean).join(" · ");
+    const mv = {d: o.d || td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid: x.id, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()};
+    if (o.bt) mv.bt = String(o.bt);
+    if (!byMid.has(x.mid)) byMid.set(x.mid, []);
+    byMid.get(x.mid).push(mv);
+  });
+  let b = null, n = 0, sets = [], cnt = 0;
+  const flush = () => { if (b) withDebtors(b, sets, []).commit(); b = null; sets = []; n = 0; };
+  byMid.forEach(mvs => {
+    if (b && n + new Set(mvs.map(m => m.cid)).size > PAY_CHUNK) flush();
+    if (!b) b = S.db.batch();
+    mvs.forEach(m => b.set("cash/" + uid(), m));
+    [...new Set(mvs.map(m => m.cid))].forEach(cid => {
+      const x = S.ch.find(c => c.id === cid), d = {...chData(x), paid: r2((+x.paid || 0) + paid.get(cid))};
+      b.set("charges/" + cid, d); sets.push({id: cid, d}); n++; cnt++;
+      busy.add(cid); setTimeout(() => busy.delete(cid), 2000);
+    });
+  });
+  flush();
+  return cnt;
 }
 // Okno s volbou částky úhrady (výchozí = celý zbytek)
 export function openPay(cid) {

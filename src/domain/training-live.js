@@ -1,6 +1,6 @@
 // Doména: ⏱ živý trénink – společné hodiny trlive/{eid} a „kde jsme teď“ v plánu (blok, kolo točení, cvičení řady, zbývá).
 // Dokument: {v, st run|pause|end, e0 (s od začátku plánu), wAt, sAt (čas serveru), ctl (řídící), adj {blok: min}, skip [blok], by, at}.
-// Čas při běhu = e0 + (teď − sAt), posun hodin zařízení se dorovná odhadem skew. Úpravy adj / skip platí jen pro průběh, plán se nemění.
+// Čas při běhu = e0 + (teď − sAt), posun hodin zařízení se dorovná odhadem skew. Úpravy adj / skip (i ▶ Teď = skok na blok) platí jen pro průběh.
 // Upozornění vibrací, zvukem a systémovým oznámením (i na hodinky) s textem „co teď / co potom“ (liveNote).
 // ===== Importy =====
 import {BLK_DUR_MAX, GK, isPosBlock, laneSeq, planTimes, posGrp, rotation, seqStep} from "./training-plan.js";
@@ -75,6 +75,20 @@ export function adjPatch(plan, live, bid, op, at) {
   if (n === base) delete adj[bid]; else adj[bid] = n;
   if (Object.keys(adj).length > ADJ_MAX) return null;
   return {adj, skip: skip.filter(x => x !== bid)};
+}
+// ▶ Teď – skok na zvolený další blok: současný blok končí hned, bloky mezi ním a zvoleným se pro tento průběh vypustí
+// (zvolený se případně vrátí), hodiny skočí na začátek zvoleného. Vrací {adj, skip, sec} nebo null (blok není další / plán skončil).
+export function jumpPatch(plan, live, bid, at) {
+  const B = plan || [], ti = B.findIndex(b => b.id === bid);
+  if (ti < 0 || !canAdj(at, ti)) return null;
+  const adj = {...((live && live.adj) || {})};
+  Object.keys(adj).forEach(k => { if (!B.some(b => b.id === k)) delete adj[k]; });
+  const skip = new Set((Array.isArray(live && live.skip) ? live.skip : []).filter(x => B.some(b => b.id === x)));
+  for (let i = at.bi + 1; i < ti; i++) skip.add(B[i].id);
+  skip.delete(bid);
+  if (skip.size > ADJ_MAX) return null;
+  const K = [...skip], T = planTimes(liveBlocks(B, {adj, skip: K}));
+  return {adj, skip: K, sec: T[ti].a};
 }
 // Zbytek plánu pro úpravy: bloky po současném [{bi, id, dur (plán), eff (tento průběh), skip, adj}]
 export function liveRest(plan, live, at) {

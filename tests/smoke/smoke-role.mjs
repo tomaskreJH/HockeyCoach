@@ -58,7 +58,7 @@ async function help() {
   snap("help");
   await tap("#hlx", 150);
 }
-// Události: rychlé tlačítko, detail tréninku s plánem, úprava plánu, živý trénink
+// Události: rychlé tlačítko, detail tréninku s plánem, úprava plánu, živý trénink (▶ Teď)
 async function events() {
   await tap('#nav button[data-t="ev"]', 250);
   if (await tap('[data-qa="e2|yes"]', 250)) snap("ev-quick");
@@ -75,14 +75,25 @@ async function events() {
   }
   if (await tap("#tlgo", 600)) {
     snap("trlive");
+    // ▶ Teď: první klepnutí se zeptá (u cizího řídícího nejdřív převzetí řízení), další skočí na blok (bloky mezi se vypustí)
+    if (await tap("[data-tlj]", 200)) {
+      snap("trlive-jump-arm");
+      for (let i = 0; i < 2 && document.querySelector("[data-tlj]"); i++) await tap("[data-tlj]", 300);
+      snap("trlive-jump");
+    }
     await tap("#tlx", 200);
   }
   await tap("#evb", 200);
 }
-// Peníze: Team → 💰 Platby → ⚖️ Tarify (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
+// Peníze: Team → 💰 Platby → ⚖️ Tarify a ☑ Hromadně (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
 async function money() {
   if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
     if (await tap('[data-fv="tf"]', 250)) snap("pay-tariff");
+    // ☑ Hromadně: zaškrtnutí předpisu, zápis druhým klepnutím
+    if (await tap('[data-fv="hb"]', 250)) {
+      snap("pay-bulk");
+      if (await tap("[data-hc]", 150) && await tap("#hbw", 200)) { snap("pay-bulk-arm"); if (await tap("#hbw", 300)) snap("pay-bulk-done"); }
+    }
     await tap('[data-fv="pl"]', 150);
     await tap('[data-tm="team"]', 200);
   }

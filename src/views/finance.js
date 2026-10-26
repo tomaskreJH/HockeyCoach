@@ -1,7 +1,8 @@
 // ⚠️ Přehled plateb a dluhů (Team → 💰 Platby, správce pokladny): souhrn, po hráčkách, po událostech; data S.ch, události z events.js.
 // Příspěvek (eid "c_RRRR-MM") = pseudo-událost 📅 (klepnutí → 📅 Měsíce). 🔒 výjimka z blokace u předpisu po splatnosti.
 // Úhrada přes okno z payments.js; „Zaplatila vše“ zvlášť pro každý účet (osobní VS). Nahoře žádosti o změnu placení (request-list.js).
-// ⚖️ Tarify (v22.1.3): využívá hráčka zvolený způsob placení (domain/economy.js tariffRows) + docházka sezóny – jen pro správce pokladny.
+// ⚖️ Tarify: využívá hráčka zvolený způsob placení (domain/economy.js tariffRows) + docházka sezóny – jen pro správce pokladny.
+// ☑ Hromadně: více úhrad najednou, 🏦 párování výpisu z banky (bank-pair.js).
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {isG, pl, pn, pri, stOf} from "../core/selectors.js";
@@ -11,13 +12,14 @@ import {HK} from "../data/storage.js";
 import {attEvents, attSummary, pastEvents, seasonOf} from "../domain/attendance.js";
 import {GRP, accIban, accName, accOf, cashCfg, chargeMsg, contribEvent, contribYm, costTotal, fmtDue, fxPct, kc, ledger, overdue, personVs, r2, restOf, twoAcc, ymNow} from "../domain/cash.js";
 import {tariffRows} from "../domain/economy.js";
+import {bindBulk, bulkHtml} from "./bank-pair.js";
 import {openMonth} from "./money.js";
 import {openPay, payCharge, toggleExc} from "./payments.js";
 import {bindReq, reqBanner, reqModal} from "./request-list.js";
 import {render} from "./shell.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
-let vw = "pl";      // pl = podle hráček, ev = podle událostí, tf = ⚖️ tarify (využívá hráčka zvolený způsob placení?)
+let vw = "pl";      // pl = podle hráček, ev = podle událostí, hb = ☑ hromadně (výpis z banky), tf = ⚖️ tarify
 let all = false;    // v přehledu hráček zobrazit i ty bez dluhu
 let open = null;    // rozbalená hráčka
 
@@ -79,7 +81,7 @@ export function financeHtml(evs, AT) {
 
   // Souhrn
   const grid = `<div class="grid3"><div class="stat"><b style="color:${L.owed ? "var(--no)" : "var(--ok)"}">${kc(L.owed)}</b>dluh celkem</div><div class="stat"><b>${kc(L.got)}</b>vybráno</div><div class="stat"><b>${L.debtors}</b>dlužnic</div></div>`;
-  const tabs = `<div class="chips"><button class="chip ${vw === "pl" ? "on" : ""}" data-fv="pl">Podle hráček</button><button class="chip ${vw === "ev" ? "on" : ""}" data-fv="ev">Podle událostí</button><button class="chip ${vw === "tf" ? "on" : ""}" data-fv="tf">⚖️ Tarify</button></div>`;
+  const tabs = `<div class="chips"><button class="chip ${vw === "pl" ? "on" : ""}" data-fv="pl">Podle hráček</button><button class="chip ${vw === "ev" ? "on" : ""}" data-fv="ev">Podle událostí</button><button class="chip ${vw === "hb" ? "on" : ""}" data-fv="hb">☑ Hromadně</button><button class="chip ${vw === "tf" ? "on" : ""}" data-fv="tf">⚖️ Tarify</button></div>`;
 
   // Uplynulé události s náklady, které ještě nemají uzavřené vyúčtování
   const unset = past.filter(e => costTotal(e.cx || {}) > 0 && !e.raw.ss && !(e.cx || {}).settle).sort(desc);
@@ -89,6 +91,7 @@ export function financeHtml(evs, AT) {
 
   let body;
   if (vw === "tf") body = tariffHtml();
+  else if (vw === "hb") body = bulkHtml(byId);
   else if (vw === "pl") {
     // Přehled po hráčkách: největší dluh nahoře
     const rows = L.rows.filter(r => all || r.debt > 0)
@@ -118,6 +121,7 @@ export function financeHtml(evs, AT) {
 // ===== Eventy =====
 export function bindFinance(a) {
   bindReq(a);   // pruh a okno žádostí o změnu placení
+  if (vw === "hb") bindBulk(a);   // ☑ Hromadně a výpis z banky
   a.querySelectorAll("[data-fv]").forEach(b => b.onclick = () => { vw = b.dataset.fv; render(); });
   a.querySelectorAll("[data-fall]").forEach(b => b.onclick = () => { all = !all; render(); });
   a.querySelectorAll("[data-fo]").forEach(b => b.onclick = () => { open = open === b.dataset.fo ? null : b.dataset.fo; render(); });

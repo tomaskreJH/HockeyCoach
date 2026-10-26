@@ -2,6 +2,28 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.2 (26. 10. 2026) – ⏱ ▶ Teď v živém tréninku, ☑ hromadné úhrady a 🏦 párování výpisu z banky
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nové `src/domain/bank-match.js`, `src/views/bank-pair.js`, `tests/bank-match.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v99`). 5) **🔒 Vyžadovat verzi: ne** (nové pole `bt` v pokladně starší verze jen nečtou). 6) Test: `docs/testy-rucni.md` kap. 6.
+
+⚠️ SAHÁ NA PLATBY (`src/views/payments.js` – nová funkce `payMany`, stávající úhrady beze změny).
+
+**Přidáno**
+- ⏱ Živý trénink → 📋 Zbytek plánu: u každého dalšího bloku **▶ Teď** (druhým klepnutím) – současný blok skončí hned, bloky mezi se pro dnešní průběh vypustí, hodiny skočí na začátek zvoleného bloku (např. nestíháme cvičení, ale hra na konci zůstane). Souhrn přejmenován na „📋 Zbytek plánu – přeskočit / zkrátit“, krátký popis ovládání.
+- `src/domain/training-live.js` – `jumpPatch()` (úpravy `adj` / `skip` + čas skoku; stejná pole dokumentu `trlive` jako dosud).
+- Team → 💰 Platby → čip **☑ Hromadně** (`src/views/bank-pair.js`): 🏦 načtení výpisu z banky (CSV, UTF-8 i windows-1250; Fio, ČSOB, KB, Air Bank, Raiffeisen, Moneta, ČS – sloupce podle záhlaví), párování příchozích plateb s nezaplacenými předpisy (VS předpisu → osobní VS rozdělený od nejstaršího předpisu → číslo ve zprávě), přesné shody předvybrané, částečná úhrada / přeplatek / shoda jen ve zprávě ke kontrole, nespárované příjmy a už zapsané pohyby zvlášť; při dvou účtech volba účtu výpisu. ☑ Ruční výběr nezaplacených předpisů po událostech (🔍 hledání, Vybrat vše). Spodní lišta ✅ Zapsat úhrady (počet, součet), druhým klepnutím.
+- `src/domain/bank-match.js` – `readStatement`, `matchStatement`, `parseCsv`, `parseAmount`, `parseDate`, `vsNorm`.
+- `src/views/payments.js` – `payMany()`: hromadná úhrada (příjem do pokladny + zaplaceno u předpisu; předpisy jedné osoby v jedné dávce se souhrnem dlužníků, nejvýš 120 předpisů na dávku). Pohyb z výpisu nese datum platby a značku `bt` (opakované načtení stejného výpisu ho nenabídne).
+- Testy: `tests/bank-match.test.js` (8), `jumpPatch` v `tests/training-live-adj.test.js` (2); kouřový test – ▶ Teď v živém tréninku, ☑ Hromadně se zápisem.
+
+**Změněno**
+- ❓ Nápověda: kap. ⏱ Živý trénink (▶ Teď), kap. 12 (☑ Hromadně a výpis z banky).
+
+**Beze změny:** jednotlivá úhrada 💳, ✅ Zaplatila vše, předpisy a vyúčtování, výpočty pokladny, pravidla databáze, živý zápis, statistiky, plán tréninku (uložený plán se skokem nemění).
+
+**Pozn.:** XLSX / PDF výpis se nečte – v bankovnictví zvolit export CSV. Přeplatek se nezapisuje (jen upozornění) – zapsat ručně jako vklad nebo ponechat na další předpis.
+
+**Ověřeno:** `npm test` 371 / 371. `npm run smoke` – 8 rolí bez chyb, 177 obrazovek (▶ Teď u všech, kdo řídí trénink; ☑ Hromadně se zápisem u managera, trenéra-pokladníka a pokladníka).
+
 ## v22.1.3 (26. 10. 2026) – ⚖️ porovnání placení jen pro pokladníka, 📊 docházka v Moje platby
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nic nového se nemaže, žádný nový soubor v `src/`). 4) Načíst novou verzi (cache `hokej-v98`). 5) **🔒 Vyžadovat verzi: ne.** 6) Test: `docs/testy-rucni.md` kap. 5.
 

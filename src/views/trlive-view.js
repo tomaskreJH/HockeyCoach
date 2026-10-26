@@ -1,6 +1,6 @@
 // ⏱ Živý trénink (jen HK.can("sport")): stav a tlačítko v kartě plánu, obrazovka #tlv (✕ / Zpět zavře, hodiny běží dál; tik 250 ms mění jen čísla).
 // Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e): ▶ ⏸ ⏮ ⏭ ✂ −1 / +1 / +5 min ⏹, převzetí řízení druhým klepnutím,
-// 📋 Zbytek plánu (vypustit / zkrátit další bloky jen pro průběh – adj / skip). Trenér vidí své linky a cvičení řady (laneSub), hráčky, co následuje;
+// 📋 Zbytek plánu (▶ Teď = skok na další blok, vypustit / zkrátit další bloky jen pro průběh – adj / skip). Trenér vidí své linky a cvičení řady (laneSub), hráčky, co následuje;
 // ⏲ stopky (stopwatch-view.js) a ⭐ výzva k hodnocení (treval-view.js). Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js.
 
 // ===== Importy =====
@@ -11,7 +11,7 @@ import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {laneMeas} from "../domain/stopwatch.js";
 import {prevSpot} from "../domain/training-eval.js";
-import {adjPatch, alertsDue, coachLanes, cutSec, groupPids, laneSub, LIVE_ST, liveAt, liveBlocks, liveBudget, liveCtl, liveRest, liveSec, mmss, skewNext, skewObs, stepSec, TRLIVE_COLL} from "../domain/training-live.js";
+import {adjPatch, alertsDue, coachLanes, cutSec, groupPids, jumpPatch, laneSub, LIVE_ST, liveAt, liveBlocks, liveBudget, liveCtl, liveRest, liveSec, mmss, skewNext, skewObs, stepSec, TRLIVE_COLL} from "../domain/training-live.js";
 import {DF, expandLanes, FW, GK, grpLabel, isBreak, isPosBlock, laneOf, laneSeq, laneTags, MODES, planTimes, seqTimes} from "../domain/training-plan.js";
 import {render} from "./shell.js";
 import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
@@ -47,8 +47,9 @@ const CSS = `<style>
 #tlv .tlbud .w{color:var(--wa);font-weight:700} #tlv .tlbud .ok{color:var(--ok)}
 #tlv .tlrs{border:1px solid var(--bd);border-radius:12px;padding:0 10px;margin:8px 0}
 #tlv .tlrs>summary{min-height:44px;padding:10px 0;font-weight:700;cursor:pointer}
-#tlv .tlrr{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--bd)}
-#tlv .tlrr>div{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tlv .tlrr{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--bd)}
+#tlv .tlrr>div{flex:1 1 130px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tlv .tlrr .tlgo{min-width:72px;font-weight:700}
 #tlv .tlrr button{flex:none;min-height:44px;min-width:44px;padding:4px 8px}
 #tlv .tlrr.sk>div{text-decoration:line-through;opacity:.55}
 #tlv .tlbrk{font-size:28px;font-weight:800;text-align:center;padding:18px 10px}
@@ -197,17 +198,20 @@ function budgetText(X, total, sec) {
   const end = g.realLeft >= 0 ? "do konce tréninku <b>" + mmss(g.realLeft) + "</b>" : "<b>po konci tréninku</b>", m = Math.round(g.over / 60);
   return end + " · " + (m >= 1 ? `<span class="w">plán přetahuje o ${m} min</span>` : m <= -1 ? `<span class="ok">rezerva ${-m} min</span>` : "plán sedí");
 }
-// 📋 Zbytek plánu (jen řídit smí): další bloky jen pro tento průběh – −/+ 1 min, ⏭ vypustit / ↩ vrátit; plán se nemění
+// 📋 Zbytek plánu (jen řídit smí): další bloky jen pro tento průběh – ▶ Teď (skok na blok, bloky mezi se vypustí), −/+ 1 min,
+// ⏭ vypustit / ↩ vrátit; plán se nemění
 function restHtml(X, at, v) {
   if (!canE() || !v || !LIVE_ST[v.st] || v.st === "end" || !at || at.done) return "";
   const R = liveRest(planB(X), v, at), P = planB(X);
   if (!R.length) return "";
   const g = liveBudget(at.total, at.sec, endMs(X), Date.now()), open = L.rest != null ? L.rest : g.over != null && g.over >= 60;
   const left = R.reduce((s, x) => s + x.eff, 0), ch = R.filter(x => x.skip || x.adj).length;
-  return `<details class="tlrs" id="tlrs" ${open ? "open" : ""}><summary>📋 Zbytek plánu · ${left} min${ch ? ` · upraveno ${ch}` : ""}</summary>
-<div class="mu" style="font-size:13px;margin-bottom:4px">Jen pro dnešní průběh – uložený plán zůstane beze změny.</div>
+  // ▶ Teď: potvrzení druhým klepnutím (skok nejde vrátit jedním klepnutím)
+  const go = x => { const on = armed("tlj" + L.eid + x.id); return `<button class="${on ? "d" : "p"} tlgo" data-tlj="${esc(x.id)}" style="${on ? "background:var(--wa);color:#222" : ""}" title="Přejít hned na tento blok">${on ? "Klepni znovu" : "▶ Teď"}</button>`; };
+  return `<details class="tlrs" id="tlrs" ${open ? "open" : ""}><summary>📋 Zbytek plánu – přeskočit / zkrátit · ${left} min${ch ? ` · upraveno ${ch}` : ""}</summary>
+<div class="mu" style="font-size:13px;margin-bottom:4px">Jen pro dnešní průběh – uložený plán zůstane beze změny. <b>▶ Teď</b> = hned přejít na blok (bloky mezi se vypustí), <b>⏭</b> = vypustit blok.</div>
 ${R.map(x => `<div class="tlrr ${x.skip ? "sk" : ""}"><div><b>${x.bi + 1}.</b> ${esc(blockName(P[x.bi], X))} · <b>${x.eff}</b> min${x.adj ? ` <span class="mu">(plán ${x.dur})</span>` : ""}</div>
-${x.skip ? `<button class="s" data-tla="${esc(x.id)}|skip">↩ Vrátit</button>` : `<button class="s" data-tla="${esc(x.id)}|−">−</button><button class="s" data-tla="${esc(x.id)}|+">+</button><button class="d" data-tla="${esc(x.id)}|skip" title="Vypustit">⏭</button>`}</div>`).join("")}</details>`;
+${go(x)}${x.skip ? `<button class="s" data-tla="${esc(x.id)}|skip">↩ Vrátit</button>` : `<button class="s" data-tla="${esc(x.id)}|−">−</button><button class="s" data-tla="${esc(x.id)}|+">+</button><button class="d" data-tla="${esc(x.id)}|skip" title="Vypustit">⏭</button>`}</div>`).join("")}</details>`;
 }
 function screenHtml() {
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live;
@@ -266,8 +270,8 @@ function tick() {
 }
 
 // ===== Eventy =====
-// Zápis nového stavu hodin (řídící = já); s cizím řídícím nejdřív potvrzení převzetí
-function ctl(kind, extra) {
+// Zápis nového stavu hodin (řídící = já); s cizím řídícím nejdřív potvrzení převzetí. goto = skok na čas sec (▶ Teď)
+function ctl(kind, extra, sec) {
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live, now = Date.now(), sk = skew();
   const cur = liveSec(v, now, sk) || 0, o = {now, skew: sk, me: me()};
   let d = null;
@@ -275,6 +279,7 @@ function ctl(kind, extra) {
   else if (kind === "next" || kind === "prev") d = liveCtl("jump", v, {...o, sec: stepSec(B, cur, kind === "next" ? 1 : -1)});
   else if (kind === "ext" || kind === "ext5") d = liveCtl("extend", v, {...o, sec: kind === "ext" ? 60 : 300});
   else if (kind === "cut") d = liveCtl("jump", v, {...o, sec: cutSec(B, cur, 60)});
+  else if (kind === "goto") d = liveCtl("jump", v, {...o, sec});
   else d = liveCtl(kind, v, o);
   if (!d) return;
   S.db.doc(TRLIVE_COLL + "/" + L.eid).merge({...d, by: me(), at: new Date().toISOString(), ...(extra || {})});
@@ -325,6 +330,17 @@ function bind() {
       L.rest = true;
       ctl("keep", p);
     });
+  });
+  // ▶ Teď: skok na zvolený další blok (druhým klepnutím); bloky mezi se vypustí, zápis úprav spolu s hodinami
+  el.querySelectorAll("[data-tlj]").forEach(b => b.onclick = () => {
+    const bid = b.dataset.tlj;
+    guarded(() => confirm2("tlj" + L.eid + bid, () => {
+      const X = L.getX ? L.getX() : null, at = liveAt(liveB(X), liveSec(L.live, Date.now(), skew()) || 0), p = jumpPatch(planB(X), L.live, bid, at);
+      if (!p) { toast("Na tento blok už přejít nejde"); return; }
+      L.rest = false;
+      ctl("goto", {adj: p.adj, skip: p.skip}, p.sec);
+      toast("Přechod na blok – hodiny běží všem");
+    }, paint));
   });
 }
 function open(eid, getX) {

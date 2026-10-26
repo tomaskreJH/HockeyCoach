@@ -1,10 +1,10 @@
 // Testy ⏱ živého tréninku podle skutečnosti (src/domain/training-live.js): úpravy průběhu adj / skip (vypustit, zkrátit, prodloužit blok
 // jen pro tento průběh), zbytek plánu, rozpočet času do konce tréninku, zkrácení kola; ☕ pauza v plánu (training-plan.js) a v hodnocení
-// (training-eval.js prevSpot); pravidla trlive s poli adj / skip (kontrola textu).
+// (training-eval.js prevSpot); pravidla trlive s poli adj / skip (kontrola textu); ▶ Teď – skok na zvolený blok (jumpPatch).
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {adjPatch, canAdj, cutSec, liveAt, liveBlocks, liveBudget, liveCtl, liveRest, stepSec} from "../src/domain/training-live.js";
+import {adjPatch, canAdj, cutSec, jumpPatch, liveAt, liveBlocks, liveBudget, liveCtl, liveRest, stepSec} from "../src/domain/training-live.js";
 import {BRK_DEF, BRK_DUR, blockExtras, breakBlank, isBreak, planDoc, planIssues, planMinutes} from "../src/domain/training-plan.js";
 import {prevSpot} from "../src/domain/training-eval.js";
 
@@ -112,4 +112,30 @@ test("pravidla: trlive dovolí úpravy průběhu adj (mapa) a skip (seznam) s me
   assert.match(m[1], /hasOnly\(\['v', 'st', 'e0', 'wAt', 'sAt', 'ctl', 'adj', 'skip', 'by', 'at'\]\)/);
   assert.match(m[1], /d\.adj is map && d\.adj\.size\(\) <= 30/);
   assert.match(m[1], /d\.skip is list && d\.skip\.size\(\) <= 30/);
+});
+
+// ===== ▶ Teď – skok na zvolený blok =====
+test("jumpPatch: skok z bloku a na d vypustí b a c, hodiny na začátek d; zvolený vypuštěný blok se vrátí", () => {
+  const at = liveAt(B, 120);                                          // blok a, 2. minuta
+  const p = jumpPatch(B, null, "d", at);
+  assert.deepEqual(p.skip, ["b", "c"]);
+  assert.equal(p.sec, 600, "d začne hned po bloku a (b a c mají délku 0)");
+  const E = liveBlocks(B, p), at2 = liveAt(E, p.sec);
+  assert.equal(at2.bi, 3, "poloha = blok d");
+  assert.equal(at2.left, 6 * 60, "první kolo stanovišť d celé");
+  // Na sousední blok: nic se nevypouští, hodiny na konec současného bloku
+  assert.deepEqual(jumpPatch(B, null, "b", at), {adj: {}, skip: [], sec: 600});
+  // Vypuštěný blok d a úprava délky b: skok na d vrátí d, b se vypustí, adj zůstane
+  const q = jumpPatch(B, {adj: {b: 7}, skip: ["d"]}, "d", at);
+  assert.deepEqual(q.skip.sort(), ["b", "c"]);
+  assert.deepEqual(q.adj, {b: 7});
+  assert.equal(q.sec, 600);
+});
+test("jumpPatch: jen na blok po současném, ne po konci plánu, neznámý blok = null", () => {
+  const at = liveAt(B, 700);                                          // blok b
+  assert.equal(jumpPatch(B, null, "a", at), null, "minulý blok");
+  assert.equal(jumpPatch(B, null, "b", at), null, "současný blok");
+  assert.equal(jumpPatch(B, null, "x", at), null, "neznámý blok");
+  assert.equal(jumpPatch(B, null, "d", liveAt(B, 30 * 60)), null, "plán skončil");
+  assert.equal(jumpPatch(B, null, "d", at).sec, 15 * 60, "z b na d: d začíná po b (c vypuštěna)");
 });
