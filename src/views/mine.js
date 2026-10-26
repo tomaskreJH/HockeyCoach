@@ -1,5 +1,6 @@
 // ⚠️ Moje platby: člen vidí jen své předpisy (S.ch), zaplacené, dluh a QR platbu (SPD, lokálně src/lib/qrcode.js); banner dluhu v Událostech.
-// Přepínač 📄 Předpisy / 📅 Po měsících (S.mk) s kartou ⚖️ Kdybych platila jinak (domain/economy.js) a ✋ žádostí o změnu placení.
+// Přepínač 📄 Předpisy / 📅 Po měsících (S.mk) s kartou 📊 Moje docházka (sezóna, účast po měsících) a ✋ žádostí o změnu placení.
+// Porovnání způsobu placení hráčka nevidí – je jen pro správce pokladny (finance.js → ⚖️ Tarify).
 // Nezaplacené po účtech; souhrnná platba (osobní VS, zpráva „Souhrn: …“) jen za předpisy se stejným IBAN. Příspěvek má eid "c_RRRR-MM".
 // Blokace „Jdu“ dluhem po splatnosti je v events.js.
 // ===== Importy =====
@@ -8,9 +9,9 @@ import {S} from "../core/state.js";
 import {esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
-import {seasonOf} from "../domain/attendance.js";
-import {GRP, accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, fxPct, grpAt, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
-import {compareMonths, myMonths} from "../domain/economy.js";
+import {attByMonth, attEvents, attSummary, pastEvents, seasonOf} from "../domain/attendance.js";
+import {GRP, accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, grpAt, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
+import {myMonths} from "../domain/economy.js";
 import {REQ_COLL, REQ_ST, openReq, payReqDoc, payReqError, reqYms, reqsOf} from "../domain/requests.js";
 import qrcode from "../lib/qrcode.js";
 import {qrFileName, saveQrImage} from "./qr-image.js";
@@ -122,29 +123,25 @@ function monItem(x) {
   const i = chargeItem(x.eid, S), rest = restOf(x);
   return `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px"><span>${esc(i.title)}${i.date && i.type !== "contrib" ? " · " + fd(i.date) : ""}<br><span class="mu">předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(Math.min(+x.paid, +x.amt || 0)) : ""}</span></span>${rest ? `<button class="p" data-mq="${x.id}" style="flex:0 0 auto">📱 ${kc(rest)}</button>` : '<span class="tag pp">zaplaceno</span>'}</div>`;
 }
-// Karta jednoho měsíce: předepsáno (příspěvek / události), zaplaceno, zbývá; klepnutím rozbalit předpisy
-function monCard(m, open) {
+// Karta jednoho měsíce: předepsáno (příspěvek / události), zaplaceno, zbývá, účast v měsíci (at); klepnutím rozbalit předpisy
+function monCard(m, open, at) {
   const parts = [m.contrib.amt ? "příspěvek " + kc(m.contrib.amt) : "", m.ev.amt ? "události " + kc(m.ev.amt) : ""].filter(Boolean).join(" · ");
   const list = open ? `<div style="margin-top:6px;border-top:1px solid var(--bd);padding-top:4px">${m.items.slice().sort((p, q) => (chargeItem(p.eid, S).date || "").localeCompare(chargeItem(q.eid, S).date || "")).map(monItem).join("")}</div>` : "";
   return `<div class="cd"><div data-mkm="${m.ym}" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${open ? "▾" : "▸"} ${esc(ymLabel(m.ym))}</b><span class="tag ${m.rest ? "sh" : "pp"}">${m.rest ? "zbývá " + kc(m.rest) : "zaplaceno"}</span></div>
-<div class="mu">Předepsáno ${kc(m.amt)}${parts ? " (" + parts + ")" : ""} · zaplaceno ${kc(m.paid)}</div></div>${list}</div>`;
+<div class="mu">Předepsáno ${kc(m.amt)}${parts ? " (" + parts + ")" : ""} · zaplaceno ${kc(m.paid)}${at && at.n ? " · účast " + at.yes + " z " + at.n : ""}</div></div>${list}</div>`;
 }
-// Karta ⚖️ Kdybych platila jinak (jen hráčka): skutečnost po měsících vs. druhý způsob placení – jen informace
-function cmpCard(mm) {
-  const pid = HK.pid(), me = pid ? S.pl.find(p => p.id === pid) : null;
-  if (!me) return "";
-  const went = eid => S.at.some(x => x.eid === eid && x.pid === pid && x.st === "yes");
-  const r = compareMonths(me, mm, S.pr, went, cashCfg(S.cc).contrib, ymNow());
-  const head = '<h2>⚖️ Kdybych platila jinak</h2>';
-  if (!r) return "";
-  if (r.skip) return `<div class="cd">${head}<div class="mu">${r.skip === "exempt" ? "Jsi osvobozená – porovnání způsobu placení se tě netýká." : "Máš koeficient 0 % – neplatíš příspěvek ani za události."}</div></div>`;
-  const altTxt = GRP[r.alt], rows = r.rows.length ? r.rows.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px"><span>${esc(ymLabel(x.ym))}</span><span>${kc(x.act)} → <b>${kc(x.alt)}</b>${r.alt === "single" ? ` <span class="mu">(${x.n} ${x.n === 1 ? "událost" : x.n >= 2 && x.n <= 4 ? "události" : "událostí"})</span>` : ""}</span></div>`).join("") : '<div class="mu">V této sezóně zatím není co porovnat.</div>';
-  const diff = r2(Math.abs(r.total.alt - r.total.act));
-  const verdict = !r.rows.length ? "" : r.better === r.alt ? `Výhodnější by byl způsob <b>${esc(altTxt)}</b> (o ${kc(diff)}).` : r.better === r.grp ? `Tvůj současný způsob <b>${esc(GRP[r.grp])}</b> je výhodnější (o ${kc(diff)}).` : "Oba způsoby vycházejí stejně.";
-  const how = r.alt === "single" ? "kolik bys zaplatila za uzavřené události, na kterých jsi byla přihlášená (cena na hlavu × tvůj koeficient)" : "kolik by stál příspěvek (" + kc(cashCfg(S.cc).contrib) + " × tvůj koeficient) a události, kde platí i hráčky s příspěvkem";
-  return `<div class="cd">${head}<div class="mu">Platíš: <b>${esc(GRP[r.grp])}</b>, koeficient ${fxPct(r.fx)}. Vlevo skutečně předepsáno, vpravo ${how}.</div>${rows}
-${r.rows.length ? `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px;border-top:1px solid var(--bd);padding-top:6px"><b>Sezóna celkem</b><b>${kc(r.total.act)} → ${kc(r.total.alt)}</b></div><div style="margin-top:6px">${verdict}</div>` : ""}
-${r.mixed ? '<div class="mu" style="margin-top:6px">V sezóně jsi platila oběma způsoby – každý měsíc se porovnává s druhým způsobem toho měsíce.</div>' : ""}<div class="mu" style="margin-top:6px">Jen informace. Neuzavřené události se nepočítají, příspěvek podle dnešní výše. Změnu můžeš navrhnout tlačítkem ✋ níže.</div></div>`;
+// Karta 📊 Moje docházka: uplynulé události sezóny (tréninky, domácí a venkovní zápasy) – účast, %, 🚫 nedorazila, ❌ omluvena.
+// Porovnání způsobu placení hráčka nevidí (v22.1.3) – má ho jen správce pokladny v Team → 💰 Platby → ⚖️ Tarify.
+const ATT_ROWS = [["train", "🏒 Tréninky"], ["home", "🏠 Domácí zápasy"], ["away", "🚌 Venkovní zápasy"]];
+function attCard(se) {
+  const id = HK.pid() || HK.tid();
+  if (!id) return "";
+  const r = attSummary(pastEvents(attEvents(S.ev, S.ma), se.from, se.to, Date.now()), S.at, [id])[id], head = "<h2>📊 Moje docházka</h2>";
+  if (!r.all.n) return `<div class="cd">${head}<div class="mu">V této sezóně zatím nebyla žádná událost.</div></div>`;
+  const line = (l, x) => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px"><span>${l}</span><span><b>${x.yes}</b> z ${x.n}${x.pct == null ? "" : " · " + x.pct + " %"}${x.nos ? ` · <b style="color:var(--no)">🚫 ${x.nos}</b>` : ""}</span></div>`;
+  const rows = ATT_ROWS.filter(([k]) => r[k].n).map(([k, l]) => line(l, r[k])).join("");
+  const a = r.all, other = `❌ omluveno ${a.no} · ❓ nejistá ${a.maybe} · bez odpovědi ${a.none}`;
+  return `<div class="cd">${head}<div class="grid3"><div class="stat"><b>${a.yes} / ${a.n}</b>účast</div><div class="stat"><b>${a.pct == null ? "–" : a.pct + " %"}</b>docházka</div><div class="stat"><b style="color:${a.nos ? "var(--no)" : "inherit"}">${a.nos}</b>🚫 bez omluvy</div></div>${rows}<div class="mu" style="margin-top:6px">${other}. Počítají se uplynulé nezrušené události sezóny.</div></div>`;
 }
 // ===== Žádost o změnu placení =====
 // Hráčka (s plpay) propojená s účtem, nebo null
@@ -185,13 +182,14 @@ function sendReq() {
   render();
 }
 
-// Pohled 📅 Po měsících: sezóna (◀ ▶), souhrn sezóny, měsíce od nejnovějšího, porovnání způsobu placení
+// Pohled 📅 Po měsících: sezóna (◀ ▶), souhrn plateb sezóny, 📊 moje docházka, měsíce od nejnovějšího (platby + účast)
 function monthsHtml(items) {
-  const o = mk(), mm = myMonths(items, S, o.day), se = mm.season;
+  const o = mk(), mm = myMonths(items, S, o.day), se = mm.season, id = HK.pid() || HK.tid();
+  const am = id ? attByMonth(pastEvents(attEvents(S.ev, S.ma), se.from, se.to, Date.now()), S.at, id) : {};
   const nav = `<div class="row" style="align-items:center;margin-bottom:8px"><button class="s" data-mks="-1" style="flex:0 0 auto">◀</button><b style="text-align:center">Sezóna ${seasonTxt(se)}</b><button class="s" data-mks="1" style="flex:0 0 auto">▶</button></div>`;
   const tot = `<div class="grid3"><div class="stat"><b>${kc(mm.total.amt)}</b>předepsáno</div><div class="stat"><b style="color:var(--ok)">${kc(mm.total.paid)}</b>zaplaceno</div><div class="stat"><b style="color:${mm.total.rest ? "var(--no)" : "inherit"}">${kc(mm.total.rest)}</b>zbývá</div></div>`;
-  const list = mm.months.length ? mm.months.map(m => monCard(m, o.open === m.ym)).join("") : '<div class="msg">V této sezóně nemáš žádné předpisy.</div>';
-  return nav + tot + list + cmpCard(mm) + reqForm();
+  const list = mm.months.length ? mm.months.map(m => monCard(m, o.open === m.ym, am[m.ym])).join("") : '<div class="msg">V této sezóně nemáš žádné předpisy.</div>';
+  return nav + tot + attCard(se) + list + reqForm();
 }
 
 // ===== Vykreslení =====

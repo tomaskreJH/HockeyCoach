@@ -30,3 +30,10 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 4.1 Detail tréninku → 📋 ✏️ Upravit: + blok, ⏱ −/+, ☕ pauza, 🔁 řada cvičení, ⭐ Jen moje linky, 💾 Uložit plán, Zahodit změny.
 - [ ] 4.2 ⏱ Živý trénink: ▶ start, ⏸ pauza, ⏭, 📋 Zbytek plánu; 🔔 zvuk a vibrace 60 s / 10 s před koncem kola; ⌚ zapnout oznámení – přijde oznámení (i na hodinky), akce ⏸ / ⏭.
 - [ ] 4.3 Obrazovka během živého tréninku nezhasne.
+
+## 5. v22.1.3 – ⚖️ Tarify a 📊 Moje docházka
+- [ ] 5.1 V záhlaví je **v22.1.3**.
+- [ ] 5.2 Hráčka (👁 Náhled role nebo druhý telefon): Moje platby → 📅 Po měsících – **není** karta ⚖️ Kdybych platila jinak; je karta **📊 Moje docházka** (účast z počtu, %, 🚫, řádky tréninky / domácí / venkovní) a u měsíce „účast X z N“. Tlačítko ✋ Požádat o změnu placení zůstává.
+- [ ] 5.3 Pokladník: Team → 💰 Platby → čip **⚖️ Tarify** – hráčky s verdiktem (nevyužívá / 💡 příspěvek / stejně / využívá), docházka sezóny, sezóna skutečně → druhý způsob; dole osvobozené. Bez brankářek, ukončených a hostujících.
+- [ ] 5.4 Pokladník: okno ✋ žádosti o změnu placení dál ukazuje dopad (porovnání sezóny).
+- [ ] 5.5 Rychlá kontrola z kap. 1.

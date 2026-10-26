@@ -63,3 +63,4 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 7. Upozornění živého tréninku jen při otevřené aplikaci (bez serveru); stopky běží jen v zařízení.
 8. Poslech `events` / `attendance` jen aktuální sezóny – zeptat se před změnou (mění statistiky a docházku za starší období).
 9. `live-engine.js` ukládá přes `core/actions.js` (doména sahá na data) – oddělit jen při zásahu do živého zápisu.
+10. ⚖️ Porovnání způsobu placení je od v22.1.3 jen pro správce pokladny (Team → 💰 Platby → ⚖️ Tarify); hráčkám ho zpřístupnit až na pokyn trenéra (např. volbou v ⚙️ → Pokladna).

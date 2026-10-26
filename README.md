@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.1.2 (26. 10. 2026)** – úklid U1 dokončen: rozdělení plánu a živého tréninku, komentáře pravidel (beze změny chování). Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.1.3 (26. 10. 2026)** – Moje platby: porovnání způsobu placení skryto hráčkám, nově 📊 Moje docházka; pokladník: Team → 💰 Platby → ⚖️ Tarify. Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

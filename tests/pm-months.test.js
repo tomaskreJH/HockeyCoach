@@ -100,3 +100,17 @@ test("compareMonths: osvobozená, koeficient 0 a chybějící hráčka", () => {
   assert.deepEqual(compareMonths({grp: "single", fx: 0, ex: false}, null, [], went, 500, "2026-11"), {skip: "fx0"});
   assert.equal(compareMonths(null, null, [], went, 500, "2026-11"), null);
 });
+
+// ===== ⚖️ Tarify pro správce pokladny (v22.1.3) =====
+test("tariffRows: příspěvek nevyužívá, osvobozená se neporovnává, docházka jen „Jdu“", async () => {
+  const {tariffRows} = await import("../src/domain/economy.js");
+  const pr = [{id: "t1", ym: "2026-11", date: "2026-11-04", head: {monthly: 0, single: 100, exempt: 0}}];
+  const ch = [{id: "c1", mid: "a", eid: contribEid("2026-11"), kind: "contrib", amt: 500, paid: 500, due: "2026-11-01T23:59"}];
+  const P = [{id: "a", grp: "monthly"}, {id: "b", grp: "monthly", ex: true}, {id: "c", grp: "single"}];
+  const at = [{eid: "t1", pid: "a", st: "yes"}, {eid: "t1", pid: "c", st: "no"}];
+  const R = tariffRows(P, ch, D, pr, at, 500, "2026-11", "2026-11-20");
+  assert.equal(R[0].act, 500); assert.equal(R[0].altAmt, 100); assert.equal(R[0].diff, -400);
+  assert.equal(R[0].better, "single"); assert.equal(R[0].n, 1); assert.equal(R[0].empty, false);
+  assert.equal(R[1].skip, "exempt");
+  assert.equal(R[2].empty, true);   // za událost, bez předpisů a bez účasti – v sezóně není co porovnat
+});

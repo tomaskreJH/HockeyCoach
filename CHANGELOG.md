@@ -2,6 +2,26 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.1.3 (26. 10. 2026) – ⚖️ porovnání placení jen pro pokladníka, 📊 docházka v Moje platby
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nic nového se nemaže, žádný nový soubor v `src/`). 4) Načíst novou verzi (cache `hokej-v98`). 5) **🔒 Vyžadovat verzi: ne.** 6) Test: `docs/testy-rucni.md` kap. 5.
+
+**Přidáno**
+- Team → 💰 Platby → čip **⚖️ Tarify** (správce pokladny, `src/views/finance.js`): za sezónu u každé hráčky (bez brankářek, ukončených a hostujících) způsob placení, koeficient, docházka sezóny, skutečně předepsáno → druhý způsob placení a verdikt *nevyužívá* (platí příspěvek, za události by vyšla levněji) / *💡 příspěvek* (platí za události, příspěvek by se vyplatil) / *stejně* / *využívá*. Řazení: nejdřív ty, kterým by se vyplatila změna (podle rozdílu). Osvobozené a koeficient 0 % vypsané zvlášť.
+- `src/domain/economy.js` – `tariffRows()` (výpočet přes stávající `myMonths` + `compareMonths`, beze změny jejich logiky).
+- Moje platby → 📅 Po měsících: karta **📊 Moje docházka** (uplynulé události sezóny: účast, %, 🚫, ❌, ❓, bez odpovědi; tréninky / domácí / venkovní zápasy) a u každého měsíce „účast X z N“ (`src/views/mine.js`).
+- `src/domain/attendance.js` – `attByMonth()` (docházka člena po měsících, z `attSummary`).
+- Testy: `tariffRows` (`tests/pm-months.test.js`), `attByMonth` (`tests/attendance-nos.test.js`); kouřový test – kroky Team → Platby → ⚖️ Tarify a Moje platby → Po měsících.
+
+**Změněno**
+- Moje platby: karta **⚖️ Kdybych platila jinak** se hráčkám už nezobrazuje (zatím není žádoucí). Porovnání zůstává pro správce pokladny v ⚖️ Tarify a v okně žádosti o změnu placení.
+- ❓ Nápověda: kap. 11 – místo ⚖️ Kdybych platila jinak 📊 Moje docházka; kap. 12 – Team → 💰 Platby → ⚖️ Tarify; text 💲 Doplnit ceny (i v ⚙️ → Pokladna).
+
+**Beze změny:** předpisy, úhrady, výpočty pokladny, žádosti o změnu placení, pravidla databáze, živý zápis, statistiky, trénink.
+
+**Pozn.:** docházka se načítá jen pro aktuální sezónu (plán, Otevřené drobnosti 8) – v Moje platby ◀ starší sezóna ukáže docházku prázdnou.
+
+**Ověřeno:** `npm test` 361 / 361. `npm run smoke` – 8 rolí bez chyb (155 obrazovek; ⚖️ Tarify u pokladníka, 📊 Moje docházka u hráčky).
+
 ## v22.1.2 (26. 10. 2026) – úklid U1, část 3: plán a živý trénink po částech, komentáře pravidel
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules: změněny jen komentáře** – publikovat není nutné (lze kdykoli). 3) Nahrát soubory ze zipu (nové `src/views/trplan-edit.js`, `src/views/trlive-alerts.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v97`). 5) **🔒 Vyžadovat verzi: ne.** 6) Test: `docs/testy-rucni.md` kap. 4.
 

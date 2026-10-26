@@ -55,3 +55,13 @@ test("pravidla: 🚫 zapisuje jen trenér / kustod, hráčka ji nezaloží, nezm
   assert.match(blk, /allow update: if keepOut\(\['reason'\]\) && \(isStaff\(\) \|\| \(isPlayer\(\) && nosKeep\(\)/);
   assert.match(blk, /allow delete: if isStaff\(\) \|\| \(isPlayer\(\) && resource\.data\.pid == myPid\(\) && !\('nos' in resource\.data\)\)/);
 });
+
+// ===== Docházka po měsících (📊 Moje docházka v Moje platby, v22.1.3) =====
+test("attByMonth: účast podle měsíce události, 🚫 se nepočítá do účasti", async () => {
+  const {attByMonth} = await import("../src/domain/attendance.js");
+  const evs = [{id: "e1", kind: "train", date: "2026-11-04"}, {id: "e2", kind: "home", date: "2026-11-20"}, {id: "e3", kind: "train", date: "2026-12-02"}];
+  const at = [{eid: "e1", pid: "p", st: "yes"}, {eid: "e2", pid: "p", st: "yes", nos: true}, {eid: "e3", pid: "p", st: "no"}];
+  const r = attByMonth(evs, at, "p");
+  assert.equal(r["2026-11"].n, 2); assert.equal(r["2026-11"].yes, 1); assert.equal(r["2026-11"].nos, 1);
+  assert.equal(r["2026-12"].yes, 0); assert.equal(r["2026-12"].no, 1);
+});

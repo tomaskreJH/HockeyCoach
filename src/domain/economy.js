@@ -1,6 +1,7 @@
 // Doména: hospodaření události a měsíce (čisté funkce bez DOM) – podíl příspěvků na kryté události, výsledek, návrh poplatku.
 // Krytá událost = skupina Příspěvek neplatí a má náklady; příspěvky měsíce (c_RRRR-MM, i nevystavené odhadem) se dělí podle nákladů,
-// uzavřená si nechá uložený podíl (evcash.settle.share). Moje platby po měsících (myMonths, compareMonths) z cen evprice/{eid}.
+// uzavřená si nechá uložený podíl (evcash.settle.share). Moje platby po měsících (myMonths), porovnání způsobu placení (compareMonths)
+// a přehled tarifů pro správce pokladny (tariffRows) z cen evprice/{eid}.
 // Předpisy ani šablony se tu nemění, jen čtou.
 // ===== Importy =====
 import {seasonOf} from "./attendance.js";
@@ -209,6 +210,23 @@ export function compareMonths(me, mm, prices, went, contrib, now) {
   const total = {act: r2(sum(rows, r => r.act)), alt: r2(sum(rows, r => r.alt))};
   const d = total.alt - total.act;
   return {grp, alt, fx, rows, mixed: rows.some(r => r.grp !== grp), total, better: Math.abs(d) < 1 ? null : d < 0 ? alt : grp};
+}
+
+// ===== Přehled tarifů pro správce pokladny (⚖️ Tarify) =====
+// players = hráčky s platebními poli (plpay), ch = všechny předpisy, D = data pro chargeItem ({ev, ma}), prices = evprice,
+// at = odpovědi docházky, contrib = výše příspěvku, now = dnešní měsíc „RRRR-MM“, day = den určující sezónu.
+// Pro každou hráčku porovnání compareMonths za sezónu. Vrací [{p, skip}] (osvobozená / koeficient 0) nebo
+// [{p, grp, alt, fx, act, altAmt, diff, better, n, empty}]: diff = altAmt − act (záporné = druhý způsob by byl levnější),
+// n = počet uzavřených událostí sezóny, kde byla přihlášená, empty = v sezóně není co porovnat.
+export function tariffRows(players, ch, D, prices, at, contrib, now, day) {
+  const yes = new Set((at || []).filter(a => a.st === "yes").map(a => a.eid + "|" + a.pid));
+  return (players || []).map(p => {
+    const mm = myMonths((ch || []).filter(x => x.mid === p.id), D, day);
+    const c = compareMonths(p, mm, prices, eid => yes.has(eid + "|" + p.id), contrib, now);
+    if (!c || c.skip) return {p, skip: c ? c.skip : "none"};
+    return {p, grp: c.grp, alt: c.alt, fx: c.fx, act: c.total.act, altAmt: c.total.alt, diff: r2(c.total.alt - c.total.act),
+      better: c.better, n: sum(c.rows, r => r.n), empty: !c.rows.length};
+  });
 }
 
 // ===== Exporty =====

@@ -79,6 +79,18 @@ async function events() {
   }
   await tap("#evb", 200);
 }
+// Peníze: Team → 💰 Platby → ⚖️ Tarify (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
+async function money() {
+  if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
+    if (await tap('[data-fv="tf"]', 250)) snap("pay-tariff");
+    await tap('[data-fv="pl"]', 150);
+    await tap('[data-tm="team"]', 200);
+  }
+  if (await tap('#nav button[data-t="mk"]', 250) && await tap('[data-mkv="mon"]', 250)) {
+    snap("mine-months");
+    await tap('[data-mkv="list"]', 150);
+  }
+}
 
 // ===== Hlavní logika =====
 try {
@@ -87,6 +99,7 @@ try {
   await settings();
   await help();
   await events();
+  await money();
   await tap('#nav button[data-t="home"]', 250);
   snap("end");
 } catch (e) {

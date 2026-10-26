@@ -71,6 +71,14 @@ export function attSummary(evs, at, ids) {
   });
   return out;
 }
+// Docházka jednoho člena po měsících: {„RRRR-MM“: {n, yes, no, maybe, none, nos, pct}} (typ „all“ z attSummary)
+//  - evs = uplynulé události (pastEvents), at = odpovědi, id = člen; měsíc podle data události
+export function attByMonth(evs, at, id) {
+  const by = {}, out = {};
+  (evs || []).forEach(e => { const ym = String(e.date || "").slice(0, 7); (by[ym] = by[ym] || []).push(e); });
+  Object.keys(by).forEach(ym => { out[ym] = attSummary(by[ym], at, [id])[id].all; });
+  return out;
+}
 // Má člen v událostech období aspoň jednu odpověď? (ukončené hráčky se v přehledu ukazují jen s odpovědí v období)
 export function hasAnswer(evs, at, id) {
   const ids = new Set((evs || []).map(e => e.id));
