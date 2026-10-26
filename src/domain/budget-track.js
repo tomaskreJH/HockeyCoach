@@ -8,6 +8,7 @@
 import {itemDates, seasonYms} from "./budget.js";
 import {CAT_CONTRIB, CAT_EVENT, CAT_SALARY, r2, restOf, sumCash, tplFor} from "./cash.js";
 import {chargeYm, monthEconomy, monthEvents} from "./economy.js";
+import {ceil} from "../core/utils.js";
 
 // ===== Konstanty =====
 // Hranice upozornění na odchylku plánu a skutečnosti (otázka 50)
@@ -18,7 +19,6 @@ export const TRACK_SKIP_CATS = [CAT_CONTRIB, CAT_EVENT, CAT_SALARY, "Pronájem l
 
 // ===== Pomocné funkce =====
 const sum = (a, f) => (a || []).reduce((s, x) => s + (+f(x) || 0), 0);
-const ceil = x => Math.ceil(x - 1e-9);
 // Den v týdnu 0 (Ne) … 6 (So) – stejně jako pravidlo opakování (datesOf)
 const dow = d => new Date(d + "T12:00:00Z").getUTCDay();
 // Měsíc dne "RRRR-MM-DD"

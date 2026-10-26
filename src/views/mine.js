@@ -1,22 +1,7 @@
-// Moje platby: člen vidí jen své předpisy, zaplacené částky, dluh a QR platbu. Banner s upozorněním na dluh v Událostech.
-// Přepínač 📄 Předpisy / 📅 Po měsících (S.mk): měsíce sezóny (předepsáno – příspěvek a události, zaplaceno, zbývá; klepnutím rozbalit)
-// a u hráčky karta ⚖️ Kdybych platila jinak (domain/economy.js myMonths, compareMonths; ceny uzavřených událostí na hlavu S.pr = evprice).
-// Žádost o změnu placení (domain/requests.js): stav vlastní žádosti v obou pohledech (otevřenou lze zrušit), formulář ✋ v pohledu Po měsících;
-// správcům pokladny ukáže banner v Událostech počet otevřených žádostí (views/request-list.js).
-// Struktura: Importy -> Stav -> Pomocné funkce -> Banner -> QR okno -> Po měsících a žádost o změnu placení -> Vykreslení -> Export.
-// Data: S.ch (u člena jen jeho předpisy, mid = pid / tid), nastavení pokladny S.cc (IBAN hlavního a provozního účtu). Předpis měsíčního příspěvku má eid "c_RRRR-MM" (F4).
-// QR je formát SPD (české QR platby) generovaný lokálně (src/lib/qrcode.js).
-// Zpráva pro příjemce: za co se platí + jméno plátce (chargeMsg v cash.js – uložená v předpisu, u starších sestavená); je u předpisu, v QR okně i v QR kódu (MSG).
-// Dva účty: každý předpis má svůj účet (hlavní / provozní). Nezaplacené předpisy se zobrazují po účtech; souhrnnou platbu (jeden QR)
-// lze poslat jen za předpisy na STEJNÝ účet (stejný IBAN) – platby na různé účty sloučit nejde. Souhrnná platba má osobní VS a zprávu „Souhrn: …“.
-// Blokace: kdo má neuhrazený předpis po splatnosti bez výjimky, nemůže se přihlásit „Jdu“ (kontrola v events.js, výjimku uděluje pokladník / trenér).
-// Zabezpečení QR: QR se vytvoří jen z účtu, který projde kontrolními součty (accCheck); kód je v alfanumerickém režimu
-// (zpráva qrMsg – bez diakritiky, VELKÁ písmena), volitelně okamžitá platba. Zařízení si pamatuje ověřené účty (seenAccs):
-// je-li účet nový oproti dřívějšku, nebo změněný v posledních 14 dnech, okno nejdřív ukáže varování a QR až po potvrzení.
-// V okně je vždy upozornění na kontrolu účtu před odesláním a vyloučení odpovědnosti. Správcům pokladny ukáže banner čekající návrh změny účtu.
-// Uložení QR: tlačítko ⬇️ Uložit QR je jen u zobrazeného QR (po kontrole účtu a ověření); obrázek PNG se kreslí
-// z téhož objektu qrcode, který okno zobrazilo (qr-image.js) – obsah QR se nemění. Android / iPhone: Sdílet, jinde stažení.
-
+// ⚠️ Moje platby: člen vidí jen své předpisy (S.ch), zaplacené, dluh a QR platbu (SPD, lokálně src/lib/qrcode.js); banner dluhu v Událostech.
+// Přepínač 📄 Předpisy / 📅 Po měsících (S.mk) s kartou ⚖️ Kdybych platila jinak (domain/economy.js) a ✋ žádostí o změnu placení.
+// Nezaplacené po účtech; souhrnná platba (osobní VS, zpráva „Souhrn: …“) jen za předpisy se stejným IBAN. Příspěvek má eid "c_RRRR-MM".
+// Blokace „Jdu“ dluhem po splatnosti je v events.js.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
@@ -71,7 +56,7 @@ function payData(cfg) {
 function pendBanner() {
   const p = (S.cc || {}).ibanPend, u = HK.user(), me = ((u && u.email) || "").toLowerCase();
   if (!p || !HK.can("money")) return "";
-  return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">⏳ Čeká na potvrzení změna účtů týmu</b><div class="mu">Navrhl ${esc(p.by)} · ${esc(fDay(p.at))}.${p.by === me ? " Potvrdit musí jiný trenér nebo pokladník." : " Před potvrzením ověř číslo účtu s navrhovatelem."}</div><button class="s w" data-mko style="margin-top:8px">🏦 Otevřít nastavení pokladny</button></div>`;
+  return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">⏳ Čeká na potvrzení změna účtů týmu</b><div class="mu">Navrhl ${esc(p.by)} · ${esc(fDay(p.at))}.${p.by === me ? " Potvrdit musí jiný správce pokladny." : " Před potvrzením ověř číslo účtu s navrhovatelem."}</div><button class="s w" data-mko style="margin-top:8px">🏦 Otevřít nastavení pokladny</button></div>`;
 }
 export function mineBanner() {
   const pb = pendBanner() + reqBanner(true);
@@ -87,6 +72,8 @@ export function bindBanner(a) {
 }
 
 // ===== QR okno =====
+// QR jen z účtu, který projde kontrolními součty (accCheck), zpráva qrMsg; zařízení si pamatuje ověřené účty (seenAccs) – nový účet
+// nebo změna v posledních 14 dnech = nejdřív varování, QR až po potvrzení. ⬇️ Uložit QR kreslí PNG z téhož objektu qrcode (qr-image.js).
 function qrHtml() {
   shown = null;   // uložit lze jen QR, který se v tomto vykreslení skutečně zobrazí
   if (!qr) return "";

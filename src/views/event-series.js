@@ -1,10 +1,7 @@
-// Série tréninků (🔁 Opakovat): část formuláře „+ Trénink“ (dny v týdnu, každý / každý 2. týden, do kdy, termín přihlašování relativně,
-// šablona pokladny, náhled termínů s vynecháním dnů) a volby v detailu události ze série (úprava a smazání „jen tato / tato a další“).
-// Výpočty jsou v domain/recurrence.js; formulář a detail události vykresluje views/events.js a volá funkce z tohoto souboru.
-// Konec tréninku (end) a ⏰ sraz (meet) se přenášejí do všech událostí série i do definice série (domain/event-time.js).
-// Data: události série mají ser = {id, i, x?} (x = ručně upravená, „tato a další“ ji vynechá), definice série je v series/{id} (zapisuje manager / trenér / asistent).
-// Smazat „tato a další budoucí“ jde jen události bez odpovědí v docházce a bez vyúčtování – ostatní zůstanou a ukáže je hláška.
-
+// 🔁 Série tréninků: část formuláře „+ Trénink“ (dny, každý / 2. týden, do kdy, termín přihlašování, šablona pokladny, náhled termínů)
+// a volby v detailu události ze série (úprava a smazání „jen tato / tato a další“); výpočty domain/recurrence.js, vykresluje events.js.
+// Události mají ser = {id, i, x?} (x = ručně upravená), definice v series/{id}; end a meet se přenášejí do celé série.
+// „Tato a další“ smaže jen události bez odpovědí a vyúčtování.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";

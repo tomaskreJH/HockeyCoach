@@ -1,10 +1,6 @@
-// Doména: 🏖 nepřítomnost člena od – do (kolekce absence; čisté funkce bez DOM).
-// absence/{id} = {mid, kind: "vac" | "sick" | "other", from, to, note, by, at}; čte vlastník a manager / trenér / asistent (druh „nemoc“ je zdravotní údaj).
-// Uložení: v otevřených událostech období zapíše „❌ Nejdu“ s důvodem „Nepřítomnost: …“ (i místo „Jdu“ / „Nejistá“, s náhledem),
-// docházka nese abs = id nepřítomnosti; u událostí po uzávěrce (do začátku) vznikne žádost o změnu účasti (domain/att-requests.js).
-// Události založené později v období dostanou omluvu automaticky, jen když člen ještě neodpověděl (absAuto).
-// Zrušení nepřítomnosti smaže omluvy, které zapsala, jen u otevřených budoucích událostí (absRevert).
-
+// Doména: 🏖 nepřítomnost od – do (čisté funkce bez DOM): absence/{id} = {mid, kind vac|sick|other, from, to, note, by, at}.
+// Uložení: v otevřených událostech „❌ Nejdu“ s důvodem (abs = id), po uzávěrce žádost o změnu účasti (att-requests.js);
+// později založené události dostanou omluvu automaticky jen bez odpovědi (absAuto); zrušení vrátí omluvy jen u otevřených (absRevert).
 // ===== Importy =====
 import {openAttReq} from "./att-requests.js";
 import {isCancelled} from "./event-cancel.js";

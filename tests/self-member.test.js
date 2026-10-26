@@ -38,7 +38,7 @@ test("events.js: rychlá tlačítka berou člena přes selfMember", () => {
   assert.match(s, /S\.evp = selfMember\(HK\.pid\(\)/);
 });
 test("storage.js: manager / trenér / asistent smí mít volitelně propojenou hráčku (ne hostující)", () => {
-  const s = src("src/data/storage.js");
+  const s = src("src/data/cfg-api.js");
   assert.match(s, /pp && STAFF\.includes\(rl\) && pidRoleErr\("hracka", pp\)/);
   assert.match(s, /if \(needsPid\(rl\) \|\| \(pp && STAFF\.includes\(rl\)\)\) d\.pid = pp;/);
 });

@@ -1,12 +1,6 @@
-// ⏲ Stopky a výsledky měření tréninku: karta „⏲ Výsledky měření“ v kartě plánu (pořadí po měřených cvičeních, vidí celý tým kromě hostující)
-// a okno stopek #tsw přes celou obrazovku (z karty nebo z ⏱ živého tréninku u měřeného cvičení na mé lince).
-// Čas: klepnutí na jméno = start / stop (více hráček souběžně, ▶ Start všech), každé zastavení = pokus; počet / body: číslo a ✓ Zapsat.
-// 🏃 Štafeta (jen čas): 2–4 skupiny (střídavě nebo nasazením klepnutím), ▶ start všech naráz, klepnutí na skupinu = předávka;
-// úsek = pokus hráčky, čas skupiny do seznamu běhů rl – zápis po doběhnutí všech skupin (domain/relay.js).
-// Data trms/{eid} (jeden dokument na trénink, poslech jen u otevřeného tréninku), zápis dávkou s hlubokým sloučením (jen pokusy dané hráčky);
-// měřit smí HK.perm("treval", "e"), číst kdo čte plán (trplan r). Výpočty domain/stopwatch.js.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Poslech -> Vykreslení (karta, okno) -> Eventy -> Exporty.
-
+// ⏲ Stopky a výsledky měření: karta „⏲ Výsledky měření“ v kartě plánu (pořadí, vidí celý tým kromě hostující) a okno stopek #tsw
+// (z karty i z ⏱ živého tréninku). Čas klepnutím na jméno (víc hráček souběžně), počty a body číslem; 🏃 štafeta (domain/relay.js).
+// Data trms/{eid}, poslech jen u otevřeného tréninku, zápis dávkou s hlubokým sloučením. Měřit HK.perm("treval", "e"), číst trplan r.
 // ===== Importy =====
 import {UNITS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";

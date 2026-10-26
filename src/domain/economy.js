@@ -1,13 +1,11 @@
-// Doména: hospodaření události a měsíce (čisté funkce bez DOM) – podíl příspěvků na kryté události, výsledek události a měsíce, návrh poplatku.
-// Událost krytá příspěvkem = skupina Příspěvek v ní neplatí a událost má náklady (pravidelný trénink, domácí zápas).
-// Příspěvky měsíce (předepsané i zaplacené, předpisy c_RRRR-MM) se dělí mezi kryté události měsíce podle nákladů; nevystavené = odhad ze soupisky.
-// Uzavřená událost s uloženým podílem (evcash.settle.share) si ho ponechá, zbytek příspěvků se dělí mezi ostatní kryté události.
-// Moje platby: předpisy osoby po měsících (myMonths) a porovnání způsobu placení (compareMonths) z cen na hlavu evprice/{eid}
-// (priceDoc – zapisuje se při uzavření vyúčtování, čte každý člen). Výpočty pokladny (calcCash), předpisy ani šablony se tu nemění – jen se čtou.
-
+// Doména: hospodaření události a měsíce (čisté funkce bez DOM) – podíl příspěvků na kryté události, výsledek, návrh poplatku.
+// Krytá událost = skupina Příspěvek neplatí a má náklady; příspěvky měsíce (c_RRRR-MM, i nevystavené odhadem) se dělí podle nákladů,
+// uzavřená si nechá uložený podíl (evcash.settle.share). Moje platby po měsících (myMonths, compareMonths) z cen evprice/{eid}.
+// Předpisy ani šablony se tu nemění, jen čtou.
 // ===== Importy =====
 import {seasonOf} from "./attendance.js";
 import {CAT_SALARY, calcCash, chargeItem, contribEid, contribRows, costTotal, cxOf, evCash, exOf, fxOf, grpAt, grpKey, grpOf, isContrib, r2, ymOk} from "./cash.js";
+import {ceil} from "../core/utils.js";
 
 // ===== Konstanty =====
 // Skupiny, kterým se navrhuje poplatek (Za událost, Osvobozené) – jen pokud v události platí
@@ -19,7 +17,6 @@ const HEAD_GROUPS = ["monthly", "single", "exempt"];
 
 // ===== Pomocné funkce =====
 const cl = o => JSON.parse(JSON.stringify(o));
-const ceil = x => Math.ceil(x - 1e-9);
 const sum = (a, f) => (a || []).reduce((s, x) => s + (+f(x) || 0), 0);
 const inYm = (d, ym) => String(d || "").startsWith(ym);
 // Cena na hlavu s přesností na desetitisíciny (dělení nákladů počtem hráček se před koeficientem nezaokrouhluje)

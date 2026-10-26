@@ -1,12 +1,6 @@
-// Přehled plateb a dlužných částek (trenér a pokladník): režim „💰 Platby“ v záložce Team.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení (souhrn, po hráčkách, po událostech) -> Eventy.
-// Data: kolekce charges (S.ch); událost se bere ze seznamu předaného z events.js (tréninky + zápasy).
-// Měsíční příspěvky (F4) mají eid "c_RRRR-MM": ve výpisech vystupují jako pseudo-událost „Příspěvek měsíc rok“ (📅), klepnutím se otevře režim Team → 📅 Měsíce.
-// Výjimka z blokace „Jdu“ se uděluje u předpisu po splatnosti (tlačítko 🔒). Nahoře pruh a okno žádostí o změnu placení (views/request-list.js).
-// Dluh = součet nezaplacených zbytků předpisů hráčky. Úhrada (částečná i plná) se zapisuje přes okno úhrady z payments.js.
-// U předpisu je VS, účet a zpráva pro příjemce (pro párování s výpisem). „Zaplatila vše“ je zvlášť pro každý účet (souhrnná platba
-// smí obsahovat jen předpisy na stejný účet); souhrnná platba chodí s osobním VS hráčky.
-
+// ⚠️ Přehled plateb a dluhů (Team → 💰 Platby, správce pokladny): souhrn, po hráčkách, po událostech; data S.ch, události z events.js.
+// Příspěvek (eid "c_RRRR-MM") = pseudo-událost 📅 (klepnutí → 📅 Měsíce). 🔒 výjimka z blokace u předpisu po splatnosti.
+// Úhrada přes okno z payments.js; „Zaplatila vše“ zvlášť pro každý účet (osobní VS). Nahoře žádosti o změnu placení (request-list.js).
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {pl, pn, pri} from "../core/selectors.js";

@@ -1,126 +1,162 @@
 # Konvence projektu HockeyCoach (programovací řád)
 
-Vstupní bod pro každou úpravu – přečti nejdřív tento soubor, pak jen soubory, kterých se úprava týká.
-Platí od v18.8. Co tu není popsané, řeší stávající kód: nové věci piš stejně jako sousední kód.
+Vstup pro každou úpravu: nejdřív `docs/STAV.md` a tento soubor, pak jen soubory, kterých se úprava týká. Co tu není, řeší stávající kód – piš stejně jako sousední kód.
 
 ## 1. Mapa souborů
+Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobnosti o funkcích jsou v hlavičce a v komentářích každého souboru.
 
-| Cesta | Co tam je |
+| Soubor | Co tam je |
 |---|---|
-| `index.html`, `manifest.webmanifest`, `sw.js` | vstupní stránka, instalace na plochu, offline cache (`hokej-vNN`), v `sw.js` i klepnutí na ⌚ oznámení živého tréninku |
-| `styles/main.css` | všechny styly (barvy jako proměnné `--ac`, `--ok`, `--no`, `--wa` … pro světlý i tmavý režim). Záhlaví karty (`.cd > h2` nebo řádek s `h2` na začátku karty) je podbarvené `--a2` – odlišení bloků. **Telefon (v21.5):** nic nesmí být širší než obrazovka – široká tabulka jen v `.tw` (`.tw table{min-width:520px}`, posun do strany uvnitř karty), ostatní tabulky zalamují; `input`/`select` mají `max-width:100%`, položky `.row` `min-width:0`; řádek s `flex-wrap:nowrap` jen pro krátký obsah. Ověření: Playwright Chromium 360 px, `scrollWidth <= 360` (hlídá i `tests/k1-prepare.test.js`) |
-| `firestore.rules` | pravidla databáze – jediná skutečná ochrana dat (publikuje se ručně v konzoli Firebase) |
-| `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení |
-| `src/config/` | konstanty bez logiky: číselníky banky cvičení `skills.js` (kategorie, dovednosti, úrovně, skupiny, jednotky měření), 📥 základní sada cvičení `drill-starter.js` (hráčky a brankářky), `constants.js` (pozice, rozložení, tresty, funkce realizačního týmu `KIND` = Manager / Trenér / Asistent / Jiný a převod staré `KIND_OLD`), `team-config.js` (název týmu `TEAM_NAME`, název aplikace `APP_NAME`, `DEV_EMAILS`); `firebase-config.js` je v `src/data/` |
-| `src/core/app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), porovnání verzí, brána verze |
-| `src/core/` | stav `state.js` (`S`), `utils.js` (DOM, formát, čas, `csv`), `selectors.js` (čtení stavu, jména `pn` / `nm`, zobrazená funkce člena realizačního týmu `kindOf`, `matchesVs`), `actions.js` (ukládání zápasu, `confirm2`), `drag.js` (přetahování `makeDrag`), `nav.js` (Zpět), `table-sort.js` |
-| `src/data/storage.js` | datová vrstva: Firebase (`S.db.doc().get()` = jednorázové čtení dokumentu, `S.db.collection().getAll()` = jednorázové čtení celé kolekce – jen na vyžádání), přihlášení a účinná role (`roleOf` z `domain/permissions.js`), **oprávnění `can(akce)`** (jediné místo, tabulka `CAN` odvozená z `actOf`), strážce zápisu `blocked()`, dávky, kontrola mazání, záloha / obnova (stará záloha `splitLegacy`; plány tréninků, obrázky cvičení, šablony plánu, ⭐ výkonnost, ⏲ výsledky měření a ⭐ hodnocení `FETCH` se do zálohy načtou při stažení, obnova je jen doplní), brána verze; **rozhraní okna ⚙️ `HK.cfg`** (údaje a zápisy bez vykreslení – účet, volby a popisky rolí, členové, náhled role, kontrola dat, brána verze) |
-| `src/domain/` | **čisté funkce bez DOM** (pravidla hry, statistiky `player-stats.js`, časová osa a stav skóre po gólech `timeline.js` (`timeline`, `goalScores`), pokladna, docházka a 🚫 nedorazila bez omluvy `attendance.js` (pole `attendance.nos`), dlužníci, účty, opakování událostí `recurrence.js`, hospodaření události a měsíce, Moje platby po měsících a ceny na hlavu `economy.js`, žádosti členů `requests.js`, rozpočet sezóny `budget.js`, plnění rozpočtu a cashflow `budget-track.js`, schválení, úpravy a export rozpočtu `budget-review.js`, úvodní přehled `home-summary.js`, náhled živého zápasu pro členy `watch-feed.js`, žádosti o přijetí do týmu `join-requests.js`, čas události od – do a ⏰ sraz `event-time.js`, 🎟 hostující hráčky a veřejné dokumenty `evpub` / `lineuppub` `guests.js`, ❌ zrušení a úplné smazání události `event-cancel.js`, ✋ žádosti o změnu účasti `att-requests.js`, 🏖 nepřítomnost `absence.js`, 📚 banka cvičení `drills.js` (kontrola formuláře, filtr, kopie, vyřazení, obrázky `imgFit` / `imgDoc`, náhled odkazu `mediaOf`), 📋 plán tréninku `training-plan.js` (☕ pauza `isBreak` / `breakBlank` – blok s `brk` bez linek, skupiny `planGroups` a podle postů `posGroups` / `groupIn` – blok `by: "pos"`, ⚖ `evenLines`, `planDoc`, časy `planTimes` / `clock`, točení `rotation`, kontrola `planIssues`, skupina hráčky `myGroup` / `laneOf`), ⧉ kopie a 📑 šablony plánu `plan-reuse.js` (`planCopy`, `tplDoc`, `copySources`), 📊 pokrytí dovedností `skill-coverage.js` (`coverWindow`, `groupSkills`, `skillCoverage`), 📥 základní sada a 📄 import CSV do banky `drill-import.js` (`starterItems`, `csvRows`, `csvDrills`, `csvSample`), rozdělení do pětek a ⭐ výkonnost `line-split.js` (`splitLines`, `lineSummary`, `lvlOf`, `lvlSet`), ⏱ živý trénink `training-live.js` (hodiny `liveSec`, úpravy průběhu `liveBlocks` / `canAdj` / `adjPatch` / `liveRest` (vypustit / zkrátit další blok jen v `trlive`), rozpočet času `liveBudget`, zkrácení kola `cutSec`, posun hodin `skewObs` / `skewNext`, poloha `liveAt`, posuny `stepSec`, řízení `liveCtl`, upozornění `alertsDue` (okno `win` pro skrytou aplikaci), text ⌚ oznámení `liveNote`, `groupPids`, `coachLanes`), ⭐ hodnocení hráček `training-eval.js` (`evalLanes`, hráčky linky `lanePids` / `rateLanes`, `unratedCount`, `unrated`, `prevSpot` – kolo, které skončilo, `evalPatch`, `playerPatch`, `playerRates`, `rateCounts`), 🏃 štafeta `relay.js` (`relaySplit`, nasazení `relayToggle` / `relayResize`, běh `relayStart` / `relayTap` / `relayUndo` / `relayLive`, `relayRank`, zápis `relayPatch` – úseky do `ms`, běhy do `rl`), ⏲ stopky a výsledky měření `stopwatch.js` (`msVal`, `fmtVal`, `measLanes`, `laneMeas`, stopky `swStart` / `swStop`, pokusy `addTry` / `dropTry`, `bestOf`, pořadí `ranking`, `myResults`, zápis `msPatch`), **role a práva po modulech `permissions.js`** (role, výchozí matice `DEFAULT_PERMS`, `MODULES`, `ACTIONS`, upravitelné buňky `EDITABLE`, `permOf`, `permError`, zkratky `actOf`, matice `settings/perm` – `permClean`, `permGrid`, `permDiff`, `permOverview`, `permDoc`, ochrana posledního managera `keepsManager`)) – testované v `tests/` |
-| `src/views/` | obrazovky: jen vykreslení a obsluha událostí, výpočty volají z `domain/` |
-| `src/views/home-view.js` | 🏠 Domů – úvodní přehled (výchozí záložka pro všechny): běžící zápas, příští zápas, nadcházející události příštích 7 dní, moje platby, u správce pokladny souhrn týmu a varování cashflow; jen čte a odkazuje, výpočty `domain/home-summary.js` |
-| `src/views/live-watch.js` | 👁 náhled běžícího zápasu pro členy bez práva zápisu (z karty 🔴 v 🏠 Domů, stav `S.hw`): skóre, střely, čas a třetina, průběh (góly, tresty, střely, konce třetin) – jen ke čtení, živý zápis nevolá; výpočty `domain/watch-feed.js` |
-| `src/views/join-view.js` | ✋ žádost o přijetí do týmu: obrazovka pro účet bez členství (formulář, stav, zrušení; zápisy předává `storage.js`) a okno vyřízení pro managera (z 🏠 Domů a ⚙️ → Členové týmu); data `joinreq/{email}`, výpočty `domain/join-requests.js` |
-| `src/views/live-*.js` | živý zápis: `live-view.js` (vykreslení, odpočty, upozornění), `live-panels.js` (menu ⋯ a panely: sestava, jednotky, zranění, brankářka, nastavení), `live-events.js` (obsluha klepnutí, odchod), `live-quick.js` (rychlý zápis gólu a trestu), `live-feedback.js` (vibrace, záblesk) |
-| `src/views/budget-view.js` | 📊 Rozpočet sezóny v Team (jen správce pokladny): 📝 Plán (parametry, položky, plán po měsících, odhad příspěvku, ✅ schválení a porovnání se schváleným), 📈 Plnění a 💧 Cashflow; výpočty `domain/budget.js`, `domain/budget-track.js`, `domain/budget-review.js`, data `budget/{sezóna}` (schválená kopie `approved` je neměnná, úpravy `rev` jen přidávat) |
-| `src/views/drills-view.js` | 📚 Banka cvičení v Team (režim `S.tm = "drills"`, jen s `HK.perm("drills", "r")`): seznam s hledáním a filtrem, detail, formulář ➕ / ✏️ (📷 obrázky, 📄 odkaz na PDF), ⧉ kopie, 🗄 vyřazení, 🗑 smazání vyřazeného; ⭐ oblíbená v `localStorage` (`hk-drill-fav`); data `drills/{id}` a `drillimg/{id}` (uložení v jedné dávce), výpočty `domain/drills.js` |
-| `src/views/drill-import-view.js` | 📥 Základní sada a 📄 import z tabulky CSV v 📚 Cvičení (stav `S.dri`, jen s `HK.perm("drills", "e")`): seznam se zaškrtávátky (hráčky / brankářky, shoda názvu s bankou se nezaškrtne, řádky s chybou nejdou vybrat), ⬇️ vzor CSV, soubor UTF-8 i Windows-1250, zápis v jedné dávce |
-| `src/views/drill-picker.js` | 📚 výběr cvičení přes celou obrazovku v úpravě plánu (`openDrillPicker(cur, pick)` – 🔍 hledání, část tréninku, dovednost, ⭐ oblíbená z banky; stav filtru `S.dpk`; okno `#dpk`, Zpět zavře) |
-| `src/views/drill-media.js` | ▶ / 📄 náhled videa a PDF z odkazu (`mediaHtml` / `bindMedia` – YouTube, Google Disk, .mp4 / .webm; přehrávač se načte až po klepnutí); 📷 obrázky cvičení: zmenšení fotky v zařízení (`shrinkImage`, 1280 px, JPEG do 700 000 znaků), jednorázové načtení `drillimg/{id}` (`S.db.doc().get()`) s pamětí, náhledy `thumbsHtml` / `bindThumbs`, prohlížeč přes celou obrazovku `#imv` (Zpět zavře) |
-| `src/views/trplan-view.js` | 📋 Plán tréninku (od v22.0 🔁 řada cvičení v lince `seqEditHtml`, ⭐ Jen moje linky `S.tpe.only`, sloučení uložení `mergePlan` z domény): karta v detailu tréninku (`planCardHtml` / `bindPlanCard` z `views/events.js`), okno cvičení `#tpd`, úprava na celé stránce místo detailu (`planEditing`, `planEditor`); poslech jen `trplan/{eid}` otevřeného tréninku (`collection().part`); práva `HK.perm("trplan", …)`; výpočty `domain/training-plan.js` |
-| `src/views/trlive-view.js` | ⏱ živý trénink (jen `HK.can("sport")` – hráčky ho nevidí; nahoře do konce tréninku a přetahování, ✂ −1 min, 📋 Zbytek plánu `#tlrs` – úpravy `adj` / `skip` se zapisují se stavem hodin `liveCtl("keep")`, ☕ pauza): řádek se stavem a tlačítko v kartě plánu (`liveCardHtml` / `bindLiveCard`), obrazovka `#tlv` vložená do `body` (kreslí se sama, tik 250 ms mění jen čísla, Zpět / ✕ zavře, hodiny běží dál); poslech jen `trlive/{eid}` otevřeného tréninku; řízení `HK.perm("trplan", "e")`, převzetí řízení druhým klepnutím; vibrace, zvuk (🔔 `hk-tl-mute`), ⌚ systémová oznámení i na hodinky (`hk-tl-ntf`, `registration.showNotification`, akce ⏸ / ⏭ přes `sw.js` → zpráva `{hk: "tl", act, eid}` jen řídícímu), ⏲ Stopky u mé měřené linky, Wake Lock, odhad posunu hodin zařízení (`hk-clk`) |
-| `src/views/stopwatch-view.js` | ⏲ stopky a výsledky měření: karta „⏲ Výsledky měření“ v kartě plánu (`msCardHtml` / `bindMsCard` – pořadí po měřených cvičeních, čte kdo čte plán), okno stopek `#tsw` vložené do `body` (`openStopwatch` – z karty i z ⏱ živého tréninku; čas klepnutím na jméno, víc hráček souběžně, počty a body číslem; 🏃 štafeta – režim `W.mode = "rl"`, skupiny a běh jen v zařízení, zápis po doběhnutí); poslech jen `trms/{eid}` otevřeného tréninku (`msData`); měřit `HK.perm("treval", "e")`; zápis dávkou s hlubokým sloučením (jen pokusy dané hráčky) |
-| `src/views/treval-view.js` | ⭐ hodnocení hráček: karta „⭐ Hodnocení hráček“ v kartě plánu (`evalCardHtml` / `bindEvalCard` – po linkách (rozbalovací), řádek = hráčka + 😃 🙂 😐 😴 + 📝, poznámka ke cvičení, druhé klepnutí zruší, jen s `HK.perm("treval", "r")`), výzva „Jak šlo hráčkám?“ v ⏱ živém tréninku po skončeném kole (`liveEvalHtml` / `bindLiveEval` – hráčky mých linek v kole); poslech jen `treval/{eid}` otevřeného tréninku; hodnotit `HK.perm("treval", "e")`; zápis dávkou s hlubokým sloučením (jen daná linka / hráčka) |
-| `src/views/line-split-view.js` | panel automatického rozdělení do pětek v detailu tréninku (způsob, počet pětek, ⚔ poměr – `localStorage` `hk-split`, souhrn pětek) a okno ⭐ Výkonnost `#plvm` (jen `HK.can("sport")`, poslech `plevel/team` při prvním zobrazení) |
-| `src/views/trplan-reuse.js` | v úpravě plánu ⧉ Z předchozího tréninku (plány posledních tréninků po jednom dokumentu), 📑 Ze šablony / 💾 Uložit jako šablonu (`trtpl`, `getAll` na vyžádání; stav `S.tpr`), v kartě i úpravě 📊 Pokrytí dovedností jen pro realizační tým (stav `S.tcv`, plány jen tréninků v období) |
-| `src/views/budget-print.js` | 🖨 Export rozpočtu pro valnou hromadu v okně `#rp` (jako Zápis utkání): tisk / PDF a ⬇️ CSV, komentář jen v paměti |
-| `src/views/settings-view.js` | ⚙️ Účet a data (všechny role, `HK.openCfg` z `main.js`): nahoře 👤 Účet (verze, Načíst novou verzi, u managera 🔒 Vyžadovat verzi – brána verze), pod ním sbalitelné sekce 👥 Tým a členové · 🔐 Práva rolí (`views/perm-view.js`) · 📅 Události · 💰 Pokladna · 💾 Data · 🛠 Vývojář (viditelnost podle `HK.can`, vývojář `HK.cfg.isDev`); 💾 Data = záloha, CSV a obnova ze zálohy; otevřená je nejvýš jedna sekce (`localStorage` `hk-cfg-open`), stav v záhlaví sbalené sekce; jen vykreslení a obsluha, data přes `HK.cfg` |
-| `src/views/perm-view.js` | ⚙️ → 🔐 Práva rolí: přehled „kdo co smí“ (členové kromě hostující) a editor matice `settings/perm` pro managera (výběr role, ✓ / ✕ u upravitelných buněk, 🔒 pevné, náhled „Co se změní“, ↩ Výchozí hodnoty, 💾 Uložit druhým klepnutím); data přes `HK.cfg.permState` / `savePerms` |
-| `src/views/event-settings.js` | ⏰ Nastavení událostí z ⚙️ (manager, trenér, asistent): výchozí sraz tréninku a zápasu a délka tréninku → `settings/events` (`S.es`); výpočty `domain/event-time.js` |
-| `src/views/request-list.js` | žádosti o změnu placení pro správce pokladny (pruh, okno vyřízení) |
-| `src/views/att-request-view.js` | ✋ žádosti o změnu účasti (`requests`, kind `att`): pruh a okno vyřízení pro managera / trenéra / asistenta v Událostech, rámeček člena v detailu události |
-| `src/views/absence-view.js` | 🏖 nepřítomnost: karta v 🏠 Domů a okno s náhledem „Co se změní“ (`absence`, omluvy v `attendance` s `abs` a důvody v `attnote`) |
-| `src/views/auto-sync.js` | tichá synchronizace bez obrazovky (`HK.syncOps`): veřejné dokumenty pro hostující (`evpub`, `lineuppub` – jen manager / trenér / asistent) a automatické omluvy z nepřítomnosti |
-| `src/lib/qrcode.js` | knihovna QR (cizí kód, neupravovat) |
-| `src/debug.js` | ruční ladění (`?debug` → `window.__hk`); testy importují moduly přímo |
-| `tests/` | automatické testy (`npm test`), `tests/support/` = zástupci prohlížeče a Firebase |
-| `docs/` | tento soubor, plán (`plan-v18.md`), plán modulu Trénink (`plan-trenink.md`), ruční testovací plán na Androidu (`testy-rucni.md` – po každé verzi doplnit), prompt pro nové vlákno (`prompt-dalsi-vlakno.md`), archiv dokončených fází |
-| `CHANGELOG.md` | historie verzí (nejnovější nahoře) |
-| `README.md` | současný stav, spuštění, nasazení, odkazy |
+| `index.html`, `manifest.webmanifest` | vstupní stránka, instalace na plochu |
+| `sw.js` | offline cache `hokej-vNN`, klepnutí na ⌚ oznámení živého tréninku |
+| `styles/main.css` | všechny styly, barvy jako proměnné (`--ac`, `--ok`, `--no`, `--wa`, `--a2`) pro světlý i tmavý režim |
+| `firestore.rules` | pravidla databáze – jediná skutečná ochrana dat (publikuje se ručně) |
+| `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení, Zpět |
+| `src/debug.js` | ruční ladění (`?debug` → `window.__hk`) |
+| `src/lib/qrcode.js` | cizí knihovna QR – neupravovat |
+| **config/** | konstanty bez logiky |
+| `constants.js` | pozice, rozložení, tresty, funkce realizačního týmu `KIND` |
+| `team-config.js` | `TEAM_NAME`, `APP_NAME`, `DEV_EMAILS` |
+| `skills.js` | číselníky banky cvičení (kategorie, dovednosti, úrovně, skupiny, jednotky měření) |
+| `drill-starter.js` | 📥 základní sada cvičení |
+| **core/** | stav a pomůcky bez domény |
+| `app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), brána verze |
+| `state.js` | sdílený stav `S` |
+| `utils.js` | DOM, formát, čas, hlášky, `csv`, `clone`, `clamp`, `ceil` (Kč nahoru), `reqWord` |
+| `selectors.js` | čtení stavu, jména `pn` / `nm`, `kindOf`, `matchesVs` |
+| `actions.js` | ukládání zápasu, potvrzení `confirm2` / `armed` |
+| `drag.js` | přetahování `makeDrag` |
+| `nav.js` | systémové Zpět uvnitř aplikace |
+| `table-sort.js` | řazení tabulek |
+| **data/** | |
+| `storage.js` | Firebase, přihlášení a role, **oprávnění `HK.can` / `HK.perm`**, náhled role, strážce zápisu `blocked()`, poslech, zápisy a dávky, kontext `C` pro moduly níže |
+| `cfg-api.js` | rozhraní okna ⚙️ `HK.cfg` (účet, členové, náhled role, brána verze, matice práv) – `cfgApi(C)` |
+| `backup.js` | záloha JSON, CSV soupisky, obnova ze zálohy – `backupApi(C)` |
+| `firebase-config.js` | nastavení projektu Firebase |
+| **domain/** | čisté funkce bez DOM, testované v `tests/` |
+| `permissions.js` | role, matice práv `DEFAULT_PERMS`, `MODULES`, `EDITABLE`, `actOf`, `keepsManager` |
+| `private-data.js` | citlivá data v `attnote`, `staffpay`, `plpay`; obnova staré zálohy `splitLegacy` |
+| `live-engine.js` | jádro živého zápisu (čas, střídání, tresty IIHF, jednotky) |
+| `lineup.js`, `corrections.js`, `shift-edit.js`, `timeline.js` | sestava zápasu, opravy zápisu, editace střídání, časová osa a skóre po gólech |
+| `player-stats.js` | statistiky hráček `playerStats` (zápas i souhrn) |
+| `watch-feed.js` | 👁 náhled živého zápasu pro členy |
+| `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
+| `event-time.js`, `event-cancel.js`, `recurrence.js` | konec a ⏰ sraz události, zrušení / smazání, série tréninků |
+| `attendance.js`, `debtors.js` | docházka a 🚫 nedorazila, veřejný souhrn dlužníků |
+| `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
+| `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
+| `home-summary.js` | 🏠 Domů |
+| `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, dluhy, VS), účty a IBAN |
+| `economy.js` | hospodaření události a měsíce, Moje platby po měsících |
+| `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
+| `drills.js`, `drill-import.js` | 📚 banka cvičení, základní sada a import CSV |
+| `training-plan.js` | 📋 plán tréninku (bloky, linky, ☕ pauza, řada cvičení `seq` / `expandLanes`, časy, točení, kontrola, `mergePlan`) |
+| `plan-reuse.js`, `skill-coverage.js` | ⧉ kopie a 📑 šablony plánu, 📊 pokrytí dovedností |
+| `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
+| `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, upozornění, ⌚ text oznámení, `laneSub`) |
+| `training-eval.js` | ⭐ hodnocení hráček |
+| `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
+| **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
+| `shell.js` | záložky a hlavní vykreslení |
+| `help.js` | ❓ nápověda – jediný uživatelský návod |
+| `home-view.js`, `absence-view.js` | 🏠 Domů, 🏖 nepřítomnost |
+| `events.js` | Události: seznam, kalendář, karta s rychlými tlačítky, režimy pokladny v Team (`cashPanel`) |
+| `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, zápis odpovědi a důvodu, okno s důvodem |
+| `event-detail.js`, `event-form.js` | detail události (pětky, plán, docházka, ⚙ úpravy, zrušení), formulář události |
+| `event-series.js`, `event-settings.js` | 🔁 série tréninků, ⏰ nastavení událostí |
+| `attendance.js`, `att-request-view.js` | 📊 docházka, ✋ žádosti o účast |
+| `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky |
+| `live-view.js`, `live-panels.js`, `live-events.js`, `live-quick.js`, `live-feedback.js` | 🔴 živý zápis (vykreslení, panely, klepnutí, rychlý gól / trest, vibrace) |
+| `live-watch.js` | 👁 náhled živého zápasu |
+| `editor.js`, `shift-editor.js` | opravy zápisu, střídání |
+| `team.js`, `modal.js` | Team (soupiska, realizační tým, formace), modální okna |
+| `mine.js`, `qr-image.js` | ⚠️ Moje platby a QR |
+| `finance.js`, `payments.js`, `cashbook.js`, `money.js`, `cash-settings.js`, `request-list.js` | ⚠️ správa pokladny: platby, pokladna u události, pohyby, měsíce, nastavení, žádosti o placení |
+| `budget-view.js`, `budget-print.js` | 📊 rozpočet sezóny, 🖨 export |
+| `drills-view.js`, `drill-import-view.js`, `drill-picker.js`, `drill-media.js` | 📚 banka cvičení, import, výběr cvičení, 📷 obrázky a ▶ / 📄 náhled odkazů |
+| `trplan-view.js` | 📋 karta plánu v detailu tréninku, okno cvičení, společné styly a pomůcky plánu |
+| `trplan-edit.js` | 📋 úprava plánu na celé stránce (bloky, čas, skupiny, řada cvičení, ⭐ Jen moje linky, uložení se sloučením) |
+| `trplan-reuse.js` | ⧉ kopie, 📑 šablony, 📊 pokrytí dovedností, ✨ příprava |
+| `line-split-view.js` | rozdělení do pětek, okno ⭐ výkonnosti |
+| `trlive-view.js` | ⏱ živý trénink (karta, obrazovka, řízení hodin, zbytek plánu) |
+| `trlive-alerts.js` | ⏱ vibrace, zvuk, ⌚ oznámení, Wake Lock |
+| `stopwatch-view.js`, `treval-view.js` | ⏲ stopky a výsledky, ⭐ hodnocení |
+| `settings-view.js`, `perm-view.js` | ⚙️ Účet a data, 🔐 práva rolí |
+| `join-view.js` | ✋ žádost o přijetí do týmu |
+| `auto-sync.js` | tichý zápis odvozených dat (`HK.syncOps`) |
+| **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
+| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `prompt-dalsi-vlakno.md`, `archiv/` |
 
-**Peníze a zabezpečení** (každá změna se v CHANGELOG výslovně označí „⚠️ SAHÁ NA PLATBY“): `src/domain/cash.js`, `src/domain/bank-account.js`, `src/views/mine.js`, `src/views/qr-image.js`, `src/views/cash-settings.js`, `src/views/payments.js`, `src/views/money.js`, `src/views/cashbook.js`, `src/views/request-list.js`, `src/domain/requests.js`, `firestore.rules`.
+**⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 
-## 2. Závislosti a struktura souboru
-- Směr importů: `config` → `core` → `domain` → `views` → `main`. Doména nesahá do DOM (výjimka: `live-engine.js` ukládá přes `core/actions.js` – při úklidu oddělit).
-- Pořadí v souboru: **Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty**. Sekce označ komentářem `// ===== Název =====`.
-- Hlavička souboru = 1–5 řádků: co soubor dělá a jeho pravidla **v současném stavu**. Historie („v18.4.2: …“) patří jen do `CHANGELOG.md` (staré poznámky se odstraní při úklidu D).
-- Komentáře stručně česky u sekcí a u složitější logiky. Názvy proměnných mohou zůstat krátké (styl projektu), ale každá exportovaná funkce má jednořádkový popis.
-- Každá věc na jednom místě: nový výpočet patří do `domain/`, nové pomocné funkce do `core/`, nepiš druhou kopii existující funkce (nejdřív hledej v `domain/` a `core/`).
-- **Nové soubory nesmí mít stejný název jako existující soubor jinde v projektu** (např. druhé `version.js`) – vyhledávání a importy se pak pletou.
+## 2. Struktura souboru
+- Pořadí: **Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty**, sekce `// ===== Název =====`.
+- Hlavička = nejvýš 5 řádků o **současném stavu**. Historie verzí jen v `CHANGELOG.md` (hlídá `tests/d1-structure.test.js`).
+- Stručné české komentáře u sekcí a složitější logiky; exportovaná funkce má jednořádkový popis.
+- Každá věc na jednom místě: výpočet do `domain/`, pomůcka do `core/` – nejdřív hledej, nepiš kopii.
+- **Nový soubor nesmí mít stejný název jako existující** (jediná výjimka `attendance.js` ve `views/` a `domain/`).
 
-### Společné pomůcky (od v18.9 – nepiš vlastní kopii)
+### Společné pomůcky (nepiš vlastní kopii)
 | Pomůcka | Kde | Použití |
 |---|---|---|
-| `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | Potvrzení druhým klepnutím: 1. klepnutí označí (`S.cf`), 2. do 4 s provede `fn`, jinak se označení zruší. `redraw` = vlastní překreslení (výchozí `render`). Text a barvu tlačítka řídí `armed(key)`. V ⚙️ (`views/settings-view.js`) přes `arm2` (klíč `cfg:<otevření>:<název>`). Jiné potvrzení (vlastní příznak) nepiš. |
-| `pn(id, {staff, fb})`, `nm(id, {staff, fb})` | `core/selectors.js` | Jméno osoby: `pn` s HTML (číslo, jméno, 🤕 / ⛔, u člena týmu 🎓), `nm` čistý text (CSV, časová osa, hlášky). `staff: true` hledá i realizační tým, `fb` = text pro neznámé id (výchozí „?“). Jméno pro zprávu v QR je `payerName` v `domain/cash.js` (bez čísla). |
-| `csv(rows)` | `core/utils.js` | Jediný text CSV pro Excel (středník, uvozovky, BOM, CRLF); částky přes `csvNum` (`domain/cash.js`), stažení `downloadFile`. |
-| `makeDrag(root, items, {target, start, drop, click})` | `core/drag.js` | Přetahování (prst: podržení 320 ms, myš: > 6 px). `start(b)` → `{data, text}` nebo `null`, `drop(data, cíl)`, `click(b)` → obsluha klepnutí nebo `null`. |
-| `matchesVs(name, ex)` / `vsHash(id)` | `core/selectors.js` / `domain/cash.js` | Uzavřené zápasy proti soupeři / variabilní symbol z id předpisu (dva různé významy – nezaměňovat). |
-| `HK.can(akce)` | `data/storage.js` | Oprávnění: `sport` (manager, trenér, asistent), `money` (manager, pokladník), `members` (manager, pokladník – jen hráčky), `roster` (manager, trenér), `accounts`, `admin` (manager), `onlyOwn` (hráčka, hostující), `guest` (hostující – vidí jen sebe), `wipe` (vývojář s rolí manager mimo náhled – úplné smazání události). Neznámá akce = výjimka. Tabulka `CAN` se odvozuje z `domain/permissions.js` (`actOf`, výchozí matice `DEFAULT_PERMS`); platí jen role `ROLE_KEYS` (`roleOf`) – stará `kustod` nemá přístup (přihlášení ukáže „neplatná role“), `trener` bez `rv` je Trenér (stejně jako pravidla databáze). Kontroly rolí jen v `storage.js` a `domain/permissions.js` (okno ⚙️ je dostává přes `HK.cfg`). Zkratky se maticí `settings/perm` nemění (pevné buňky). |
-| `HK.perm(modul, akce)` | `data/storage.js` | Právo v modulu matice (`MODULES`: `events`, `matches`, `opp`, `stats`, `attview` … × `r` číst / `e` upravovat / `c` rušit / `d` mazat) podle `settings/perm` s náhradou výchozích hodnot; manager vždy, hostující nikdy. Pohledy jím řídí: 📚 Cvičení v Team a jeho poslech (`drills r`), ➕ / ✏️ / ⧉ / 🗄, 📷 obrázky, 📥 Základní sada a 📄 Import z tabulky (`drills e`), 🗑 vyřazeného a nepoužitého cvičení (`drills d` + kontrola použití v `trplan` a `trtpl`), karta 📋 Plán tréninku a její poslech (`trplan r`), ➕ Vytvořit / ✏️ Upravit / 🗑 Smazat plán, ⧉ kopie a 📑 šablony (`trplan e`), 📊 pokrytí dovedností (`HK.can("sport")` + `trplan r`), ⏱ živý trénink číst (`trplan r`) a řídit hodiny (`trplan e`), ⏲ výsledky měření číst (`trplan r`) a ⏲ Měřit / Stopky (`treval e`), ⭐ hodnocení číst (`treval r`) a hodnotit (`treval e`), ⭐ výkonnost a souhrn ⭐ pětek (`HK.can("sport")`), + Trénink a ✏️ Upravit trénink (`events e`), ❌ Zrušit / ↩ Obnovit (`c`), 🗑 Smazat a 🗑 Tato a další (`d`), smazat prázdný zápas (`matches d`), záložka Soupeři (`opp r`), smazat soupeře (`opp d`), záložka Statistiky a 📋 Zápis utkání v události (`stats r`), 📊 Docházka (`attview r`). Upravitelné buňky = `EDITABLE`; ostatní jsou pevné. |
-| `TEAM_NAME`, `APP_NAME`, `DEV_EMAILS` | `config/team-config.js` | Název týmu a aplikace, účty vývojáře. Výjimky: `index.html`, `manifest.webmanifest` a značka zálohy `app: "hokej-zapasy"` (nemění se). |
-| `playerStats(matches, {match})` | `domain/player-stats.js` | Statistiky hráček a brankářek pro jeden zápas (`match: true` – bruslařky sestavy, +/- bez brankářek) i souhrn (gp, +/- všem, góly v PP, body doma / venku, tým). |
+| `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | potvrzení druhým klepnutím do 4 s; v ⚙️ přes `arm2` |
+| `pn(id, {staff, fb})`, `nm(...)` | `core/selectors.js` | jméno osoby s HTML / čistý text |
+| `csv(rows)`, `downloadFile` | `core/utils.js` | jediné CSV pro Excel; částky `csvNum` (`domain/cash.js`) |
+| `makeDrag(root, items, {...})` | `core/drag.js` | přetahování |
+| `matchesVs` / `vsHash` | `core/selectors.js` / `domain/cash.js` | zápasy proti soupeři / variabilní symbol (nezaměňovat) |
+| `HK.can(akce)` | `data/storage.js` | zkratky: `sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`; neznámá akce = výjimka |
+| `HK.perm(modul, akce)` | `data/storage.js` | jemná práva z matice `settings/perm` (`r` / `e` / `c` / `d`); manager vždy, hostující nikdy |
+| `playerStats(matches, {match})` | `domain/player-stats.js` | statistiky zápasu i souhrnu |
+| `expandLanes(blok)` | `domain/training-plan.js` | linky plánu po jednotlivých cvičeních řady (hodnocení, měření, pokrytí, přehledy) |
 
 ## 3. Data a databáze
-- Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` – tam je strážce `blocked()` (náhled role jen ke čtení, starší verze aplikace). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá.
-- Úpravy existujícího dokumentu zapisovat přes `merge`, ne `set` celého dokumentu – starší klient by jinak smazal nová pole a souběžná změna jiného pole by se přepsala. Jeden dokument: `S.db.doc(cesta).merge({pole})` (zapíše jen uvedená pole, vnořený objekt nahradí celý, `undefined` / `"__del"` pole smaže, `"__now"` = čas serveru `serverTimestamp`; nečeká na server). V dávce: `S.db.batch().merge(cesta, {pole})` (hluboké sloučení, `"__del"` smaže pole). `set` jen pro nový dokument nebo dokument, který aplikace celý vlastní (zápas, `evcash`).
-- Změny dat jen **přidávají** pole / kolekce; stará pole se mažou nejdřív o verzi později, po otestování nové verze.
-- Pravidla databáze ve dvou krocích: 1) rozšířit (staré i nové), 2) převést data, 3) zúžit v další verzi. U každé verze napsat, zda a kdy **publikovat firestore.rules** (před, nebo po nahrání kódu).
-- **Brána verze:** `settings/app = {minVer, minBy, minAt}`. Verze, která mění tvar dat, po nasazení zvýší minimum (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi pod Načíst novou verzi, jen manager). Klient pod minimem nezapisuje a ukáže pruh „Načíst novou verzi“.
-- Převody dat: tlačítko v ⚙️ → 💾 Data s náhledem „co se změní“, idempotentní (lze spustit znovu), před převodem záloha. Výpočet plánu a zápis jsou v `storage.js` (`HK.cfg`), vykreslení v `views/settings-view.js`. **Po potvrzení, že převod proběhl, se v další úklidové verzi odstraní** (naposledy ve v20.7: pole `ex`, soukromí, převod rolí).
-- Oprávnění v aplikaci **jen přes `HK.can(akce)`** (tabulka `CAN` v `storage.js` odvozená z `domain/permissions.js`); `HK.isStaff`, `HK.isCash` a `HK.role` už neexistují. Pravidla databáze (od v20.6 jen nové role, bez `kustod` a bez výjimky pro `trener` bez `rv`): `can(modul, akce)` (matice práv – události, zápasy, série, soupeři), `isMgr` (manager – `admin`: členové, ✋ `joinreq`, `settings/app`, `settings/perm`, návrh účtů `ibanPend`, mazání `budget`), `isRoster` (manager, trener – `roster`: `players`, `staff`), `isStaff` (manager, trener, asistent – `sport`: docházka, `attnote`, žádosti o účast, `absence`, `evpub`, `lineuppub`, ostatní `settings`, stav hráčky `st`), `isCash` (manager nebo příznak `cash` – `money`), `isPlayer` (hráčka i hostující), `isHost`, `isTeam` (člen kromě hostujícího – čtení týmových kolekcí) – musí odpovídat tabulce `CAN` (shodu rolí hlídá `tests/rules-narrow.test.js`).
-- **Matice práv** `settings/perm = {v, roles: {trener|asistent|hracka: {modul: {r, e, c, d}}}, by, at}` – zapisuje jen manager (`permSettingsOk`, celý dokument, jen rozdíly od výchozích hodnot), čtou členové kromě hostující, ze zálohy se neobnovuje ani nemaže. Pravidla: `can(modul, akce)` = uložená role (`myRole`) + `settings/perm` s náhradou výchozích (`permDef` = `DEFAULT_PERMS`, shodu hlídá `tests/perm-matrix.test.js`); `events`, `matches` (úprava `evUpdate`: pole `cancelled` = rušit, jen `lines` = formace, ostatní = upravovat), `series`, `opponents`, `drills` (zápis jen se známými poli – `drillOk`), `trplan` (`trplanOk` – celý dokument plánu), `trtpl` (šablony plánu – čte i zapisuje `can('trplan', 'e')`, `trtplOk`), `drillimg` (čte `isTeam`, zapisuje a maže `can('drills', 'e')`, `imgOk` – nejvýš 700 000 znaků), `trlive` (⏱ hodiny živého tréninku – čte `can('trplan', 'r')`, zapisuje `can('trplan', 'e')`, `trliveOk`: `sAt == request.time`, `ctl == mail()`, úpravy průběhu `adj` (mapa ≤ 30) a `skip` (seznam ≤ 30)), `plevel` (⭐ výkonnost – čte a zapisuje `isStaff`, `plevelOk`, maže `isRoster`), `trms` (⏲ výsledky měření – čte `can('trplan', 'r')`, zapisuje a maže `can('treval', 'e')`, `trmsOk`), `treval` (⭐ hodnocení cvičení a hráček – čte `can('treval', 'r')` (jen realizační tým, hráčka nikdy), zapisuje a maže `can('treval', 'e')`, `trevalOk`). Modul `treval` (⏲ Měření a ⭐ hodnocení: r / e). Na zápis 2 různé dokumenty (`members`, `settings/perm`) – v limitu 10 / 20 get.
-- Role v `members/{email}`: `role` (manager / trener / asistent / hracka / host) a `rv: 2` (role po převodu). Každý nový zápis člena (⚙️, přijetí žádosti, převod) zapisuje `rv`. Posledního managera nejde odebrat ani snížit (hlídá aplikace – `keepsManager`).
-- Odvozené dokumenty, které aplikace zapisuje sama (veřejné `evpub` / `lineuppub`, automatické omluvy z nepřítomnosti), jdou přes `HK.syncOps` (tichý zápis, jen rozdíly, bez hlášek) ze `src/views/auto-sync.js`.
-- Pokladník (bez role manager) spravuje jen členy s rolí Hráčka a nikdy vlastní dokument `members` (vynucují pravidla).
-- Manager / trener / asistent může mít v `members` kromě `tid` volitelně i `pid` (je zároveň hráčka, ne hostující; v21.9.1): na události se hlásí jako hráčka – `selfMember` v `domain/event-helpers.js` (aktivní hráčka má přednost, role Hráčka nikdy za člena týmu); pravidla `plpay` mu dovolí číst jen svůj dokument (`isStaff() && members.pid == id`).
+- Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` (strážce `blocked()` – náhled role, starší verze). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá. Čtení na vyžádání: `S.db.doc().get()`, `S.db.collection().getAll()`, poslech jednoho dokumentu `collection().part`.
+- Úpravy existujícího dokumentu přes `merge`: `S.db.doc(cesta).merge({pole})` (vnořený objekt nahradí, `"__del"` smaže pole, `"__now"` = čas serveru); v dávce `batch().merge` = hluboké sloučení. `set` jen pro nový dokument nebo celý vlastněný (zápas, `evcash`, plán).
+- Data jen **přidávat**; stará pole mazat nejdřív o verzi později. Pravidla: **rozšířit → převést → zúžit**. Převody dat = tlačítko v ⚙️ → 💾 Data s náhledem, idempotentní, se zálohou; po potvrzení se v další verzi odstraní.
+- **Brána verze** `settings/app = {minVer, minBy, minAt}` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi, jen manager). Klient pod minimem nezapisuje.
+- **Role** v `members/{email}`: `role` (manager / trener / asistent / hracka / host), `rv: 2`, `pid` (hráčka), `tid` (realizační tým), `cash: true` (pokladník). Jiná role = bez přístupu. Manager / trener / asistent smí mít i `pid` – na události se hlásí jako hráčka (`selfMember`). Posledního managera nejde odebrat (`keepsManager`). Pokladník bez role manager spravuje jen hráčky a nikdy vlastní dokument.
+- **Oprávnění** v aplikaci jen přes `HK.can` / `HK.perm`. Pravidla: `isMgr`, `isRoster`, `isStaff`, `isCash`, `isPlayer`, `isHost`, `isTeam`, `can(modul, akce)` z `settings/perm` s náhradou výchozích (`permDef` = `DEFAULT_PERMS`). Shodu hlídají `tests/rules-narrow.test.js` a `tests/perm-matrix.test.js`.
+- Odvozené dokumenty (`evpub`, `lineuppub`, automatické omluvy) zapisuje `views/auto-sync.js` přes `HK.syncOps`.
+
+### Kolekce Tréninku (jeden dokument na trénink)
+| Kolekce | Obsah | Čte / zapisuje |
+|---|---|---|
+| `drills/{id}`, `drillimg/{id}` | banka cvičení, obrázek (≤ 700 000 znaků) | `drills r` / `e`, `d`; obrázky čte `isTeam` |
+| `trplan/{eid}` | `{v, goal, blocks: [{id, mode, dur, rot, by, brk, lanes: [{id, drill, dn, di, co, grp, seq}]}]}`; `seq: [{id, drill, dn, di, dur}]` jen u linky, která se netočí | `trplan r` / `e` |
+| `trtpl/{id}` | šablona plánu | `trplan e` |
+| `trlive/{eid}` | hodiny `{st, e0, wAt, sAt == request.time, ctl, adj, skip}` | `trplan r` / `e` |
+| `plevel/team` | ⭐ výkonnost `{lv: {pid: 1–5}}` | `isStaff` |
+| `trms/{eid}` | měření `{r: {klíč: {d, dn, u, low, ms: {pid: [pokusy]}, rl}}}` – vidí celý tým | `trplan r` / `treval e` |
+| `treval/{eid}` | hodnocení `{r: {klíč: {d, dn, r, n, pl: {pid: {r, n}}}}}` – **hráčka nikdy** | `treval r` / `e` |
+Klíč linky = `blok_linka`, u cvičení řady `blok_linka-cvičení` (`msKey`, `seqLid`).
 
 ## 4. Verze a vydání
-Číslování: `v18.8` = hlavní verze a fáze plánu, `v18.8.1` = oprava bez nových funkcí.
-Při každé verzi se mění vždy všechno:
-1. `src/core/app-version.js` – `APP_VERSION`, `APP_DATE`,
-2. `package.json` – `version` (shodu hlídá test),
-3. `sw.js` – název cache `hokej-vNN` (+1),
-4. `CHANGELOG.md` – nový záznam nahoře (`## vX.Y (datum) – název`, postup nasazení, Přidáno / Změněno / Opraveno / Beze změny),
-5. `README.md` – řádek „Aktuální verze“,
-6. `src/views/help.js` – nápověda, pokud se mění ovládání,
-7. `docs/plan-v18.md` – stav fáze.
-8. `docs/testy-rucni.md` – kroky ručního testu nové verze na Androidu (co otestovat, očekávaný výsledek).
+Číslování: `v22.1` = verze / fáze, `v22.1.1` = oprava nebo pokračování bez nových funkcí. Vždy se mění všechno najednou:
+1. `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`) a `package.json` (shodu hlídá test),
+2. `sw.js` – cache `hokej-vNN` +1,
+3. `CHANGELOG.md` – záznam nahoře (`## vX.Y (datum) – název`, postup nasazení, Přidáno / Změněno / Opraveno / Beze změny, Ověřeno),
+4. `README.md` – řádek „Aktuální verze“,
+5. `docs/STAV.md`, `docs/plan.md` (stav fáze), `docs/testy-rucni.md` (kroky testu),
+6. `src/views/help.js` – jen při změně ovládání.
 
 ## 5. Testy
-- `npm test` (Node 22+, bez instalace balíčků) spustí `tests/**/*.test.js` přes `node:test`. Před každým vydáním musí být vše zelené.
-- `tests/support/setup.mjs` vytvoří zástupce `document`, `window`, `localStorage`, `sessionStorage`; `hooks.mjs` nahradí Firebase SDK (`gstatic.com`) modulem `firebase-stub.mjs`; `fake-db.mjs` zachytává zápisy zápasu.
-- Nová funkce = nový test (hlavně `domain/`). Úklid bez změny chování = stávající testy beze změny zelené.
-- **Srovnávací test úklidu** `tests/d1-baseline.test.js` porovná výstupy se zachycenými hodnotami z v18.8.1 (`tests/fixtures/d1-baseline.json`): statistiky zápasu a souhrnu, CSV (byte po bytu), potvrzení druhým klepnutím, zápasy proti soupeři, VS. Při úklidu se **nemění**; pokud musí, jde o změnu chování (zeptat se). Nové zachycení jen na původním kódu: `D1_CAPTURE=1 npm test`.
-- Zástupce Firebase umí přihlášení a data: test nastaví `globalThis.__fb = {user, members, data}` a pak `await HK.ready()`. Role běží v samostatném procesu (`tests/support/can-probe.mjs`, `tests/permissions.test.js`).
-- Struktura kódu (`tests/d1-structure.test.js`): název týmu jen v `config/team-config.js`, role jen v `storage.js`, potvrzení / CSV / přetahování / statistiky jen na svém místě, komentáře bez historie verzí, žádný nový soubor se stejným názvem.
-- Pravidla databáze se testují jen kontrolou textu (`tests/project.test.js`) – bez emulátoru (rozhodnuto: bez Javy a bez placeného tarifu). Skutečné ověření rolí = kontrolní seznam na telefonu (`docs/testy-rucni.md`) + 👁 Náhled role + testovací účet hráčky.
+- `npm test` (Node 22+, bez instalace) spustí `tests/**/*.test.js` přes `node:test`. Před vydáním vše zelené.
+- `tests/support/setup.mjs` = zástupci `document`, `window`, úložišť; `hooks.mjs` nahradí Firebase SDK modulem `firebase-stub.mjs`; test nastaví `globalThis.__fb = {user, members, data}` a `await HK.ready()`. Role běží v samostatném procesu (`can-probe.mjs`).
+- Nová funkce = nový test (hlavně `domain/`). Úklid = stávající testy beze změny zelené.
+- `tests/d1-baseline.test.js` porovná statistiky, CSV a VS se zachycenými hodnotami – při úklidu se **nemění** (jinak jde o změnu chování).
+- `tests/d1-structure.test.js` hlídá strukturu (název týmu, role, pomůcky na svém místě, hlavičky bez historie, unikátní názvy souborů).
+- Pravidla se testují kontrolou textu (bez emulátoru). Skutečné ověření rolí = `docs/testy-rucni.md` + 👁 Náhled role.
+
+### Kouřový test (`npm run smoke`)
+- Jednou `npm install` (jen jsdom jako devDependency; `npm test` ho nepotřebuje, `node_modules/` se nenahrává).
+- `tests/smoke/smoke-run.mjs` spustí každou roli v samostatném procesu (`smoke-role.mjs`): aplikace v jsdom (`smoke-env.mjs`, čas zmrazený na 26. 10. 2026 17:10) se zástupcem Firebase s daty (`smoke-fb.mjs` – where, getDocs, getDoc; `smoke-data.mjs` – tým, trénink e1 s plánem, řadou cvičení a běžícím živým tréninkem). Role: manager, trener-cash, trener, asistent, asistent-hracka, hracka, host, pokladnik. Scénáře: start, všechny záložky, ⚙️ a jeho sekce, rychlé tlačítko u události, detail tréninku, úprava plánu (⭐ Jen moje linky), ⏱ živý trénink. Chyba v konzoli nebo výjimka = selhání.
+- `npm run smoke -- --save adresář` uloží HTML obrazovek; `node tests/smoke/smoke-compare.mjs před po` je porovná (úklid = shoda kromě záměrně změněných textů). Jen některé role: `npm run smoke -- trener hracka`.
+- Nová obrazovka nebo tok = doplnit krok do `smoke-role.mjs` a data do `smoke-data.mjs`.
 
 ## 6. Nasazení (postup pro správce)
-1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu (JSON) a zip současného repozitáře.
-2. Podle CHANGELOG: **publikovat firestore.rules** před, nebo po nahrání kódu.
-3. Nahrát všechny soubory (smazané soubory z CHANGELOG odstranit i z webu).
-4. Na telefonu ⚙️ → 👤 Účet → Načíst novou verzi, ověřit verzi v záhlaví.
-5. Po otestování na všech zařízeních: manager ⚙️ → 👤 Účet → 🔒 Vyžadovat verzi (u verzí, které mění data).
-6. Návrat: nahrát předchozí zip; pravidla vrátit z historie v konzoli Firebase (*Firestore → Rules → historie*). Minimální verzi pak manager musí snížit ručně v konzoli (`settings/app.minVer`).
-
-## 7. Práce s Claude (šetření limitů)
-- Na začátku vlákna: načíst repozitář, vypsat verzi, přečíst tento soubor a plán (`docs/plan-v18.md`, jen sekci fáze).
-- Číst cíleně (grep, jen dotčené soubory); jedna verze = jedno vlákno.
-- Výstup: změněné soubory celé (zip s cestami), žádné NAJDI / NAHRAĎ, žádné zkracování, žádné Git příkazy.
-- Když úkol vyžaduje zásah jinde (např. do živého zápisu nebo pokladny), nejdřív upozornit a zeptat se.
-
-## Řada cvičení v lince (v22.0)
-- `trplan` linka může mít `seq: [{id, drill, dn, di, dur}]` jen když se netočí (`seqOk`: blok Společně nebo 🥅 linka stanovišť); `drill` / `dn` / `di` linky = první cvičení řady (zapisuje `planDoc`).
-- Kdo potřebuje cvičení po položkách (hodnocení, měření, pokrytí), bere `expandLanes(b)` – virtuální linka `{...linka, id: blok_linka-cvičení (seqLid), pid, sid, si, sn, min}`; klíč hodnocení / měření je `msKey(blok, seqLid)`.
-- Živý trénink: `laneSub(blok, moje linky, at)` = cvičení řady na mé lince (odpočet, upozornění, oznámení, výzva ⭐).
-- Uložení plánu: `mergePlan(můj, nejnovější, base, struct, sqd)` – řady linek, které jsem neměnil, se nepřepíšou.
+1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu a zip současného repozitáře.
+2. Podle CHANGELOG **publikovat firestore.rules** před, nebo po nahrání kódu.
+3. Nahrát soubory; smazané soubory z CHANGELOG odstranit i z webu.
+4. ⚙️ → 👤 Účet → Načíst novou verzi, ověřit verzi v záhlaví.
+5. U verzí, které mění data: po aktualizaci všech zařízení 🔒 Vyžadovat verzi.
+6. Návrat: předchozí zip, pravidla z historie v konzoli, `settings/app.minVer` snížit ručně.

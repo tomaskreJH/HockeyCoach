@@ -69,7 +69,7 @@ test("D3: dávkový merge se nemění (undefined se vynechá, __del smaže pole)
   assert.deepEqual(last(), {path: "events/e1", d: {ss: "__del", y: 1}, opt: {merge: true}});
 });
 test("D3: okna a pohledy zapisují nová pole přes merge (ne set celého dokumentu)", () => {
-  const modal = read("src/views/modal.js"), ev = read("src/views/events.js"), cs = read("src/views/cash-settings.js"), lp = read("src/views/live-panels.js");
+  const modal = read("src/views/modal.js"), ev = ["events", "event-core", "event-detail", "event-form"].map(n => read("src/views/" + n + ".js")).join("\n"), cs = read("src/views/cash-settings.js"), lp = read("src/views/live-panels.js");
   assert.ok(!/doc\("players\/"\+M\.id\)\.set\(/.test(modal) && !/doc\("staff\/"\+M\.id\)\.set\(/.test(modal), "hráčka a člen týmu");
   assert.ok(/doc\("events\/" \+ ev\.id\)\.merge\(\{lines\}\)/.test(ev), "pětky tréninku");
   assert.ok(/doc\("events\/" \+ f\.id\)\.merge\(d\)/.test(ev), "úprava tréninku");

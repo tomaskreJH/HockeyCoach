@@ -1,17 +1,8 @@
-// Spuštění aplikace: připojení k úložišti, odběr změn dat podle role, první vykreslení, obsluha tlačítka Zpět.
-// Aplikace je připravená (S.ready), až se načtou základní kolekce; events, attendance a staff nesmí blokovat zbytek aplikace –
-// při chybě (např. nepublikovaná pravidla) se jen ukáže hláška v záložce Události. Chyba citlivé nebo novější kolekce
-// (attnote, plpay, staffpay, requests, budget …) se jen zapíše do konzole a aplikace běží dál.
-// Kdo co poslouchá (pravidla databáze víc nepustí):
-//  - manager / trenér / asistent (HK.can("sport")): celé týmové kolekce, důvody omluv, nepřítomnosti, série, veřejné dokumenty hostujících
-//    (views/auto-sync.js je udržuje) a žádosti o změnu účasti; zakládání soupeřů a oprava uzavřených zápasů (syncOps, fixClosed),
-//  - správce pokladny (HK.can("money")): předpisy, pokladna, audit, vyúčtování, platební pole, platy, všechny žádosti a rozpočty,
-//  - 📚 banka cvičení (drills): kdo smí číst modul drills (HK.perm – výchozí manager, trenér, asistent),
-//  - ostatní členové: týmové kolekce a jen své předpisy, důvody, nepřítomnosti, žádosti a svůj dokument plpay/{pid},
-//  - hostující (HK.can("guest")): jen svou hráčku, evpub místo events / matches, svou docházku, předpisy, žádosti, nepřítomnosti,
-//    ceny na hlavu, settings cash / events / app a formace (lineuppub) událostí, kde má „Jdu“.
+// Spuštění aplikace: připojení k úložišti, poslech kolekcí podle role (pravidla databáze víc nepustí), první vykreslení, Zpět.
+// Připraveno (S.ready) po základních kolekcích; chyba events / attendance / staff jen hláška v Událostech, chyba citlivé kolekce jen do konzole.
 // Citlivá data se připojí k záznamům v paměti (S.pl + plpay, S.tr + staffpay, S.at + attnote) – domain/private-data.js.
-
+// Kdo co poslouchá: hostující jen sebe a evpub / lineuppub, členové týmové kolekce a své doklady, sport navíc docházku a žádosti,
+// správce pokladny peníze a rozpočty, banka cvičení podle HK.perm("drills", "r") – viz sekce Hlavní logika.
 // ===== Importy =====
 import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
@@ -48,7 +39,7 @@ const luOn = new Set();
 // ===== Pomocné funkce =====
 const rows = s => s.docs.map(d => ({id: d.id, ...d.data()}));
 const mapOf = s => Object.fromEntries(s.docs.map(d => [d.id, d.data()]));
-// Spojení surových dat s citlivými kolekcemi (nové místo má přednost, jinak staré pole)
+// Spojení surových dat s citlivými kolekcemi (attnote, staffpay, plpay)
 const joinPl = () => { S.pl = joinPlPay(R.pl, R.pp); };
 const joinTr = () => { S.tr = joinStaffPay(R.tr, R.sp); };
 const joinAt = () => { S.at = joinAttNotes(R.at, S.an); };

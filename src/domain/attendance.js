@@ -1,13 +1,6 @@
-// Docházka – výpočet přehledu. Čisté funkce bez DOM a bez databáze (použitelné i pro budoucí modul Trénink).
-// Struktura: Konstanty -> Pomocné funkce (datum, sezóna, typ události) -> Výpočet přehledu -> Export.
-// Vstupy:
-//  - tréninky (kolekce events): {id, date "RRRR-MM-DD", time?}
-//  - zápasy (kolekce matches): {id, date, time?, home} – home pravdivé = domácí zápas, jinak venkovní (stejně jako v detailu události)
-//  - odpovědi (kolekce attendance): {eid, pid, st: "yes" | "no" | "maybe", nos?: true} – nos = 🚫 nedorazila bez omluvy (jen u „Jdu“, zapisuje manager / trenér / asistent)
-// Pravidla přehledu (rozhodnutí 7): počítají se jen UPLYNULÉ události ve zvoleném období (výchozí zimní sezóna 1. 8. – 1. 7. dalšího roku);
-// účast = odpověď „Jdu“ bez 🚫, procento = účasti / počet uplynulých událostí daného typu v období; 🚫, „Nejsem jistý“ a bez odpovědi se do účasti nepočítají.
-// Zrušená událost (pole cancelled) se do přehledu nepočítá vůbec (ani do počtu událostí, ani do procenta).
-
+// Docházka – výpočet přehledu (čisté funkce bez DOM): tréninky (events), zápasy (matches, home = domácí), odpovědi attendance
+// {eid, pid, st: yes | no | maybe, nos} – nos = 🚫 nedorazila bez omluvy (jen u „Jdu“).
+// Počítají se jen UPLYNULÉ nezrušené události v období (výchozí sezóna 1. 8. – 1. 7.); účast = „Jdu“ bez 🚫, procento z událostí typu.
 // ===== Konstanty =====
 // Typy událostí v přehledu (klíč -> popis); "all" = součet všech typů
 export const ATT_KINDS = [["all", "Vše"], ["train", "Tréninky"], ["home", "Domácí zápasy"], ["away", "Venkovní zápasy"]];

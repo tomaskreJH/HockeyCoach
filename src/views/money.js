@@ -1,16 +1,7 @@
-// Pokladna – měsíce (F4, trenér a pokladník): měsíční příspěvky, platy realizačního týmu, hospodaření měsíce (kryté události, výsledek),
-// hospodaření po měsících a CSV export. Režim „📅 Měsíce“ v záložce Team.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis (příspěvky, platy) -> Vykreslení (měsíc, příspěvky, platy, hospodaření měsíce, po měsících, CSV) -> Eventy -> Export.
-// Data:
-//  - příspěvek = předpis charges/{c_RRRR-MM_pid} {eid:"c_RRRR-MM", mid, amt, paid, due, kind:"contrib", vs}; vystavuje se ručně za vybraný měsíc,
-//    už vystavené předpisy se nepřepisují, nezaplacený jde smazat; úhrada stejně jako u událostí (💰 Platby, příjem kategorie Příspěvky),
-//  - plat = výdaj cash/{sal_RRRR-MM_tid} {d, k:"out", amt, cat:"Platy trenérů", mid:tid, ym, note, by}; návrh podle staff.pay (měsíčně / za událost),
-//    zapisuje se ručně tlačítkem Vyplatit (jeden plat za člena a měsíc); oprava = storno v 🏦 Pokladna a nový zápis,
-//  - každý zápis jde do audit (contrib, contrib-del, plat),
-//  - příspěvek nese účet příspěvků z nastavení (acc) a zprávu pro příjemce (msg, např. „Příspěvek 10/2026 - Jana“); plat se vyplácí z hlavního účtu;
-//    CSV pohybů a předpisů obsahuje i účet, VS a zprávu (párování s výpisem z banky),
-//  - vystavení i smazání příspěvku zapíše v téže dávce souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
-
+// ⚠️ Pokladna – měsíce (Team → 📅 Měsíce, správce pokladny): měsíční příspěvky, platy realizačního týmu, hospodaření měsíce a po měsících, CSV.
+// Příspěvek = předpis charges/{c_RRRR-MM_pid} {eid:"c_RRRR-MM", mid, amt, paid, due, kind:"contrib", vs, acc, msg}; vystavuje se ručně,
+// vystavené se nepřepisují, nezaplacený jde smazat. Plat = výdaj cash/{sal_RRRR-MM_tid} (Platy trenérů) podle staff.pay, ručně Vyplatit,
+// oprava = storno v 🏦 Pokladna. Každý zápis jde do audit; příspěvek mění v téže dávce i debtors/{mid}.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {nm, pn} from "../core/selectors.js";

@@ -1,11 +1,6 @@
-// Doména: bankovní účty pro QR platby – převod českého čísla účtu na IBAN a kontrola obou kontrolních součtů.
-// Čisté funkce bez DOM. Struktura: Konstanty -> Pomocné funkce -> Kontroly (mod 11, mod 97) -> Převody -> Zpracování vstupu -> Zabezpečení změn.
-// Pravidla:
-//  - české číslo účtu: [předčíslí-]číslo/kód banky; předčíslí max. 6 číslic, číslo 2–10 číslic, kód banky 4 číslice,
-//  - předčíslí i číslo musí projít kontrolou modulo 11 (váhy ČNB) – zachytí překlep v jedné číslici a většinu přehozených číslic,
-//  - IBAN (CZ, 24 znaků) = CZ + 2 kontrolní číslice + kód banky + předčíslí (6) + číslo (10); kontrolní číslice modulo 97 (ISO 13616),
-//  - do QR se smí dostat jen účet, který projde oběma kontrolami (accCheck).
-
+// Doména: ⚠️ bankovní účty pro QR platby (čisté funkce bez DOM) – české číslo účtu [předčíslí-]číslo/kód banky → IBAN.
+// Předčíslí (≤ 6) i číslo (2–10 číslic) musí projít modulo 11 (váhy ČNB); IBAN CZ (24 znaků) kontrolní číslice modulo 97.
+// Do QR se smí dostat jen účet, který projde oběma kontrolami (accCheck).
 // ===== Konstanty =====
 const W_PREFIX = [10, 5, 8, 4, 2, 1];                   // váhy pro předčíslí (6 číslic)
 const W_NUMBER = [6, 3, 7, 9, 10, 5, 8, 4, 2, 1];       // váhy pro číslo účtu (10 číslic)

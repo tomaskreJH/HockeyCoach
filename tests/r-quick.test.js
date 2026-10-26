@@ -60,7 +60,7 @@ test("R: počty v pětkách – hráčky, členové týmu, hráčky bez pětky",
 
 // ===== Zápis utkání v Událostech =====
 test("R: detail uzavřeného zápasu otevře Zápis utkání (S.rp = id) pro všechny role před návratem hráčky", () => {
-  const s = read("src/views/events.js");
+  const s = read("src/views/event-detail.js");
   const iBtn = s.indexOf('if (rp) rp.onclick = () => { S.rp = ev.id; renderReport(); };'), iOwn = s.indexOf("if (ownP) return;");
   assert.ok(iBtn > 0 && iOwn > iBtn, "obsluha tlačítka je před omezením pro hráčku");
   assert.ok(/id="evrp"[^`]*📋 Zápis utkání/.test(s));

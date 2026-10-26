@@ -1,10 +1,6 @@
-// Rozpočet sezóny (Team → 📊 Rozpočet, jen správci pokladny – trenér a pokladník) ve třech částech: 📝 Plán (parametry, položky událostí,
-// platy a ostatní, plán po měsících, odhad příspěvku), 📈 Plnění (plán vs. skutečnost po měsících a položkách, odhad sezóny) a
-// 💧 Cashflow (odhad zůstatku pokladny, varování pod rezervou). Výpočty: domain/budget.js, domain/budget-track.js, domain/budget-review.js.
-// Úpravy se drží v paměti a ukládají tlačítkem 💾 do budget/{sezóna} (merge) s auditem; ✅ Schválit uloží neměnnou kopii (approved),
-// každé další uložení je úprava s povinným důvodem (rev). 🖨 Export pro valnou hromadu (views/budget-print.js). Pokladnu ani kalendář nemění.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Zápis -> Vykreslení (sezóna, schválení, plán, plnění, cashflow) -> Eventy -> Export.
-
+// 📊 Rozpočet sezóny (Team → 📊 Rozpočet, jen správce pokladny): 📝 Plán, 📈 Plnění, 💧 Cashflow;
+// výpočty domain/budget.js, budget-track.js, budget-review.js. Úpravy v paměti, 💾 do budget/{sezóna} (merge) s auditem;
+// ✅ Schválit uloží neměnnou kopii approved, další uložení = úprava s důvodem (rev). 🖨 Export: budget-print.js. Pokladnu ani kalendář nemění.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {isG} from "../core/selectors.js";
@@ -136,7 +132,7 @@ function headHtml(d, all) {
 ${cur ? "" : '<button class="s w" data-bsnow style="margin-top:8px">Tato sezóna</button>'}
 <div style="margin-top:6px">${st}</div>${ast}${err && d.dirty ? `<div class="mu" style="color:var(--no)">⚠️ ${esc(err)}</div>` : ""}${btns}${act}
 ${warnHtml(all)}
-<div class="mu" style="margin-top:6px">Sezóna 1. 8. – 30. 6. Rozpočet jen plánuje – pokladnu, předpisy, šablony ani kalendář nemění. Vidí ho jen trenér a pokladník.</div></div>
+<div class="mu" style="margin-top:6px">Sezóna 1. 8. – 30. 6. Rozpočet jen plánuje – pokladnu, předpisy, šablony ani kalendář nemění. Vidí ho jen správce pokladny.</div></div>
 ${d.b ? `<div class="chips" style="margin-bottom:10px">${TABS.map(([k, l]) => `<button class="chip ${tab === k ? "on" : ""}" data-btab="${k}">${l}</button>`).join("")}</div>` : ""}`;
 }
 // Varování v hlavičce (všechny části): odhad zůstatku pod rezervou / pod nulou, měsíce s odchylkou nad 10 %
@@ -159,7 +155,7 @@ ${prev ? `<button class="s w" data-bcopy style="margin-top:8px">📋 Převzít r
 // Porovnání schváleného (zmrazená čísla) a aktuálního plánu + historie úprav; bez schválení nápověda ke schválení
 function approvedHtml(sv, pl) {
   const appr = approvedOf(sv);
-  if (!appr) return sv ? `<div class="cd"><h2>✅ Schválení</h2><div class="mu">Hotový rozpočet schvaluje trenér nebo pokladník tlačítkem ✅ Schválit rozpočet nahoře (dvě klepnutí). Schválená verze je závazná a nejde přepsat ani smazat – další změny se ukládají jako úpravy s důvodem a porovnávají se se schválenou.</div></div>` : "";
+  if (!appr) return sv ? `<div class="cd"><h2>✅ Schválení</h2><div class="mu">Hotový rozpočet schvaluje správce pokladny tlačítkem ✅ Schválit rozpočet nahoře (dvě klepnutí). Schválená verze je závazná a nejde přepsat ani smazat – další změny se ukládají jako úpravy s důvodem a porovnávají se se schválenou.</div></div>` : "";
   const c = compareApproved(appr, pl), revs = revList(sv);
   const val = (k, v) => (k === "n" ? String(v) : kc(v)), dv = (k, v) => (k === "n" ? `<b>${v > 0 ? "+" : ""}${v}</b>` : signed(v));
   const rows = c.rows.map(r => `<tr><td><b>${esc(r.label)}</b></td><td>${val(r.k, r.a)}</td><td>${val(r.k, r.c)}</td><td>${r.d ? dv(r.k, r.d) : "–"}</td></tr>`).join("");

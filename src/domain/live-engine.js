@@ -1,11 +1,7 @@
 // Jádro živého zápisu bez DOM: čas, střídání, tresty podle IIHF, jednotky, formace.
-// Stavový model hráček:
-//   - NA LEDĚ: L.ice[sloupec]
-//   - VE FRONTĚ: L.q[sloupec] (hráčka připravená ke střídání; na každé místo sestavy nejvýš jedna)
-//   - ZAPARKOVANÁ: partnerka z rotace (k+, k++), která teď není na ledě ani ve frontě
-//   - L.ri[místo] = index hráčky, která je PRÁVĚ na ledě (nebo čeká ve frontě jako další na řadě)
-//   - L.unit = aktivní jednotka PP/OS (zobrazení fronty řeší live.js: ve frontě jsou hráčky druhé jednotky, bez rotace)
-// Každý příchod na led volá claimSlot (index rotace + úklid front), každá akce končí settle (kontrola invariantů).
+// Hráčka je NA LEDĚ (L.ice[sloupec]), VE FRONTĚ (L.q[sloupec], na místo nejvýš jedna) nebo ZAPARKOVANÁ (partnerka z rotace).
+// L.ri[místo] = index hráčky rotace na ledě / další na řadě; L.unit = aktivní jednotka PP/OS.
+// Každý příchod na led volá claimSlot, každá akce končí settle (kontrola invariantů).
 import {COLS, LAYOUT, POS} from "../config/constants.js";
 import {upd} from "../core/actions.js";
 import {activeId, baseKey, curM, isG, nomOf, ownCol, pl, score, slotIds, slotKey} from "../core/selectors.js";

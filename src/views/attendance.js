@@ -1,11 +1,5 @@
-// Přehled docházky pro všechny členy a značka dlužníků ⛓. Jen ke čtení.
-// Zobrazuje se v Událostech přepínačem „Docházka“ (S.evm = "att", vykresluje views/events.js uvnitř #evw).
-// Struktura: Importy -> Konstanty -> Pomocné funkce (volby období, značka dlužníka) -> Vykreslení -> Eventy -> Export.
-// Data: tréninky (S.ev), zápasy (S.ma), odpovědi (S.at), hráčky (S.pl), realizační tým (S.tr), souhrn dlužníků (S.dt, kolekce debtors bez částek).
-// Výpočet je v domain/attendance.js (čisté funkce); stav dlužníka v domain/debtors.js. Důvody omluv se tu nezobrazují vůbec.
-// Pravidla: jen uplynulé události ve zvoleném období (výchozí zimní sezóna 1. 8. – 1. 7.); procento = účast „Jdu“ bez 🚫 / počet událostí;
-// ukončené hráčky (⛔) jen když mají v období odpověď; dlužnice po splatnosti ⛓ (blokace), s výjimkou 🔓; realizační tým značku nemá.
-
+// 📊 Docházka pro všechny (Události → Docházka, S.evm = "att"), jen ke čtení, bez důvodů omluv; výpočet domain/attendance.js.
+// Ukončené hráčky ⛔ jen s odpovědí v období; dlužnice po splatnosti ⛓ (s výjimkou 🔓), realizační tým značku nemá.
 // ===== Importy =====
 import {pl, pn, pri, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";

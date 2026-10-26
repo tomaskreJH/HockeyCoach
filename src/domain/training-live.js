@@ -1,13 +1,10 @@
-// Doména: ⏱ živý trénink – společné hodiny trlive/{eid} a výpočet „kde jsme teď“ v plánu (blok, kolo točení, zbývající čas).
-// Dokument: {v, st ("run" | "pause" | "end"), e0 (s od začátku plánu v okamžiku zápisu), wAt (čas zařízení zapisujícího, ms),
-// sAt (čas serveru zápisu – serverTimestamp), ctl (e-mail řídícího), adj ({id bloku: min} – jiná délka jen pro tento průběh),
-// skip ([id bloku] – vypuštěné bloky), by, at}. Čas běží jen při st "run": e0 + (teď − sAt). Plán se nemění – úpravy platí jen v trlive.
-// Posun hodin zařízení se dorovná odhadem skew (teď zařízení − čas serveru) z čerstvých změn dokumentu. Čisté funkce bez DOM.
-// Upozornění: vibrace a zvuk v aplikaci a volitelně systémové oznámení (zrcadlí se i na hodinky) s textem „co teď / co potom“ – liveNote.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Hodiny -> Úpravy průběhu -> Poloha v plánu -> Řízení -> Upozornění -> Lidé na lince.
-
+// Doména: ⏱ živý trénink – společné hodiny trlive/{eid} a „kde jsme teď“ v plánu (blok, kolo točení, cvičení řady, zbývá).
+// Dokument: {v, st run|pause|end, e0 (s od začátku plánu), wAt, sAt (čas serveru), ctl (řídící), adj {blok: min}, skip [blok], by, at}.
+// Čas při běhu = e0 + (teď − sAt), posun hodin zařízení se dorovná odhadem skew. Úpravy adj / skip platí jen pro průběh, plán se nemění.
+// Upozornění vibrací, zvukem a systémovým oznámením (i na hodinky) s textem „co teď / co potom“ (liveNote).
 // ===== Importy =====
-import {BLK_DUR_MAX, GK, groupIn, isPosBlock, laneSeq, planTimes, posGrp, rotation, seqStep} from "./training-plan.js";
+import {BLK_DUR_MAX, GK, isPosBlock, laneSeq, planTimes, posGrp, rotation, seqStep} from "./training-plan.js";
+import {clamp} from "../core/utils.js";
 
 // ===== Konstanty =====
 export const TRLIVE_COLL = "trlive";
@@ -21,7 +18,6 @@ const NOW_MARK = "__now";                               // značka pro storage.j
 
 // ===== Pomocné funkce =====
 const num = v => (typeof v === "number" && isFinite(v) ? v : null);
-const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 // Čas v ms z hodnoty dokumentu: číslo, Timestamp Firestore (toMillis) nebo jeho JSON {seconds, nanoseconds}; jinak null
 export function tsMs(v) {
   if (num(v) != null) return v;
@@ -131,8 +127,6 @@ export function stepSec(blocks, sec, dir) {
   if (s - cur > 5) return cur;
   return prev.length > 1 ? prev[prev.length - 2] : 0;
 }
-// Začátek bloku bi (s od začátku plánu)
-export const blockStart = (blocks, bi) => { const T = planTimes(blocks || []); return T[bi] ? T[bi].a : 0; };
 
 // ===== Řízení =====
 // Nový stav hodin po akci řídícího: start | pause | resume | jump (sec) | extend (sec = o kolik prodloužit) | keep (beze změny
@@ -181,13 +175,6 @@ export function mmss(sec) {
 }
 
 // ===== Lidé na lince =====
-// Skupina hráčky v bloku: brankářka "G", jinak pětka z lines nebo post (u bloku podle postů)
-export function playerGroup(block, lines, p, goalie) {
-  if (!p) return null;
-  if (goalie) return GK;
-  const n = +((lines || {})[p.id]);
-  return groupIn(block, n >= 1 && n <= 4 ? n : null, posGrp(p.pos));
-}
 // Hráčky skupin grp v bloku: roster = {lines, skaters [{id, pos}], goalies [id]}; vrací id v pořadí soupisky
 export function groupPids(block, grp, roster) {
   const R = roster || {}, G = new Set(grp || []), out = [];

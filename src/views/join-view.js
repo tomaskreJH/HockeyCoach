@@ -7,7 +7,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {kindOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, toast, uid} from "../core/utils.js";
+import {esc, reqWord, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {JOIN_KINDS, JOIN_ROLES, NICK_MAX, NOTE_MAX, approvePlan, canResend, defaultRole, freePlayers, freeStaff, joinCheck, joinDoc, numTaken, openJoins, rejectPlan} from "../domain/join-requests.js";
 
@@ -20,7 +20,6 @@ let sel = null, choice = {role: "", target: ""}, reason = "", members = null, bu
 const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
 const fTime = ms => new Date(ms).toLocaleString("cs-CZ", {day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit"});
 const fIso = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("cs-CZ", {day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"}); };
-const word = n => (n === 1 ? "žádost" : n >= 2 && n <= 4 ? "žádosti" : "žádostí");
 const errTxt = e => (e && (e.code || e.message)) || String(e);
 // Počet otevřených žádostí o přijetí (pruh v 🏠 Domů a v ⚙️; data čte jen trenér)
 export const joinOpenCount = () => openJoins(S.jr).length;
@@ -184,5 +183,5 @@ export function refreshJoin() { if (document.getElementById(WIN_ID)) drawWin(); 
 // Pruh pro trenéra (🏠 Domů): „✋ N žádostí o přijetí“, prázdný bez žádostí
 export function joinBanner() {
   const n = HK.can("admin") ? joinOpenCount() : 0;
-  return n ? `<button class="s hmb" data-hjr style="border-color:var(--wa);margin:0 0 10px">✋ ${n} ${word(n)} o přijetí do týmu – vyřídit →</button>` : "";
+  return n ? `<button class="s hmb" data-hjr style="border-color:var(--wa);margin:0 0 10px">✋ ${n} ${reqWord(n)} o přijetí do týmu – vyřídit →</button>` : "";
 }

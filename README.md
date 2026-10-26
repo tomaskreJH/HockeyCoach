@@ -1,63 +1,55 @@
 # HockeyCoach
 
-**Aktuální verze: v22.0 (26. 10. 2026)** – K-T4: **🔁 řada cvičení v lince** – v bloku plánu (Společně, souběžná linka, 🥅) víc cvičení za sebou s vlastním časem v okně bloku (hráčky a brankářky odděleně), ⭐ Jen moje linky, sloučení uložení dvou trenérů, živý trénink po cvičeních řady. Předchozí v21.9.1 – hrající člen realizačního týmu se hlásí jako hráčka. Historie v CHANGELOG.md.
+**Aktuální verze: v22.1.2 (26. 10. 2026)** – úklid U1 dokončen: rozdělení plánu a živého tréninku, komentáře pravidel (beze změny chování). Historie v [CHANGELOG.md](CHANGELOG.md).
 
-Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, nominace, události a docházka, pokladna (předpisy, úhrady, vklady, výdaje, příspěvky, platy, měsíce, QR platby), zápasy s živým zápisem, soupeři, statistiky.
-Běží v prohlížeči jako PWA (instalace na plochu, offline provoz), bez vlastního serveru. Data jsou ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google.
+Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
+Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.
 
 | Dokument | Obsah |
 |---|---|
-| [docs/KONVENCE.md](docs/KONVENCE.md) | programovací řád, mapa souborů, verze, testy, postup nasazení – **vstupní bod pro vývoj** |
-| [CHANGELOG.md](CHANGELOG.md) | historie verzí a postup nasazení každé verze |
-| [docs/plan-v18.md](docs/plan-v18.md) | plán dalších verzí, rozhodnutí, otevřené otázky |
-| [docs/plan-trenink.md](docs/plan-trenink.md) | modul Trénink (v21.x) a úklid D4 před ním – kontrola kódu, datový model, fáze, otázky |
-| [docs/prompt-dalsi-vlakno.md](docs/prompt-dalsi-vlakno.md) | prompt pro nové vlákno s Claude (start, stav, pravidla práce, šetření limitu) |
-| [docs/archiv-plan-v18.md](docs/archiv-plan-v18.md) | dokončené fáze v18.0 – v20.6 (popisy, rozhodnutí, kontroly) |
-| Nápověda v aplikaci (❓) | ovládání aplikace – jediný uživatelský návod (`src/views/help.js`) |
+| [docs/STAV.md](docs/STAV.md) | kde projekt stojí – **vstup pro vývoj** |
+| [docs/KONVENCE.md](docs/KONVENCE.md) | programovací řád, mapa souborů, testy, vydání verze |
+| [docs/plan.md](docs/plan.md) | nehotové fáze |
+| [docs/testy-rucni.md](docs/testy-rucni.md) | ruční test na telefonu |
+| [docs/prompt-dalsi-vlakno.md](docs/prompt-dalsi-vlakno.md) | šablona zadání pro nové vlákno s Claude |
+| `docs/archiv/` | hotové plány, starší CHANGELOG a testy |
 
 ## Spuštění a testy
-- Lokálně: `npm start` (nebo `python3 -m http.server`) a otevřít `http://localhost:3000` (resp. `:8000`). Z `file://` se moduly nenačtou.
-- Testy: `npm test` – Node 22+, nic se neinstaluje. Testují pokladnu, účty a QR, docházku, dlužníky, živý zápis (střídání, rotace, Zpět, tresty), soulad verze a pravidel databáze, společné pomůcky (potvrzení, CSV, jména, přetahování), statistiky `playerStats`, oprávnění všech rolí, soukromí v databázi (připojení `attnote` / `staffpay` / `plpay`, převod, záloha), strukturu kódu a srovnávací výstupy úklidu (statistiky, CSV, VS – `tests/fixtures/d1-baseline.json`).
-- Aplikace se spouští přímo ze zdrojových modulů (bez sestavování). Firebase SDK se stahuje z `gstatic.com`; po prvním spuštění je v offline cache.
+- Lokálně: `npm start` a otevřít `http://localhost:3000` (z `file://` se moduly nenačtou).
+- `npm test` – Node 22+, nic se neinstaluje. `npm run smoke` – kouřový test všech rolí (jednou `npm install`).
 
 ## Nastavení Firebase (jednorázově)
-1. Projekt v console.firebase.google.com, *Firestore Database* v EU (`eur3` nebo `europe-west3`).
-2. *Firestore → Rules*: vložit `firestore.rules` → **Publish** (při každé verzi, která pravidla mění – viz CHANGELOG).
-3. *Authentication → Sign-in method → Google → Enable*; v *Authorized domains* doména hostingu.
+1. Projekt v console.firebase.google.com, *Firestore Database* v EU.
+2. *Firestore → Rules*: vložit `firestore.rules` → **Publish**.
+3. *Authentication → Google → Enable*; v *Authorized domains* doména hostingu.
 4. *Project settings → Your apps → Web app* → hodnoty do `src/data/firebase-config.js` (klíč není tajný, chrání pravidla).
-5. První manager ručně: kolekce `members`, ID dokumentu = e-mail malými písmeny, pole `role` = `manager`, `rv` = `2` (číslo). Další členy přidává manager v ⚙️ → 👥 Tým a členové (přijetím ✋ žádosti nebo + Přidat člena ručně).
+5. První manager ručně: kolekce `members`, ID dokumentu = e-mail malými písmeny, `role` = `manager`, `rv` = `2` (číslo). Další členy přidává manager v ⚙️ → 👥 Tým a členové.
 
-Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrát celou složku kromě `node_modules/` (složky `tests/` a `docs/` na webu nevadí, aplikace je nenačítá).
+Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrát celou složku kromě `node_modules/`.
 
 ## Nasazení nové verze
-1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu (JSON) + zip současného repozitáře.
-2. Podle záznamu v CHANGELOG **publikovat firestore.rules** (před, nebo po nahrání kódu).
+1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu + zip současného repozitáře.
+2. Podle CHANGELOG **publikovat firestore.rules** (před, nebo po nahrání kódu).
 3. Nahrát soubory; soubory, které CHANGELOG uvádí jako odstraněné, smazat i na webu.
-4. Na zařízeních ⚙️ → **Načíst novou verzi** (číslo verze je v záhlaví vedle názvu).
-5. Po otestování: manager ⚙️ → **🔒 Vyžadovat verzi** – zařízení se starší verzí pak nic nezapisují a ukážou pruh „⚠️ Starší verze aplikace“.
-6. Návrat ke starší verzi: nahrát předchozí zip, pravidla vrátit z historie v konzoli Firebase; minimální verzi (`settings/app.minVer`) snížit ručně v konzoli.
+4. Na zařízeních ⚙️ → **Načíst novou verzi**.
+5. Když to CHANGELOG uvádí: manager ⚙️ → **🔒 Vyžadovat verzi** (starší zařízení pak nic nezapisují).
+6. Návrat: předchozí zip, pravidla z historie v konzoli Firebase, `settings/app.minVer` snížit ručně.
 
-## Role a ochrana dat (stručně)
-| Role (`members/{email}.role`) | Smí |
+**Starou verzi po nahrání** vyřeší ⚙️ → Načíst novou verzi (data zůstanou v databázi). Na webu musí být všechny soubory včetně `sw.js` a celé složky `src/`.
+
+## Role
+| Role | Smí |
 |---|---|
-| `manager` (+ `rv: 2`) | vše (členové a ✋ žádosti o přijetí do týmu, soupiska, zápasy, události, docházka, pokladna vždy, účty – změna účtu jen návrh + potvrzení jiným správcem pokladny, obnova ze zálohy, brána verze); managerů víc, aspoň jeden zůstává vždy |
-| `trener` (+ `rv: 2`) | sport: zápasy a živý zápis, události, docházka, soupeři, formace, soupiska a realizační tým, 📚 banka cvičení (i 📥 základní sada a 📄 import), 📋 plán tréninku (⧉ kopie, 📑 šablony, 📊 pokrytí dovedností, bloky podle postů), ⏱ řízení živého tréninku, ⏲ stopky a měření a ⭐ hodnocení cvičení i hráček (`treval e`), ⭐ výkonnost hráček a rozdělení do pětek; pokladna jen s příznakem `cash` (převod ho dá každému trenérovi, který nebude managerem) |
-| `asistent` (+ `rv: 2`) | (manager / trener / asistent může mít volitelně i `pid` = je zároveň hráčka → na události se hlásí jako hráčka, v21.9.1) dřívější kustod: zápasy a živý zápis, soupeři, formace, události (i ❌ zrušení), docházka za kohokoli, ✋ žádosti o změnu účasti; u hráčky jen stav; 📚 banka cvičení – číst, zakládat a upravovat (mazat podle matice); 📋 plán tréninku – číst a upravovat (i šablony a 📊 pokrytí), ⏱ řídit živý trénink (s právem upravovat plán), ⏲ stopky, měření a ⭐ hodnocení cvičení (podle matice), ⭐ výkonnost hráček |
-| jiná hodnota role (např. stará `kustod`) | bez přístupu – přihlášení ukáže „neplatná role“, manager ji změní v ⚙️ → 👥 Tým a členové; `trener` bez `rv` = Trenér |
-| `hracka` (+ `pid`) | čte týmová data, zapisuje jen vlastní docházku; banku cvičení nevidí, 📋 plán tréninku jen čte (svá skupina zvýrazněná, 🎽 barva dresu; ⏱ živý trénink nevidí), ⏲ výsledky měření týmu vidí (své zvýrazněné), ⭐ výkonnost a hodnocení trenérů nevidí; Moje platby jen své předpisy |
-| `host` (+ `pid` hráčky 🎟) | hostující: čte jen sebe (svou hráčku, docházku, předpisy, žádosti, nepřítomnosti) a veřejné hlavičky `evpub`; formaci `lineuppub` jen u události se svým ✅ Jdu |
-| matice `settings/perm` | práva Trenér / Asistent / Hráčka po modulech (číst / upravovat / rušit / mazat), mění jen manager v ⚙️ → 🔐 Práva rolí; chybějící dokument = výchozí práva (tabulka výše); pevné zůstává sport (zápasy, docházka, formace), soupiska, členové, pokladna (příznak `cash`) a nastavení |
-| příznak `cash: true` | pokladník: předpisy, pohyby, vyúčtování, nastavení pokladny; **členy jen s rolí Hráčka a ne vlastní účet** |
+| Manager | vše; managerů víc, aspoň jeden zůstává; pokladna vždy |
+| Trenér | sport (zápasy a živý zápis, události, docházka, soupeři, formace), soupiska a realizační tým, celý Trénink; pokladna jen s 💰 |
+| Asistent | sport jako trenér bez soupisky; Trénink podle matice práv |
+| Hráčka | čte týmová data, zapisuje vlastní docházku; plán tréninku a výsledky měření vidí, hodnocení trenérů ne; Moje platby jen své |
+| Hostující 🎟 | vidí jen sebe a události, na které jde |
+| 💰 Pokladník (příznak) | pokladna, předpisy, platby; členy jen s rolí Hráčka, nikdy vlastní účet |
 
-Účet bez `members` smí jen založit / zrušit vlastní žádost `joinreq/{email}` (vyřizuje manager). Pravidla databáze (`firestore.rules`) jsou skutečná ochrana – skrytí v rozhraní nestačí. Známé mezery (důvody omluv, platy trenérů a platební pole soupisky čitelné všemi členy; uzávěrka přihlašování jen v aplikaci) řeší fáze S a W v plánu.
+Manager / trenér / asistent může mít propojenou hráčku – na události se pak hlásí jako hráčka. Práva Trenér / Asistent / Hráčka po modulech mění manager v ⚙️ → 🔐 Práva rolí. Účet bez členství smí jen poslat ✋ žádost o přijetí. Skutečná ochrana = `firestore.rules`.
 
 ## Provoz a správa (připravit před předáním aplikace)
-- **Teď** vše spravuje vývojář (vývoj, test, Firebase, GitHub). Po uvolnění k distribuci převezme provoz **manager – vedoucí týmu**.
-- **Týmový Google účet** (zdarma 15 GB) – spravuje manager: složka „Cvičení“ s videi (.mp4 / .webm) a PDF; u souboru sdílení „Kdokoli s odkazem“, odkaz se vloží do cvičení a aplikace ho přehraje v náhledu. Soubory tak nepatří jednomu trenérovi a po jeho odchodu nezmizí.
-- Doporučení do budoucna: týmový účet je i vlastníkem projektu Firebase a správcem v ⚙️ (role manager), vývojář má jen přístup vývojáře (`DEV_EMAILS`); záloha (⚙️ → 💾 Data) pravidelně na týmový Disk.
-
-## Struktura
-Podrobná mapa souborů je v [docs/KONVENCE.md](docs/KONVENCE.md). Ve zkratce: `src/config` (konstanty) → `src/core` (stav, pomůcky, verze) → `src/domain` (čisté výpočty, testované) → `src/views` (obrazovky) → `src/main.js`; datová vrstva `src/data/storage.js`; testy `tests/`; dokumentace `docs/`.
-
-## Když po nahrání vidíš starou verzi
-⚙️ → **Načíst novou verzi** (smaže uloženou kopii aplikace, data zůstanou v databázi). Na web musí být nahrané všechny soubory včetně `sw.js` a celé složky `src/`.
+- **Teď** vše spravuje vývojář. Po uvolnění k distribuci převezme provoz **manager – vedoucí týmu**.
+- **Týmový Google účet** (spravuje manager): složka „Cvičení“ s videi (.mp4 / .webm) a PDF, sdílení „Kdokoli s odkazem“, odkaz se vloží do cvičení. Soubory nepatří jednomu trenérovi.
+- Doporučení: týmový účet je vlastníkem projektu Firebase a managerem v ⚙️, vývojář má jen přístup vývojáře (`DEV_EMAILS`); záloha (⚙️ → 💾 Data) pravidelně na týmový Disk.

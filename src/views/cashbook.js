@@ -1,11 +1,6 @@
-// Pokladna (trenér a pokladník): zůstatek, ruční vklady a výdaje, součty podle kategorií, seznam pohybů se stornem. Režim „🏦 Pokladna“ v záložce Team.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Vykreslení -> Eventy -> Export.
-// Data: kolekce cash (S.cs) {d, k:"in"|"out", amt, cat, mid?, cid?, eid?, note, vs?, acc?, by}; předpisy v charges (S.ch).
-// U každého pohybu je vidět, za co je (zpráva pro příjemce stejná jako v QR), VS a při dvou účtech i účet; zůstatky a filtr po účtech.
-// Starší úhrady bez uložené zprávy a VS si je doplní při zobrazení z předpisu (cid).
-// Storno pohybu s vazbou na předpis (cid) vrací zaplacenou částku na předpisu v téže dávce a zapíše záznam do audit.
-// Storno úhrady zapíše v téže dávce i souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
-
+// ⚠️ Pokladna (Team → 🏦 Pokladna, správce pokladny): zůstatek, vklady a výdaje, součty podle kategorií, pohyby se stornem.
+// cash (S.cs) = {d, k:"in"|"out", amt, cat, mid?, cid?, eid?, note, vs?, acc?, by}; u pohybu zpráva, VS a účet (starší úhrady je vezmou z předpisu).
+// Storno pohybu s předpisem (cid) vrátí zaplacenou částku, zapíše audit i debtors/{mid} v téže dávce.
 // ===== Importy =====
 import {confirm2, strip} from "../core/actions.js";
 import {pn} from "../core/selectors.js";

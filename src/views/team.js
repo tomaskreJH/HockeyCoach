@@ -1,14 +1,8 @@
-// Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování a správa pokladny.
-// Struktura: Importy -> Pomocné funkce -> players (soupiska a realizační tým) -> formV (přepínač režimů, základní formace) -> teamDrag (přetahování).
-// Přepínač nahoře (stav S.tm): Team | 📚 Cvičení (kdo smí číst banku cvičení – views/drills-view.js) | 💰 Platby | 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet
-// (režimy pokladny jen správce pokladny, vykresluje je cashPanel() z events.js); s jediným režimem se přepínač nevykresluje.
-// Hráčka s příznakem pokladník vidí formaci a náhradnice jen ke čtení (bez přetahování); u hráček a realizačního týmu mění jen platby
-// (okno Platby / Plat v modal.js – ostatní pole dokumentu zůstanou, pravidla databáze jí víc nedovolí).
-// Role: přidávat a mazat hráčky a spravovat realizační tým smí jen manager a trenér; asistent u hráčky mění stav, pokladník skupinu plateb a plat člena týmu.
-// Tlačítka, na která role nemá právo, se nezobrazují (práva navíc vynucují pravidla databáze).
-// Soukromí: platební pole hráčky jsou v plpay/{pid} a plat člena týmu ve staffpay/{tid} (čtou jen správci pokladny) – štítek plateb
-// u hráčky vidí jen správce pokladny; nová hráčka se zakládá v jedné dávce s dokumentem plpay, se smazáním zmizí i plpay / staffpay.
-// Hostující hráčka (players.guest, značka 🎟 – domain/guests.js) se zakládá zaškrtnutím „Hostující“; počítá se všude jako ostatní.
+// Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování; přepínač S.tm (Team | 📚 Cvičení | 💰 Platby |
+// 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet – režimy pokladny jen správce pokladny, vykresluje cashPanel() z events.js).
+// Hráčky a realizační tým přidává a maže manager a trenér; asistent mění u hráčky stav, pokladník platby (okno Platby / Plat v modal.js).
+// Hráčka-pokladník vidí formaci jen ke čtení. Platební pole jsou v plpay/{pid} a staffpay/{tid} (nová hráčka v jedné dávce s plpay).
+// 🎟 Hostující = players.guest (domain/guests.js), počítá se jako ostatní.
 import {KIND,POS,ST} from "../config/constants.js";
 import {confirm2,saveDef} from "../core/actions.js";
 import {PG,isG,kindOf,pl,pn,pri,stOf} from "../core/selectors.js";

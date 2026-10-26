@@ -1,12 +1,6 @@
-// Soukromí v databázi – čisté funkce bez DOM a bez databáze (připojení citlivých dat k záznamům v paměti a plán převodu).
-// Citlivá data jsou v samostatných kolekcích, které čte jen vlastník a správci (firestore.rules):
-//  - attnote/{eid}_{mid} = {eid, mid, reason}  důvod omluvy (čte vlastník a manager, trenér, asistent),
-//  - staffpay/{tid}      = {m, amt}            plat člena realizačního týmu (čte správce pokladny a člen sám),
-//  - plpay/{pid}         = {grp, fx, ex, note, grpH} platební pole hráčky (čte správce pokladny a hráčka sama; grpH = historie způsobu placení).
-// Aplikace čte nové místo, s náhradou ze starého pole (attendance.reason, staff.pay, players.grp/fx/ex/note) – stará pole jsou
-// z databáze smazaná a pravidla je nepovolí zapsat; obnova staré zálohy je rozdělí předem (splitLegacy).
-// Struktura: Konstanty -> Pomocné funkce -> Připojení k záznamům -> Zápis (dokumenty nových kolekcí) -> Obnova staré zálohy.
-
+// Soukromí v databázi (čisté funkce bez DOM): citlivá data v samostatných kolekcích, které čte jen vlastník a správci:
+// attnote/{eid}_{mid} = {eid, mid, reason} (důvod omluvy), staffpay/{tid} = {m, amt} (plat), plpay/{pid} = {grp, fx, ex, note, grpH}.
+// Aplikace je připojí k záznamům v paměti; obnova staré zálohy rozdělí stará pole předem (splitLegacy).
 // ===== Konstanty =====
 export const NOTE_COLL = "attnote";                       // důvody omluv
 export const SPAY_COLL = "staffpay";                      // platy realizačního týmu
@@ -20,7 +14,7 @@ const has = (o, k) => !!o && o[k] !== undefined && o[k] !== null;
 export const noteId = (eid, mid) => eid + "_" + mid;
 
 // ===== Připojení k záznamům v paměti =====
-// Hráčka s platebními poli: pole z plpay (pokud je vyplněné) má přednost, jinak zůstane hodnota ze starého místa v players.
+// Hráčka s platebními poli z plpay (vyplněná pole doplní záznam soupisky).
 // Výsledek má stejný tvar jako dřív, takže výpočty pokladny (domain/cash.js) se nemění.
 export function withPlPay(p, pp) {
   if (!pp) return p;
@@ -31,13 +25,13 @@ export function withPlPay(p, pp) {
 }
 // Seznam hráček (S.pl) s připojenými poli z plpay (mapa id → dokument)
 export const joinPlPay = (players, ppMap) => (players || []).map(p => withPlPay(p, (ppMap || {})[p.id]));
-// Člen realizačního týmu s platem ze staffpay (dokument {m, amt}); bez dokumentu zůstane starý staff.pay
+// Člen realizačního týmu s platem ze staffpay (dokument {m, amt}); bez dokumentu beze změny
 export function withStaffPay(t, sp) {
   if (!sp) return t;
   return {...t, pay: {m: sp.m || "none", amt: +sp.amt || 0}};
 }
 export const joinStaffPay = (staff, spMap) => (staff || []).map(t => withStaffPay(t, (spMap || {})[t.id]));
-// Odpověď docházky s důvodem z attnote (dokument existuje = platí jeho důvod, i prázdný); jinak starý attendance.reason
+// Odpověď docházky s důvodem z attnote (dokument existuje = platí jeho důvod, i prázdný)
 export function withNote(a, n) {
   if (!n) return a;
   return {...a, reason: n.reason || ""};

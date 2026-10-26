@@ -1,10 +1,7 @@
-// Doména: banka cvičení (kolekce drills) – kontrola a úprava formuláře, filtr seznamu, kopie, vyřazení a smazání. Čisté funkce bez DOM.
-// Dokument drills/{id}: name, cat, sk [dovednosti], lvl 1–3, dur (min), grp [all|st|gk], eq, desc, url, pdf, img [id obrázků], meas {u, low} | null, by, at, arch.
-// Obrázky jsou samostatné dokumenty drillimg/{id} = {d (data:image/jpeg;base64), did, w, h, by, at} – zmenšené v zařízení, nejvýš IMG_MAX na cvičení.
-// Cvičení se z banky nemaže, ale vyřazuje (arch: true) – plány tréninku na něj mohou odkazovat; smazat jde jen vyřazené.
-// Odkazy url (video) a pdf se v aplikaci přehrají v náhledu (mediaOf – YouTube, Google Disk, soubor .mp4 / .webm), jinak se otevřou.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Kontrola a úprava -> Obrázky -> Seznam a filtr -> Kopie a vyřazení.
-
+// Doména: banka cvičení (čisté funkce bez DOM) – kontrola formuláře, filtr, kopie, vyřazení a smazání.
+// drills/{id}: name, cat, sk, lvl 1–3, dur, grp [all|st|gk], eq, desc, url, pdf, img, meas {u, low} | null, by, at, arch.
+// Obrázky drillimg/{id} = {d, did, w, h, by, at} (nejvýš IMG_MAX); cvičení se vyřazuje (arch), smazat jde jen vyřazené.
+// Odkazy url / pdf se přehrají v náhledu (mediaOf – YouTube, Google Disk, .mp4 / .webm).
 // ===== Importy =====
 import {CATS, GROUPS, LEVELS, SKILLS, UNITS} from "../config/skills.js";
 

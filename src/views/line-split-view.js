@@ -1,10 +1,6 @@
-// Rozdělení do pětek tréninku – panel automatického rozdělení (pod výběrem pětek v detailu tréninku) a okno ⭐ Výkonnost hráček.
-// Způsob, počet pětek a ⚔ poměr útočnic / obránkyň se volí u tréninku (volba se pamatuje v zařízení – localStorage hk-split);
-// výpočet domain/line-split.js. Výkonnost 1–5 = plevel/team (jen realizační tým; poslech až při prvním zobrazení, jeden dokument).
-// Rozdělení přepíše jen hráčky (realizační tým zůstane); když už jsou hráčky v pětkách, potvrzuje se druhým klepnutím.
-// ✨ Připravit trénink (karta plánu) dělí posledním způsobem jen dosud nerozdělené přihlášené (quickSplit).
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Načtení výkonnosti -> Vykreslení -> Eventy -> Exporty.
-
+// Rozdělení do pětek tréninku: panel automatického rozdělení v detailu tréninku (způsob, počet, ⚔ poměr – localStorage hk-split)
+// a okno ⭐ Výkonnost (plevel/team, jen realizační tým, poslech při prvním zobrazení). Výpočet domain/line-split.js.
+// Přepíše jen hráčky (realizační tým zůstane), existující rozdělení druhým klepnutím; ✨ Připravit trénink dělí jen nerozdělené (quickSplit).
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {isG, pn} from "../core/selectors.js";
@@ -28,7 +24,6 @@ const HINT = {
 let unsub = null;
 
 // ===== Pomocné funkce =====
-const stamp = () => { const u = HK.user(); return {by: ((u && u.email) || "").toLowerCase(), at: new Date().toISOString()}; };
 // Volby rozdělení: z paměti zařízení, jinak výchozí
 function opts() {
   if (!S.lsp) {
@@ -40,7 +35,6 @@ function opts() {
   return S.lsp;
 }
 function saveOpts(o) { S.lsp = o; try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) { /* bez paměti zařízení */ } }
-const stars = n => "⭐".repeat(n);
 const posTag = p => (posGrp(p.pos) === DF ? "O" : "Ú");
 
 // ===== Načtení výkonnosti =====

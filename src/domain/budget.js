@@ -1,15 +1,12 @@
-// Doména: rozpočet sezóny (čisté funkce bez DOM) – parametry sezóny, položky událostí (opakování, počet, série), platy a ostatní
-// příjmy / výdaje, plán po měsících a odhad potřebného příspěvku. Dokument budget/{sezóna} (např. "2026-27", období 1. 8. – 30. 6.)
-// čte a zapisuje jen správce pokladny. Odhad je orientační: koeficienty hráček se nepočítají (platící hráčka = 100 %), příjem za událost
-// se odvozuje ze šablony pokladny (kdo platí × paušál / podíl nákladů) podle složení hráček v parametrech, pokud není zadaný ručně.
-// Pokladna, předpisy ani šablony se tu nemění – jen se čtou. Struktura: Importy -> Konstanty -> Pomocné funkce -> Sezóna -> Výchozí hodnoty
-// a normalizace -> Položky -> Plán po měsících -> Odhad příspěvku -> Kontrola a dokument.
-
+// Doména: rozpočet sezóny (čisté funkce bez DOM) – parametry, položky událostí (opakování, počet, série), platy a ostatní,
+// plán po měsících, odhad příspěvku. budget/{sezóna} ("2026-27", 1. 8. – 30. 6.) čte a zapisuje jen správce pokladny.
+// Odhad je orientační (platící hráčka = 100 %), příjem za událost ze šablony pokladny, pokud není zadaný ručně. Pokladnu jen čte.
 // ===== Importy =====
 import {isG} from "../core/selectors.js";
 import {seasonOf} from "./attendance.js";
 import {DEF_TPL, costTotal, exOf, fxOf, grpOf, r2, ymOk} from "./cash.js";
 import {WEEK_DAYS, datesOf} from "./recurrence.js";
+import {ceil} from "../core/utils.js";
 
 // ===== Konstanty =====
 export const BUDGET_COLL = "budget";                                   // kolekce rozpočtů (id = sezóna "RRRR-RR")
@@ -25,7 +22,6 @@ const SEASON_RE = /^(\d{4})-(\d{2})$/;
 // ===== Pomocné funkce =====
 const p2 = n => String(n).padStart(2, "0");
 const cl = o => JSON.parse(JSON.stringify(o));
-const ceil = x => Math.ceil(x - 1e-9);
 const sum = (a, f) => (a || []).reduce((s, x) => s + (+f(x) || 0), 0);
 const num = (v, d = 0) => (v === "" || v == null || !isFinite(+v) ? d : +v);
 const nn = v => Math.max(0, num(v));                                  // nezáporné číslo (prázdné = 0)

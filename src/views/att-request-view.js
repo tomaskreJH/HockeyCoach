@@ -7,7 +7,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {nm, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, fd, td, toast} from "../core/utils.js";
+import {esc, fd, reqWord, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {WANT, attDecidePlan, attReqDoc, attReqError, myAttReqs, openAttReq, openAttReqs} from "../domain/att-requests.js";
 import {cxOf} from "../domain/cash.js";
@@ -21,7 +21,6 @@ let reply = "";                       // rozepsaná odpověď trenéra v okně
 
 // ===== Pomocné funkce =====
 const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
-const word = n => (n === 1 ? "žádost" : n >= 2 && n <= 4 ? "žádosti" : "žádostí");
 // Událost podle id (trénink nebo zápas) jako {id, title, date, time, dl, cancelled, ss}
 function evOf(id) {
   const e = S.ev.find(x => x.id === id);
@@ -42,7 +41,7 @@ export function attReqBanner() {
   const rs = openAttReqs(S.rq);
   if (!rs.length) return "";
   const list = rs.map(r => `<button class="s w" data-aqo="${esc(r.id)}" style="margin-top:6px;text-align:left">${whoH(r.mid)} · ${evLine(evOf(r.eid))} → <b>${esc(WANT[r.want] || r.want)}</b>${r.abs ? " 🏖" : ""}</button>`).join("");
-  return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">✋ ${rs.length} ${word(rs.length)} o změnu účasti</b>${list}</div>`;
+  return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">✋ ${rs.length} ${reqWord(rs.length)} o změnu účasti</b>${list}</div>`;
 }
 // Okno vyřízení (S.aqo); bez otevřené žádosti prázdné
 export function attReqModal() {

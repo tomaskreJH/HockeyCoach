@@ -1,10 +1,7 @@
-// 📋 Plán tréninku – pomůcky pro trenéry: ⧉ kopie plánu z předchozího tréninku, 📑 šablony plánu (trtpl, sdílené pro tým)
-// a 📊 pokrytí dovedností přihlášených hráček za posledních 14 / 30 / 60 dní (karta plánu i úprava; jen realizační tým).
-// ✨ Připravit trénink: nabídka posledního tréninku s plánem a naposledy uložené šablony (loadPrep).
-// Čte se jen na vyžádání: plány tréninků v období po jednom dokumentu (S.db.doc().get()), šablony jednorázově celé (getAll).
-// Použití kopie / šablony nahradí rozpracovaný plán (s bloky druhým klepnutím); uloží se až 💾 Uložit plán. Výpočty: domain/plan-reuse.js, domain/skill-coverage.js.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Načtení -> Vykreslení (kopie a šablony, pokrytí) -> Eventy -> Exporty.
-
+// 📋 Plán tréninku – pomůcky: ⧉ kopie z předchozího tréninku, 📑 šablony (trtpl), 📊 pokrytí dovedností za 14 / 30 / 60 dní (jen realizační tým),
+// ✨ Připravit trénink (loadPrep – poslední trénink s plánem a poslední šablona).
+// Čte se jen na vyžádání (plány po jednom dokumentu, šablony getAll). Kopie / šablona nahradí rozpracovaný plán, uloží až 💾 Uložit plán.
+// Výpočty domain/plan-reuse.js a domain/skill-coverage.js.
 // ===== Importy =====
 import {SKILLS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";
@@ -31,7 +28,6 @@ const CSS = `<style>
 </style>`;
 
 // ===== Pomocné funkce =====
-const stamp = () => { const u = HK.user(); return {by: ((u && u.email) || "").toLowerCase(), at: new Date().toISOString()}; };
 const errTxt = e => (e && (e.code || e.message)) || "chyba";
 // Datum události česky (d. m. rrrr)
 const dmy = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); return m ? +m[3] + ". " + +m[2] + ". " + m[1] : String(s || ""); };

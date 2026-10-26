@@ -1,13 +1,11 @@
-// Doména: plán tréninku trplan/{eid} – bloky Společně / Stanoviště, časy od začátku tréninku, rozpis točení skupin, kontrola plánu.
-// Skupiny bloku: pětky z rozdělení (1–4) nebo posty (blok by: "pos" – "F" útočnice, "D" obránkyně) + 🥅 brankářky "G" (linka se netočí).
-// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, brk?, dur (min), rot (min | null), lanes: [{id, drill, dn, di, co [tid], grp, seq?}]}], by, at}.
-// ☕ Pauza = blok s brk (popisek, např. „Pití“) bez linek – nepočítá se do cvičení, hodnocení, měření ani pokrytí dovedností.
-// Řada cvičení v lince (seq = [{id, drill, dn, di, dur (min)}]): linka, která se netočí (Společně, 🥅), má víc cvičení za sebou s vlastním časem
-// v časovém okně bloku; drill / dn / di linky = první cvičení řady (starší verze ukážou aspoň to). Klíč hodnocení / měření cvičení řady = blok_linka-cvičení.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Skupiny -> Úprava plánu -> Řada cvičení -> Časy a točení -> Kontrola -> Hráčka -> Exporty (u funkcí).
-
+// Doména: plán tréninku trplan/{eid} – bloky Společně / Stanoviště, časy od začátku tréninku, rozpis točení, kontrola plánu.
+// Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, brk?, dur, rot, lanes: [{id, drill, dn, di, co [tid], grp, seq?}]}], by, at}.
+// Skupiny: pětky 1–4 nebo posty (by: "pos" – "F" / "D") + 🥅 "G" (netočí se). ☕ Pauza = blok s brk bez linek (mimo cvičení a přehledy).
+// Řada cvičení seq = [{id, drill, dn, di, dur}] jen u linky, která se netočí; drill / dn / di linky = první cvičení řady.
+// Cvičení řady pro hodnocení, měření a pokrytí rozkládá expandLanes (klíč blok_linka-cvičení).
 // ===== Importy =====
 import {LINE_NOS} from "./event-helpers.js";
+import {clamp} from "../core/utils.js";
 
 // ===== Konstanty =====
 export const TRPLAN_COLL = "trplan";
@@ -23,7 +21,6 @@ export const BRK_DEF = "Pití", BRK_DUR = 3, BRK_MAX = 40;    // ☕ pauza: výc
 
 // ===== Pomocné funkce =====
 const int = (v, d) => { const n = Number(v); return Number.isInteger(n) ? n : d; };
-const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 const str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
 const uniq = a => [...new Set(a)];
 // Klíč skupiny bloku: u pětek čísla 1–4, u postů "F" / "D"; "G" vždy (jiné hodnoty se zahodí)

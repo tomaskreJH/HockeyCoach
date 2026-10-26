@@ -1,15 +1,7 @@
-// Nastavení pokladny (trenér a pokladník): IBAN, příspěvek, splatnosti, kategorie a šablony událostí. Ukládá se do settings/cash.
-// Dva účty – hlavní (iban) a provozní (iban2, nepovinný); na který účet se platí příspěvky (acc.contrib) a výchozí účet každé šablony (t.acc).
-// Účty se zadávají jako české číslo účtu (nebo IBAN), IBAN se dopočítá a ověří kontrolními součty (mod 11 a mod 97).
-//   Změnu účtu jen navrhuje trenér (ibanPend); platí až po potvrzení JINÝM správcem pokladny (trenér / pokladník) – princip čtyř očí.
-//   Návrh, potvrzení, zamítnutí i zrušení se zapisují do auditu (acc-prop, acc-ok, acc-no, acc-off) a pravidla databáze to vynucují.
-//   Běžné „Uložit nastavení“ účty nikdy nemění (pole účtů se při uložení převezmou z aktuálního stavu v databázi).
-//   Uložení zapisuje přes merge jen pole nastavení, která okno zná (vnořené objekty – šablony, kategorie – se nahradí celé);
-//   ostatní pole dokumentu settings/cash zůstanou. Smazání šablony se potvrzuje druhým klepnutím (confirm2, do 4 s).
-//   Přepínač okamžité platby (inst) přidá do QR PT:IP.
-// Struktura: Importy -> Stav -> Pomocné funkce -> Účty -> Vykreslení -> Eventy -> Export.
-// Celoobrazovkové okno #cset se vytváří za běhu (stejně jako nápověda), otevírá se z ⚙️ (HK.openCash).
-
+// ⚠️ Nastavení pokladny (okno #cset z ⚙️, HK.openCash, správce pokladny) → settings/cash: účty, příspěvek, splatnosti, kategorie, šablony, inst.
+// Hlavní (iban) a provozní (iban2) účet; české číslo nebo IBAN, ověření mod 11 a mod 97; účet plateb příspěvků acc.contrib, šablony t.acc.
+// Změna účtu jen návrh (ibanPend) a potvrzení JINÝM správcem pokladny (4 oči), vše do auditu (acc-prop, acc-ok, acc-no, acc-off).
+// „Uložit nastavení“ účty nikdy nemění; ukládá merge jen známých polí (šablony a kategorie se nahradí celé). Smazání šablony = confirm2.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
@@ -59,7 +51,7 @@ function accHtml() {
   const c = S.cc || {}, pend = c.ibanPend, coach = HK.can("accounts"), mine = pend && pend.by === me();
   const last = c.ibanAt ? `Platí od ${esc(fDt(c.ibanAt))} · navrhl ${esc(c.ibanBy || "?")} · potvrdil ${esc(c.ibanOk || "?")}` : "Změna účtu zatím nebyla zaznamenána (účet zadaný před v18.6.1).";
   const pendH = pend ? `<div class="cd" style="border-color:var(--wa);padding:10px"><b style="color:var(--wa)">⏳ Čeká na potvrzení změny účtů</b><div style="margin:6px 0">Hlavní: ${accTxt(pend.iban)}<br>Provozní: ${accTxt(pend.iban2)}</div><div class="mu">Navrhl ${esc(pend.by)} · ${esc(fDt(pend.at))}</div>
-${mine ? '<div class="mu" style="margin:6px 0">Potvrdit musí jiný trenér nebo pokladník.</div><button class="s w" data-apx>Zrušit návrh</button>' : '<div class="mu" style="margin:6px 0">Před potvrzením ověř číslo účtu s navrhovatelem jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
+${mine ? '<div class="mu" style="margin:6px 0">Potvrdit musí jiný správce pokladny.</div><button class="s w" data-apx>Zrušit návrh</button>' : '<div class="mu" style="margin:6px 0">Před potvrzením ověř číslo účtu s navrhovatelem jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
   const v1 = accIn ? accIn.a1 : ibanToCz(c.iban) || c.iban || "", v2 = accIn ? accIn.a2 : ibanToCz(c.iban2) || c.iban2 || "";
   const form = coach ? `<h3>Navrhnout změnu účtů</h3><label>Hlavní účet – číslo účtu (např. 19-2000145399/0800) nebo IBAN</label><input id="acc1" value="${esc(v1)}" inputmode="text" autocomplete="off"><div id="ack1">${chkTxt(v1).h}</div><label>Provozní účet (nepovinné; prázdné = vše na hlavní účet)</label><input id="acc2" value="${esc(v2)}" inputmode="text" autocomplete="off"><div id="ack2">${chkTxt(v2).h}</div><div class="mu" style="margin-bottom:6px">Změna se projeví až po potvrzení jiným trenérem nebo pokladníkem. Návrh i potvrzení se zapíší do auditu a hráčkám se nový účet zobrazí s varováním.</div><button class="s w" data-apr>📝 Navrhnout změnu účtů</button>` : '<div class="mu" style="margin-top:6px">Čísla účtů navrhuje jen trenér; pokladník změnu potvrzuje.</div>';
   const hist = (S.au || []).filter(x => ACT_TXT[x.act]).sort((a, b) => (b.ts || "").localeCompare(a.ts || "")).slice(0, 10)
@@ -75,7 +67,7 @@ function propose(e) {
   const p = {iban: a.iban, iban2: b.iban, by: me(), at: new Date().toISOString()};
   S.db.batch().merge("settings/cash", {ibanPend: p}).set("audit/" + uid(), auditDoc("acc-prop", pairTxt(p.iban, p.iban2))).commit();
   accIn = null;
-  toast("Návrh odeslán – potvrdí ho jiný trenér nebo pokladník");
+  toast("Návrh odeslán – potvrdí ho jiný správce pokladny");
 }
 function approve() {
   const p = (S.cc || {}).ibanPend;

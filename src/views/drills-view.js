@@ -1,12 +1,7 @@
-// 📚 Banka cvičení (Team → přepínač 📚 Cvičení): seznam s hledáním a filtrem (kategorie, dovednost, úroveň, ⭐, vyřazená),
-// detail cvičení, formulář nového cvičení / úpravy, ⧉ kopie, 🗄 vyřazení a ↩ vrácení, 🗑 smazání vyřazeného (druhým klepnutím).
-// Práva: číst / upravovat / mazat podle modulu drills matice (HK.perm); pravidla databáze vynucují totéž.
-// ⭐ oblíbená jsou osobní a pamatují se v tomto zařízení (localStorage). Výpočty a kontrola formuláře: domain/drills.js.
-// 📷 Obrázky (nejvýš 3, zmenšené v zařízení) se ukládají spolu s cvičením v jedné dávce do drillimg/{id}; 📄 PDF jen jako odkaz.
-// 🗑 smazání vyřazeného cvičení jen, když ho nepoužívá žádný plán tréninku ani šablona (jednorázové čtení trplan a trtpl); smaže i jeho obrázky.
-// 📥 Základní sada a 📄 import z tabulky: views/drill-import-view.js.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Vykreslení (seznam, detail, formulář) -> Eventy -> Exporty.
-
+// 📚 Banka cvičení (Team → 📚 Cvičení): seznam s hledáním a filtrem, detail, formulář, ⧉ kopie, 🗄 vyřazení, 🗑 smazání vyřazeného.
+// Práva podle modulu drills (HK.perm); ⭐ oblíbená v zařízení (localStorage). Výpočty domain/drills.js.
+// 📷 Obrázky (nejvýš 3) v jedné dávce do drillimg/{id}, 📄 PDF jen odkazem; smazat jen cvičení nepoužité v trplan ani trtpl (i s obrázky).
+// 📥 Základní sada a 📄 import: drill-import-view.js.
 // ===== Importy =====
 import {CATS, GROUPS, LEVELS, SKILLS, UNITS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";

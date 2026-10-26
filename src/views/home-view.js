@@ -1,12 +1,7 @@
-// 🏠 Domů – úvodní přehled (výchozí záložka po spuštění, vidí každý člen): běžící zápas, příští zápas, nadcházející události 7 dní
-// s mojí odpovědí, stav mých plateb a u správce pokladny souhrn týmu (nezaplaceno, po splatnosti, žádosti ✋, varování cashflow);
-// trenér navíc pruh ✋ žádostí o přijetí do týmu (okno vyřízení views/join-view.js). Klepnutí na běžící zápas otevře členům
-// bez práva zápisu 👁 náhled jen ke čtení (views/live-watch.js, stav S.hw), manager / trenér / asistent jde do živého zápisu.
-// Jen čte a odkazuje: odpovědi se dávají v detailu události, platby v Moje platby, pokladna a rozpočet v Team. Výpočty: domain/home-summary.js; cashflow z uloženého rozpočtu sezóny (domain/budget.js, domain/budget-track.js).
-// Karta 🏖 Nepřítomnost (views/absence-view.js) je jediné místo s formulářem – zapisuje nepřítomnost a omluvy. Zrušená událost má značku ❌.
-// Hostující (HK.can("guest")) nevidí počty přihlášených ostatních (vidí jen sebe).
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Vykreslení karet -> Eventy -> Export.
-
+// 🏠 Domů (výchozí záložka, všichni): běžící a příští zápas, události příštích 7 dní s mojí odpovědí, moje platby, u správce pokladny
+// souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js).
+// Běžící zápas: sport rovnou do živého zápisu, ostatní 👁 náhled (live-watch.js). Jen čte a odkazuje; výpočty domain/home-summary.js.
+// Hostující nevidí počty ostatních.
 // ===== Importy =====
 import {TEAM_NAME} from "../config/team-config.js";
 import {S} from "../core/state.js";

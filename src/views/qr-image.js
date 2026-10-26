@@ -1,13 +1,6 @@
-// Uložení QR platby do telefonu: obrázek PNG ve vysokém rozlišení s bílou tichou zónou a popiskem.
-// Struktura: Konstanty -> Pomocné funkce -> Vykreslení obrázku -> Uložení (Sdílet / stažení) -> Export.
-// Obsah QR se nemění: obrázek se kreslí z TÉHOŽ objektu qrcode, který okno QR v mine.js právě zobrazilo
-// (stejný text SPD – účet, částka, VS, zpráva, PT:IP). Volá se jen z okna QR po zobrazení kódu,
-// tedy až po kontrole účtu (accCheck) a po „Ověřila jsem účet“.
-// Uložení: kde prohlížeč umí sdílet soubor (navigator.canShare se souborem – Android, iPhone), otevře systémové
-// Sdílet (Uložit do Galerie / poslat do bankovní aplikace); jinde se soubor stáhne (<a download>).
-// Popisek (rozhodnuto 22. 10. 2026): název účtu, účet + IBAN, částka, VS, zpráva, datum vytvoření – bez varovného řádku.
-// Název souboru: QR-platba-RRRR-MM-DD-VS.png (datum vytvoření).
-
+// ⚠️ Uložení QR platby do telefonu: PNG ve vysokém rozlišení s tichou zónou a popiskem (účet, IBAN, částka, VS, zpráva, datum).
+// Kreslí se z TÉHOŽ objektu qrcode, který okno QR v mine.js zobrazilo – obsah QR se nemění; jen po kontrole účtu.
+// Sdílet (navigator.canShare – Android, iPhone), jinde stažení; soubor QR-platba-RRRR-MM-DD-VS.png.
 // ===== Konstanty =====
 const QR_PX = 1000;     // cílová šířka samotného QR (bez tiché zóny) v pixelech
 const QUIET = 4;        // tichá zóna kolem QR v modulech (norma QR = 4)

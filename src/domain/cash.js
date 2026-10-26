@@ -1,29 +1,8 @@
-// Doména: pokladna – model osob (skupina, koeficient fx), šablony událostí, výpočet předpisů, úhrady, zůstatek, přehled dluhů,
-// měsíční příspěvky, platy realizačního týmu, hospodaření po měsících a částky pro CSV (čisté funkce bez DOM).
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Pokladna (zůstatek, kategorie, úhrady) -> Nastavení a šablony -> Vyúčtování událostí
-//            -> Účty -> Zpráva pro příjemce -> Výpočet předpisů -> Předpisy (charges) -> Přehled dluhů -> Měsíční příspěvky (F4) -> Platy (F4)
-//            -> Hospodaření po měsících (F4) -> Částky pro CSV.
-// Pravidla:
-//  - platí jen hráčky (brankářky a realizační tým neplatí); skupina hráčky = grp (monthly | single); s historií změn
-//    grpH = [{ym, grp}] (od měsíce ym platí grp, ym "" = stav před první změnou) platí skupina podle měsíce (grpAt) –
-//    příspěvky podle měsíce příspěvku, vyúčtování podle data události (asOf), dnešní stav grpOf,
-//  - koeficient fx = individuální podíl z ceny 0..1 (v aplikaci se zadává v procentech 0–100 %, výchozí 100 %),
-//  - osvobozená (ex: true) = zvýhodněná hráčka: v událostech tvoří vlastní skupinu „Osvobozené“ s vlastním nastavením (platí / neplatí,
-//    výpočet / pevná částka) stejně jako ostatní skupiny; u příspěvků je ve výchozím stavu vynechaná (lze ji pro měsíc zahrnout),
-//  - cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx, zaokrouhleno nahoru na celé Kč,
-//  - do dělitele ceny se každá přihlášená hráčka počítá jako jeden celý kus (bez ohledu na skupinu, osvobození i fx),
-//  - měsíční příspěvek = částka z nastavení × fx, platí ho hráčky ve skupině monthly (ne ukončené, ne brankářky, ne fx 0; osvobozené jen po zahrnutí),
-//  - osvobozená je jen hráčka s ex: true (starý tvar fx 0 bez pole ex se nečte – data jsou převedená),
-//  - zůstatek pokladny = součet příjmů (cash.k "in") − součet výdajů (cash.k "out"),
-//  - dva účty: hlavní (iban, např. příspěvky) a provozní (iban2, např. platby za události). Předpis i pohyb nese pole acc ("main" | "op");
-//    starší záznamy bez acc se zařadí podle druhu (příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní).
-//    Souhrnná platba (jeden QR na více předpisů) smí obsahovat jen předpisy se stejným IBAN,
-//  - zpráva pro příjemce (msg) se uloží do předpisu při jeho vzniku; stejný text je v QR, u úhrady v pokladně i v CSV (párování s výpisem).
-//  - QR: celý text jen ze znaků alfanumerického režimu QR (VELKÁ písmena bez diakritiky, číslice, mezera, $ % + - . / :),
-//    kvůli přísnějším bankám (mBank); volitelně PT:IP = okamžitá platba (nastavení inst, výchozí zapnuto).
-//  - zabezpečení účtů: iban / iban2 mění jen potvrzený návrh (ibanPend od trenéra, potvrdí jiný správce pokladny);
-//    ibanBy = kdo navrhl, ibanOk = kdo potvrdil, ibanAt = kdy (pravidla databáze to vynucují).
-
+// Doména: ⚠️ pokladna (čisté funkce bez DOM) – skupiny a koeficient osob, šablony událostí, výpočet a úhrady předpisů, zůstatek,
+// přehled dluhů, měsíční příspěvky, platy realizačního týmu, hospodaření po měsících, zpráva pro příjemce a QR, částky pro CSV.
+// Platí jen hráčky (brankářky a realizační tým ne); skupina grp (monthly | single) podle měsíce z historie grpH (grpAt / asOf / grpOf).
+// Dva účty: hlavní (iban) a provozní (iban2), předpis i pohyb nese acc ("main" | "op"); souhrnná platba jen za předpisy se stejným IBAN.
+// Pravidla výpočtu jsou u sekcí Výpočet předpisů, Měsíční příspěvky, Účty a Zpráva pro příjemce.
 // ===== Importy =====
 import {isG, pl} from "../core/selectors.js";
 
@@ -213,6 +192,8 @@ export const qrMsg = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "
 // Text QR platby; inst = požadavek na okamžitou platbu (PT:IP, banka bez podpory ho ignoruje)
 export const spdPay = (iban, amt, vs, msg, inst) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + String(vs).replace(/\D/g, "").slice(0, 10) + (qrMsg(msg) ? "*MSG:" + qrMsg(msg) : "") + (inst ? "*PT:IP" : "");
 // ===== Účty =====
+// Starší záznamy bez acc: příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní. Zůstatek = příjmy (k "in") − výdaje (k "out").
+// iban / iban2 mění jen potvrzený návrh (ibanPend, potvrdí jiný správce pokladny; ibanBy, ibanOk, ibanAt) – vynucují pravidla databáze.
 // Platný klíč účtu, jinak výchozí
 const accKey = (v, def) => (v === "main" || v === "op" ? v : def);
 // Tým má dva různé účty (provozní je vyplněný a liší se od hlavního)
@@ -229,6 +210,8 @@ export const cashAcc = (x, cfg) => accKey(x && x.acc, x && x.cat === CAT_CONTRIB
 export const personVs = mid => vsHash(PVS + mid);
 
 // ===== Zpráva pro příjemce =====
+// Zpráva msg se uloží do předpisu při vzniku; stejný text je v QR, u úhrady v pokladně i v CSV (párování s výpisem).
+// QR: jen znaky alfanumerického režimu (VELKÁ písmena bez diakritiky, číslice, mezera, $ % + - . / :) kvůli mBank; PT:IP = okamžitá platba (inst).
 // Zpráva pro příjemce: za co se platí, aby pokladník platbu poznal i bez variabilního symbolu.
 // it = {type: "match" | "training" | "contrib", title, date "RRRR-MM-DD", opp, ym "RRRR-MM"}, name = jméno plátce (nepovinné).
 // Tvary: "Zápas 10.10. Sokol - Jana", "Trénink 14.10. - Jana", "Mimořádný trénink 18.10. - Jana", "Příspěvek 10/2026 - Jana".
@@ -274,6 +257,9 @@ export function multiMsg(items, name) {
 }
 
 // ===== Výpočet předpisů =====
+// Cena hráčky = (součet nákladů ÷ počet VŠECH přihlášených hráček v poli) nebo pevná částka, × fx (0..1, zadává se v %), nahoru na celé Kč.
+// Do dělitele se každá přihlášená hráčka počítá jako jeden celý kus (bez ohledu na skupinu, osvobození i fx).
+// Osvobozená = jen ex: true; v událostech vlastní skupina „Osvobozené“ s vlastním nastavením (platí / neplatí, výpočet / pevná částka).
 // c = {cost, who}; P = přihlášené hráčky (objekty, bez brankářek). Vrací řádky po hráčkách a součty.
 // Dělitel N = počet všech přihlášených hráček (každá jako jeden celý kus); skupina (i osvobozené) určuje jen, zda a jak platí, fx výši podílu.
 export function calcCash(c, P) {
@@ -324,6 +310,7 @@ export function ledger(ch, evOf) {
 }
 
 // ===== Měsíční příspěvky (F4) =====
+// Příspěvek = částka z nastavení × fx; platí skupina monthly (ne ukončené, ne brankářky, ne fx 0; osvobozené jen po zahrnutí pro měsíc).
 export const isContrib = x => !!x && x.kind === "contrib";
 export const contribEid = ym => CPRE + ym;
 // Měsíc z eid příspěvku ("c_RRRR-MM" -> "RRRR-MM"), jinak prázdný řetězec

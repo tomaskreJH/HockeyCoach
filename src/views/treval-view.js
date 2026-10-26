@@ -1,10 +1,6 @@
-// ⭐ Hodnocení hráček v tréninku: karta „⭐ Hodnocení hráček“ v kartě plánu (jen realizační tým – treval r) a výzva v ⏱ živém tréninku
-// po skončeném kole – seznam hráček, které byly na mé lince, jeden řádek = jméno + 😃 🙂 😐 😴 (rychle označit a jet dál).
-// Co se nestihne, doplní se po tréninku v kartě (po linkách, neohodnocené nahoře v záhlaví); 📝 poznámka k hráčce i ke cvičení.
-// Data treval/{eid} (jeden dokument na trénink, poslech jen u otevřeného tréninku), zápis dávkou s hlubokým sloučením (jen daná hráčka /
-// poznámka); hodnotit smí HK.perm("treval", "e"), klepnutí na zvolené hodnocení ho zruší (r 0). Výpočty domain/training-eval.js.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Poslech -> Vykreslení (karta, výzva) -> Eventy -> Exporty.
-
+// ⭐ Hodnocení hráček: karta v kartě plánu (jen realizační tým – treval r) a výzva v ⏱ živém tréninku po skončeném kole
+// (hráčky mé linky, jméno + 😃 🙂 😐 😴); po tréninku doplnění po linkách a 📝 poznámky. Druhé klepnutí hodnocení zruší (r 0).
+// Data treval/{eid}, poslech jen u otevřeného tréninku, zápis dávkou s hlubokým sloučením; hodnotí HK.perm("treval", "e"). Výpočty domain/training-eval.js.
 // ===== Importy =====
 import {nm} from "../core/selectors.js";
 import {S} from "../core/state.js";

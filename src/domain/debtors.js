@@ -1,13 +1,7 @@
-// Dlužníci – veřejný souhrn bez částek. Čisté funkce bez DOM a bez databáze.
-// Struktura: Konstanty -> Pomocné funkce -> Dokument dlužníka -> Plán zápisu (po změně předpisů, celý přepočet) -> Stav pro zobrazení
-// -> Blokace „Jdu“ (vlastní předpisy nebo veřejný souhrn) -> Export.
-// Kolekce debtors/{mid} = {mid, since, dues: [{d, x}]} – BEZ částek:
-//  - mid = hráčka (realizační tým se nezapisuje, rozhodnutí 6),
-//  - dues = splatnosti všech nezaplacených předpisů se splatností (d = due předpisu, x = výjimka z blokace), seřazeno od nejstarší,
-//  - since = nejstarší splatnost (i před splatností – předpis, kterému splatnost uplyne bez další změny, je tak v seznamu už předem).
-// Dokument zapisuje jen správce pokladny ve stejné dávce jako změnu předpisů; čtou ho všichni členové (firestore.rules).
-// „Dní po splatnosti“ a blokace (⛓ / 🔓) se dopočítají v zařízení podle aktuálního času (debtorState) – stejné pravidlo jako debtOf v cash.js.
-
+// Dlužníci – veřejný souhrn bez částek (čisté funkce bez DOM): debtors/{mid} = {mid, since, dues: [{d, x}]}, jen hráčky.
+// dues = splatnosti nezaplacených předpisů (x = výjimka z blokace), since = nejstarší splatnost (i budoucí).
+// Zapisuje správce pokladny v téže dávce jako změnu předpisů, čtou všichni členové; dní po splatnosti a blokace ⛓ / 🔓 se počítají
+// v zařízení (debtorState) stejně jako debtOf v cash.js.
 // ===== Importy =====
 import {debtOf, restOf} from "./cash.js";
 

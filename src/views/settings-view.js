@@ -1,10 +1,6 @@
-/* Okno ⚙️ Účet a data (všechny role): sbalitelné sekce, nahoře vždy přihlášený účet. Rozbalená je nejvýš jedna sekce,
-   pamatuje se v zařízení (localStorage, jen pohodlí). Sbalená sekce ukazuje stav v záhlaví (žádosti, náhled role).
-   Brána verze (🔒 Vyžadovat verzi, jen manager) je v kartě 👤 Účet pod Načíst novou verzi.
-   Jen vykreslení a obsluha – údaje a zápisy dává datová vrstva přes HK.cfg, oprávnění HK.can (kontroly rolí jsou v storage.js).
-   Otevírá se tlačítkem ⚙️ (HK.openCfg z main.js); zavírá Zavřít, klepnutí mimo okno a Zpět. 💾 Data = záloha, CSV a obnova ze zálohy.
-   🔐 Práva rolí (views/perm-view.js): přehled „kdo co smí“ pro členy kromě hostující, editor matice jen pro managera.
-   Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Sekce -> Hlavní logika -> Eventy -> Export. */
+// Okno ⚙️ Účet a data (všechny role, HK.openCfg z main.js): nahoře 👤 Účet (verze, Načíst novou verzi, u managera 🔒 Vyžadovat verzi),
+// pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV a obnova.
+// Jen vykreslení a obsluha – údaje a zápisy přes HK.cfg, oprávnění HK.can. 🔐 Práva rolí: views/perm-view.js.
 
 // ===== Importy =====
 import {APP_VERSION} from "../core/app-version.js";

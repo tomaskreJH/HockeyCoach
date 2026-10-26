@@ -5,6 +5,7 @@
 
 // ===== Importy =====
 import {GK, POS_GRPS, groupsFor, isFixedLane, newPid, planDoc} from "./training-plan.js";
+import {clone} from "../core/utils.js";
 
 // ===== Konstanty =====
 export const TRTPL_COLL = "trtpl";
@@ -13,7 +14,6 @@ export const COPY_MAX = 12;                              // kolik předchozích 
 
 // ===== Pomocné funkce =====
 const str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
-const clone = o => JSON.parse(JSON.stringify(o));
 // Datum a čas události pro řazení ("YYYY-MM-DD HH:MM")
 const when = e => String((e && e.date) || "") + " " + String((e && e.time) || "");
 

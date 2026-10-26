@@ -1,14 +1,11 @@
-// Žádosti členů pro správce pokladny (trenér a pokladník): pruh „✋ N žádostí o změnu placení“ v Team → 💰 Platby, seznam otevřených
-// žádostí a okno vyřízení (S.rqo = id žádosti) s náhledem dopadu – porovnání způsobu placení hráčky (compareMonths), už vystavené
-// příspěvky a uzavřená vyúčtování od měsíce změny (nepřepočítají se, jen se vyjmenují). Data a pravidla: domain/requests.js.
-// Schválení i zamítnutí je jedna dávka: žádost (st, reply, doneBy, doneAt) + u schválení plpay/{pid} (grpH, grp) + audit.
-// Vlastní žádost (hráčka-pokladník) vyřizuje jiný správce pokladny (vynucují i pravidla databáze).
-
+// ⚠️ Žádosti o změnu placení pro správce pokladny: pruh v Team → 💰 Platby, seznam a okno vyřízení (S.rqo) s náhledem dopadu
+// (compareMonths; vystavené příspěvky a vyúčtování se nepřepočítají, jen vyjmenují). Data a pravidla domain/requests.js.
+// Vyřízení = jedna dávka: žádost + při schválení plpay/{pid} (grpH, grp) + audit. Vlastní žádost vyřizuje jiný správce pokladny.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {pl, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, td, toast, uid} from "../core/utils.js";
+import {esc, reqWord, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {GRP, cashCfg, cxOf, kc, ymLabel, ymNow} from "../domain/cash.js";
 import {compareMonths, myMonths} from "../domain/economy.js";
@@ -23,7 +20,6 @@ let reply = "";
 // ===== Pomocné funkce =====
 const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
 const fDay = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("cs-CZ"); };
-const word = n => (n === 1 ? "žádost" : n >= 2 && n <= 4 ? "žádosti" : "žádostí");
 // Otevřené žádosti o placení
 export const payOpen = () => openReqs(S.rq, "pay");
 // Popis změny: „Příspěvek → Za událost od listopad 2026“
@@ -42,7 +38,7 @@ export function reqBanner(go) {
   const rs = payOpen();
   if (!rs.length) return "";
   const list = rs.map(r => `<button class="s w" data-rqo="${esc(r.id)}" style="margin-top:6px;text-align:left">${pn(r.mid)} · ${reqLine(r)}</button>`).join("");
-  return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">✋ ${rs.length} ${word(rs.length)} o změnu placení</b>${go ? `<button class="s w" data-rqgo style="margin-top:8px">💰 Otevřít Team → Platby</button>` : list}</div>`;
+  return `<div class="cd" style="border-color:var(--wa)"><b style="color:var(--wa)">✋ ${rs.length} ${reqWord(rs.length)} o změnu placení</b>${go ? `<button class="s w" data-rqgo style="margin-top:8px">💰 Otevřít Team → Platby</button>` : list}</div>`;
 }
 // Náhled dopadu schválení: porovnání způsobu placení a už vystavené předpisy / uzavřená vyúčtování
 function impactHtml(r, p) {
@@ -61,7 +57,7 @@ export function reqModal() {
   const r = S.rq.find(x => x.id === S.rqo), p = r ? pl(r.mid) : null;
   if (!r || r.st !== "open" || !p) { S.rqo = null; reply = ""; return ""; }
   const own = HK.pid() === r.mid;
-  const acts = own ? '<div class="mu" style="margin-top:10px">Vlastní žádost vyřídí jiný trenér nebo pokladník.</div>'
+  const acts = own ? '<div class="mu" style="margin-top:10px">Vlastní žádost vyřídí jiný správce pokladny.</div>'
     : `<input id="rqrep" placeholder="Odpověď hráčce (nepovinné)" maxlength="300" value="${esc(reply)}" style="margin-top:10px"><div class="row" style="margin-top:8px"><button class="p" id="rqok">${armed("rqok" + r.id) ? "Opravdu schválit?" : "✓ Schválit"}</button><button class="d" id="rqno">${armed("rqno" + r.id) ? "Opravdu zamítnout?" : "✕ Zamítnout"}</button></div>`;
   return `<div class="md" id="rqbg"><div class="mb"><h2>✋ Žádost o změnu placení</h2><div><b>${pn(r.mid)}</b></div><div style="margin-top:4px">${reqLine(r)}</div>
 <div class="mu">Podáno ${esc(fDay(r.at))}${r.by ? " · " + esc(r.by) : ""}</div>${r.note ? `<div style="margin-top:6px">„${esc(r.note)}“</div>` : ""}

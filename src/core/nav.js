@@ -1,28 +1,7 @@
-// Tlačítko Zpět: systémové Zpět na telefonu (i v prohlížeči) funguje uvnitř aplikace.
-// Princip: v historii prohlížeče jsou nad základním záznamem až DEPTH „strážních záznamů“. Každé Zpět jeden spotřebuje
-// (událost popstate) a aplikace zavře nejvyšší otevřenou vrstvu. Okna se zavírají klepnutím na jejich vlastní
-// tlačítko Zavřít / Zrušit, takže logika jednotlivých obrazovek se nemění.
-// Pravidlo prohlížeče (Chrome): záznam historie vložený bez aktivace uživatelem se při systémovém Zpět přeskočí.
-// Aktivací je jen skutečné klepnutí (pointerup / touchend / click od uživatele) nebo klávesa; dotyk prstem (pointerdown)
-// ani programové el.click() aktivací nejsou.
-// Doplňování zásoby:
-//   - strážní záznam se doplní jen při skutečné aktivaci (e.isTrusted) – programové el.click() při zavírání oken
-//     nevkládá záznamy, které by Chrome přeskočil (aplikace by se zavřela bez dotazu),
-//   - za jedno klepnutí se doplní jen JEDEN záznam (Chrome aktivaci spotřebuje prvním vložením; další záznamy ze stejného
-//     klepnutí by byly přeskočitelné a jedno Zpět by jich přeskočilo několik najednou),
-//   - záznam se doplní i při klepnutí do dotazu (Ne / Zůstat / mimo okno),
-//   - když systémové Zpět spotřebuje poslední strážní záznam, aplikace se vždy zeptá „Ukončit aplikaci?“ (další Zpět
-//     už aplikaci opustí, proto nesmí jen potichu zavřít okno),
-//   - zásoba je 5 záznamů (víc Zpět po sobě bez klepnutí).
-// Pořadí zavírání (od nejvyšší vrstvy):
-//   1) okna nad vším (obrázek cvičení, nápověda, ⏱ živý trénink, úhrada, QR, nastavení pokladny, ⚙️, výběr hráčky a další okna, důvod docházky, opravy, zápis utkání, formulář pokladny),
-//   2) živý zápis (rychlý zápis → panel menu → menu ⋯ → dotaz na odchod; při odchodu se zastaví čas),
-//   3) formulář události, detail události, detail soupeře, karta zápasu (krok zpět, z 1. kroku na seznam),
-//   4) režim záložky Team (Platby / Pokladna / Měsíce → Team), Události (Minulé / Kalendář / Docházka) → Nadcházející,
-//      jiná záložka → 🏠 Domů, 👁 náhled živého zápasu → přehled 🏠 Domů,
-//   5) domovská stránka (🏠 Domů): dotaz „Ukončit aplikaci?“.
-// Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Potvrzovací okno -> Ukončení aplikace -> Zavření nejvyšší vrstvy -> Eventy -> Export.
-
+// Tlačítko Zpět: systémové Zpět na telefonu (i v prohlížeči) zavře nejvyšší otevřenou vrstvu aplikace.
+// V historii je nad základním záznamem až 5 „strážních záznamů“; každé Zpět (popstate) jeden spotřebuje, okna se zavírají vlastním tlačítkem.
+// Chrome přeskočí záznam vložený bez aktivace uživatelem: doplňuje se jen při skutečném klepnutí (e.isTrusted), jeden záznam na klepnutí.
+// Po spotřebování posledního záznamu se aplikace vždy zeptá „Ukončit aplikaci?“ (další Zpět ji opustí).
 // ===== Importy =====
 import {S} from "./state.js";
 import {toast} from "./utils.js";
@@ -112,6 +91,9 @@ function exitApp() {
 }
 
 // ===== Zavření nejvyšší vrstvy =====
+// Pořadí: 1) okna nad vším (obrázek, nápověda, ⏱ živý trénink, úhrada, QR, ⚙️, výběry, důvod docházky, opravy, zápis utkání),
+// 2) živý zápis (rychlý zápis → panel → menu ⋯ → dotaz na odchod; odchod zastaví čas), 3) formulář / detail události, detail soupeře,
+// karta zápasu (krok zpět), 4) režim Team / Událostí → výchozí, jiná záložka a 👁 náhled → 🏠 Domů, 5) 🏠 Domů: dotaz „Ukončit aplikaci?“.
 // Vrací true, pokud se něco zavřelo; false = jsme na domovské stránce
 function closeTop() {
   // 0) vlastní dotaz (Zpět = Ne)

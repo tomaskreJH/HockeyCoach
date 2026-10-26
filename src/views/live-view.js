@@ -1,17 +1,7 @@
-// Živý zápis – vykreslení obrazovky (#lv), situace a režim jednotek, průběžné odpočty a upozornění.
-// Struktura: Importy -> Situace a režim jednotek (grpFor, unitView, unitQueueOrder, unitLabel) -> Vykreslení (liveRender)
-//            -> Hlídač situace (watchSit) -> Čas a upozornění (liveTick). Menu ⋯ a panely: live-panels.js, obsluha klepnutí: live-events.js.
-// Rozložení shora dolů: horní lišta (třetina, situace 5 na 5 / přesilovka / oslabení, štítky trestů s odpočtem a ✕ a nabídka jednotky
-//   nebo ↩ Řady v řádku #lchips, čas, skóre) → hřiště (střela soupeře, červená středová čára, hráčky na ledě) → mantinel →
-//   tlačítka pětek a fronty → průběh (všechny kroky zápasu z timeline() včetně střídání, nejnovější nahoře, góly podsvícené).
-//   Upozornění (počet hráček na ledě i při čekajícím trestu, dlouhé střídání) jsou v horním řádku průběhu #lwarn, jen když nějaké je.
-// Formace podle počtu našich hráček na ledě: 5 = pětky (při přesilovce PP), 4 = OS1/OS2, 3 = OS3/OS4. Po trestu se nabídne jednotka
-//   k odsouhlasení (S.lsub "uask"); režim PP/OS trvá i při změně skupiny, k pětkám se vrací při vyrovnané hře. Hlídač situace
-//   (watchSit) po změně počtů (konec trestu, gól, ✕, Zpět) nabídne jednotku nové skupiny. Po zranění se otevře Sestava s místem (S.lgap).
-// Rotace: dlaždice má jedinou akci (na led), partnerka je malé tlačítko pod hráčkou (klepnutí = na led, podržení = pořadí rotace).
-// Odezva (live-feedback.js): vibrace a záblesk po střídání, střele, gólu, trestu, nasazení pětky / jednotky a ↩ Zpět (vibrace jde vypnout v ⋯ → ⚙️).
-// Čas na ledě počítá shiftList (nulová vynechá, navazující sloučí). Odchod ze živého zápisu (⋯ → Zavřít, Zpět) zastaví čas zápasu.
-
+// Živý zápis – vykreslení obrazovky #lv (lišta, hřiště, pětky a fronta, průběh), situace a režim jednotek, odpočty a upozornění #lwarn.
+// Formace podle počtu hráček na ledě: 5 = pětky (PP), 4 = OS1/OS2, 3 = OS3/OS4; po trestu nabídka jednotky (S.lsub "uask"), hlídač watchSit.
+// Rotace: dlaždice = na led, partnerka malým tlačítkem (podržení = pořadí). Čas na ledě shiftList (nulová vynechá, navazující sloučí).
+// Menu ⋯ a panely: live-panels.js, klepnutí: live-events.js, odezva: live-feedback.js. Odchod ze živého zápisu zastaví čas.
 // ===== Importy =====
 import {COLS, LAYOUT, ULAB} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";

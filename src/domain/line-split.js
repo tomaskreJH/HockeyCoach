@@ -7,6 +7,7 @@
 // ===== Importy =====
 import {LINE_NOS, baseLines, isTrKey} from "./event-helpers.js";
 import {DF, FW, posGrp} from "./training-plan.js";
+import {clamp} from "../core/utils.js";
 
 // ===== Konstanty =====
 export const PLEVEL_COLL = "plevel";                     // kolekce výkonnosti (jediný dokument týmu)
@@ -17,7 +18,6 @@ export const SPLIT_MODES = {even: "⚖ Vyrovnaně", tier: "📶 Podle výkonnost
 export const SPLIT_DEF = {n: 3, mode: "even", pos: true};
 
 // ===== Pomocné funkce =====
-const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 // Pořadí podle výkonnosti (od nejsilnější), při shodě pořadí soupisky
 const byLevel = (list, lv) => list.map((p, i) => ({p, i, l: lvlOf(lv, p.id)})).sort((a, b) => b.l - a.l || a.i - b.i).map(x => x.p);
 // Rozdělení seznamu na k po sobě jdoucích částí co nejstejnější velikosti (větší části první)

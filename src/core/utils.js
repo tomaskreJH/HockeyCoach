@@ -10,6 +10,11 @@ export const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 export const td=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 export const fd=s=>{const[a,b,c]=s.split("-");return+c+". "+ +b+". "+a};
 export const clone=o=>JSON.parse(JSON.stringify(o));
+// Číslo omezené do rozsahu a – b; zaokrouhlení nahoru na celé Kč s tolerancí chyby desetinných čísel
+export const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+export const ceil=x=>Math.ceil(x-1e-9);
+// Tvar slova „žádost“ podle počtu (1 žádost, 2–4 žádosti, 5 žádostí)
+export const reqWord=n=>(n===1?"žádost":n>=2&&n<=4?"žádosti":"žádostí");
 export const uid=()=>Math.random().toString(36).slice(2,10);
 export const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 export const cd=ms=>ms<0?"+"+mmss(-ms):mmss(Math.ceil(ms/1000)*1000);

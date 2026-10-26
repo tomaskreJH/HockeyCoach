@@ -1,10 +1,6 @@
-// Doména: ⭐ hodnocení hráček v tréninku – kolekce treval/{eid} (jeden dokument na trénink, jen realizační tým; hráčka ho nečte).
-// Hodnotí se každá hráčka na každé lince plánu (u stanovišť každé stanoviště zvlášť) stupnicí 😃 super · 🙂 v pohodě · 😐 nic moc ·
-// 😴 vůbec se nesnaží, volitelně poznámka k hráčce a ke cvičení. Celkové hodnocení linky (r) se už nezadává (staré zůstává v datech).
-// 0 = bez hodnocení (zrušené hodnocení – zápis dávkou neumí smazat vnořené pole).
-// Dokument: {v, r: {klíč linky "blok_linka" (u řady cvičení "blok_linka-cvičení"): {d (id cvičení), dn (název), r (0–4), n (poznámka), pl: {pid: {r, n}}}}, by, at}.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Linky k hodnocení -> Živý trénink -> Zápis -> Souhrny.
-
+// Doména: ⭐ hodnocení hráček – treval/{eid} (jen realizační tým, hráčka nikdy): každá hráčka na každé lince / cvičení řady
+// stupnicí 4 😃 · 3 🙂 · 2 😐 · 1 😴, 0 = zrušeno (dávka neumí smazat vnořené pole), poznámka k hráčce i ke cvičení.
+// Dokument: {v, r: {klíč "blok_linka" (řada "blok_linka-cvičení"): {d, dn, r, n, pl: {pid: {r, n}}}}, by, at}; staré r linky se nezadává.
 // ===== Importy =====
 import {msKey} from "./stopwatch.js";
 import {MODES, expandLanes, isBreak, isFixedLane, laneTags, rotation} from "./training-plan.js";

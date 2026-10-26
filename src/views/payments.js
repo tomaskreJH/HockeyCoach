@@ -1,14 +1,7 @@
-// Pokladna u události (trenér a pokladník): šablona, náklady, kdo platí, pokrytí nákladů (podíl příspěvků, výsledek, návrh poplatku – domain/economy.js),
-// uzavření vyúčtování → snapshot + charges, ruční znovuotevření s auditem, úhrady předpisů.
-// Struktura: Importy -> Pomocné funkce -> Uzavření vyúčtování (zápis) -> Úhrady -> Vykreslení -> Eventy -> Export.
-// Data: náklady, kdo platí a snapshot vyúčtování jsou v kolekci evcash/{id události} (čtou jen správci pokladny; ev.cx).
-// V dokumentu události / zápasu je jen příznak ss (vyúčtováno). Snapshot nese i podíl příspěvků (share) a měsíc (ym) v okamžiku uzavření.
-// Uzavření i znovuotevření je JEDNA atomická dávka (evcash + příznak ss + předpisy + audit). Po uzavření se NIKDY nic automaticky nepřepočítává.
-// Cena na hlavu pro hráčky (evprice/{id}, Moje platby) se zapíše / smaže hned po dávce zvlášť – nepublikovaná pravidla nesmí zastavit vyúčtování.
-// Předpis nese účet (acc, z šablony nebo volby u události) a zprávu pro příjemce (msg); úhrada zapíše do pokladny stejnou zprávu, VS a účet.
-// Každá dávka, která mění předpisy, zapíše i veřejný souhrn dlužníků debtors/{mid} (bez částek, domain/debtors.js).
-// Celkový přehled dluhů je ve views/finance.js, pohyby pokladny ve views/cashbook.js, příspěvky, platy a měsíce ve views/money.js.
-
+// ⚠️ Pokladna u události (správce pokladny): šablona, náklady, kdo platí, pokrytí nákladů (domain/economy.js), vyúčtování, úhrady předpisů.
+// Data v evcash/{id} (ev.cx), v události jen příznak ss. Uzavření i znovuotevření = JEDNA dávka (evcash + ss + předpisy + audit + debtors);
+// po uzavření se nic automaticky nepřepočítává. Cena na hlavu evprice/{id} se zapíše po dávce zvlášť (chyba ji nesmí zastavit).
+// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny. Přehled dluhů: finance.js, pohyby: cashbook.js, měsíce: money.js.
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";

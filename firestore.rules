@@ -25,7 +25,7 @@ service cloud.firestore {
     function myPid() { return get(memberPath()).data.pid; }
     // Předpis patří přihlášenému členovi (mid = jeho pid nebo tid)
     function ownsMid(mid) { return isMember() && (get(memberPath()).data.get('pid', '') == mid || get(memberPath()).data.get('tid', '') == mid); }
-    // ===== Práva po modulech (matice settings/perm, OM2) =====
+    // ===== Práva po modulech (matice settings/perm) =====
     // Role pro matici = uložená role (po převodu); stará hodnota se v matici nenajde, takže nedává žádné právo.
     function myRole() { return role(); }
     // Matice settings/perm = {v, roles: {trener|asistent|hracka: {modul: {r, e, c, d}}}, by, at}; chybějící dokument nebo hodnota = výchozí.
@@ -55,7 +55,7 @@ service cloud.firestore {
     // Pole, které smí v dokumentu události / zápasu měnit i pokladník: příznak ss (vyúčtováno); náklady a vyúčtování jsou v evcash.
     function cashFieldsOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ss']); }
     // Stará citlivá pole (dnes v soukromých kolekcích plpay, staffpay, attnote): nový dokument je nesmí obsahovat,
-    // změna dokumentu je nesmí přidat ani změnit – smazat je jde (úklid v ⚙️ → Kontrola dat).
+    // změna dokumentu je nesmí přidat ani změnit – smazat je jde.
     function noKeys(ks) { return !request.resource.data.keys().hasAny(ks); }
     function keepOut(ks) { return !request.resource.data.diff(resource.data).addedKeys().hasAny(ks) && !request.resource.data.diff(resource.data).changedKeys().hasAny(ks); }
 
@@ -316,7 +316,7 @@ service cloud.firestore {
       allow delete: if isCash();
     }
     // Platební pole hráčky plpay/{pid} = {grp, fx, ex, note, grpH}: čte a zapisuje správce pokladny, číst smí i hráčka sama (pid z členství)
-    // a člen realizačního týmu, který je zároveň hráčkou (v21.9.1 – pid v members u role manager / trener / asistent);
+    // a člen realizačního týmu, který je zároveň hráčkou (pid v members u role manager / trener / asistent);
     // grpH = historie způsobu placení [{ym, grp}] (seznam)
     match /plpay/{id} {
       allow read: if isCash() || (isPlayer() && id == myPid()) || (isStaff() && get(memberPath()).data.get('pid', '') == id);
