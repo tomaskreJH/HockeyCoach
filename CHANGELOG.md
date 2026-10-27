@@ -2,6 +2,14 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.16.2 (27. 10. 2026) – 📊 Docházka před 1. 11. 2026: vše kromě „Jdu“ = nejde
+> **Nasazení – kanál 🧪 BETA:** commit „v22.16.2“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v115`). 🔒 Vyžadovat verzi: ne. Test: kap. 20, krok 20.8.
+
+**Opraveno** (oprava v22.16.1 – zkreslovala procenta účasti)
+- `domain/attendance.js` – `attSummary`: u událostí před `STRICT_FROM` (1. 11. 2026) se **počítají všechny proběhlé události** (procento účasti jako před v22.16.1); „Jdu“ = účast (🚫 zůstává 🚫), ❓ a bez odpovědi = ❌ nejde; ⏰ pozdě se nepočítá. Od 1. 11. 2026 platí ❓, bez odpovědi a ⏰ pozdě normálně. Texty v 📊 Docházce a ❓ nápovědě, testy.
+
+**Ověřeno:** `npm test` 447 / 447, `npm run smoke` 8 rolí bez chyb.
+
 ## v22.16.1 (27. 10. 2026) – ⏰ Pozdě a bez odpovědi až od 1. 11. 2026
 > **Nasazení – kanál 🧪 BETA:** commit „v22.16.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v114`). 🔒 Vyžadovat verzi: ne. Test: `docs/testy-rucni.md` kap. 20, krok 20.8.
 

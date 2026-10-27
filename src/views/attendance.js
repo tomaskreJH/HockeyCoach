@@ -51,7 +51,7 @@ export function attHtml() {
   const sum = attSummary(evs, S.at, [...P.map(p => p.id), ...T.map(t => t.id)]), k = o.kind;
   const nOf = kk => evs.filter(e => kk === "all" || e.kind === kk).length;
   // Přepínač období a typu událostí
-  const head = `<div class="cd"><h2>Docházka</h2><div class="mu" style="margin-bottom:8px">Uplynulé události v období ${range(o)}. Účast = odpověď „Jdu“; 🚫 nedorazila bez omluvy, ❓ nejistá a bez odpovědi (= nejde) se do účasti nepočítají. ⏰ Pozdě = odpověď nebo její změna až po termínu přihlášení – trenér pak nestihne připravit trénink. Pozdě a bez odpovědi se počítají od 1. 11. 2026 (dřívější události byly zadané zpětně).</div>
+  const head = `<div class="cd"><h2>Docházka</h2><div class="mu" style="margin-bottom:8px">Uplynulé události v období ${range(o)}. Účast = odpověď „Jdu“; 🚫 nedorazila bez omluvy, ❓ nejistá a bez odpovědi (= nejde) se do účasti nepočítají. ⏰ Pozdě = odpověď nebo její změna až po termínu přihlášení – trenér pak nestihne připravit trénink. Pozdě, ❓ a bez odpovědi se počítají od 1. 11. 2026 – u dřívějších (zpětně zadaných) událostí je vše kromě „Jdu“ ❌ nejde.</div>
 <div class="row" style="align-items:flex-end"><div style="flex:1"><label>Od</label><input type="date" id="atf" value="${o.from}"></div><div style="flex:1"><label>Do</label><input type="date" id="att" value="${o.to}"></div></div>
 <button class="s w" id="ats" style="margin-top:6px">Tato sezóna (1. 8. – 1. 7.)</button>
 <div class="chips" style="margin-top:10px">${ATT_KINDS.map(([kk, t]) => `<button class="chip ${k === kk ? "on" : ""}" data-atk="${kk}">${KIND_ICON[kk]} ${t} (${nOf(kk)})</button>`).join("")}</div></div>`;

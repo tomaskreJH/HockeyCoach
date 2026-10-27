@@ -43,7 +43,7 @@ test("attSummary: 🚫 se nepočítá do účasti ani procenta, má vlastní po�
   assert.deepEqual(r.a.all, {n: 3, yes: 1, no: 0, maybe: 0, none: 0, nos: 2, late: 0, pct: 33});
   assert.deepEqual(r.a.train, {n: 2, yes: 1, no: 0, maybe: 0, none: 0, nos: 1, late: 0, pct: 50});
   assert.equal(r.a.home.nos, 1);
-  assert.equal(r.b.all.no, 1);                              // značka u Nejdu se ignoruje
+  assert.equal(r.b.all.no, 3);                              // značka u Nejdu se ignoruje; 2× bez odpovědi před 1. 11. 2026 = nejde
   assert.equal(r.b.all.nos, 0);
 });
 
@@ -78,10 +78,12 @@ test("isLate: zápis odpovědi po termínu přihlášení; bez termínu nebo ča
   assert.equal(isLate(null, e), false);
 });
 
-test("attSummary: před 1. 11. 2026 se člen bez odpovědi do události nepočítá, od 1. 11. ano", async () => {
+test("attSummary: před 1. 11. 2026 se počítají všechny události, ❓ a bez odpovědi = nejde; od 1. 11. zvlášť", async () => {
   const {attSummary, STRICT_FROM} = await import("../src/domain/attendance.js");
   assert.equal(STRICT_FROM, "2026-11-01");
   const evs = [{id: "o", kind: "train", date: "2026-10-15"}, {id: "n", kind: "train", date: "2026-11-05"}, {id: "y", kind: "train", date: "2026-10-16"}];
-  const r = attSummary(evs, [{eid: "y", pid: "a", st: "yes"}], ["a"]).a.all;
-  assert.deepEqual([r.n, r.yes, r.none, r.pct], [2, 1, 1, 50], "stará bez odpovědi vynechána, nová počítána");
+  const r = attSummary(evs, [{eid: "y", pid: "a", st: "yes"}, {eid: "n", pid: "a", st: "maybe"}], ["a"]).a.all;
+  assert.deepEqual([r.n, r.yes, r.no, r.maybe, r.none, r.pct], [3, 1, 1, 1, 0, 33], "stará bez odpovědi = nejde, nová ❓ zůstává");
+  const b = attSummary(evs, [{eid: "o", pid: "b", st: "maybe"}], ["b"]).b.all;
+  assert.deepEqual([b.n, b.no, b.maybe, b.none], [3, 2, 0, 1], "stará ❓ = nejde, nová bez odpovědi zůstává");
 });

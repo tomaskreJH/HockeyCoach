@@ -121,7 +121,7 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 20.5 ⚙️ → 📅 Události → ⏰ Nastavení událostí: trénink 2 dny předem, čas 20:00 → Uložit → + Trénink na čtvrtek předvyplní termín úterý 20:00; + Zápas podle nastavení zápasu.
 - [ ] 20.6 Události → 📊 Docházka: sloupec ⏰ Pozdě (odpověď po termínu, i zapsaná trenérem). Moje platby → 📅 Po měsících → 📊 Moje docházka: „⏰ pozdě N“.
 - [ ] 20.7 Detail události po uzávěrce: hráčka bez odpovědi má štítek „⌛ bez odpovědi = nejde“ (jen u událostí od 1. 11. 2026).
-- [ ] 20.8 (v22.16.1) 📊 Docházka: u říjnových událostí žádné ⏰ pozdě a bez odpovědi; procenta hráček se nezhoršila o zpětně zadané události bez odpovědi.
+- [ ] 20.8 (v22.16.2) 📊 Docházka: počet událostí stejný jako před v22.16; u říjnových událostí žádné ⏰ pozdě, ❓ ani bez odpovědi – kromě „Jdu“ je vše ve sloupci ❌.
 
 ## 19. v22.15 (beta) – Dresy, kratší detail, sbalené bloky plánu
 - [ ] 19.1 V betě je v záhlaví **v22.15**.

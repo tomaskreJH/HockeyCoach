@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.16.1 (27. 10. 2026, **jen v betě**) – ⏰ pozdě a bez odpovědi od 1. 11. 2026 (`STRICT_FROM`); v22.16: ✅ potvrzení dresů (`events.lok`), ⏳ výchozí termín přihlášení (`settings/events` dlT / dlM / dlH), ⏰ pozdní odpovědi v Docházce, ⌛ bez odpovědi = nejde. Cache `hokej-v114` / `hokej-beta-v114`.
-- **Další číslo:** v22.17 (cache `hokej-v115`), opravy v22.16.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.16.1** (série k vydání: v22.12 – v22.16).
+- **Aktuální:** v22.16.2 (27. 10. 2026, **jen v betě**) – docházka před 1. 11. 2026 (`STRICT_FROM`): všechny události, mimo „Jdu“ = nejde, bez ⏰ pozdě; v22.16: ✅ potvrzení dresů (`events.lok`), ⏳ výchozí termín přihlášení (`settings/events` dlT / dlM / dlH), ⏰ pozdní odpovědi v Docházce, ⌛ bez odpovědi = nejde. Cache `hokej-v115` / `hokej-beta-v115`.
+- **Další číslo:** v22.17 (cache `hokej-v116`), opravy v22.16.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.16.2** (série k vydání: v22.12 – v22.16).
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 

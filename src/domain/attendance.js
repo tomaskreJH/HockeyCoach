@@ -50,7 +50,8 @@ export function pastEvents(evs, from, to, now) {
   return (evs || []).filter(e => e.start <= n && (!from || e.date >= from) && (!to || e.date <= to));
 }
 // Od kdy se počítá ⏰ pozdě a bez odpovědi: události zadané zpětně (sezóna běžela před nasazením aplikace) by přehled zkreslily.
-// U dřívějších událostí: pozdě se nepočítá a člen bez odpovědi se do události vůbec nezapočítá (ani do počtu, ani do procenta).
+// U dřívějších událostí se počítají všechny (procento účasti beze změny): „Jdu“ zůstává (i se 🚫), cokoli jiného – ❓, bez odpovědi – = ❌ nejde;
+// ⏰ pozdě se nepočítá.
 export const STRICT_FROM = "2026-11-01";
 export const strict = e => String((e && e.date) || "") >= STRICT_FROM;
 // ⏰ Pozdní odpověď: poslední zápis odpovědi (attendance.at) až po termínu přihlášení události (bez termínu = nikdy pozdě).
@@ -74,8 +75,8 @@ export function attSummary(evs, at, ids) {
   (ids || []).forEach(id => {
     const r = {all: blank(), train: blank(), home: blank(), away: blank()};
     (evs || []).forEach(e => {
-      const a = (A[e.id] || {})[id], key = keyOf(a), lt = isLate(a, e);
-      if (key === "none" && !strict(e)) return;                       // zpětně zadaná událost bez odpovědi se nepočítá
+      const a = (A[e.id] || {})[id], k0 = keyOf(a), lt = isLate(a, e);
+      const key = strict(e) || k0 === "yes" || k0 === "nos" ? k0 : "no";   // zpětně zadaná událost: ❓ a bez odpovědi = nejde
       [r.all, r[e.kind]].forEach(x => { x.n++; x[key]++; if (lt) x.late++; });
     });
     Object.values(r).forEach(x => { x.pct = x.n ? Math.round(x.yes * 100 / x.n) : null; });
