@@ -1,23 +1,24 @@
-// Události – společný základ pro seznam, detail a formulář: styly #evw, konstanty odpovědí, pomocné funkce (sjednocený seznam
-// událostí allEvents, odpovědi atMap, počty, nadpis a řádky karty), zápis odpovědí (attendance + důvod v attnote v jedné dávce),
+// Události – společný základ pro seznam, detail, formulář a 🏠 Domů: styly #evw, konstanty odpovědí, pomocné funkce (sjednocený seznam
+// událostí allEvents, odpovědi atMap, počty, řádky karty), karta události cardHtml (nadpis → místo → čas a sraz → termín → útočnice…), zápis odpovědí (attendance + důvod v attnote v jedné dávce),
 // 🚫 nedorazila, pětky a okno s důvodem omluvy. Každá změna odpovědi se zapíše i do 🕘 historie přihlášek (views/att-log-view.js). „Jdu“ hned, „Nejdu“ / „Nejsem jistý“ přes okno; hráčka jen svoji odpověď do termínu,
 // blokace „Jdu“ dluhem po splatnosti (vlastní předpisy nebo veřejný souhrn debtors). Okno s důvodem nabízí i naposledy použité vlastní důvody (paměť zařízení).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
-import {isG, pl, pn, pri, stOf} from "../core/selectors.js";
+import {isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
+import {dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {canNos, isNos, nosPatch, startMs} from "../domain/attendance.js";
-import {cxOf} from "../domain/cash.js";
+import {costTotal, cxOf, kc} from "../domain/cash.js";
 import {memberBlocked} from "../domain/debtors.js";
-import {isCancelled} from "../domain/event-cancel.js";
+import {cancelText, isCancelled} from "../domain/event-cancel.js";
 import {answerCounts} from "../domain/event-helpers.js";
 import {pushReason, reasonChips} from "../domain/event-prefill.js";
-import {evDefaults, timeParts} from "../domain/event-time.js";
+import {dlFor, evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
+import {statusLine} from "./event-badges.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -62,6 +63,7 @@ const CSS = `<style>
 #evw .evt .evdt{font-weight:600;white-space:nowrap}
 #evw .evs{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:15px}
 #evw .evx>summary{cursor:pointer;min-height:36px;padding:4px 0}
+#evw .evtm{font-size:16px;font-weight:600;margin-top:2px}
 </style>`;
 
 // ===== Pomocné funkce =====
@@ -76,8 +78,8 @@ const fDl = dlText;                    // text termínu přihlašování (core/u
 const dlMs = dl => { const t = dl ? new Date(dl).getTime() : NaN; return isNaN(t) ? null : t; };
 // Přihlašování je uzavřeno po termínu, po dni události, nebo je událost zrušená
 const isLocked = ev => { const t = dlMs(ev.dl); return (t != null && Date.now() > t) || ev.date < td() || isCancelled(ev); };
-// Výchozí termín: den před událostí v 18:00 (core/utils.js – stejný i pro nový zápas v modal.js)
-const defDl = dlDefault;
+// Výchozí termín tréninku podle ⚙️ → ⏰ Nastavení událostí (dny předem a čas; zápas v modal.js stejně přes dlFor)
+const defDl = date => dlFor(date, "training", defs());
 const activePl = () => S.pl.filter(p => stOf(p) !== "end").sort((x, y) => pri(x) - pri(y) || x.name.localeCompare(y.name, "cs"));
 // Členové realizačního týmu (trenéři, asistenti…) seřazení podle jména; zapisují se do docházky, neplatí a nenominují se
 const trs = () => [...S.tr].sort((x, y) => (x.name || "").localeCompare(y.name || "", "cs"));
@@ -113,10 +115,15 @@ const rosterLine = r => `Útočnice: <b>${r.u}</b> · Obránkyně: <b>${r.o}</b>
 const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl(e.dl) + ")" : "Přihlášení do " + fDl(e.dl)) : (lk ? "🔒 Uzavřeno" : "⚠️ Termín nenastaven");
 // Den, čas od – do (zápas jen začátek), ⏰ sraz a místo; výchozí sraz a délka tréninku ze settings/events
 const defs = () => evDefaults(S.es);
-const timeTxt = e => { const t = timeParts(e, defs()); return (t.range ? " · " + esc(t.range) : "") + (t.meet ? " · ⏰ sraz " + t.meet : ""); };
-// Zkrácené datum bez roku („Po 27. 10.“) a zbytek řádku bez data (čas, sraz, místo)
+// Zkrácené datum bez roku („Po 27. 10.“)
 const shortDay = s => fDay(s).replace(/ \d{4}$/, "");
-const restLine = e => (timeTxt(e) + (e.place ? " · " + esc(e.place) : "")).replace(/^ · /, "");
+// Řádek místa: 📍 místo, u zápasu doma / venku, u správce pokladny 💰 náklady (cost = false v detailu – tam je pokladna zvlášť)
+const placeLine = (e, cost = true) => {
+  const tot = cost && cashMgr() ? costTotal(e.cx) : 0;
+  return [e.place ? "📍 " + esc(e.place) : "", e.type === "match" ? (e.raw.home ? "doma" : "venku") : "", tot ? "💰 náklady " + kc(tot) : ""].filter(Boolean).join(" · ");
+};
+// Řádek času (větší písmo): 🕔 od – do (zápas jen začátek) · ⏰ sraz
+const timeLine = e => { const t = timeParts(e, defs()); return [t.range ? "🕔 " + esc(t.range) : "", t.meet ? "⏰ sraz " + esc(t.meet) : ""].filter(Boolean).join(" · "); };
 // Nadpis události v jednom řádku: ikona, název a zkrácené datum (seznam i detail)
 const titleLine = (e, cn) => `${e.type === "match" ? "🆚" : "🏒"} ${cn ? "<s>" + esc(e.title) + "</s>" : esc(e.title)} · <span class="evdt">${esc(shortDay(e.date))}</span>`;
 // Naposledy použité vlastní důvody v zařízení (bez paměti = prázdný seznam)
@@ -172,6 +179,24 @@ function toggleNos(ev, pid) {
 }
 function saveLines(ev, lines) { S.db.doc("events/" + ev.id).merge({lines}); }
 
+// ===== Vykreslení: karta události (seznam Událostí i 🏠 Domů) =====
+// Rychlá tlačítka na kartě: moje odpověď a počet odpovědí týmu (c = counts) v každém tlačítku
+const quick = (e, mine, dis, c) => `<div class="evq">${ORD.map(k => `<button class="${mine && mine.st === k ? "on-" + k : ""}" data-qa="${e.id}|${k}" ${dis ? "disabled" : ""}>${ANS[k].ic} ${ANS[k].t} <b class="evqn">${c[k]}</b></button>`).join("")}</div>`;
+// Karta: nadpis (ikona, název, datum) → 📍 místo → 🕔 čas a ⏰ sraz (větší) → termín přihlášení → útočnice / obránkyně / brankářky / trenéři
+// → řádek stavu (event-badges.js) → rychlá tlačítka za S.evp (selfMember). Klepnutí na kartu (data-eo) otevře detail – obsluhuje volající.
+// Hostující nevidí počty ostatních: rychlá tlačítka bez čísel, bez řádku útočnic…
+function cardHtml(e, AT, P) {
+  const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, cn = isCancelled(e), lk = (isLocked(e) && !staff()) || cn, m = e.raw, g = guest();
+  const sc = cn ? ' <span class="tag red">❌ Zrušeno</span>' : e.type === "match" && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
+  const cq = g ? {yes: "", no: "", maybe: ""} : c, pL = placeLine(e), tL = timeLine(e);
+  return `<div class="cd evi" data-eo="${e.id}"${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
+${pL ? `<div class="mu">${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
+<div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
+${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}
+${statusLine(e)}
+${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" style="margin-top:6px">${esc(mine.reason)}</div>` : ""}</div>`;
+}
+
 // ===== Vykreslení: okno s důvodem =====
 // Rychlé důvody = naposledy použité vlastní (nahoře) + základní; klepnutí na důvod rovnou uloží odpověď (jedno klepnutí místo psaní)
 function sheetHtml() {
@@ -202,4 +227,4 @@ function bindSheet(a) {
 }
 
 // ===== Exporty =====
-export {ANS, CSS, MONTHS, ORD, activePl, allEvents, answer, atMap, bindSheet, cashMgr, counts, defDl, defs, dlLine, fDay, guest, isLocked, isPl, myTr, pad, restLine, roster, rosterLine, saveLines, sheetHtml, staff, titleLine, toggleNos, trs};
+export {ANS, CSS, MONTHS, ORD, activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, counts, defDl, defs, dlLine, fDay, guest, isLocked, isPl, myTr, pad, placeLine, roster, rosterLine, saveLines, sheetHtml, staff, timeLine, titleLine, toggleNos, trs};

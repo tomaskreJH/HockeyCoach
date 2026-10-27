@@ -40,10 +40,10 @@ test("attSummary: 🚫 se nepočítá do účasti ani procenta, má vlastní po�
     {eid: "t1", pid: "b", st: "no", nos: true}
   ];
   const r = attSummary(evs, at, ["a", "b"]);
-  assert.deepEqual(r.a.all, {n: 3, yes: 1, no: 0, maybe: 0, none: 0, nos: 2, pct: 33});
-  assert.deepEqual(r.a.train, {n: 2, yes: 1, no: 0, maybe: 0, none: 0, nos: 1, pct: 50});
+  assert.deepEqual(r.a.all, {n: 3, yes: 1, no: 0, maybe: 0, none: 0, nos: 2, late: 0, pct: 33});
+  assert.deepEqual(r.a.train, {n: 2, yes: 1, no: 0, maybe: 0, none: 0, nos: 1, late: 0, pct: 50});
   assert.equal(r.a.home.nos, 1);
-  assert.equal(r.b.all.no, 1);                              // značka u Nejdu se ignoruje
+  assert.equal(r.b.all.no, 3);                              // značka u Nejdu se ignoruje; 2× bez odpovědi před 1. 11. 2026 = nejde
   assert.equal(r.b.all.nos, 0);
 });
 
@@ -64,4 +64,26 @@ test("attByMonth: účast podle měsíce události, 🚫 se nepočítá do úča
   const r = attByMonth(evs, at, "p");
   assert.equal(r["2026-11"].n, 2); assert.equal(r["2026-11"].yes, 1); assert.equal(r["2026-11"].nos, 1);
   assert.equal(r["2026-12"].yes, 0); assert.equal(r["2026-12"].no, 1);
+});
+
+// ===== ⏰ Pozdní odpověď (v22.16) =====
+test("isLate: zápis odpovědi po termínu přihlášení; bez termínu nebo času nikdy", async () => {
+  const {isLate} = await import("../src/domain/attendance.js");
+  const e = {id: "t1", date: "2026-11-21", dl: "2026-11-20T18:00"};
+  assert.equal(isLate({at: "2026-11-20T19:00:00.000"}, e), true);
+  assert.equal(isLate({at: "2026-11-20T17:00:00.000"}, e), false);
+  assert.equal(isLate({at: "2026-11-20T19:00:00.000"}, {id: "t1", date: "2026-11-21"}), false, "bez termínu");
+  assert.equal(isLate({at: "2026-10-20T19:00:00.000"}, {id: "t0", date: "2026-10-21", dl: "2026-10-20T18:00"}), false, "před 1. 11. 2026 se nepočítá");
+  assert.equal(isLate({}, e), false, "bez času zápisu");
+  assert.equal(isLate(null, e), false);
+});
+
+test("attSummary: před 1. 11. 2026 se počítají všechny události, ❓ a bez odpovědi = nejde; od 1. 11. zvlášť", async () => {
+  const {attSummary, STRICT_FROM} = await import("../src/domain/attendance.js");
+  assert.equal(STRICT_FROM, "2026-11-01");
+  const evs = [{id: "o", kind: "train", date: "2026-10-15"}, {id: "n", kind: "train", date: "2026-11-05"}, {id: "y", kind: "train", date: "2026-10-16"}];
+  const r = attSummary(evs, [{eid: "y", pid: "a", st: "yes"}, {eid: "n", pid: "a", st: "maybe"}], ["a"]).a.all;
+  assert.deepEqual([r.n, r.yes, r.no, r.maybe, r.none, r.pct], [3, 1, 1, 1, 0, 33], "stará bez odpovědi = nejde, nová ❓ zůstává");
+  const b = attSummary(evs, [{eid: "o", pid: "b", st: "maybe"}], ["b"]).b.all;
+  assert.deepEqual([b.n, b.no, b.maybe, b.none], [3, 2, 0, 1], "stará ❓ = nejde, nová bez odpovědi zůstává");
 });

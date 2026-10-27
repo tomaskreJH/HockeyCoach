@@ -44,6 +44,19 @@ async function tabs() {
   const keys = [...document.querySelectorAll("#nav button[data-t]")].map(b => b.dataset.t);
   for (const k of keys) { await tap(`#nav button[data-t="${k}"]`, 250); snap("tab-" + k); }
 }
+// 🏠 Domů – ❔ Chybí odpověď (manager, trenér, asistent): rozbalit jména a 📲 Připomenout (bez sdílení a schránky = text k ručnímu zkopírování)
+async function homeMiss() {
+  await tap('#nav button[data-t="home"]', 250);
+  if (!(await tap("[data-hms]", 200))) return;
+  snap("home-miss");
+  if (await tap("[data-hrm]", 250)) snap("home-remind");
+}
+// 🏠 Domů – karta události s rychlými tlačítky: ✅ Jdu přímo z Domů, ❌ otevře okno s důvodem (klepnutí na důvod uloží)
+async function homeQuick() {
+  await tap('#nav button[data-t="home"]', 250);
+  if (await tap("#hmw [data-qa$=\"|yes\"]", 250)) snap("home-quick");
+  if (await tap("#hmw [data-qa$=\"|no\"]", 250)) { snap("home-reason"); await tap('[data-rr="0"]', 250); }
+}
 // 📈 Statistiky → 🏒 Trénink: období, výběr cvičení a hráčky, zpět na Zápasy
 async function trainStats() {
   if (!(await tap('#nav button[data-t="st"]', 250)) || !(await tap('[data-stv="t"]', 400))) return;
@@ -72,7 +85,9 @@ async function help() {
 async function events() {
   await tap('#nav button[data-t="ev"]', 250);
   // Minulé: řádek stavu 💰 vyúčtování / 🏒 tréninku (stav tréninků se načte jednorázově)
-  if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); await tap('[data-evm="up"]', 250); }
+  if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); if (await tap("#evold", 250)) snap("ev-past-old"); await tap('[data-evm="up"]', 250); }
+  // 📉 Hráčka: vzdálenější budoucnost až tlačítkem (druhý poslech od dnes + 16 dní)
+  if (await tap("#evfar", 400)) snap("ev-far");
   if (await tap('[data-qa="e2|yes"]', 250)) snap("ev-quick");
   if (await tap("#evnt", 250)) { snap("ev-form"); await tap("#evfx", 200); }
   // 🖐 K2: okno ❌ s rychlými důvody (klepnutí na důvod uloží), nový zápas s předvyplněným časem a místem
@@ -80,7 +95,9 @@ async function events() {
   if (await tap("#evnm", 250)) { snap("ev-match-new"); await tap("#cl", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
   snap("ev-e1");
-  // 👥 Docházka rozbalená (správci: 🕘 čas a kdo zapsal u řádků) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
+  // ✅ Potvrdit dresy (trenér): hráčky pak dresy uvidí
+  if (await tap("#lsok", 250)) snap("ev-e1-lok");
+  // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
   if (await tap("#evatt summary", 300)) snap("ev-e1-att");
   if (await tap("[data-alg]", 300)) {
     snap("att-log");
@@ -90,6 +107,7 @@ async function events() {
   }
   if (await tap("#tped", 300)) {
     snap("plan-edit");
+    await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
     if (await tap('[data-tpadd="all"]', 250)) snap("plan-edit-add");
     if (await tap("#tponly", 250)) snap("plan-edit-only");
@@ -182,6 +200,8 @@ async function money() {
 try {
   await start();
   await tabs();
+  await homeMiss();
+  await homeQuick();
   await trainStats();
   await settings();
   await help();

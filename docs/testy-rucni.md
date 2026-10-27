@@ -113,6 +113,54 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 20. v22.16 (beta) – Potvrzení dresů, termín přihlášení, ⏰ pozdě
+- [ ] 20.1 V betě je v záhlaví **v22.16**.
+- [ ] 20.2 Trenér: detail tréninku → 🎽 „⏳ Nepotvrzeno – hráčky dresy zatím nevidí“ → **✅ Potvrdit dresy** → „✅ Potvrzeno …“.
+- [ ] 20.3 Hráčka (👁 Náhled role) před potvrzením: v 🎽 „Dresy uvidíš, až trenér…“, v plánu „🎽 Barvu dresu uvidíš…“; po potvrzení dresy i „vezmi si … dres“.
+- [ ] 20.4 Trenér změní dres jedné hráčce → „⚠️ Změněno po potvrzení“ + Potvrdit znovu; hráčka vidí ⚠️ upozornění.
+- [ ] 20.5 ⚙️ → 📅 Události → ⏰ Nastavení událostí: trénink 2 dny předem, čas 20:00 → Uložit → + Trénink na čtvrtek předvyplní termín úterý 20:00; + Zápas podle nastavení zápasu.
+- [ ] 20.6 Události → 📊 Docházka: sloupec ⏰ Pozdě (odpověď po termínu, i zapsaná trenérem). Moje platby → 📅 Po měsících → 📊 Moje docházka: „⏰ pozdě N“.
+- [ ] 20.7 Detail události po uzávěrce: hráčka bez odpovědi má štítek „⌛ bez odpovědi = nejde“ (jen u událostí od 1. 11. 2026).
+- [ ] 20.8 (v22.16.2) 📊 Docházka: počet událostí stejný jako před v22.16; u říjnových událostí žádné ⏰ pozdě, ❓ ani bez odpovědi – kromě „Jdu“ je vše ve sloupci ❌.
+
+## 19. v22.15 (beta) – Dresy, kratší detail, sbalené bloky plánu
+- [ ] 19.1 V betě je v záhlaví **v22.15**.
+- [ ] 19.2 🏠 Domů: nahoře 🆚 Příští zápas (karta s ✅ ❌ ❓), pod ním 📅 Tréninky – příštích 7 dní bez zápasů.
+- [ ] 19.3 Detail tréninku: hlavička jen název a datum; pod ní 📋 Plán tréninku, pak 🎽 Rozdělení do dresů („Modrá: …“); ℹ️ Podrobnosti po rozbalení ukážou místo, čas, termín a počty.
+- [ ] 19.4 Trenér: ✏️ Upravit dresy → volby – / M / Ž / Z / R, ↻ Rozdělit automaticky; ✓ Hotovo vrátí zkrácený přehled.
+- [ ] 19.5 Plán: štítky skupin Modrá / Žlutá (krátce M / Ž), hráčka vidí „🎽 vezmi si modrý dres“; ⏱ živý trénink ukazuje barvy místo pětek. Zápas a živý zápis dál pětky.
+- [ ] 19.6 ✏️ Upravit plán: bloky sbalené (▸ čas, délka, cvičení), klepnutí rozbalí, + nový blok je rozbalený, ▾ Rozbalit vše / ▸ Sbalit vše.
+- [ ] 19.7 Nový trénink → ✨ Připravit trénink → ⧉ Jako minule nabízí trénink stejného dne v týdnu.
+- [ ] 19.8 ⚙️ → 👥 Tým a členové → role: „Asistent (zápasy, události)“, nikde „Kustod“.
+
+## 18. v22.14 (beta) – Přihlášení z Domů, karta události, nápověda podle role
+- [ ] 18.1 V betě je v záhlaví **v22.14**.
+- [ ] 18.2 Události → Nadcházející: karta v pořadí název · datum → 📍 místo → **🕔 čas · ⏰ sraz** (větší písmo) → Přihlášení do … → Útočnice / Obránkyně / Brankářky / Trenéři → tlačítka ✅ ❌ ❓.
+- [ ] 18.3 Detail události: hlavička ve stejném pořadí (místo, čas a sraz větší, termín, počty a útočnice…).
+- [ ] 18.4 Hráčka (telefon nebo 👁 Náhled role s Povolit zápis): 🏠 Domů → 📅 Příštích 7 dní – stejné karty; **✅ Jdu** se zapíše hned (číslo v tlačítku se změní), **❌ Nejdu** otevře okno s důvodem, klepnutí na důvod uloží. Klepnutí mimo tlačítka otevře detail, ← Domů vrátí.
+- [ ] 18.5 Trenér propojený s realizačním týmem: v Domů tlačítka za sebe; trenér, který je zároveň hráčka, za hráčku.
+- [ ] 18.6 Hráčka s nezaplaceným předpisem: **💳 Moje platby** je úplně nahoře; bez dluhu (vše zaplaceno) se karta v Domů neukazuje.
+- [ ] 18.7 🆚 Příští zápas: zápas do 7 dní je jen mezi kartami týdne; zápas za více než 7 dní je pod nimi zvlášť.
+- [ ] 18.8 ❓ Nápověda: hráčka vidí 9 kapitol (bez Team, živého zápisu, pokladny, plánu tréninku), má bod „Trénink pro hráčku“; trenér 14 kapitol bez Pokladny; manager vše kromě 👁 Náhledu role (ten jen vývojář). Hledání v nápovědě funguje.
+
+## 17. v22.13 (beta) – Docházka bez posouvání, počty v Domů, okno událostí hráčky
+- [ ] 17.1 V betě je v záhlaví **v22.13**.
+- [ ] 17.2 Trenér: detail události → 👥 Docházka → zapsat odpověď za několik hráček za sebou. Seznam se neposouvá, pod jménem není 🕘 / ✍ řádek.
+- [ ] 17.3 **🕘 Historie přihlášek** pod docházkou: okno ukáže právě zapsané změny s ✍ kdo zapsal.
+- [ ] 17.4 🏠 Domů: u událostí v 📅 Příštích 7 dnech a u 🆚 Příštího zápasu řádek **✅ N hráček · 🥅 N brankářek**; čísla sedí s počtem ✅ v detailu (bez realizačního týmu). Hostující řádek nevidí.
+- [ ] 17.5 Hráčka (nebo 👁 Náhled role Hráčka): Události → Nadcházející končí dnem +15, dole **⬇ Načíst další události (od …)**; po klepnutí se objeví vzdálenější tréninky, odpověď na vzdálený trénink se hned ukáže.
+- [ ] 17.6 Hráčka: Minulé ukazují 8 dní, **⬇ Starší události (N)** ukáže zbytek.
+- [ ] 17.7 Hráčka: ⚙️ → 💾 Data → 📉 (jen vývojář / náhled) – „živě od … do …“. Trenér vidí vše jako dřív (bez tlačítek).
+
+## 16. v22.12 (beta) – 🏠 Chybí odpověď a 📲 připomenutí
+- [ ] 16.1 V betě (`…/beta/`) je v záhlaví **v22.12**; stabilní verze zůstává v22.11 a testerovi ukáže pruh **🧪 Nová beta v22.12 k vyzkoušení**.
+- [ ] 16.2 Trenér v betě: nahoře v 🏠 Domů pruh **❔ Chybí odpověď: N** s nejbližší událostí s otevřeným přihlašováním; N sedí s „bez odpovědi“ v detailu události.
+- [ ] 16.3 Klepnutí rozbalí jména (abecedně), druhé klepnutí sbalí. **Otevřít událost →** otevře detail, ← Domů vrátí zpět.
+- [ ] 16.4 **📲 Připomenout** na Androidu otevře sdílení → WhatsApp skupina: text s událostí, časem, srazem, místem, termínem, jmény a odkazem na stabilní verzi.
+- [ ] 16.5 Hráčka odpoví → N se sníží (po chvíli samo); když odpoví všechny, pruh zmizí. Zamčená (po termínu) nebo zrušená událost se přeskočí na další.
+- [ ] 16.6 Hráčka ani hostující pruh nevidí; pokladník bez sportovní role také ne.
+- [ ] 16.7 GitHub Actions: běh na větvi `beta` zelený, bez upozornění na Node.js 20 u kroku checkout.
+
 ## 15. v22.11 – 🧪 Beta kanál
 - [ ] 15.1 Po nastavení GitHubu (README, kap. Kanály): Actions → Nasazení (stabilní + beta) je zelené; stabilní adresa ukazuje **v22.11**, adresa `…/beta/` také **v22.11** s fialovým pruhem **🧪 Beta v22.11 – testovací verze**.
 - [ ] 15.2 Manager: ⚙️ → **🧪 Beta testování** → zaškrtnout jednoho člena → hláška „… je beta tester“; odškrtnout a znovu zaškrtnout. V záhlaví sekce počet testerů.

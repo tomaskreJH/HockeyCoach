@@ -50,14 +50,14 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `beta.js` | 🧪 beta testeři `settings/beta`, nabídka bety |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
-| `home-summary.js` | 🏠 Domů |
+| `home-summary.js`, `home-remind.js` | 🏠 Domů, ❔ Chybí odpověď a 📲 text připomínky |
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, 🔁 převody `k: "tr"`, dluhy, VS), účty a IBAN |
 | `bank-match.js` | ⚠️ 🏦 čtení výpisu z banky (CSV) a párování plateb s předpisy |
 | `economy.js` | hospodaření události a měsíce, Moje platby po měsících |
 | `tariff-detail.js` | ⚖️ detail tarifu hráčky (měsíce, události, využití ledu, dopad na pokladnu) |
 | `block-exc.js` | 🔓 hromadné výjimky z blokace (dlužníci po osobách, výběr předpisů) |
 | `cost-check.js` | ⚠️ 🧾 kontrola nákladů událostí (očekávané náklady po kategorii a příjemci proti výdajům, měsíc výdaje `pym`) |
-| `data-window.js` | 📉 okno poslechu událostí a docházky (`WIN`, `winFrom`, `archNeed`, `mergeBand`, datum docházky `attDate` / `attDateFix`, `dayAdd`) |
+| `data-window.js` | 📉 okno poslechu událostí a docházky (`WIN`, `winFrom`, `winTo` – hráčka 15 dní dopředu, `archNeed`, `mergeBand`, datum docházky `attDate` / `attDateFix`, `dayAdd`) |
 | `read-cost.js` | 📉 odhad čtení databáze na jedno spuštění (`readCost`, limit `READ_LIMIT`) |
 | `event-status.js` | stav události na kartě (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení tréninku) |
 | `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
@@ -71,15 +71,15 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
 | `shell.js` | záložky a hlavní vykreslení |
-| `help.js` | ❓ nápověda – jediný uživatelský návod |
+| `help.js` | ❓ nápověda – jediný uživatelský návod; kapitoly (`v`) a body (`data-v`) podle role (`VIS`) |
 | `home-view.js`, `absence-view.js` | 🏠 Domů, 🏖 nepřítomnost |
-| `events.js` | Události: seznam, kalendář, karta s rychlými tlačítky, režimy pokladny v Team (`cashPanel`) |
-| `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, zápis odpovědi a důvodu, okno s důvodem |
+| `events.js` | Události: seznam, kalendář, režimy pokladny v Team (`cashPanel`) |
+| `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, karta události `cardHtml` (Události i 🏠 Domů), zápis odpovědi a důvodu, okno s důvodem |
 | `event-detail.js`, `event-form.js` | detail události (pětky, plán, docházka, ⚙ úpravy, zrušení), formulář události |
 | `event-series.js`, `event-settings.js` | 🔁 série tréninků, ⏰ nastavení událostí |
 | `attendance.js`, `att-request-view.js` | 📊 docházka, ✋ žádosti o účast |
 | `beta-view.js` | 🧪 pruh bety v liště, zamčená beta, ⚙️ → 🧪 Beta testování a přepnutí kanálu v 👤 Účet |
-| `att-log-view.js` | 🕘 historie přihlášek: tichý zápis `logAtt`, čas a ✍ kdo zapsal v řádcích docházky, okno historie |
+| `att-log-view.js` | 🕘 historie přihlášek: tichý zápis `logAtt`, okno historie (čte se až po klepnutí; řádky docházky zápis neukazují, aby se neposouvaly) |
 | `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky zápasů |
 | `train-stats.js` | Statistiky: přepínač 📊 Zápasy / 🏒 Trénink, 📈 přehled Tréninku |
 | `live-view.js`, `live-panels.js`, `live-events.js`, `live-quick.js`, `live-feedback.js` | 🔴 živý zápis (vykreslení, panely, klepnutí, rychlý gól / trest, vibrace) |
@@ -135,7 +135,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` (strážce `blocked()` – náhled role, starší verze). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá. Čtení na vyžádání: `S.db.doc().get()`, `S.db.collection().getAll()`, poslech jednoho dokumentu `collection().part`.
 - **📉 Šetření čtení (tarif Spark = 50 000 čtení denně):** každé spuštění aplikace po pauze delší než 30 min přečte **všechny dokumenty poslouchaných kolekcí** znovu. Kolekce, která roste s časem (audit, historie, plány, výsledky), se **nesmí poslouchat celá** – čte se po dokumentech nebo dotazem `where` jen pro to, co je na obrazovce (`audit` přes `views/audit-feed.js`, stav tréninků v `views/event-badges.js`). Odhad pro aktuální data: ⚙️ → 💾 Data → 📉 Čtení databáze.
-- **📉 Okno poslechu** (`storage.js` – `listenWin`, `domain/data-window.js`): `events` (pole `date`) a `attendance` (pole `d`) se živě poslouchají od `winFrom` (realizační tým 45 dní, ostatní 14 dní), starší z paměti zařízení (`getDocsFromCache`), ze serveru celý archiv jednou na zařízení, pak pás 60 dní před oknem (`ttl`). `data[c]` = archiv + živá část, aplikace vidí vše. Docházka v okně až od brány verze ≥ `ATT_D_VER` (22.9). **Docházka musí mít `d`** – doplňuje ho `withD` v `storage.js` při každém `set`, změnu data události propíše `attMoves`; ruční zápis docházky mimo `S.db` se nepoužívá.
+- **📉 Okno poslechu** (`storage.js` – `listenWin`, `domain/data-window.js`): `events` (pole `date`) a `attendance` (pole `d`) se živě poslouchají od `winFrom` (realizační tým 45 dní, ostatní 8 dní) – u hráčky / hostující jen do `winTo` (dnes + 15 dní), dál až po `HK.farListen()` (⬇ Načíst další v Událostech), starší z paměti zařízení (`getDocsFromCache`), ze serveru celý archiv jednou na zařízení, pak pás 60 dní před oknem (`ttl`). `data[c]` = archiv + živá část, aplikace vidí vše. Docházka v okně až od brány verze ≥ `ATT_D_VER` (22.9). **Docházka musí mít `d`** – doplňuje ho `withD` v `storage.js` při každém `set`, změnu data události propíše `attMoves`; ruční zápis docházky mimo `S.db` se nepoužívá.
 - Úpravy existujícího dokumentu přes `merge`: `S.db.doc(cesta).merge({pole})` (vnořený objekt nahradí, `"__del"` smaže pole, `"__now"` = čas serveru); v dávce `batch().merge` = hluboké sloučení. `set` jen pro nový dokument nebo celý vlastněný (zápas, `evcash`, plán).
 - Data jen **přidávat**; stará pole mazat nejdřív o verzi později. Pravidla: **rozšířit → převést → zúžit**. Převody dat = tlačítko v ⚙️ → 💾 Data s náhledem, idempotentní, se zálohou; po potvrzení se v další verzi odstraní.
 - **Brána verze** `settings/app = {minVer, minBy, minAt}` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi, jen manager). Klient pod minimem nezapisuje.
@@ -163,7 +163,7 @@ Klíč linky = `blok_linka`, u cvičení řady `blok_linka-cvičení` (`msKey`, 
 3. `CHANGELOG.md` – záznam nahoře (`## vX.Y (datum) – název`, postup nasazení, Přidáno / Změněno / Opraveno / Beze změny, Ověřeno),
 4. `README.md` – řádek „Aktuální verze“,
 5. `docs/STAV.md`, `docs/plan.md` (stav fáze), `docs/testy-rucni.md` (kroky testu),
-6. `src/views/help.js` – jen při změně ovládání.
+6. `src/views/help.js` – jen při změně ovládání; nový bod / kapitolu označit `data-v` / `v` podle toho, kdo modul vidí.
 
 **🧪 Kanál (od v22.11):** CHANGELOG u každé verze uvádí, kam se nahrává – **`beta`** (výchozí: UI, nové pohledy, opravy, přidaná pole snesitelná starší stabilní verzí) nebo **`main`** (zúžení / převod pravidel, migrace dat, naléhavé opravy; potom totéž i do `beta`). Čísla verzí a cache jsou jedna řada pro oba kanály (beta jen s předponou cache `hokej-beta-v`). Vydání do stabilní = PR `beta → main`, kód se nemění; 🔒 Vyžadovat verzi až ve stabilní. V betě a stabilní sdílí zařízení `localStorage` a offline paměť Firestore (stejný web) – klíče `localStorage` jen přidávat, verzi Firebase SDK neměnit přes betu.
 

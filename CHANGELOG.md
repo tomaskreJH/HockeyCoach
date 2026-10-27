@@ -2,6 +2,102 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.16.2 (27. 10. 2026) – 📊 Docházka před 1. 11. 2026: vše kromě „Jdu“ = nejde
+> **Nasazení – kanál 🧪 BETA:** commit „v22.16.2“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v115`). 🔒 Vyžadovat verzi: ne. Test: kap. 20, krok 20.8.
+
+**Opraveno** (oprava v22.16.1 – zkreslovala procenta účasti)
+- `domain/attendance.js` – `attSummary`: u událostí před `STRICT_FROM` (1. 11. 2026) se **počítají všechny proběhlé události** (procento účasti jako před v22.16.1); „Jdu“ = účast (🚫 zůstává 🚫), ❓ a bez odpovědi = ❌ nejde; ⏰ pozdě se nepočítá. Od 1. 11. 2026 platí ❓, bez odpovědi a ⏰ pozdě normálně. Texty v 📊 Docházce a ❓ nápovědě, testy.
+
+**Ověřeno:** `npm test` 447 / 447, `npm run smoke` 8 rolí bez chyb.
+
+## v22.16.1 (27. 10. 2026) – ⏰ Pozdě a bez odpovědi až od 1. 11. 2026
+> **Nasazení – kanál 🧪 BETA:** commit „v22.16.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v114`). 🔒 Vyžadovat verzi: ne. Test: `docs/testy-rucni.md` kap. 20, krok 20.8.
+
+**Opraveno**
+- Sezóna se do aplikace zadávala zpětně, takže všechny dřívější odpovědi vypadaly jako ⏰ pozdě. `domain/attendance.js` – `STRICT_FROM = "2026-11-01"`, `strict(e)`: u událostí před tímto dnem se ⏰ pozdě nepočítá a člen bez odpovědi se do události nezapočítá (ani do počtu, ani do procenta účasti). Štítek „⌛ bez odpovědi = nejde“ v detailu jen od 1. 11. (`views/event-detail.js`). Texty v 📊 Docházce a ❓ nápovědě.
+
+**Beze změny:** data, pravidla, odpovědi s „Jdu / Nejdu / ❓“ u starších událostí se počítají jako dosud.
+
+**Ověřeno:** `npm test` 447 / 447, `npm run smoke` 8 rolí bez chyb.
+
+## v22.16 (27. 10. 2026) – ✅ Potvrzení dresů, ⏳ termín přihlášení, ⏰ pozdní odpovědi
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.16“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nová pole zapisuje trenér / asistent v rámci dnešních práv). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v113`). 3) **🔒 Vyžadovat verzi: ne** – stabilní v22.11 nová pole ignoruje (hráčky v ní dresy vidí hned). 4) Test: `docs/testy-rucni.md` kap. 20. Návrat: revert commitu v22.16 (pole `lok` a nové hodnoty v `settings/events` zůstanou neškodně v databázi).
+
+**Přidáno (data – schváleno uživatelem 27. 10. 2026)**
+- **✅ Potvrzení dresů** – pole události `lok = {by, at, h}` (`domain/event-helpers.js` – `linesSig`, `lokState`, `lokDoc`; `views/event-detail.js`): trenér v 🎽 Rozdělení do dresů klepne **✅ Potvrdit dresy**. Hráčka (a hostující – `lineuppub`, `domain/guests.js`) vidí dresy i svou barvu v plánu (`views/trplan-view.js`) až po potvrzení; plán tréninku vidí hned. Změna dresů po potvrzení → hráčky vidí „⚠️ Dresy se po potvrzení změnily“, trenér **Potvrdit znovu**. Brankářka svou skupinu vidí vždy.
+- **⏳ Výchozí termín přihlášení** – `settings/events` nově `dlT`, `dlM` (dní před tréninkem / zápasem, 0–14) a `dlH` (čas); ⚙️ → ⏰ Nastavení událostí (`views/event-settings.js`). Předvyplní se novému tréninku, zápasu i sérii (`domain/event-time.js` – `dlFor`; `views/event-core.js`, `modal.js`, `event-series.js`). Výchozí beze změny: den předem v 18:00.
+
+**Změněno**
+- **📊 Docházka** – sloupec **⏰ Pozdě** = odpověď nebo její změna po termínu přihlášení (z `attendance.at` proti `dl`, i zápis trenérem; `domain/attendance.js` – `isLate`, `attSummary.late`); v 📊 Moje docházka „⏰ pozdě N“. Bez odpovědi je v tabulce červeně.
+- **⌛ Bez odpovědi = nejde** – po uzávěrce v detailu události u hráčky bez odpovědi štítek a v podrobnostech „⌛ bez odpovědi = nejde N“ (do dresů ani plánu se nepočítá – jako dosud).
+- **Pokladna** – beze změny výpočtu: 🚫 nedorazila bez omluvy se do vyúčtování počítá (platí), odhlášení ❌ s důvodem neplatí; popsáno v ❓ nápovědě.
+- ❓ Nápověda (dresy, termín, ⏰ pozdě, pokladna), testy `isLate`, `dlFor`, `lokState`; kouřový test ✅ Potvrdit dresy.
+
+**Beze změny:** pravidla databáze, zápis odpovědí, živý zápis, statistiky. Notifikace (N) později.
+
+**Ověřeno:** `npm test` 446 / 446. `npm run smoke` – 8 rolí bez chyb.
+
+## v22.15 (27. 10. 2026) – 🎽 Dresy místo pětek na tréninku, kratší detail, 📋 K2-3 plán tréninku
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.15“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v112`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 19. Vydání do stabilní se sérií v22.12 – v22.15 (PR `beta → main`). Návrat: revert commitu v22.15.
+
+**Změněno**
+- **🏠 Domů** (`views/home-view.js`): 🆚 Příští zápas opět nahoře, pod ním **📅 Tréninky – příštích 7 dní** bez zápasů (karty s ✅ ❌ ❓ zůstávají).
+- **🎽 Dresy na tréninku** (`domain/event-helpers.js` – `DRESS_NAMES`, `dressName`; `domain/training-plan.js` – `grpLabel`, `BY`; `domain/guests.js`; `views/line-split-view.js`, `trplan-view.js`, `trplan-edit.js`, `trlive-view.js`, `event-detail.js`): skupiny tréninku = **Modrá, Žlutá, Zelená, Růžová** místo „1.–4. pětka“ (krátký štítek M / Ž / Z / R), „Rozdělení do pětek“ → **Rozdělení do dresů**, volba skupin bloku 🎽 Dresy. Data beze změny (`lines` = číslo 1–4), zápas dál používá pětky.
+- **Detail události** (`views/event-detail.js`): hlavička jen název a datum (+ poznámka, u hráčky její odpověď); pod ní 📋 plán tréninku, pak **🎽 Rozdělení do dresů zkráceně** („Modrá: Hanča, Bětka, 🎓 Petr“, u trenéra „Bez dresu“); úprava dresů až po **✏️ Upravit dresy** (✓ Hotovo zavře). Místo, čas a sraz, termín a počty jsou ve sbaleném **ℹ️ Podrobnosti** (jsou i na kartě).
+- **📋 Plán tréninku (K2, krok 3)**: v úpravě plánu jsou bloky **sbalené** – záhlaví ▸ s časem od – do, délkou, režimem, cvičeními a skupinami; klepnutí rozbalí, nový blok se rozbalí sám, ▾ Rozbalit vše / ▸ Sbalit vše (`views/trplan-edit.js`). **⧉ Jako minule** v ✨ Připravit trénink bere poslední plán **stejného dne v týdnu**, jinak poslední (`views/trplan-reuse.js`).
+- ⚙️ Členové týmu: role „Asistent (zápasy, události)“ místo „(dříve Kustod)“ (`data/cfg-api.js`); nápověda bez zmínek o kustodovi.
+- ❓ Nápověda: Domů, detail události, 🎽 dresy, plán tréninku (sbalené bloky, Jako minule), rychlá reference.
+- Testy: `dressName` / `grpLabel`, upravené texty v `guests`, `training-plan`; kouřový test rozbalí sbalený blok.
+
+**Beze změny:** pravidla databáze, struktura dat, zápis odpovědí, živý zápis a pětky zápasu, pokladna, statistiky. Viditelnost dresů pro hráčky až po potvrzení trenérem – čeká na rozhodnutí (nové pole události).
+
+**Ověřeno:** `npm test` 443 / 443. `npm run smoke` – 8 rolí bez chyb.
+
+## v22.14 (27. 10. 2026) – 🏠 Přihlášení přímo z Domů, jednotná karta události, ❓ nápověda podle role
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.14“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v111`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 18. Vydání do stabilní se sérií v22.12 – v22.14 (PR `beta → main`). Návrat: požádat Clauda o revert commitu v22.14.
+
+**Změněno**
+- **Karta události** (`views/event-core.js` – `cardHtml`, `placeLine`, `timeLine`; `views/events.js` ji používá): pořadí 1) ikona, název a datum, 2) 📍 místo (u zápasu doma / venku, u správce pokladny 💰 náklady), 3) **🕔 čas a ⏰ sraz větším písmem**, 4) termín přihlášení, 5) útočnice / obránkyně / brankářky / trenéři, pak řádek stavu a rychlá tlačítka. Jedna funkce pro Události i 🏠 Domů.
+- **Detail události** (`views/event-detail.js`): hlavička ve stejném pořadí – název a datum, 📍 místo, 🕔 čas a sraz (větší), termín přihlášení, počty a útočnice…
+- **🏠 Domů** (`views/home-view.js`): 📅 Příštích 7 dní ukazuje **stejné karty jako Události s tlačítky ✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý** – přihlášení bez otevírání události (❌ / ❓ otevře okno s důvodem, blokace dluhem a uzávěrka platí stejně). Klepnutí na kartu otevře detail (← Domů). 🆚 Příští zápas se ukáže zvlášť jen za hranicí 7 dní. Řádek „✅ N hráček · 🥅 N brankářek“ z v22.13 nahradil řádek útočnic / obránkyň / brankářek / trenérů z karty.
+- **💳 Moje platby v Domů** jsou **první blok a jen při dluhu** (💳 k úhradě – nový předpis, ⛔ po splatnosti); vše zaplaceno = karta se neukazuje.
+- **❓ Nápověda podle role** (`views/help.js` – `VIS`, `seen`, `prune`): kapitoly a body jen pro moduly, které účet vidí (hráčka 9 kapitol místo 15, bez živého zápisu, pokladny, plánu tréninku…); v 👁 Náhledu role podle náhledu. Čísla kapitol podle zobrazených. Texty aktualizovány: Domů (pořadí, přihlášení z karet, platby jen při dluhu), karta a detail události, nový bod pro hráčku (rozdělení do pětek a plán jen ke čtení), ⚙️ sekce podle rolí, okno čtení hráčky 8 / 15 dní, rychlá reference.
+- Kouřový test: krok 🏠 Domů → ✅ a ❌ s důvodem přímo z karty (`tests/smoke/smoke-role.mjs`).
+
+**Beze změny:** pravidla databáze, struktura dat, zápis odpovědí (`answer`), ❔ Chybí odpověď, 🏖 nepřítomnost, živý zápis, trénink, pokladna, statistiky. Funkce `goingSplit` zůstává v `domain/home-summary.js` (test).
+
+**Ověřeno:** `npm test` 442 / 442. `npm run smoke` – 8 rolí bez chyb (hráčka: 💳 Moje platby nahoře, ✅ a ❌ s důvodem z Domů, nápověda 9 kapitol; trenér 14 kapitol).
+
+## v22.13 (27. 10. 2026) – 📋 Docházka bez posouvání, 🏠 počty hráček a brankářek, 📉 kratší okno událostí hráčky
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.13“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v110`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 17. Vydání do stabilní s celou sérií v22.12 – v22.13 (PR `beta → main`). Návrat: požádat Clauda o revert commitu v22.13.
+
+**Změněno**
+- **👥 Docházka v detailu události** (`views/event-detail.js`, `views/att-log-view.js`): pod jménem se už neukazuje řádek 🕘 čas a ✍ kdo zapsal – při zápisu odpovědi za hráčku se seznam neposouvá. Kdo zapisoval je jen v okně **🕘 Historie přihlášek** (tlačítko pod docházkou). Historie se navíc čte až po klepnutí na tlačítko (dřív při každém rozbalení docházky) – 📉 méně čtení.
+- **🏠 Domů** (`domain/home-summary.js` – `goingSplit`, `views/home-view.js`): u každé události v 📅 Příštích 7 dnech a u 🆚 Příštího zápasu řádek **✅ N hráček · 🥅 N brankářek** (přihlášené „Jdu“ ze soupisky, realizační tým se nepočítá). Počítá se z docházky v paměti – žádné čtení navíc. Hostující počty nevidí.
+- **📉 Okno událostí hráčky** (`domain/data-window.js` – `winTo`, `AHEAD_DAYS`, `WIN_DAYS.other` 14 → 8; `data/storage.js` – horní mez poslechu, `farListen`, `farInfo`): hráčka a hostující živě poslouchají události a docházku jen **8 dní zpět a 15 dní dopředu**. Vzdálenější budoucnost načte tlačítko **⬇ Načíst další události (od …)** v Nadcházejících (i v Kalendáři u vzdálených měsíců) – druhý živý poslech do zavření aplikace, vlastní odpověď i změny trenéra se hned projeví. Minulé ukazují 8 dní, **⬇ Starší události (N)** ukáže zbytek z paměti zařízení bez čtení. Realizační tým beze změny (45 dní zpět, celá budoucnost).
+- ⚙️ → 💾 Data → 📉: okno ukazuje i konec („do …“) a počet načtené další budoucnosti; odhad pro hráčku počítá s novým oknem.
+- ❓ Nápověda (Domů, Události, Historie přihlášek).
+
+**Beze změny:** pravidla databáze, struktura dat, zápis odpovědí a historie přihlášek, okno realizačního týmu, živý zápis, trénink, pokladna, statistiky.
+
+**Ověřeno:** `npm test` 442 / 442 (nové: `winTo`, `countFrom` s koncem, `goingSplit`). `npm run smoke` – 8 rolí bez chyb (hráčka: vzdálený trénink až po ⬇ Načíst další, ⬇ Starší události; Domů „✅ 1 hráčka · 🥅 0 brankářek“).
+
+## v22.12 (27. 10. 2026) – 🏠 K2, krok 2: ❔ Chybí odpověď a 📲 připomenutí
+> **Nasazení – kanál 🧪 BETA:** 1) Nahrát soubory ze zipu do větve **`beta`** (nové `src/domain/home-remind.js`, `tests/home-remind.test.js`; nic se nemaže ani nepřesouvá). 2) **firestore.rules beze změny** (nepublikovat). 3) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v109`). 4) **🔒 Vyžadovat verzi: ne.** 5) Test: `docs/testy-rucni.md` kap. 16. Vydání do stabilní později s celou sérií (PR `beta → main`).
+
+**Přidáno**
+- **❔ Chybí odpověď** v 🏠 Domů (`src/domain/home-remind.js` – `nearestOpen`, `missingAnswers`; `views/home-view.js` – `missHtml`): manager, trenér a asistent vidí nahoře pruh s počtem aktivních hráček bez odpovědi u nejbližší události s otevřeným přihlašováním (stejný počet jako „bez odpovědi“ v detailu). Klepnutí rozbalí jména; **Otevřít událost →** vede do detailu (← Domů zpět).
+- **📲 Připomenout** (`reminderText`, `shareText`): sdílení telefonu (WhatsApp, SMS …) s textem – událost, den, čas, sraz, místo, termín přihlášení, jména a odkaz na stabilní verzi aplikace. Bez sdílení se text zkopíruje do schránky, jinak se ukáže k ručnímu zkopírování. Žádný server, žádné čtení ani zápis databáze.
+- ❓ Nápověda kap. 🏠 Domů. Testy: `tests/home-remind.test.js` (4); kouřový test – rozbalení a připomínka (manager, trenér, asistent).
+
+**Změněno**
+- `.github/workflows/pages.yml`: `actions/checkout@v5` (upozornění na Node.js 20).
+- `docs/KONVENCE.md` – mapa souborů (`home-remind.js`).
+
+**Beze změny:** pravidla databáze, zápis odpovědí, ostatní karty Domů, 🧪 beta kanál, živý zápis, pokladna, statistiky.
+
+**Ověřeno:** `npm test` 439 / 439. `npm run smoke` – 8 rolí bez chyb (trenér: ❔ Chybí odpověď: 8 u zápasu Sokol, text připomínky s jmény a odkazem). `npm run smoke -- --beta` bez chyb.
+
 ## v22.11 (27. 10. 2026) – 🧪 Beta kanál: testování před vydáním pro všechny
 > **Nasazení (tato verze jde přímo do `main`):** 1) Zip současného repozitáře. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nový blok `settings/beta`, ostatní beze změny). 3) Nahrát soubory ze zipu do `main` (nové: `.github/workflows/pages.yml`, `src/core/channel.js`, `src/domain/beta.js`, `src/views/beta-view.js`, `tests/beta.test.js`; nic se nemaže ani nepřesouvá). 4) **Jednorázově v GitHubu** podle README, kap. „Kanály“: Pages → Source **GitHub Actions**, vytvořit větev **`beta`** z `main`, v Environments → github-pages povolit větev `beta`, Actions → Run workflow. 5) Načíst novou verzi (cache `hokej-v108`, beta `hokej-beta-v108`). 6) ⚙️ → 🧪 Beta testování → zaškrtnout testery. 7) **🔒 Vyžadovat verzi: ne** (nechat 22.9). 8) Test: `docs/testy-rucni.md` kap. 15.
 > **Od v22.12 se nové verze nahrávají do větve `beta`**; vydání pro všechny = Pull request `beta → main` → Merge.

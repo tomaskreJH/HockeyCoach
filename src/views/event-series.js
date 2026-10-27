@@ -5,10 +5,10 @@
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
-import {dlBeforeStart, dlDefault, esc, fd, td, toast} from "../core/utils.js";
+import {dlBeforeStart, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {cashCfg} from "../domain/cash.js";
-import {endOf, evDefaults, meetOf, timeFields} from "../domain/event-time.js";
+import {dlFor, endOf, evDefaults, meetOf, timeFields} from "../domain/event-time.js";
 import {SERIES_COLL, WEEK_DAYS, chunks, datesOf, deletePlan, editPlan, manualChange, relDl, relOf, seasonEnd, seriesOps} from "../domain/recurrence.js";
 import {render} from "./shell.js";
 
@@ -27,7 +27,7 @@ const who = () => { const u = HK.user(); return (u && u.email) || ""; };
 const lastTpl = () => { let k = null; try { k = localStorage.getItem(TPL_KEY); } catch (e) { k = null; } return k && cashCfg(S.cc).tpls[k] ? k : "train"; };
 const saveTpl = k => { try { localStorage.setItem(TPL_KEY, k); } catch (e) { /* bez paměti zařízení */ } };
 // Výchozí nastavení opakování podle data formuláře: stejný den v týdnu, každý týden, do konce sezóny, den předem v 18:00, poslední šablona
-const repDefault = date => ({on: true, days: date ? [new Date(date + "T00:00:00").getDay()] : [], every: 1, to: seasonEnd(date), dlD: 1, dlT: "18:00", tpl: lastTpl(), skip: []});
+const repDefault = date => ({on: true, days: date ? [new Date(date + "T00:00:00").getDay()] : [], every: 1, to: seasonEnd(date), dlD: evDefaults(S.es).dlT, dlT: evDefaults(S.es).dlH, tpl: lastTpl(), skip: []});
 // Pravidlo z formuláře a všechny termíny (i vynechané) pro náhled
 const ruleOf = f => ({days: f.rep.days, every: f.rep.every, from: f.date, to: f.rep.to, skip: f.rep.skip});
 const allDates = f => datesOf(ruleOf(f), f.date, f.rep.to, []);
@@ -75,7 +75,7 @@ export function bindRep(a, f, readF) {
   };
   const act = (sel, fn) => a.querySelectorAll(sel).forEach(b => { b.onclick = () => { readF(); readR(); fn(b); render(); }; });
   // Zapnutí / vypnutí opakování (po vypnutí se vrátí výchozí termín přihlašování)
-  act("#srt", () => { if (repOn(f)) { f.rep = null; if (!f.dl) { f.dl = dlDefault(f.date); f.dlAuto = true; } } else f.rep = repDefault(f.date); });
+  act("#srt", () => { if (repOn(f)) { f.rep = null; if (!f.dl) { f.dl = dlFor(f.date, "training", evDefaults(S.es)); f.dlAuto = true; } } else f.rep = repDefault(f.date); });
   act("[data-sd]", b => { const d = +b.dataset.sd, r = f.rep; r.days = r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d]; });
   act("[data-se]", b => { f.rep.every = +b.dataset.se === 2 ? 2 : 1; });
   act("[data-st]", b => { f.rep.tpl = b.dataset.st; });

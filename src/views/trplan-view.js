@@ -9,6 +9,7 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {lokState} from "../domain/event-helpers.js";
 import {clock, DF, FW, GK, groupIn, grpLabel, hm2min, isBreak, isFixedLane, isPosBlock, laneOf, laneSeq, laneTags, MODES, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, POS_GRPS, posGroups, posGrp, rotation, seqMinutes, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
 import {bindMedia, bindThumbs, mediaHtml, thumbsHtml} from "./drill-media.js";
 import {quickSplit} from "./line-split-view.js";
@@ -61,9 +62,9 @@ const CSS = `<style>
 // ===== Pomocné funkce =====
 const canE = () => HK.perm("trplan", "e");
 const drillMap = () => Object.fromEntries((S.dr || []).map(d => [d.id, d]));
-// Štítek skupiny (barva pětky, brankářky fialově, útočnice červeně, obránkyně tmavě); short = jen číslo / ikona
+// Štítek skupiny (barva dresu, brankářky fialově, útočnice červeně, obránkyně tmavě); short = jen první písmeno / ikona
 const GRP_ICON = {[GK]: ["🥅", " Brankářky"], [FW]: ["⚔", " Útočnice"], [DF]: ["🛡", " Obránkyně"]};
-const grpChip = (g, short) => `<span class="evl L${g}" title="${esc(grpLabel(g))}">${GRP_ICON[g] ? GRP_ICON[g][0] + (short ? "" : GRP_ICON[g][1]) : g + (short ? "" : ". pětka")}</span>`;
+const grpChip = (g, short) => `<span class="evl L${g}" title="${esc(grpLabel(g))}">${GRP_ICON[g] ? GRP_ICON[g][0] + (short ? "" : GRP_ICON[g][1]) : short ? esc(grpLabel(g).slice(0, 1)) : esc(grpLabel(g))}</span>`;
 // Skupina přihlášené hráčky v bloku (pětka nebo post)
 const mineIn = (b, X) => groupIn(b, X.mine, X.mineP);
 const grpChips = (grp, short) => (grp || []).map(g => grpChip(g, short)).join("");
@@ -78,7 +79,8 @@ function derive(ctx) {
     mineP: mp ? (isG(mp) ? GK : posGrp(mp.pos)) : null,
     coaches: T.filter(t => yes(t.id)), staff: T,
     start: start == null ? 0 : start, total: start != null && end != null && end > start ? end - start : 0,
-    mine: mp ? myGroup(L, me, isG(mp)) : null, tid: HK.tid ? HK.tid() : null
+    // Hráčka (bez práva upravovat plán) vidí svou barvu dresu až po ✅ potvrzení dresů trenérem; brankářka svou skupinu vždy
+    mine: mp && (canE() || isG(mp) || lokState(ev.raw) !== "none") ? myGroup(L, me, isG(mp)) : null, tid: HK.tid ? HK.tid() : null, lok: lokState(ev.raw)
   };
 }
 const staffName = (X, id) => { const t = X.staff.find(x => x.id === id); return t ? t.name : "?"; };
@@ -140,7 +142,7 @@ function issuesHtml(p, X, D) {
 function bodyHtml(p, X, D, staff) {
   const T = planTimes(p.blocks), used = planMinutes(p.blocks);
   const head = `${p.goal ? `<div style="margin-bottom:4px">🎯 <b>${esc(p.goal)}</b></div>` : ""}<div class="mu">${p.blocks.length} ${p.blocks.length === 1 ? "blok" : p.blocks.length < 5 ? "bloky" : "bloků"} · ${used} min${X.total ? " z " + X.total : ""}</div>
-${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}${!staff && DRESS[X.mine] ? ` · 🎽 vezmi si <b>${DRESS[X.mine]}</b> dres` : ""}</div>` : !staff && HK.pid() ? '<div class="mu" style="margin:6px 0">Zatím nejsi v žádné pětce (rozdělení dělá trenér po přihlášení).</div>' : ""}`;
+${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}${!staff && DRESS[X.mine] ? ` · 🎽 vezmi si <b>${DRESS[X.mine]}</b> dres` : ""}</div>` : !staff && HK.pid() ? (X.lok === "none" ? '<div class="mu" style="margin:6px 0">🎽 Barvu dresu uvidíš, až trenér rozdělení potvrdí.</div>' : '<div class="mu" style="margin:6px 0">Zatím nemáš dres (rozdělení dělá trenér po přihlášení).</div>') : ""}`;
   return head + (staff ? issuesHtml(p, X, D) : "") + p.blocks.map((b, bi) => blockHtml(b, bi, T[bi], X, D)).join("");
 }
 // Okno cvičení: obrázky (klepnutí = celá obrazovka), popis a odkazy; hráčka vidí název a obrázky z kopie v plánu
@@ -168,7 +170,7 @@ function cardHtml(ctx) {
   let body;
   if (p === undefined) body = '<div class="mu">Načítám plán…</div>';
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
-  else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do pětek.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do pětek (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
+  else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do dresů.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do dresů (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
   return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
@@ -189,7 +191,7 @@ function bindCard(a, ctx) {
   if (pr) pr.onclick = () => {
     const how = quickSplit(ctx.ev, ctx.P, ctx.A);
     open(planBlank()); loadPrep(eid);
-    toast(how ? "Pětky rozděleny: " + how : "Pětky beze změny – vyber, z čeho plán začít");
+    toast(how ? "Dresy rozděleny: " + how : "Dresy beze změny – vyber, z čeho plán začít");
   };
   const ed = a.querySelector("#tped");
   if (ed) ed.onclick = () => open(clone(planDoc(S.tp[eid] || planBlank(), drillMap())));

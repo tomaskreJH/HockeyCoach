@@ -1,22 +1,20 @@
-// Záložka Události: Nadcházející / Minulé / Kalendář / 📊 Docházka, karta události s rychlými tlačítky ✅ ❌ ❓ (za propojenou hráčku,
-// jinak za člena realizačního týmu – selfMember), řádek stavu 💰 vyúčtování / 🏒 tréninku (event-badges.js), + Trénink / + Zápas. Detail: event-detail.js, formulář: event-form.js, základ: event-core.js.
+// Záložka Události: Nadcházející / Minulé / Kalendář / 📊 Docházka, karta události (event-core.js – cardHtml) s rychlými tlačítky ✅ ❌ ❓ (za propojenou hráčku,
+// jinak za člena realizačního týmu – selfMember), 📉 hráčka vidí 15 dní dopředu a 8 dní zpět (další tlačítkem), řádek stavu 💰 vyúčtování / 🏒 tréninku (event-badges.js), + Trénink / + Zápas. Detail: event-detail.js, formulář: event-form.js, základ: event-core.js.
 // Režimy pokladny v záložce Team (💰 Platby, 🏦 Pokladna, 🧾 Náklady, 📅 Měsíce, 📊 Rozpočet) vykresluje cashPanel().
 
 // ===== Importy =====
-import {score} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, td} from "../core/utils.js";
+import {esc, fd, td} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {costTotal, kc} from "../domain/cash.js";
-import {cancelText, isCancelled} from "../domain/event-cancel.js";
+import {WIN_DAYS, dayAdd} from "../domain/data-window.js";
 import {selfMember, sortEvents} from "../domain/event-helpers.js";
 import {attReqBanner, attReqModal, bindAttReqAdmin} from "./att-request-view.js";
 import {attHtml, bindAtt} from "./attendance.js";
 import {bindBudget, budgetHtml} from "./budget-view.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindCost, costHtml} from "./cost-view.js";
-import {activePl, allEvents, ANS, answer, atMap, bindSheet, cashMgr, counts, CSS, dlLine, guest, isLocked, isPl, MONTHS, ORD, pad, restLine, roster, rosterLine, sheetHtml, staff, titleLine} from "./event-core.js";
-import {ensureTrainStatus, forgetTrainStatus, statusLine} from "./event-badges.js";
+import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, CSS, guest, isPl, MONTHS, pad, sheetHtml} from "./event-core.js";
+import {ensureTrainStatus, forgetTrainStatus} from "./event-badges.js";
 import {detail} from "./event-detail.js";
 import {formView, newTraining} from "./event-form.js";
 import {bindFinance, financeHtml} from "./finance.js";
@@ -40,22 +38,9 @@ function calHtml(evs, today) {
   }
   return `<div class="cd"><div class="evh" style="margin-bottom:8px"><button class="s" data-cn="-1">◀</button><b>${MONTHS[m]} ${y}</b><button class="s" data-cn="1">▶</button></div><div class="cal">${cells}</div></div>`;
 }
-// Rychlá tlačítka na kartě: moje odpověď a počet odpovědí týmu (c = counts) v každém tlačítku
-const quick = (e, mine, dis, c) => `<div class="evq">${ORD.map(k => `<button class="${mine && mine.st === k ? "on-" + k : ""}" data-qa="${e.id}|${k}" ${dis ? "disabled" : ""}>${ANS[k].ic} ${ANS[k].t} <b class="evqn">${c[k]}</b></button>`).join("")}</div>`;
-function card(e, AT, P) {
-  const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, cn = isCancelled(e), lk = (isLocked(e) && !staff()) || cn, mt = e.type === "match", m = e.raw, g = guest();
-  const sc = cn ? ' <span class="tag red">❌ Zrušeno</span>' : mt && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
-  const tot = cashMgr() ? costTotal(e.cx) : 0, pay = tot ? " · 💰 náklady " + kc(tot) : "";   // náklady jen pro správce pokladny
-  // Hostující nevidí počty ostatních: rychlá tlačítka bez čísel, bez řádku Přihlášeno
-  const cq = g ? {yes: "", no: "", maybe: ""} : c;
-  const rl = restLine(e);
-  return `<div class="cd evi" data-eo="${e.id}"${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
-<div class="mu">${rl}${mt ? (m.home ? " · doma" : " · venku") : ""}${pay}</div>
-<div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
-${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}
-${statusLine(e)}
-${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" style="margin-top:6px">${esc(mine.reason)}</div>` : ""}</div>`;
-}
+// 📉 Hráčka: tlačítko pro vzdálenější budoucnost (poslech až na vyžádání) a pro starší minulé události (jen z paměti, bez čtení)
+const farBtn = f => (f ? `<button class="s w" id="evfar" style="margin:4px 0 12px">⬇ Načíst další události (od ${fd(f.to)})</button>` : "");
+const oldBtn = n => (n ? `<button class="s w" id="evold" style="margin:4px 0 12px">⬇ Starší události (${n})</button>` : "");
 function list(a) {
   const P = activePl(), AT = atMap(), evs = allEvents(), today = td(), pl_ = isPl();
   if (!S.evc) { const n = new Date(); S.evc = {y: n.getFullYear(), m: n.getMonth()}; }
@@ -68,12 +53,22 @@ function list(a) {
   const mode = modes.some(([k]) => k === S.evm) ? S.evm : "up";
   const chipsH = `<div class="chips">${modes.map(([k, t]) => `<button class="chip ${mode === k ? "on" : ""}" data-evm="${k}">${t}</button>`).join("")}</div>`;
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události, docházku nebo realizační tým se nepodařilo načíst (${esc(S.evErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
-  let shown;
+  let shown, more = "";
+  // 📉 Hráčka: nadcházející jen do far.to (15 dní, dál po Načíst další), minulé jen posledních WIN_DAYS.other dní (starší tlačítkem)
+  const far = pl_ && HK.farInfo ? HK.farInfo() : null, oldFrom = pl_ && !S.evOld ? dayAdd(today, -WIN_DAYS.other) : "";
   // Nadcházející vzestupně (nejbližší nahoře), Minulé a Kalendář sestupně (nejnovější nahoře)
-  if (mode === "up") shown = sortEvents(evs.filter(e => e.date >= today), "up");
-  else if (mode === "past") shown = sortEvents(evs.filter(e => e.date < today), "past");
+  if (mode === "up") { shown = sortEvents(evs.filter(e => e.date >= today && (!far || e.date < far.to)), "up"); more = farBtn(far); }
+  else if (mode === "past") {
+    const past = evs.filter(e => e.date < today);
+    shown = sortEvents(past.filter(e => e.date >= oldFrom), "past");
+    more = oldBtn(past.length - shown.length);
+  }
   else if (mode === "att") shown = [];
-  else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = sortEvents(evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)), "cal"); }
+  else {
+    const pre = S.evc.y + "-" + pad(S.evc.m + 1);
+    shown = sortEvents(evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)), "cal");
+    if (far && pre + "-31" >= far.to) more = farBtn(far);                // zobrazený měsíc sahá za načtené období
+  }
   ensureTrainStatus(shown);   // 🏒 stav jen zobrazených tréninků pro trenéry (📉 čtení po dokumentech, překreslí se samo)
   // Hlavička: hráčka bez propojení dostane upozornění; správce tlačítka pro založení události
   const head = pl_
@@ -85,12 +80,15 @@ ${attReqBanner()}
 ${head}
 ${chipsH}
 ${mode === "cal" ? calHtml(evs, today) : ""}
-${mode === "att" ? attHtml() : shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml() + attReqModal();
+${mode === "att" ? attHtml() : shown.length ? shown.map(e => cardHtml(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}${more}</div>` + sheetHtml() + attReqModal();
   // Eventy seznamu
   const nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
   if (nt) nt.onclick = () => { S.evf = newTraining(today); render(); };
   if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
   a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
+  const fb = a.querySelector("#evfar"), ob = a.querySelector("#evold");
+  if (fb) fb.onclick = () => { fb.disabled = true; fb.textContent = "Načítám…"; HK.farListen(); };   // překreslí se po načtení dat
+  if (ob) ob.onclick = () => { S.evOld = true; render(); };
   bindBanner(a);
   bindAttReqAdmin(a);
   if (mode === "att") bindAtt(a);

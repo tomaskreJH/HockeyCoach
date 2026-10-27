@@ -7,7 +7,7 @@
 // ===== Importy =====
 import {LN, SL} from "../config/constants.js";
 import {dayAdd} from "./data-window.js";
-import {LINE_NOS} from "./event-helpers.js";
+import {dressName, LINE_NOS, lokState} from "./event-helpers.js";
 
 // ===== Konstanty =====
 export const GUEST_KEY = "guest";                    // příznak v players: hostující hráčka
@@ -44,13 +44,13 @@ export function evPubDoc(e, k) {
   if (e.cancelled) d.cancelled = {at: str(e.cancelled.at), reason: str(e.cancelled.reason)};
   return d;
 }
-// Pětky tréninku jako řádky jmen: lines = {pid | "t:" + tid: číslo pětky}
+// Rozdělení do dresů (tréninku) jako řádky jmen: lines = {pid | "t:" + tid: číslo skupiny} → {t: Modrá…, n: jména}
 function trainRows(lines, P, T) {
   const L = lines || {};
   return LINE_NOS.map(n => {
     const pls = Object.keys(L).filter(k => +L[k] === n && !k.startsWith("t:")).map(id => P[id]).filter(Boolean).map(plName).sort((a, b) => a.localeCompare(b, "cs"));
     const trs = Object.keys(L).filter(k => +L[k] === n && k.startsWith("t:")).map(k => T[k.slice(2)]).filter(Boolean).map(t => "🎓 " + str(t.name)).sort((a, b) => a.localeCompare(b, "cs"));
-    return {t: n + ". pětka", n: [...pls, ...trs]};
+    return {t: dressName(n), n: [...pls, ...trs]};
   }).filter(r => r.n.length);
 }
 // Formace zápasu jako řádky jmen: řady 1–4 (pozice LK, C, PK, LO, PO včetně střídajících), brankářky G1 / G2
@@ -69,7 +69,8 @@ function matchRows(lu, P) {
 // Dokument lineuppub: {k, date, rows: [{t, n: [jména]}]}; null = událost formaci nemá (dokument se nezakládá / smaže)
 export function lineupPubDoc(e, k, players, staff) {
   const P = Object.fromEntries((players || []).map(p => [p.id, p])), T = Object.fromEntries((staff || []).map(t => [t.id, t]));
-  const rows = k === "t" ? trainRows(e.lines, P, T) : matchRows(e.lineup, P);
+  // Trénink: dresy jen po ✅ potvrzení trenérem (stejně jako hráčky)
+  const rows = k === "t" ? (lokState(e) === "none" ? [] : trainRows(e.lines, P, T)) : matchRows(e.lineup, P);
   return rows.length ? {k, date: str(e.date), rows} : null;
 }
 

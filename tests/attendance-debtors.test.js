@@ -22,7 +22,7 @@ test("attEvents + pastEvents: druh události a jen uplynulé události v období
 });
 
 test("attSummary: účast = Jdu, procento z počtu událostí daného typu", () => {
-  const evs = [{id: "e1", kind: "train"}, {id: "e2", kind: "train"}, {id: "e3", kind: "home"}];
+  const evs = [{id: "e1", kind: "train", date: "2026-11-02"}, {id: "e2", kind: "train", date: "2026-11-03"}, {id: "e3", kind: "home", date: "2026-11-04"}];
   const at = [{eid: "e1", pid: "a", st: "yes"}, {eid: "e2", pid: "a", st: "no"}, {eid: "e3", pid: "a", st: "maybe"}];
   const r = attSummary(evs, at, ["a", "b"]);
   assert.deepEqual({n: r.a.all.n, yes: r.a.all.yes, no: r.a.all.no, maybe: r.a.all.maybe, pct: r.a.all.pct}, {n: 3, yes: 1, no: 1, maybe: 1, pct: 33});

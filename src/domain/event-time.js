@@ -1,11 +1,14 @@
 // Doména: čas události – konec tréninku (pole end) a sraz (pole meet = minuty před začátkem) pro tréninky i zápasy (čisté funkce bez DOM).
-// Výchozí hodnoty jsou v settings/events = {meetT, meetM, len} (sraz tréninku a zápasu v minutách, délka tréninku); bez dokumentu platí EV_DEF.
+// Výchozí hodnoty jsou v settings/events = {meetT, meetM, len, dlT, dlM, dlH} (sraz tréninku a zápasu v minutách, délka tréninku, termín přihlášení
+// = dlT / dlM dní před tréninkem / zápasem v čase dlH); bez dokumentu platí EV_DEF.
 // Událost bez pole meet / end používá výchozí hodnoty (starší data fungují beze změny). meet = 0 znamená „bez srazu“.
 // Zápas konec nemá (otázka 65); začátek události zůstává v poli time (docházka, uzávěrka a přehledy beze změny).
 
 // ===== Konstanty =====
 export const EVSET_DOC = "settings/events";                  // dokument výchozích hodnot událostí
 export const EV_DEF = {meetT: 30, meetM: 60, len: 60};        // výchozí sraz tréninku, sraz zápasu, délka tréninku (minuty)
+export const DL_DEF = {dlT: 1, dlM: 1, dlH: "18:00"};          // výchozí termín přihlášení: dní před tréninkem / zápasem a čas
+export const DL_MAX = 14;                                     // nejvíc dní termínu před událostí
 export const MEET_MAX = 240;                                  // nejvíc minut srazu před začátkem
 export const LEN_MAX = 300;                                   // nejdelší trénink (minuty)
 const DAY_MIN = 24 * 60;
@@ -30,7 +33,15 @@ export function clampMin(v, max, def) {
 // Výchozí hodnoty z dokumentu settings/events (chybějící nebo neplatná pole doplní EV_DEF); délka tréninku aspoň 1 minuta
 export function evDefaults(st) {
   const s = st || {}, len = clampMin(s.len, LEN_MAX, EV_DEF.len);
-  return {meetT: clampMin(s.meetT, MEET_MAX, EV_DEF.meetT), meetM: clampMin(s.meetM, MEET_MAX, EV_DEF.meetM), len: len > 0 ? len : EV_DEF.len};
+  return {meetT: clampMin(s.meetT, MEET_MAX, EV_DEF.meetT), meetM: clampMin(s.meetM, MEET_MAX, EV_DEF.meetM), len: len > 0 ? len : EV_DEF.len,
+    dlT: clampMin(s.dlT, DL_MAX, DL_DEF.dlT), dlM: clampMin(s.dlM, DL_MAX, DL_DEF.dlM), dlH: okTime(s.dlH) ? s.dlH.padStart(5, "0") : DL_DEF.dlH};
+}
+// Výchozí termín přihlášení události ("RRRR-MM-DDTHH:MM"): dlT / dlM dní před datem v čase dlH; bez data ""
+export function dlFor(date, type, defs) {
+  if (!date) return "";
+  const d = new Date(date + "T12:00:00"), n = type === "match" ? defs.dlM : defs.dlT, p = x => String(x).padStart(2, "0");
+  d.setDate(d.getDate() - n);
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + defs.dlH;
 }
 // Výchozí sraz podle typu události ("training" | "match")
 export const meetDefault = (type, defs) => type === "match" ? defs.meetM : defs.meetT;

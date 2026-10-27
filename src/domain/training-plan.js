@@ -4,7 +4,7 @@
 // Řada cvičení seq = [{id, drill, dn, di, dur}] jen u linky, která se netočí; drill / dn / di linky = první cvičení řady.
 // Cvičení řady pro hodnocení, měření a pokrytí rozkládá expandLanes (klíč blok_linka-cvičení).
 // ===== Importy =====
-import {LINE_NOS} from "./event-helpers.js";
+import {dressName, LINE_NOS} from "./event-helpers.js";
 import {clamp} from "../core/utils.js";
 
 // ===== Konstanty =====
@@ -13,7 +13,7 @@ export const PLAN_VER = 1;                                   // trplan.v: verze 
 export const GK = "G";                                       // skupina brankářek
 export const FW = "F", DF = "D";                              // skupiny podle postu: útočnice, obránkyně (blok by: "pos")
 export const POS_GRPS = [FW, DF];
-export const BY = {ln: "🎽 Pětky", pos: "⚔ Útok / obrana"};      // čím se v bloku dělí skupiny
+export const BY = {ln: "🎽 Dresy", pos: "⚔ Útok / obrana"};      // čím se v bloku dělí skupiny
 export const MODES = {all: "👥 Společně", st: "🔄 Stanoviště"};
 export const PLAN_MAX = {blocks: 30, lanes: 4, goal: 200, dn: 80, di: 3, seq: 8};   // seq = nejvýš cvičení v řadě jedné linky
 export const BLK_DUR_MIN = 1, BLK_DUR_MAX = 90, BLK_DUR_DEF = 10;
@@ -46,7 +46,7 @@ export function laneTags(b) {
   return ((b && b.lanes) || []).map(l => (b.mode !== "st" ? "" : isFixedLane(l) ? "🥅" : "ABCD"[k++] || "?"));
 }
 // Text skupiny pro zobrazení
-export const grpLabel = g => (g === GK ? "🥅 Brankářky" : g === FW ? "⚔ Útočnice" : g === DF ? "🛡 Obránkyně" : g + ". pětka");
+export const grpLabel = g => (g === GK ? "🥅 Brankářky" : g === FW ? "⚔ Útočnice" : g === DF ? "🛡 Obránkyně" : dressName(g));
 
 // ===== Skupiny =====
 // Skupiny tréninku: pětky, ve kterých je aspoň jedna přihlášená hráčka (lines z rozdělení do pětek), + "G" při přihlášené brankářce.

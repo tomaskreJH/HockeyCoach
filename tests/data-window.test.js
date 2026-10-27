@@ -4,14 +4,28 @@
 // ===== Importy =====
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {WIN, WIN_DAYS, archNeed, attDate, attDateFix, countFrom, dayAdd, mergeBand, winFrom} from "../src/domain/data-window.js";
+import {AHEAD_DAYS, WIN, WIN_DAYS, archNeed, attDate, attDateFix, countFrom, dayAdd, mergeBand, winFrom, winTo} from "../src/domain/data-window.js";
 
 // ===== Testy =====
-test("dayAdd a winFrom: realizační tým 45 dní, ostatní 14 dní (přes hranici měsíce i roku)", () => {
+test("dayAdd a winFrom: realizační tým 45 dní, ostatní 8 dní (přes hranici měsíce i roku)", () => {
   assert.equal(dayAdd("2026-03-01", -1), "2026-02-28");
   assert.equal(dayAdd("2026-01-05", -14), "2025-12-22");
   assert.equal(winFrom("2026-10-27", true), dayAdd("2026-10-27", -WIN_DAYS.staff));
-  assert.equal(winFrom("2026-10-27", false), "2026-10-13");
+  assert.equal(winFrom("2026-10-27", false), "2026-10-19");
+});
+
+test("winTo (v22.13): hráčka 15 dní dopředu včetně (konec bez dne), realizační tým bez konce", () => {
+  assert.equal(AHEAD_DAYS, 15);
+  assert.equal(winTo("2026-10-27", false), "2026-11-12", "poslední živý den 11. 11. = dnes + 15");
+  assert.equal(winTo("2026-12-25", false), "2027-01-10", "přes konec roku");
+  assert.equal(winTo("2026-10-27", true), "");
+});
+
+test("countFrom (v22.13): od from včetně, do to bez něj; bez to bez konce", () => {
+  const docs = {a: {date: "2026-10-18"}, b: {date: "2026-10-19"}, c: {date: "2026-11-11"}, d: {date: "2026-11-12"}, e: {}};
+  assert.equal(countFrom(docs, "date", "2026-10-19", "2026-11-12"), 2);
+  assert.equal(countFrom(docs, "date", "2026-10-19"), 3);
+  assert.equal(countFrom(docs, "date", "2026-10-19", ""), 3);
 });
 
 test("archNeed: poprvé, bez paměti nebo ručně celý archiv; po ttl jen pás; jinak nic", () => {

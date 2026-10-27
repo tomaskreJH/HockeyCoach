@@ -1,4 +1,4 @@
-// Rozdělení do pětek tréninku: panel automatického rozdělení v detailu tréninku (způsob, počet, ⚔ poměr – localStorage hk-split)
+// Rozdělení do dresů (skupin) tréninku: panel automatického rozdělení v detailu tréninku (způsob, počet, ⚔ poměr – localStorage hk-split)
 // a okno ⭐ Výkonnost (plevel/team, jen realizační tým, poslech při prvním zobrazení). Výpočet domain/line-split.js.
 // Přepíše jen hráčky (realizační tým zůstane), existující rozdělení druhým klepnutím; ✨ Připravit trénink dělí jen nerozdělené (quickSplit).
 // ===== Importy =====
@@ -7,7 +7,7 @@ import {isG, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {LINE_NOS} from "../domain/event-helpers.js";
+import {dressName, LINE_NOS} from "../domain/event-helpers.js";
 import {LVL_LABELS, LVL_MAX, LVL_MIN, PLEVEL_COLL, PLEVEL_DOC, SPLIT_DEF, SPLIT_MODES, hasLvl, lineSummary, lvlOf, lvlSet, splitLines} from "../domain/line-split.js";
 import {DF, posGrp} from "../domain/training-plan.js";
 import {render} from "./shell.js";
@@ -16,10 +16,10 @@ import {render} from "./shell.js";
 // S.plv = mapa výkonnosti {pid: 1–5} | undefined (načítá se), S.plvErr = chyba, S.plvo = otevřené okno ⭐ {eid, y – posun seznamu}, S.lspo = id tréninku s ručně rozbaleným panelem, S.lsp = volby rozdělení
 const KEY = "hk-split";
 const HINT = {
-  even: "Každá pětka podobně silná (silné a slabší hráčky promíchané).",
-  tier: "Nejsilnější spolu v 1. pětce, slabší v dalších – pro cvičení podle úrovně.",
+  even: "Každá skupina podobně silná (silné a slabší hráčky promíchané).",
+  tier: "Nejsilnější spolu v modré, slabší v dalších – pro cvičení podle úrovně.",
   alt: "Střídavě v pořadí soupisky (bez ohledu na výkonnost).",
-  base: "Pětky ze základní formace zápasu, ostatní přihlášené se doplní vyrovnaně."
+  base: "Skupiny podle pětek základní formace zápasu, ostatní přihlášené se doplní vyrovnaně."
 };
 let unsub = null;
 
@@ -59,14 +59,14 @@ function panelHtml(ev, going) {
   // Panel je sbalený, když už je někdo v pětce (méně posouvání); otevřený, když se teprve rozděluje nebo ho trenér rozbalil
   const open = S.lspo === ev.id || !going.some(p => L[p.id]) || armed(k);
   return `<details id="lsdt" style="border:1px solid var(--bd);border-radius:12px;padding:8px;margin-bottom:10px" ${open ? "open" : ""}>
-<summary style="cursor:pointer;min-height:36px;padding:4px 0"><b>↻ Rozdělit automaticky</b> <span class="mu" style="font-size:12px">${esc(SPLIT_MODES[o.mode])} · ${o.n} pětky${o.pos ? " · ⚔" : ""}</span></summary>
+<summary style="cursor:pointer;min-height:36px;padding:4px 0"><b>↻ Rozdělit automaticky</b> <span class="mu" style="font-size:12px">${esc(SPLIT_MODES[o.mode])} · ${o.n} dresy${o.pos ? " · ⚔" : ""}</span></summary>
 <div class="chips" style="margin:4px 0">${Object.entries(SPLIT_MODES).map(([m, t]) => `<button class="chip ${o.mode === m ? "on" : ""}" data-lsm="${m}">${t}</button>`).join("")}</div>
 <div class="mu" style="font-size:12px;margin-bottom:4px">${esc(HINT[o.mode])}</div>
-<div class="chips" style="margin:4px 0;align-items:center"><span class="mu" style="font-size:12px">Pětek</span>${[2, 3, 4].map(n => `<button class="chip ${o.n === n ? "on" : ""}" data-lsn="${n}">${n}</button>`).join("")}
-<button class="chip ${o.pos ? "on" : ""}" id="lspos" title="V každé pětce poměrně útočnic i obránkyň">⚔ Poměr útok / obrana</button></div>
-<div class="row" style="margin-top:6px"><button class="p" id="lsgo" style="flex:2;${armed(k) ? "background:var(--wa);color:#fff" : ""}">${armed(k) ? "Přepsat pětky? Klepni znovu" : "↻ Rozdělit"}</button>${staff ? '<button class="s" id="lslv" style="flex:1">⭐ Výkonnost</button>' : ""}<button class="s" id="evlc" style="flex:1">Vymazat</button></div>
+<div class="chips" style="margin:4px 0;align-items:center"><span class="mu" style="font-size:12px">Dresů</span>${[2, 3, 4].map(n => `<button class="chip ${o.n === n ? "on" : ""}" data-lsn="${n}">${n}</button>`).join("")}
+<button class="chip ${o.pos ? "on" : ""}" id="lspos" title="V každém dresu poměrně útočnic i obránkyň">⚔ Poměr útok / obrana</button></div>
+<div class="row" style="margin-top:6px"><button class="p" id="lsgo" style="flex:2;${armed(k) ? "background:var(--wa);color:#fff" : ""}">${armed(k) ? "Přepsat dresy? Klepni znovu" : "↻ Rozdělit"}</button>${staff ? '<button class="s" id="lslv" style="flex:1">⭐ Výkonnost</button>' : ""}<button class="s" id="evlc" style="flex:1">Vymazat</button></div>
 ${staff ? `<div class="mu" style="font-size:12px;margin-top:6px">${S.plv === undefined ? "Načítám výkonnost…" : S.plvErr ? "Výkonnost se nenačetla (" + esc(S.plvErr) + ") – manager musí publikovat pravidla v21.3." : `⭐ hodnoceno ${rated} z ${going.length} přihlášených (bez hodnocení = ⭐3)`}</div>` : ""}
-${used.length ? `<div style="margin-top:6px">${used.map(n => `<span class="evl L${n}">${n}.: ${sum[n].c} · Ú ${sum[n].f} / O ${sum[n].d}${staff && sum[n].avg != null ? " · Ø⭐" + String(sum[n].avg).replace(".", ",") : ""}</span>`).join("")}</div>` : ""}</details>`;
+${used.length ? `<div style="margin-top:6px">${used.map(n => `<span class="evl L${n}">${dressName(n)}: ${sum[n].c} · Ú ${sum[n].f} / O ${sum[n].d}${staff && sum[n].avg != null ? " · Ø⭐" + String(sum[n].avg).replace(".", ",") : ""}</span>`).join("")}</div>` : ""}</details>`;
 }
 // Okno ⭐ Výkonnost: přihlášené na trénink nahoře, pak ostatní aktivní hráčky (bez brankářek); klepnutí ukládá hned
 function sheetHtml(going, all) {
@@ -94,7 +94,7 @@ function bindPanel(a, ev, going) {
     const L = ev.raw.lines || {}, run = () => {
       const lines = splitLines(going, {...o, lv: S.plv || {}, lu: (S.def || {}).lu, prev: L});
       S.db.doc("events/" + ev.id).merge({lines});
-      toast("Rozděleno: " + SPLIT_MODES[o.mode] + " do " + o.n + " pětek");
+      toast("Rozděleno: " + SPLIT_MODES[o.mode] + " do " + o.n + " dresů");
     };
     // Už rozdělené hráčky = potvrzení druhým klepnutím (přepíše se jejich pětka)
     if (going.some(p => L[p.id])) confirm2("lsp" + ev.id, run); else run();
@@ -135,7 +135,7 @@ export function quickSplit(ev, P, A) {
   if (!going.length || going.some(p => L[p.id])) return "";
   const lines = splitLines(going, {...o, lv: S.plv || {}, lu: (S.def || {}).lu, prev: L});
   S.db.doc("events/" + ev.id).merge({lines});
-  return SPLIT_MODES[o.mode] + " do " + o.n + " pětek";
+  return SPLIT_MODES[o.mode] + " do " + o.n + " dresů";
 }
 export function bindSplit(a, ev, P, A) {
   const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p));

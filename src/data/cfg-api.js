@@ -39,7 +39,7 @@ export function cfgApi(C) {
   const pidRoleErr = (rl, pp) => { const p = data.players[pp]; if (!p) return "Vyber hráčku"; if (rl === "host" && !isGuest(p)) return "Role Hostující patří jen hráčce označené 🎟 (Team → Upravit → Hostující)"; if (rl === "hracka" && isGuest(p)) return "Hostující hráčku 🎟 propoj s rolí Hostující"; return null; };
   // Volby rolí: náhled (vývojář) a přidání člena (manager všechny, pokladník jen Hráčka); třetí položka = výchozí výběr
   const PV_ROLES = [["hracka", "Hráčka"], ["host", "Hostující"], ["asistent", "Asistent"], ["trener", "Trenér"], ["manager", "Manager"]];
-  const memberRoles = () => can("admin") ? [["manager", "Manager (vše, správa členů a práv)"], ["trener", "Trenér (sport)"], ["asistent", "Asistent (dříve Kustod)", true], ["hracka", "Hráčka"], ["host", "Hostující 🎟 (vidí jen sebe)"]] : [["hracka", "Hráčka", true]];
+  const memberRoles = () => can("admin") ? [["manager", "Manager (vše, správa členů a práv)"], ["trener", "Trenér (sport)"], ["asistent", "Asistent (zápasy, události)", true], ["hracka", "Hráčka"], ["host", "Hostující 🎟 (vidí jen sebe)"]] : [["hracka", "Hráčka", true]];
   // Co role při propojení účtu potřebuje / smí: hráčku (Hráčka, Hostující), příznak pokladník (ne manager – je jím vždy – a ne hostující), člena týmu (ne hostující)
   const needsPid = r => PID_ROLES.includes(r);
   const cashOk = r => r !== "manager" && r !== "host";

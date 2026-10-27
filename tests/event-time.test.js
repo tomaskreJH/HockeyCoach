@@ -5,7 +5,7 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {EVSET_DOC, EV_DEF, MEET_MAX, addMin, clampMin, defEnd, endOf, endOk, evDefaults, meetAt, meetOf, okTime, timeFields, timeParts} from "../src/domain/event-time.js";
+import {EVSET_DOC, EV_DEF, MEET_MAX, addMin, clampMin, defEnd, dlFor, endOf, endOk, evDefaults, meetAt, meetOf, okTime, timeFields, timeParts} from "../src/domain/event-time.js";
 import {answerCounts} from "../src/domain/event-helpers.js";
 import {editPlan, manualChange, seriesOps} from "../src/domain/recurrence.js";
 
@@ -16,11 +16,11 @@ const ma = (time, more) => ({type: "match", time, ...more});
 
 // ===== Výchozí hodnoty =====
 test("evDefaults: bez dokumentu výchozí 30 / 60 / 60, neplatné hodnoty se nahradí, horní mez", () => {
-  assert.deepEqual(D, {meetT: 30, meetM: 60, len: 60});
+  assert.deepEqual(D, {meetT: 30, meetM: 60, len: 60, dlT: 1, dlM: 1, dlH: "18:00"});
   assert.deepEqual(EV_DEF, {meetT: 30, meetM: 60, len: 60});
   assert.equal(EVSET_DOC, "settings/events");
-  assert.deepEqual(evDefaults({meetT: 45, meetM: "90", len: 75}), {meetT: 45, meetM: 90, len: 75});
-  assert.deepEqual(evDefaults({meetT: -5, meetM: "x", len: 0}), {meetT: 30, meetM: 60, len: 60});
+  assert.deepEqual(evDefaults({meetT: 45, meetM: "90", len: 75}), {meetT: 45, meetM: 90, len: 75, dlT: 1, dlM: 1, dlH: "18:00"});
+  assert.deepEqual(evDefaults({meetT: -5, meetM: "x", len: 0}), {meetT: 30, meetM: 60, len: 60, dlT: 1, dlM: 1, dlH: "18:00"});
   assert.equal(evDefaults({meetM: 999}).meetM, MEET_MAX);
   assert.equal(evDefaults({meetT: 0}).meetT, 0, "0 = bez srazu");
   assert.equal(clampMin("", 100, 7), 7);
@@ -114,4 +114,16 @@ test("pravidla: settings/events zapisuje trenér a asistent (isStaff), čtou čl
   assert.match(m[1], /: isStaff\(\)\)\)\);/);
   const ev = rules.match(/match \/events\/\{id\} \{([\s\S]*?)\n    \}/);
   assert.match(ev[1], /allow update: if evUpdate\('events'\) \|\|/);
+});
+
+// ===== Výchozí termín přihlášení (v22.16) =====
+test("dlFor: dny předem a čas ze settings/events, trénink a zápas zvlášť", () => {
+  const d = evDefaults({dlT: 2, dlM: 3, dlH: "20:00"});
+  assert.equal(dlFor("2026-11-05", "training", d), "2026-11-03T20:00");
+  assert.equal(dlFor("2026-11-05", "match", d), "2026-11-02T20:00");
+  assert.equal(dlFor("2026-11-01", "training", evDefaults({})), "2026-10-31T18:00", "výchozí den předem v 18:00 (přes konec měsíce)");
+  assert.equal(dlFor("2026-11-05", "training", evDefaults({dlT: 0})), "2026-11-05T18:00", "0 = v den události");
+  assert.equal(dlFor("", "training", d), "");
+  assert.equal(evDefaults({dlT: 99, dlH: "25:00"}).dlT, 14);
+  assert.equal(evDefaults({dlH: "25:00"}).dlH, "18:00");
 });

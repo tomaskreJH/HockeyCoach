@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {CAN_ACTS, DEFAULT_PERMS, ROLE_KEYS, actOf, isEditable, permOf} from "../src/domain/permissions.js";
 import {DRILLIMG_COLL, IMG_LEN, IMG_MAX, drillCopy, drillDoc, drillError, imgChanges, imgDoc, imgFit} from "../src/domain/drills.js";
-import {GK, PLAN_MAX, TRPLAN_COLL, blockBlank, clock, drillUsage, evenLines, hm2min, laneOf, moveBlock, myGroup, planDoc, planGroups, planIssues, planMinutes, planTimes, rotation} from "../src/domain/training-plan.js";
+import {GK, PLAN_MAX, grpLabel, TRPLAN_COLL, blockBlank, clock, drillUsage, evenLines, hm2min, laneOf, moveBlock, myGroup, planDoc, planGroups, planIssues, planMinutes, planTimes, rotation} from "../src/domain/training-plan.js";
 
 // ===== Pomocná data =====
 const lane = (id, grp, extra = {}) => ({id, drill: "d1", dn: "Osmičky", di: [], co: [], grp, ...extra});
@@ -96,8 +96,8 @@ test("planIssues: přetečení, kolize trenérů, skupina na dvou linkách, skup
   const clash = {...ST, lanes: [lane("A", [1], {co: ["t1"]}), lane("B", [2, 1], {co: ["t1"]})]};
   const I = txt({blocks: [clash]}, {groups: [1, 2, 3], coaches: ["t2"]});
   assert.ok(I.some(x => /^err:Blok 1: stejný trenér/.test(x)));
-  assert.ok(I.some(x => /^err:Blok 1: 1\. pětka je na dvou linkách/.test(x)));
-  assert.ok(I.some(x => /^warn:Blok 1: 3\. pětka není na žádném stanovišti/.test(x)));
+  assert.ok(I.some(x => /^err:Blok 1: Modrá je na dvou linkách/.test(x)));
+  assert.ok(I.some(x => /^warn:Blok 1: Zelená není na žádném stanovišti/.test(x)));
   assert.ok(I.some(x => /trenér není přihlášený/.test(x)));
   assert.ok(txt({blocks: [{...ALL, lanes: [lane("X", [], {drill: ""})]}]}, {}).some(x => /bez cvičení/.test(x)));
   assert.ok(txt({blocks: [{...ALL, lanes: [lane("X", [], {drill: "d2", dn: "Střelba"})]}]}, {drills: D}).some(x => /už v bance není/.test(x)));
@@ -171,4 +171,13 @@ test("pravidla: trplan podle matice (číst r, zapisovat e se známými poli), d
   assert.match(R, /d\.d\.size\(\) <= 700000/);
   assert.equal(IMG_LEN, 700000, "limit obrázku v aplikaci = limit v pravidlech");
   assert.match(R, /'pdf', 'img', 'meas'/);
+});
+
+// ===== Názvy dresů (v22.15) =====
+test("dressName / grpLabel: skupiny tréninku podle barvy dresu, posty a brankářky beze změny", async () => {
+  const {dressName} = await import("../src/domain/event-helpers.js");
+  assert.deepEqual([1, 2, 3, 4].map(dressName), ["Modrá", "Žlutá", "Zelená", "Růžová"]);
+  assert.equal(dressName(5), "5. skupina");
+  assert.equal(grpLabel(2), "Žlutá");
+  assert.equal(grpLabel(GK), "🥅 Brankářky");
 });

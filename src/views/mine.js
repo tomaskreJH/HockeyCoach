@@ -140,7 +140,7 @@ function attCard(se) {
   if (!r.all.n) return `<div class="cd">${head}<div class="mu">V této sezóně zatím nebyla žádná událost.</div></div>`;
   const line = (l, x) => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px"><span>${l}</span><span><b>${x.yes}</b> z ${x.n}${x.pct == null ? "" : " · " + x.pct + " %"}${x.nos ? ` · <b style="color:var(--no)">🚫 ${x.nos}</b>` : ""}</span></div>`;
   const rows = ATT_ROWS.filter(([k]) => r[k].n).map(([k, l]) => line(l, r[k])).join("");
-  const a = r.all, other = `❌ omluveno ${a.no} · ❓ nejistá ${a.maybe} · bez odpovědi ${a.none}`;
+  const a = r.all, other = `❌ omluveno ${a.no} · ❓ nejistá ${a.maybe} · bez odpovědi ${a.none}${a.late ? ` · <b style="color:var(--wa)">⏰ pozdě ${a.late}</b>` : ""}`;
   return `<div class="cd">${head}<div class="grid3"><div class="stat"><b>${a.yes} / ${a.n}</b>účast</div><div class="stat"><b>${a.pct == null ? "–" : a.pct + " %"}</b>docházka</div><div class="stat"><b style="color:${a.nos ? "var(--no)" : "inherit"}">${a.nos}</b>🚫 bez omluvy</div></div>${rows}<div class="mu" style="margin-top:6px">${other}. Počítají se uplynulé nezrušené události sezóny.</div></div>`;
 }
 // ===== Žádost o změnu placení =====

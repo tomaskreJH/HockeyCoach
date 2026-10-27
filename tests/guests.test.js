@@ -11,7 +11,7 @@ import {EVPUB_COLL, LUPUB_COLL, evPubDoc, fromPub, guestPatch, hasGuests, isGues
 const TODAY = "2026-10-24";
 const PL = [{id: "p1", name: "Eva", num: "12", st: "act"}, {id: "p2", name: "Host", num: "7", st: "act", guest: true}, {id: "g1", name: "Jana", num: "1", pos: "Brankářka", st: "act"}];
 const TR = [{id: "t1", name: "Trenér Petr"}];
-const EV = [{id: "e1", title: "Trénink", date: "2026-10-25", time: "18:00", end: "19:00", meet: 30, place: "Hala", dl: "2026-10-24T18:00", note: "", lines: {p1: 1, p2: 1, "t:t1": 2}},
+const EV = [{id: "e1", title: "Trénink", date: "2026-10-25", time: "18:00", end: "19:00", meet: 30, place: "Hala", dl: "2026-10-24T18:00", note: "", lines: {p1: 1, p2: 1, "t:t1": 2}, lok: {by: "t@x", at: "2026-10-24T10:00", h: "p1:1,p2:1,t:t1:2"}},
   {id: "e0", title: "Starý", date: "2026-09-01", time: "18:00", lines: {}}];
 const MA = [{id: "m1", opp: "Lvice", home: true, date: "2026-10-26", time: "17:00", place: "Hala", dl: "", lineup: {"1C": "p1", "1LK": "p2", "1LK+": "p1", G1: "g1"}, events: [{k: "G"}], closed: false}];
 
@@ -34,7 +34,7 @@ test("evPubDoc: hlavička bez odpovědí, sestav a statistik", () => {
 });
 
 test("lineupPubDoc: pětky tréninku a formace zápasu jako jména", () => {
-  assert.deepEqual(lineupPubDoc(EV[0], "t", PL, TR), {k: "t", date: "2026-10-25", rows: [{t: "1. pětka", n: ["#12 Eva", "#7 Host"]}, {t: "2. pětka", n: ["🎓 Trenér Petr"]}]});
+  assert.deepEqual(lineupPubDoc(EV[0], "t", PL, TR), {k: "t", date: "2026-10-25", rows: [{t: "Modrá", n: ["#12 Eva", "#7 Host"]}, {t: "Žlutá", n: ["🎓 Trenér Petr"]}]});
   assert.deepEqual(lineupPubDoc(MA[0], "m", PL, TR).rows, [{t: "1. formace", n: ["#7 Host", "#12 Eva", "#12 Eva"]}, {t: "Brankářky", n: ["#1 Jana"]}]);
   assert.equal(lineupPubDoc(EV[1], "t", PL, TR), null, "bez pětek se dokument nezakládá");
 });
@@ -72,4 +72,16 @@ test("pravidla: hostující čte jen sebe, evpub a lineuppub zapisuje trenér / 
   assert.match(r, /match \/lineuppub\/\{id\} \{\n      allow read: if isTeam\(\) \|\| hostGoing\(id\);/);
   assert.match(r, /get\(attPath\(eid\)\)\.data\.st == 'yes'/);
   assert.match(r, /role\(\) != 'host' && get\(memberPath\(\)\)\.data\.get\('cash', false\) == true/, "hostující není pokladník");
+});
+
+// ===== ✅ Potvrzení dresů (v22.16) =====
+test("lokState / lineupPubDoc: dresy hostující (a hráčky) vidí až po potvrzení; změna po potvrzení = changed", async () => {
+  const {linesSig, lokDoc, lokState} = await import("../src/domain/event-helpers.js");
+  const lines = {b: 2, a: 1, c: 0};
+  assert.equal(linesSig(lines), "a:1,b:2", "seřazené, bez dresu se nepočítá");
+  assert.equal(lokState({lines}), "none");
+  const e = {lines, lok: lokDoc(lines, "t@x", "2026-10-24T10:00")};
+  assert.equal(lokState(e), "ok");
+  assert.equal(lokState({...e, lines: {...lines, d: 3}}), "changed");
+  assert.equal(lineupPubDoc({...EV[0], lok: undefined}, "t", PL, TR), null, "nepotvrzené dresy se nezveřejní");
 });
