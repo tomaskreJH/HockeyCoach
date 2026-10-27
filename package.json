@@ -1,6 +1,6 @@
 {
   "name": "hokej-zapasy",
-  "version": "22.13",
+  "version": "22.14",
   "private": true,
   "description": "HockeyCoach – aplikace pro trenéry hokejového týmu: soupiska, sestavy, rotace hráček, živý zápis, statistiky, události, docházka a pokladna (předpisy, úhrady, vklady, výdaje, zůstatek, měsíční příspěvky, platy, hospodaření po měsících, CSV).",
   "type": "module",

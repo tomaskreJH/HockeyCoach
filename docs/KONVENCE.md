@@ -71,10 +71,10 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
 | `shell.js` | záložky a hlavní vykreslení |
-| `help.js` | ❓ nápověda – jediný uživatelský návod |
+| `help.js` | ❓ nápověda – jediný uživatelský návod; kapitoly (`v`) a body (`data-v`) podle role (`VIS`) |
 | `home-view.js`, `absence-view.js` | 🏠 Domů, 🏖 nepřítomnost |
-| `events.js` | Události: seznam, kalendář, karta s rychlými tlačítky, režimy pokladny v Team (`cashPanel`) |
-| `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, zápis odpovědi a důvodu, okno s důvodem |
+| `events.js` | Události: seznam, kalendář, režimy pokladny v Team (`cashPanel`) |
+| `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, karta události `cardHtml` (Události i 🏠 Domů), zápis odpovědi a důvodu, okno s důvodem |
 | `event-detail.js`, `event-form.js` | detail události (pětky, plán, docházka, ⚙ úpravy, zrušení), formulář události |
 | `event-series.js`, `event-settings.js` | 🔁 série tréninků, ⏰ nastavení událostí |
 | `attendance.js`, `att-request-view.js` | 📊 docházka, ✋ žádosti o účast |
@@ -163,7 +163,7 @@ Klíč linky = `blok_linka`, u cvičení řady `blok_linka-cvičení` (`msKey`, 
 3. `CHANGELOG.md` – záznam nahoře (`## vX.Y (datum) – název`, postup nasazení, Přidáno / Změněno / Opraveno / Beze změny, Ověřeno),
 4. `README.md` – řádek „Aktuální verze“,
 5. `docs/STAV.md`, `docs/plan.md` (stav fáze), `docs/testy-rucni.md` (kroky testu),
-6. `src/views/help.js` – jen při změně ovládání.
+6. `src/views/help.js` – jen při změně ovládání; nový bod / kapitolu označit `data-v` / `v` podle toho, kdo modul vidí.
 
 **🧪 Kanál (od v22.11):** CHANGELOG u každé verze uvádí, kam se nahrává – **`beta`** (výchozí: UI, nové pohledy, opravy, přidaná pole snesitelná starší stabilní verzí) nebo **`main`** (zúžení / převod pravidel, migrace dat, naléhavé opravy; potom totéž i do `beta`). Čísla verzí a cache jsou jedna řada pro oba kanály (beta jen s předponou cache `hokej-beta-v`). Vydání do stabilní = PR `beta → main`, kód se nemění; 🔒 Vyžadovat verzi až ve stabilní. V betě a stabilní sdílí zařízení `localStorage` a offline paměť Firestore (stejný web) – klíče `localStorage` jen přidávat, verzi Firebase SDK neměnit přes betu.
 

@@ -51,6 +51,12 @@ async function homeMiss() {
   snap("home-miss");
   if (await tap("[data-hrm]", 250)) snap("home-remind");
 }
+// 🏠 Domů – karta události s rychlými tlačítky: ✅ Jdu přímo z Domů, ❌ otevře okno s důvodem (klepnutí na důvod uloží)
+async function homeQuick() {
+  await tap('#nav button[data-t="home"]', 250);
+  if (await tap("#hmw [data-qa$=\"|yes\"]", 250)) snap("home-quick");
+  if (await tap("#hmw [data-qa$=\"|no\"]", 250)) { snap("home-reason"); await tap('[data-rr="0"]', 250); }
+}
 // 📈 Statistiky → 🏒 Trénink: období, výběr cvičení a hráčky, zpět na Zápasy
 async function trainStats() {
   if (!(await tap('#nav button[data-t="st"]', 250)) || !(await tap('[data-stv="t"]', 400))) return;
@@ -192,6 +198,7 @@ try {
   await start();
   await tabs();
   await homeMiss();
+  await homeQuick();
   await trainStats();
   await settings();
   await help();

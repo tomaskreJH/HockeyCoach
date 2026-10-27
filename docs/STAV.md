@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.13 (27. 10. 2026, **jen v betě**) – docházka bez posouvání (🕘 jen v okně historie), 🏠 ✅ hráčky · 🥅 brankářky u událostí, 📉 okno hráčky 8 dní zpět / 15 dopředu (⬇ Načíst další). Předtím v22.12: ❔ Chybí odpověď. Cache `hokej-v110` / `hokej-beta-v110`.
-- **Další číslo:** v22.14 (cache `hokej-v111`), opravy v22.13.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.13** (série k vydání: v22.12, v22.13).
+- **Aktuální:** v22.14 (27. 10. 2026, **jen v betě**) – 🏠 přihlášení ✅ ❌ ❓ přímo z karet v Domů, 💳 Moje platby nahoře jen při dluhu, jednotná karta / hlavička události (místo → čas a sraz → termín → útočnice…), ❓ nápověda podle role. Předtím v22.13: docházka bez posouvání, okno hráčky. Cache `hokej-v111` / `hokej-beta-v111`.
+- **Další číslo:** v22.15 (cache `hokej-v112`), opravy v22.14.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.14** (série k vydání: v22.12 – v22.14).
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
@@ -24,9 +24,10 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - v22.11 – 🧪 beta kanál nasazen a beta naběhla (27. 10. 2026); zbývá kap. 15 (testeři, zamčená beta, ikona β).
 - v22.12 (beta) – ❔ Chybí odpověď a 📲 připomenutí (kap. 16).
 - v22.13 (beta) – docházka bez posouvání, počty v Domů, okno událostí hráčky (kap. 17).
+- v22.14 (beta) – přihlášení z Domů, karta události, platby jen při dluhu, nápověda podle role (kap. 18).
 
 ## Další krok
-1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), v22.13 = připomínky uživatele (docházka, Domů, okno hráčky), **další v22.14 = 3 Plán tréninku** (⧉ Jako minule, sbalené bloky).
+1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), v22.13 a v22.14 = připomínky uživatele (docházka, Domů, karta události, nápověda podle role), **další v22.15 = 3 Plán tréninku** (⧉ Jako minule, sbalené bloky).
 2. **D3** jen podle čísel z 📉 (zabalení uzavřených měsíců docházky).
 3. Pak N, P2, G (odloženo), M poslední.
 

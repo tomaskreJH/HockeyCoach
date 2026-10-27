@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.13 (27. 10. 2026, 🧪 beta)** – docházka se při zápisu neposouvá (🕘 kdo zapsal jen v Historii přihlášek), 🏠 Domů s počty přihlášených hráček a brankářek, 📉 hráčka načítá události 15 dní dopředu a 8 dní zpět (další tlačítkem). Předtím v22.12: ❔ Chybí odpověď a 📲 připomenutí. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.14 (27. 10. 2026, 🧪 beta)** – 🏠 Domů s kartami událostí a přihlášením ✅ ❌ ❓ přímo z Domů, 💳 Moje platby nahoře jen při dluhu, karta i detail události v pořadí místo → čas a sraz → termín → útočnice…, ❓ nápověda jen pro to, co role vidí. Předtím v22.13: docházka bez posouvání, okno událostí hráčky. Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

@@ -1,4 +1,4 @@
-// Detail události (S.evid): hlavička (datum, čas a sraz, místo, počty, moje odpověď), výsledek zápasu a 📋 Zápis utkání,
+// Detail události (S.evid): hlavička (nadpis s datem, 📍 místo, 🕔 čas a sraz, termín přihlášení, počty a útočnice…, moje odpověď), výsledek zápasu a 📋 Zápis utkání,
 // rozdělení do pětek (line-split-view.js), 📋 plán tréninku (trplan-view.js; úprava nahradí celý detail), 👥 docházka sbalená (🕘 historie jen v okně, řádky se při zápisu neposouvají),
 // žádosti o změnu účasti, pokladna u události (payments.js) a dole ⚙ Úpravy: upravit, ❌ zrušit / obnovit, 🗑 smazat prázdnou,
 // série (event-series.js), 🧨 úplné smazání vývojářem. Práva HK.perm(events / matches, e·c·d); hostující vidí formaci z lineuppub.
@@ -12,11 +12,11 @@ import {HK} from "../data/storage.js";
 import {canNos, isNos, nosCount, startMs} from "../domain/attendance.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
 import {LINE_NOS, lineCounts, setLine, trKey} from "../domain/event-helpers.js";
-import {defEnd, endOk, meetOf, okTime, timeParts} from "../domain/event-time.js";
+import {defEnd, endOk, meetOf, okTime} from "../domain/event-time.js";
 import {bindLog, logBtn, logModal} from "./att-log-view.js";
 import {attReqBanner, attReqBox, attReqModal, bindAttReqAdmin, bindAttReqBox} from "./att-request-view.js";
 import {debtTag} from "./attendance.js";
-import {activePl, ANS, answer, atMap, bindSheet, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, myTr, ORD, roster, rosterLine, saveLines, sheetHtml, staff, titleLine, toggleNos, trs} from "./event-core.js";
+import {activePl, ANS, answer, atMap, bindSheet, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, myTr, ORD, placeLine, roster, rosterLine, saveLines, sheetHtml, staff, timeLine, titleLine, toggleNos, trs} from "./event-core.js";
 import {bindSerDel, serDelBtn, serLine} from "./event-series.js";
 import {bindSplit, splitHtml} from "./line-split-view.js";
 import {bindPay, payHtml} from "./payments.js";
@@ -29,7 +29,7 @@ import {bindPlanCard, planCardHtml, planEditing} from "./trplan-view.js";
 let attOpen = null;                                                     // id události s rozbalenou docházkou (jinak sbalená)
 
 // ===== Vykreslení: detail události =====
-// Pořadí: hlavička (nadpis s datem, čas, místo, počty, moje odpověď) → výsledek zápasu → pětky → 📋 plán tréninku → 👥 docházka (sbalená) → žádosti → pokladna → ⚙ Úpravy
+// Pořadí: hlavička (nadpis s datem, místo, čas a sraz, termín, počty, moje odpověď) → výsledek zápasu → pětky → 📋 plán tréninku → 👥 docházka (sbalená) → žádosti → pokladna → ⚙ Úpravy
 // Úprava plánu tréninku se vykreslí místo celého detailu (planEditor).
 // Rozdělení do pětek (jen trénink): přihlášené hráčky (bez brankářek) a přihlášení členové realizačního týmu, barevné volby 1.–4. pětky;
 // hráčka vidí rozdělení jen ke čtení. Člen týmu má v lines klíč "t:" + id (vede stanoviště / jde s pětkou). Nad výběrem panel
@@ -101,14 +101,13 @@ function detail(a, ev) {
   const edits = ebtn.trim() ? `<details class="cd evx" ${eOpen ? "open" : ""}><summary><b>⚙ Úpravy ${mt ? "zápasu" : "události"}</b> <span class="mu">upravit, zrušit, smazat</span></summary><div class="row" style="margin-top:10px">${ebtn}</div></details>` : "";
   const openM = !ownP && mt && !cn ? '<button class="p w" id="evo" style="margin-top:10px;min-height:48px">🏒 Otevřít zápas</button>' : "";
   const stats = g ? "" : `<div class="evs"><span>✅ <b>${c.yes}</b> jdou</span><span>❓ <b>${c.maybe}</b></span><span>❌ <b>${c.no}</b></span>${c.none ? `<span class="mu">bez odpovědi ${c.none}</span>` : ""}${nn ? `<span class="mu">🚫 ${nn}</span>` : ""}</div><div style="margin-top:4px;font-size:14px">${rosterLine(roster(ev, AT))}</div>`;
-  const tp = timeParts(ev, defs());
+  const pL = placeLine(ev, false), tL = timeLine(ev);                // 📍 místo (bez nákladů – pokladna je níž), 🕔 čas a ⏰ sraz
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
 <div class="cd evhd"><div class="evh"><span class="evt">${titleLine(ev, cn)}</span>${cn ? '<span class="tag red">❌ Zrušeno</span>' : ""}</div>
-${tp.range || tp.meet ? `<div>🕔 ${esc(tp.range)}${tp.meet ? " · ⏰ sraz " + esc(tp.meet) : ""}</div>` : ""}
-${ev.place || mt ? `<div>📍 ${esc(ev.place || "")}${mt ? (ev.raw.home ? (ev.place ? " · " : "") + "doma" : (ev.place ? " · " : "") + "venku") : ""}</div>` : ""}
-${stats}
-<div class="mu" style="margin-top:4px;font-size:13px">${cn ? "🔒 Přihlašování zamčené (zrušeno)" : dlLine(ev, lk)}</div>${mt ? "" : serLine(ev)}${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
+${pL ? `<div>${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
+<div class="mu" style="margin-top:4px;font-size:13px">${cn ? "🔒 Přihlašování zamčené (zrušeno)" : dlLine(ev, lk)}</div>
+${stats}${mt ? "" : serLine(ev)}${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}
 ${myP ? `<div style="margin-top:6px"><div class="mu" style="font-size:12px">Tvoje odpověď</div>${pRow(myP)}</div>` : ""}${openM}</div>
 ${attReqBanner()}
 ${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${HK.perm("stats", "r") ? '<button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>' + matchStatsHtml(ev.raw) : ""}</div>` : ""}

@@ -2,6 +2,21 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.14 (27. 10. 2026) – 🏠 Přihlášení přímo z Domů, jednotná karta události, ❓ nápověda podle role
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.14“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v111`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 18. Vydání do stabilní se sérií v22.12 – v22.14 (PR `beta → main`). Návrat: požádat Clauda o revert commitu v22.14.
+
+**Změněno**
+- **Karta události** (`views/event-core.js` – `cardHtml`, `placeLine`, `timeLine`; `views/events.js` ji používá): pořadí 1) ikona, název a datum, 2) 📍 místo (u zápasu doma / venku, u správce pokladny 💰 náklady), 3) **🕔 čas a ⏰ sraz větším písmem**, 4) termín přihlášení, 5) útočnice / obránkyně / brankářky / trenéři, pak řádek stavu a rychlá tlačítka. Jedna funkce pro Události i 🏠 Domů.
+- **Detail události** (`views/event-detail.js`): hlavička ve stejném pořadí – název a datum, 📍 místo, 🕔 čas a sraz (větší), termín přihlášení, počty a útočnice…
+- **🏠 Domů** (`views/home-view.js`): 📅 Příštích 7 dní ukazuje **stejné karty jako Události s tlačítky ✅ Jdu / ❌ Nejdu / ❓ Nejsem jistý** – přihlášení bez otevírání události (❌ / ❓ otevře okno s důvodem, blokace dluhem a uzávěrka platí stejně). Klepnutí na kartu otevře detail (← Domů). 🆚 Příští zápas se ukáže zvlášť jen za hranicí 7 dní. Řádek „✅ N hráček · 🥅 N brankářek“ z v22.13 nahradil řádek útočnic / obránkyň / brankářek / trenérů z karty.
+- **💳 Moje platby v Domů** jsou **první blok a jen při dluhu** (💳 k úhradě – nový předpis, ⛔ po splatnosti); vše zaplaceno = karta se neukazuje.
+- **❓ Nápověda podle role** (`views/help.js` – `VIS`, `seen`, `prune`): kapitoly a body jen pro moduly, které účet vidí (hráčka 9 kapitol místo 15, bez živého zápisu, pokladny, plánu tréninku…); v 👁 Náhledu role podle náhledu. Čísla kapitol podle zobrazených. Texty aktualizovány: Domů (pořadí, přihlášení z karet, platby jen při dluhu), karta a detail události, nový bod pro hráčku (rozdělení do pětek a plán jen ke čtení), ⚙️ sekce podle rolí, okno čtení hráčky 8 / 15 dní, rychlá reference.
+- Kouřový test: krok 🏠 Domů → ✅ a ❌ s důvodem přímo z karty (`tests/smoke/smoke-role.mjs`).
+
+**Beze změny:** pravidla databáze, struktura dat, zápis odpovědí (`answer`), ❔ Chybí odpověď, 🏖 nepřítomnost, živý zápis, trénink, pokladna, statistiky. Funkce `goingSplit` zůstává v `domain/home-summary.js` (test).
+
+**Ověřeno:** `npm test` 442 / 442. `npm run smoke` – 8 rolí bez chyb (hráčka: 💳 Moje platby nahoře, ✅ a ❌ s důvodem z Domů, nápověda 9 kapitol; trenér 14 kapitol).
+
 ## v22.13 (27. 10. 2026) – 📋 Docházka bez posouvání, 🏠 počty hráček a brankářek, 📉 kratší okno událostí hráčky
 > **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.13“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v110`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 17. Vydání do stabilní s celou sérií v22.12 – v22.13 (PR `beta → main`). Návrat: požádat Clauda o revert commitu v22.13.
 

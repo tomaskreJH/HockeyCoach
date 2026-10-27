@@ -113,6 +113,16 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 18. v22.14 (beta) – Přihlášení z Domů, karta události, nápověda podle role
+- [ ] 18.1 V betě je v záhlaví **v22.14**.
+- [ ] 18.2 Události → Nadcházející: karta v pořadí název · datum → 📍 místo → **🕔 čas · ⏰ sraz** (větší písmo) → Přihlášení do … → Útočnice / Obránkyně / Brankářky / Trenéři → tlačítka ✅ ❌ ❓.
+- [ ] 18.3 Detail události: hlavička ve stejném pořadí (místo, čas a sraz větší, termín, počty a útočnice…).
+- [ ] 18.4 Hráčka (telefon nebo 👁 Náhled role s Povolit zápis): 🏠 Domů → 📅 Příštích 7 dní – stejné karty; **✅ Jdu** se zapíše hned (číslo v tlačítku se změní), **❌ Nejdu** otevře okno s důvodem, klepnutí na důvod uloží. Klepnutí mimo tlačítka otevře detail, ← Domů vrátí.
+- [ ] 18.5 Trenér propojený s realizačním týmem: v Domů tlačítka za sebe; trenér, který je zároveň hráčka, za hráčku.
+- [ ] 18.6 Hráčka s nezaplaceným předpisem: **💳 Moje platby** je úplně nahoře; bez dluhu (vše zaplaceno) se karta v Domů neukazuje.
+- [ ] 18.7 🆚 Příští zápas: zápas do 7 dní je jen mezi kartami týdne; zápas za více než 7 dní je pod nimi zvlášť.
+- [ ] 18.8 ❓ Nápověda: hráčka vidí 9 kapitol (bez Team, živého zápisu, pokladny, plánu tréninku), má bod „Trénink pro hráčku“; trenér 14 kapitol bez Pokladny; manager vše kromě 👁 Náhledu role (ten jen vývojář). Hledání v nápovědě funguje.
+
 ## 17. v22.13 (beta) – Docházka bez posouvání, počty v Domů, okno událostí hráčky
 - [ ] 17.1 V betě je v záhlaví **v22.13**.
 - [ ] 17.2 Trenér: detail události → 👥 Docházka → zapsat odpověď za několik hráček za sebou. Seznam se neposouvá, pod jménem není 🕘 / ✍ řádek.
