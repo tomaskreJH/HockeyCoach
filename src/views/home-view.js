@@ -1,7 +1,7 @@
 // 🏠 Domů (výchozí záložka, všichni): běžící a příští zápas, události příštích 7 dní s mojí odpovědí, moje platby, u správce pokladny
 // souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js).
 // Běžící zápas: sport rovnou do živého zápisu, ostatní 👁 náhled (live-watch.js). Jen čte a odkazuje; výpočty domain/home-summary.js.
-// Hostující nevidí počty ostatních. Manager / trenér / asistent: pruh ❔ Chybí odpověď u nejbližší otevřené události – klepnutí
+// U každé události ✅ přihlášené hráčky a 🥅 brankářky. Hostující nevidí počty ostatních. Manager / trenér / asistent: pruh ❔ Chybí odpověď u nejbližší otevřené události – klepnutí
 // rozbalí jména a 📲 Připomenout (sdílení zprávy do WhatsApp / SMS, bez serveru; domain/home-remind.js).
 // ===== Importy =====
 import {TEAM_NAME} from "../config/team-config.js";
@@ -14,7 +14,7 @@ import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
 import {dayShort, missingAnswers, nearestOpen, reminderText} from "../domain/home-remind.js";
-import {DAYS_AHEAD, flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
+import {DAYS_AHEAD, flowWarn, goingCount, goingSplit, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
@@ -51,6 +51,9 @@ const when = e => fDay(e.date) + timeTxt(e) + (e.place ? " · " + esc(e.place) :
 // Zrušená událost: značka místo odpovědi
 const ansHtml = e => e.cancelled ? '<span class="hma" style="color:var(--no)">❌ Zrušeno</span>' : e.ans ? `<span class="hma">${ANS[e.ans] || ""}</span>`
   : e.past || e.locked ? '<span class="hma mu">–</span>' : '<span class="hma" style="color:var(--wa)">❔ Odpověz</span>';
+// Počet přihlášených hráček a brankářek („Jdu“); hostující počty ostatních nevidí
+const word = (n, a, b, c) => n + " " + (n === 1 ? a : n > 1 && n < 5 ? b : c);
+const goingTxt = e => HK.can("guest") ? "" : `✅ ${word(e.split.pl, "hráčka", "hráčky", "hráček")} · 🥅 ${word(e.split.g, "brankářka", "brankářky", "brankářek")}`;
 // Řádek času a srazu bez HTML (text připomínky)
 const whenPlain = e => { const t = timeParts(e, evDefaults(S.es)); return [t.range, t.meet ? "⏰ sraz " + t.meet : ""].filter(Boolean).join(" · "); };
 // 📲 Sdílení textu: nabídka sdílení telefonu (WhatsApp, SMS …), jinak zkopírovat do schránky, jinak ukázat text k ručnímu zkopírování
@@ -82,11 +85,11 @@ function nextHtml(m, mine) {
   if (!m) return `<div class="cd"><h2>🆚 Příští zápas</h2><div class="mu">Žádný naplánovaný zápas.</div></div>`;
   const dl = m.dl ? (m.locked ? "🔒 Přihlašování uzavřeno" : "Přihlášení do " + dlText(m.dl)) : (m.locked ? "🔒 Uzavřeno" : "Termín přihlašování nenastaven");
   return `<div class="cd hmc" data-heo="${esc(m.id)}"><h2>🆚 Příští zápas</h2><div class="hmh"><b style="font-size:18px">${esc(m.opp)}</b><span class="tag">${m.home ? "🏠 doma" : "🚌 venku"}</span></div>
-<div class="mu" style="margin-top:4px">${when(m)}</div><div class="hmh" style="margin-top:6px"><span class="mu">${dl}${HK.can("guest") ? "" : " · ✅ " + m.going}</span>${mine ? ansHtml(m) : ""}</div></div>`;
+<div class="mu" style="margin-top:4px">${when(m)}</div>${m.cancelled || !goingTxt(m) ? "" : `<div class="mu">${goingTxt(m)}</div>`}<div class="hmh" style="margin-top:6px"><span class="mu">${dl}</span>${mine ? ansHtml(m) : ""}</div></div>`;
 }
-// Příštích 7 dní (dnes až dnes + 6, jen nadcházející): tréninky a zápasy s mojí odpovědí (bez propojeného člena počet „Jdu“)
+// Příštích 7 dní (dnes až dnes + 6, jen nadcházející): tréninky a zápasy s počtem přihlášených hráček a brankářek a mojí odpovědí
 function weekHtml(list, mine) {
-  const q = unanswered(list), rows = list.map(e => `<div class="hmr${e.past || e.cancelled ? " past" : ""}" data-heo="${esc(e.id)}"><div><b>${e.type === "match" ? "🆚" : "🏒"} ${e.cancelled ? "<s>" + esc(e.title) + "</s>" : esc(e.title)}</b>${e.type === "match" ? ` <span class="mu">${e.home ? "doma" : "venku"}</span>` : ""}<div class="mu">${when(e)}</div></div>${mine ? ansHtml(e) : e.cancelled ? ansHtml(e) : `<span class="hma">✅ ${e.going}</span>`}</div>`).join("");
+  const q = unanswered(list), rows = list.map(e => `<div class="hmr${e.past || e.cancelled ? " past" : ""}" data-heo="${esc(e.id)}"><div><b>${e.type === "match" ? "🆚" : "🏒"} ${e.cancelled ? "<s>" + esc(e.title) + "</s>" : esc(e.title)}</b>${e.type === "match" ? ` <span class="mu">${e.home ? "doma" : "venku"}</span>` : ""}<div class="mu">${when(e)}</div>${e.cancelled || !goingTxt(e) ? "" : `<div class="mu">${goingTxt(e)}</div>`}</div>${mine || e.cancelled ? ansHtml(e) : ""}</div>`).join("");
   return `<div class="cd"><div class="hmh"><h2 style="margin:0">📅 Příštích ${DAYS_AHEAD} dní</h2>${mine && q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>
 ${rows || '<div class="mu" style="margin-top:6px">V příštích ' + DAYS_AHEAD + ' dnech nejsou žádné události.</div>'}</div>`;
 }
@@ -141,6 +144,8 @@ export function homeView(a) {
   const now = Date.now(), today = td(), mid = me(), items = homeItems(S.ev, S.ma), L = liveMatch(S.ma);
   const nm = nextMatch(items, now, today), week = upcomingEvents(items, S.at, mid, now, today);
   const next = nm ? {...nm, ans: myAnswer(S.at, nm.id, mid), going: goingCount(S.at, nm.id), locked: regClosed(nm, now, today)} : null;
+  // ✅ Přihlášené hráčky a 🥅 brankářky u příštího zápasu i u každé události týdne (z docházky v paměti, bez čtení navíc)
+  [next, ...week].forEach(e => { if (e) e.split = goingSplit(S.at, e.id, S.pl); });
   const mp = mineIds().length ? myPay(S.ch, mineIds(), now) : null;
   const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";
   // ❔ Chybí odpověď jen pro sport (manager, trenér, asistent) – nejbližší událost s otevřeným přihlašováním

@@ -113,6 +113,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 17. v22.13 (beta) – Docházka bez posouvání, počty v Domů, okno událostí hráčky
+- [ ] 17.1 V betě je v záhlaví **v22.13**.
+- [ ] 17.2 Trenér: detail události → 👥 Docházka → zapsat odpověď za několik hráček za sebou. Seznam se neposouvá, pod jménem není 🕘 / ✍ řádek.
+- [ ] 17.3 **🕘 Historie přihlášek** pod docházkou: okno ukáže právě zapsané změny s ✍ kdo zapsal.
+- [ ] 17.4 🏠 Domů: u událostí v 📅 Příštích 7 dnech a u 🆚 Příštího zápasu řádek **✅ N hráček · 🥅 N brankářek**; čísla sedí s počtem ✅ v detailu (bez realizačního týmu). Hostující řádek nevidí.
+- [ ] 17.5 Hráčka (nebo 👁 Náhled role Hráčka): Události → Nadcházející končí dnem +15, dole **⬇ Načíst další události (od …)**; po klepnutí se objeví vzdálenější tréninky, odpověď na vzdálený trénink se hned ukáže.
+- [ ] 17.6 Hráčka: Minulé ukazují 8 dní, **⬇ Starší události (N)** ukáže zbytek.
+- [ ] 17.7 Hráčka: ⚙️ → 💾 Data → 📉 (jen vývojář / náhled) – „živě od … do …“. Trenér vidí vše jako dřív (bez tlačítek).
+
 ## 16. v22.12 (beta) – 🏠 Chybí odpověď a 📲 připomenutí
 - [ ] 16.1 V betě (`…/beta/`) je v záhlaví **v22.12**; stabilní verze zůstává v22.11 a testerovi ukáže pruh **🧪 Nová beta v22.12 k vyzkoušení**.
 - [ ] 16.2 Trenér v betě: nahoře v 🏠 Domů pruh **❔ Chybí odpověď: N** s nejbližší událostí s otevřeným přihlašováním; N sedí s „bez odpovědi“ v detailu události.

@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.12 (27. 10. 2026, **jen v betě**) – 🏠 K2 krok 2: ❔ Chybí odpověď u nejbližší události a 📲 připomenutí sdílením. Předtím v22.11: 🧪 beta kanál. Cache `hokej-v109` / `hokej-beta-v109`.
-- **Další číslo:** v22.13 (cache `hokej-v110`), opravy v22.12.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`**; do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.12** (série k vydání: v22.12).
+- **Aktuální:** v22.13 (27. 10. 2026, **jen v betě**) – docházka bez posouvání (🕘 jen v okně historie), 🏠 ✅ hráčky · 🥅 brankářky u událostí, 📉 okno hráčky 8 dní zpět / 15 dopředu (⬇ Načíst další). Předtím v22.12: ❔ Chybí odpověď. Cache `hokej-v110` / `hokej-beta-v110`.
+- **Další číslo:** v22.14 (cache `hokej-v111`), opravy v22.13.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.13** (série k vydání: v22.12, v22.13).
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
@@ -23,9 +23,10 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - v22.10 – ↺ předvyplnění tréninku a zápasu, omluva klepnutím na důvod (kap. 14).
 - v22.11 – 🧪 beta kanál nasazen a beta naběhla (27. 10. 2026); zbývá kap. 15 (testeři, zamčená beta, ikona β).
 - v22.12 (beta) – ❔ Chybí odpověď a 📲 připomenutí (kap. 16).
+- v22.13 (beta) – docházka bez posouvání, počty v Domů, okno událostí hráčky (kap. 17).
 
 ## Další krok
-1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), **další v22.13 = 3 Plán tréninku** (⧉ Jako minule, sbalené bloky).
+1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), v22.13 = připomínky uživatele (docházka, Domů, okno hráčky), **další v22.14 = 3 Plán tréninku** (⧉ Jako minule, sbalené bloky).
 2. **D3** jen podle čísel z 📉 (zabalení uzavřených měsíců docházky).
 3. Pak N, P2, G (odloženo), M poslední.
 

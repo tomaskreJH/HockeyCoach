@@ -1,4 +1,5 @@
-// 📉 Okno poslechu (D2): události a docházka se živě poslouchají jen od data from (dnes − dny okna) dál; starší („archiv“)
+// 📉 Okno poslechu (D2): události a docházka se živě poslouchají jen od data from (dnes − dny okna), u hráčky jen do winTo
+// (dnes + 15 dní; vzdálenější budoucnost až tlačítkem Načíst další); starší („archiv“)
 // se berou z paměti zařízení (zdarma) a ze serveru jen jednou na zařízení a pak občas pás posledních BAND dní před oknem.
 // Čisté funkce bez databáze (tests/data-window.test.js); poslech a čtení v data/storage.js (listenWin), přehled v ⚙️ → 💾 Data.
 
@@ -9,8 +10,10 @@ export const WIN = {
   events: {f: "date", ttl: DAY, band: 60},
   attendance: {f: "d", ttl: 7 * DAY, band: 60}
 };
-// Dny okna podle role: realizační tým vidí živě delší minulost (docházka, vyúčtování), hráčka jen poslední dva týdny
-export const WIN_DAYS = {staff: 45, other: 14};
+// Dny okna podle role: realizační tým vidí živě delší minulost (docházka, vyúčtování), hráčka jen posledních 8 dní
+export const WIN_DAYS = {staff: 45, other: 8};
+// 📉 Dny dopředu, které hráčka (a hostující) poslouchá živě; další budoucnost až tlačítkem (poslech od winTo). Realizační tým bez omezení.
+export const AHEAD_DAYS = 15;
 // Od této verze zapisují všechny aplikace do docházky datum události d – okno docházky platí až po 🔒 Vyžadovat verzi ≥ ATT_D_VER
 export const ATT_D_VER = "22.9";
 
@@ -25,6 +28,8 @@ export function dayAdd(day, n) {
 // ===== Hlavní logika =====
 // Začátek okna pro roli (staff = manager / trenér / asistent)
 export const winFrom = (today, staff) => dayAdd(today, -(staff ? WIN_DAYS.staff : WIN_DAYS.other));
+// Konec okna (bez tohoto dne, "" = bez konce): hráčka dnes + AHEAD_DAYS včetně, realizační tým celá budoucnost
+export const winTo = (today, staff) => (staff ? "" : dayAdd(today, AHEAD_DAYS + 1));
 // Co načíst ze serveru do archivu: "all" (zařízení archiv ještě nemá nebo ruční obnova), "band" (pás před oknem po ttl), "" = nic
 // stamp = {at, all} z localStorage, cached = počet dokumentů archivu v paměti zařízení
 export function archNeed(stamp, now, ttl, cached, force) {
@@ -49,8 +54,8 @@ export function attDateFix(att, events, matches) {
   });
   return out;
 }
-// Počet dokumentů kolekce od data from (odhad čtení pro jinou roli z dat v zařízení)
-export const countFrom = (docs, f, from) => Object.values(docs || {}).filter(d => String((d || {})[f] || "") >= from).length;
+// Počet dokumentů kolekce od data from do to (bez to; "" = bez konce) – odhad čtení pro jinou roli z dat v zařízení
+export const countFrom = (docs, f, from, to) => Object.values(docs || {}).filter(d => { const v = String((d || {})[f] || ""); return v >= from && (!to || v < to); }).length;
 
 // ===== Exporty =====
 // (exportované funkce a konstanty jsou označené u definic výše)

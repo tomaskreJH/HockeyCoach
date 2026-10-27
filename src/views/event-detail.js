@@ -1,5 +1,5 @@
 // Detail události (S.evid): hlavička (datum, čas a sraz, místo, počty, moje odpověď), výsledek zápasu a 📋 Zápis utkání,
-// rozdělení do pětek (line-split-view.js), 📋 plán tréninku (trplan-view.js; úprava nahradí celý detail), 👥 docházka sbalená (s 🕘 historií),
+// rozdělení do pětek (line-split-view.js), 📋 plán tréninku (trplan-view.js; úprava nahradí celý detail), 👥 docházka sbalená (🕘 historie jen v okně, řádky se při zápisu neposouvají),
 // žádosti o změnu účasti, pokladna u události (payments.js) a dole ⚙ Úpravy: upravit, ❌ zrušit / obnovit, 🗑 smazat prázdnou,
 // série (event-series.js), 🧨 úplné smazání vývojářem. Práva HK.perm(events / matches, e·c·d); hostující vidí formaci z lineuppub.
 
@@ -13,7 +13,7 @@ import {canNos, isNos, nosCount, startMs} from "../domain/attendance.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
 import {LINE_NOS, lineCounts, setLine, trKey} from "../domain/event-helpers.js";
 import {defEnd, endOk, meetOf, okTime, timeParts} from "../domain/event-time.js";
-import {bindLog, loadLog, logBtn, logModal, rowLog} from "./att-log-view.js";
+import {bindLog, logBtn, logModal} from "./att-log-view.js";
 import {attReqBanner, attReqBox, attReqModal, bindAttReqAdmin, bindAttReqBox} from "./att-request-view.js";
 import {debtTag} from "./attendance.js";
 import {activePl, ANS, answer, atMap, bindSheet, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, myTr, ORD, roster, rosterLine, saveLines, sheetHtml, staff, titleLine, toggleNos, trs} from "./event-core.js";
@@ -72,17 +72,13 @@ function detail(a, ev) {
   // 📋 Plán tréninku: konec uložený, jinak začátek + výchozí délka; úprava plánu nahradí celý detail
   const tpCtx = {ev, P, A, T, end: okTime(ev.raw.end) && endOk(ev.time, ev.raw.end) ? ev.raw.end : defEnd(ev.time, defs()), css: CSS}, tpOn = !mt && !g && !cn;
   if (tpOn && planEditing(ev.id)) { planEditor(a, tpCtx); return; }
-  // 🕘 Historie přihlášek: správci ji při rozbalené docházce načtou jednorázově (čas a kdo zapsal u každého řádku)
-  const logOn = !ownP && !g && attOpen === ev.id;
-  if (logOn) loadLog(ev.id);
-  const lg = (pid, x) => (logOn ? rowLog(ev, pid, x) : "");
   // Řádek hráčky v docházce (u přihlášené hráčky se její řádek ukáže i v hlavičce – odpoví bez posouvání dolů)
   const pRow = p => {
     const x = A[p.id], mine = p.id === me, nos = isNos(x), ok = can && (!ownP || mine) && (!nos || staff());   // hráčka mění jen svůj řádek, 🚫 jen trenér
     const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen manager, trenér a asistent
     // 🚫 tlačítko: manager / trenér / asistent u odpovědi „Jdu“ po začátku události (ne u zrušené)
     const nb = !ownP && !cn && canNos(x, st0, now) ? `<button class="evns ${nos ? "on" : ""}" data-nos="${p.id}" title="Nedorazila bez omluvy">🚫</button>` : "";
-    return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}${lg(p.id, x)}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
+    return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
   };
   const rows = P.map((p, i) => (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") + pRow(p)).join("");
   const myP = me ? P.find(p => p.id === me) : null;                   // vlastní řádek hráčky (i člena týmu, který je zároveň hráčka)
@@ -90,7 +86,7 @@ function detail(a, ev) {
   const trRows = T.map((t, i) => {
     const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP;
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
-      `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(kindOf(t))}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}${lg(t.id, x)}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
+      `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(kindOf(t))}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
   }).join("");
   // Tlačítka managera / trenéra / asistenta: otevřít zápas, úprava, zrušit / obnovit, smazat prázdnou, série; vývojář smazat úplně
   // Matice práv (⚙️ → 🔐): úprava, zrušení a smazání podle modulu Události / Zápasy

@@ -4,7 +4,7 @@
 // ===== Importy =====
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {flowWarn, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
+import {flowWarn, goingSplit, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
 
 // ===== Konstanty =====
 const TODAY = "2026-10-21";                                      // středa
@@ -91,4 +91,13 @@ test("liveMatch: zahájený neuzavřený zápas se skóre a třetinou; uzavřen�
     {id: "x", opp: "Lvice", home: true, us: 2, them: 1, per: 2, perText: "2. třetina", running: true, ended: false});
   assert.equal(liveMatch([{id: "x", events: [], live: {per: 4}}]).perText, "Prodloužení");
   assert.equal(liveMatch([{id: "x", events: [], live: {per: 3}, end: {per: 3}}]).perText, "Konec zápasu");
+});
+
+test("goingSplit (v22.13): přihlášené hráčky v poli a brankářky; realizační tým, jiná událost a jiné odpovědi se nepočítají", () => {
+  const P = [{id: "p1", pos: "Útočnice"}, {id: "p2", pos: "Obránkyně"}, {id: "g1", pos: "Brankářka"}, {id: "p3"}];
+  const at = [{eid: "e", pid: "p1", st: "yes"}, {eid: "e", pid: "p2", st: "yes"}, {eid: "e", pid: "g1", st: "yes"}, {eid: "e", pid: "p3", st: "no"},
+    {eid: "e", pid: "t1", st: "yes"}, {eid: "x", pid: "p3", st: "yes"}];
+  assert.deepEqual(goingSplit(at, "e", P), {pl: 2, g: 1});
+  assert.deepEqual(goingSplit([], "e", P), {pl: 0, g: 0});
+  assert.deepEqual(goingSplit(null, "e", null), {pl: 0, g: 0});
 });

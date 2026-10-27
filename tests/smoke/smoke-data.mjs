@@ -34,6 +34,7 @@ export function teamData() {
     e2: {title: "Trénink", date: NEXT, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-11-01T18:00"},
     e0: {title: "Trénink", date: PAST, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-10-18T18:00", ss: true},
     // 📉 starší trénink mimo okno poslechu (archiv z paměti zařízení)
+    e8: {title: "Trénink daleko", date: "2026-11-20", time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-11-19T18:00"},
     e9: {title: "Trénink", date: OLD, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-07-14T18:00"}
   };
   const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: [], ln: {}}};

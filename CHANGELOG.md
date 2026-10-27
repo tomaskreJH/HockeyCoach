@@ -2,6 +2,20 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.13 (27. 10. 2026) – 📋 Docházka bez posouvání, 🏠 počty hráček a brankářek, 📉 kratší okno událostí hráčky
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.13“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v110`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 17. Vydání do stabilní s celou sérií v22.12 – v22.13 (PR `beta → main`). Návrat: požádat Clauda o revert commitu v22.13.
+
+**Změněno**
+- **👥 Docházka v detailu události** (`views/event-detail.js`, `views/att-log-view.js`): pod jménem se už neukazuje řádek 🕘 čas a ✍ kdo zapsal – při zápisu odpovědi za hráčku se seznam neposouvá. Kdo zapisoval je jen v okně **🕘 Historie přihlášek** (tlačítko pod docházkou). Historie se navíc čte až po klepnutí na tlačítko (dřív při každém rozbalení docházky) – 📉 méně čtení.
+- **🏠 Domů** (`domain/home-summary.js` – `goingSplit`, `views/home-view.js`): u každé události v 📅 Příštích 7 dnech a u 🆚 Příštího zápasu řádek **✅ N hráček · 🥅 N brankářek** (přihlášené „Jdu“ ze soupisky, realizační tým se nepočítá). Počítá se z docházky v paměti – žádné čtení navíc. Hostující počty nevidí.
+- **📉 Okno událostí hráčky** (`domain/data-window.js` – `winTo`, `AHEAD_DAYS`, `WIN_DAYS.other` 14 → 8; `data/storage.js` – horní mez poslechu, `farListen`, `farInfo`): hráčka a hostující živě poslouchají události a docházku jen **8 dní zpět a 15 dní dopředu**. Vzdálenější budoucnost načte tlačítko **⬇ Načíst další události (od …)** v Nadcházejících (i v Kalendáři u vzdálených měsíců) – druhý živý poslech do zavření aplikace, vlastní odpověď i změny trenéra se hned projeví. Minulé ukazují 8 dní, **⬇ Starší události (N)** ukáže zbytek z paměti zařízení bez čtení. Realizační tým beze změny (45 dní zpět, celá budoucnost).
+- ⚙️ → 💾 Data → 📉: okno ukazuje i konec („do …“) a počet načtené další budoucnosti; odhad pro hráčku počítá s novým oknem.
+- ❓ Nápověda (Domů, Události, Historie přihlášek).
+
+**Beze změny:** pravidla databáze, struktura dat, zápis odpovědí a historie přihlášek, okno realizačního týmu, živý zápis, trénink, pokladna, statistiky.
+
+**Ověřeno:** `npm test` 442 / 442 (nové: `winTo`, `countFrom` s koncem, `goingSplit`). `npm run smoke` – 8 rolí bez chyb (hráčka: vzdálený trénink až po ⬇ Načíst další, ⬇ Starší události; Domů „✅ 1 hráčka · 🥅 0 brankářek“).
+
 ## v22.12 (27. 10. 2026) – 🏠 K2, krok 2: ❔ Chybí odpověď a 📲 připomenutí
 > **Nasazení – kanál 🧪 BETA:** 1) Nahrát soubory ze zipu do větve **`beta`** (nové `src/domain/home-remind.js`, `tests/home-remind.test.js`; nic se nemaže ani nepřesouvá). 2) **firestore.rules beze změny** (nepublikovat). 3) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v109`). 4) **🔒 Vyžadovat verzi: ne.** 5) Test: `docs/testy-rucni.md` kap. 16. Vydání do stabilní později s celou sérií (PR `beta → main`).
 

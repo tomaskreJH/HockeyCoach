@@ -1,7 +1,7 @@
 // Datová vrstva: Firebase (Firestore, přihlášení Google), oprávnění HK.can / HK.perm (jediné místo, z domain/permissions.js a settings/perm),
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
 // Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
-// onSnapshot; batch() – set / merge / delete / commit. 📉 Události a docházka s oknem (listenWin, domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
+// onSnapshot; batch() – set / merge / delete / commit. 📉 Události a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
 // Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup.
 
 // ===== Importy =====
@@ -10,7 +10,7 @@ import {APP_LABEL, APP_VERSION, cmpVer, isOutdated} from "../core/app-version.js
 import {CHANNEL, IS_BETA, cachePrefix} from "../core/channel.js";
 import {clone, esc, td, toast} from "../core/utils.js";
 import {BUDGET_COLL} from "../domain/budget.js";
-import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom} from "../domain/data-window.js";
+import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom, winTo} from "../domain/data-window.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
 import {BETA_DOC, canUseBeta, isTester} from "../domain/beta.js";
@@ -156,7 +156,8 @@ function listen(c) {
   }, err => subs[c].forEach(s => s.er && s.er(err)));
 }
 // ===== Data: 📉 okno poslechu (události, docházka) =====
-// win[c] = {from, live, arch, liveOk, at, st, err}: živě se poslouchá pole >= from, starší dokumenty (archiv) z paměti zařízení;
+// win[c] = {from, to, live, arch, far, farOn, liveOk, at, st, err}: živě se poslouchá pole >= from (u hráčky < to), starší dokumenty
+// (archiv) z paměti zařízení; vzdálenější budoucnost hráčky (far, >= to) až po farListen() – tlačítko Načíst další v Událostech;
 // ze serveru se archiv načte celý jen jednou na zařízení (nebo ručně v ⚙️), pak po WIN[c].ttl jen pás BAND dní před oknem.
 const win = {};
 const ARCH_KEY = c => "hk-arch-" + c;
@@ -165,18 +166,19 @@ const stampOf = c => { try { return JSON.parse(localStorage.getItem(ARCH_KEY(c))
 const stampSet = (c, v) => { try { localStorage.setItem(ARCH_KEY(c), JSON.stringify(v)); } catch (e) {} };
 // Nastavení oken po přihlášení: události vždy, docházka až od 🔒 Vyžadovat verzi ≥ ATT_D_VER (všechny aplikace zapisují datum d)
 function setupWindows(gateVer) {
-  const from = winFrom(td(), STAFF.includes(role));
+  const from = winFrom(td(), STAFF.includes(role)), to = winTo(td(), STAFF.includes(role));
   Object.keys(WIN).forEach(c => {
     if (c === "attendance" && cmpVer(gateVer || "0", ATT_D_VER) < 0) return;
-    win[c] = {from, live: {}, arch: {}, liveOk: false, at: (stampOf(c) || {}).at || 0, st: "", err: ""};
+    win[c] = {from, to, live: {}, arch: {}, far: {}, farOn: false, liveOk: false, at: (stampOf(c) || {}).at || 0, st: "", err: ""};
   });
 }
-// Sloučení archivu a živé části (živá má přednost) a rozeslání odběratelům
-function winMerge(c) { const W = win[c]; data[c] = {...W.arch, ...W.live}; fire(c); }
+// Sloučení archivu, vzdálené budoucnosti a živé části (živá má přednost) a rozeslání odběratelům
+function winMerge(c) { const W = win[c]; data[c] = {...W.arch, ...W.far, ...W.live}; fire(c); }
 // Živý poslech okna; po prvním snímku se načte archiv, dokument, který z okna odešel (změna data), se dohledá v paměti zařízení
 function listenWin(c) {
   const W = win[c], f = WIN[c].f;
-  onSnapshot(query(fsCol(fs, c), where(f, ">=", W.from)), snap => {
+  const q = W.to ? query(fsCol(fs, c), where(f, ">=", W.from), where(f, "<", W.to)) : query(fsCol(fs, c), where(f, ">=", W.from));
+  onSnapshot(q, snap => {
     W.live = toMap(snap);
     const gone = typeof snap.docChanges === "function" && snap.docChanges().some(x => x.type === "removed");
     const firstTime = !W.liveOk;
@@ -186,6 +188,18 @@ function listenWin(c) {
     else if (gone) archCache(c).then(() => winMerge(c));
   }, err => subs[c].forEach(s => s.er && s.er(err)));
 }
+// 📉 Vzdálená budoucnost hráčky (pole >= to): druhý živý poslech jen na vyžádání (Události → Načíst další), platí do zavření aplikace.
+// Živý (ne jednorázový) – vlastní odpověď na vzdálenou událost i změny trenéra se hned projeví; při dalším spuštění se znovu nečte.
+function farListen() {
+  Object.entries(win).forEach(([c, W]) => {
+    if (!W.to || W.farOn) return;
+    W.farOn = true;
+    onSnapshot(query(fsCol(fs, c), where(WIN[c].f, ">=", W.to)), snap => { W.far = toMap(snap); winMerge(c); },
+      err => { W.farOn = false; subs[c].forEach(s => s.er && s.er(err)); });
+  });
+}
+// Stav vzdálené budoucnosti pro Události: {to} = od kterého dne chybí (hráčka bez načtení), jinak null (vše načteno / realizační tým)
+const farInfo = () => { const W = win.events; return W && W.to && !W.farOn ? {to: W.to} : null; };
 // Archiv z paměti zařízení (zdarma; chyba = beze změny)
 async function archCache(c) {
   const W = win[c];
@@ -212,7 +226,7 @@ async function archLoad(c, force) {
   winMerge(c);
 }
 // Stav oken pro ⚙️ → 💾 Data: [{c, from, live, arch, at, st, err}]
-const winInfo = () => Object.entries(win).map(([c, W]) => ({c, from: W.from, live: Object.keys(W.live).length, arch: Object.keys(W.arch).length, at: W.at, st: W.st, err: W.err}));
+const winInfo = () => Object.entries(win).map(([c, W]) => ({c, from: W.from, to: W.to, live: Object.keys(W.live).length, arch: Object.keys(W.arch).length, far: W.farOn ? Object.keys(W.far).length : null, at: W.at, st: W.st, err: W.err}));
 // Ruční obnova archivu ze serveru (čte všechny starší dokumenty)
 const archRefresh = () => Promise.all(Object.keys(win).filter(c => win[c].liveOk).map(c => archLoad(c, true)));
 
@@ -262,10 +276,10 @@ function listenPart(c, id, cb, er) {
 // 📉 Počty dokumentů v kolekcích, které zařízení poslouchá (= čtení při spuštění po pauze > 30 min); odhad v ⚙️ → 💾 Data
 // U kolekcí s oknem se počítá jen živá část (archiv z paměti zařízení se neplatí)
 const readCounts = () => Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, win[c] ? Object.keys(win[c].live).length : Object.keys(data[c]).length]));
-// Odhad pro hráčku z dat v zařízení: okno hráčky (14 dní) u kolekcí s oknem, ostatní celé
+// Odhad pro hráčku z dat v zařízení: okno hráčky (8 dní zpět, 15 dopředu) u kolekcí s oknem, ostatní celé
 const readCountsPlayer = () => {
-  const from = winFrom(td(), false);
-  return Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, win[c] ? countFrom(data[c], WIN[c].f, from) : Object.keys(data[c]).length]));
+  const from = winFrom(td(), false), to = winTo(td(), false);
+  return Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, win[c] ? countFrom(data[c], WIN[c].f, from, to) : Object.keys(data[c]).length]));
 };
 const view = c => ({docs: Object.entries(data[c]).map(([id, d]) => ({id, data: () => clone(d)}))});
 function fire(c) { subs[c].forEach(s => { try { s.cb(view(c)); } catch (e) { console.error(e); } }); }
@@ -537,6 +551,8 @@ document.getElementById("gear").onclick = () => { if (isReady && HK.openCfg) HK.
 export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (readyP = boot()), importData, exportJSON, exportCSV, canDelete, can, perm, pid: () => pid, tid: () => tid, user: () => user, openCash: null, openJoin: null, openEvSet: null, openCfg: null,
   // Úplné smazání události (vývojář; wipePreview = jen plán s počty) a tichý zápis odvozených dokumentů
   wipeEvent, wipePreview, syncOps,
+  // 📉 Vzdálená budoucnost hráčky: farInfo() = {to} dokud není načtená, farListen() = načíst (Události → Načíst další)
+  farInfo, farListen,
   // Účty members [{email, role, pid, tid, cash}] – okno žádostí o přijetí (manager)
   listMembers: async () => (await getDocs(fsCol(fs, "members"))).docs.map(d => ({email: d.id, ...d.data()})),
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou

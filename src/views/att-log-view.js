@@ -1,6 +1,6 @@
 // 🕘 Historie přihlášek u události (manager, trenér, asistent): kdy se kdo přihlásil, omluvil, odpověď zrušil, a kdo zapisoval za koho.
 // Zápis záznamů logAtt() posílá tiše přes HK.syncOps (chyba pravidel nikdy nezablokuje samotnou odpověď). Čtení jednorázově
-// (getWhere eid) při rozbalení 👥 Docházky, platí 5 min (S.alg). V řádcích docházky čas poslední změny a kdo ji zapsal, okno s celou historií.
+// (getWhere eid) až po klepnutí na 🕘 Historie přihlášek, platí 5 min (S.alg). Řádky docházky zápis nezobrazují (seznam se neposouvá).
 
 // ===== Importy =====
 import {pn} from "../core/selectors.js";
@@ -8,7 +8,7 @@ import {S} from "../core/state.js";
 import {esc} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {startMs} from "../domain/attendance.js";
-import {byPerson, filterRows, lastWriter, LOG_COLL, LOG_TXT, logMs, logOps, logRows, logSummary, SRC_TXT} from "../domain/att-log.js";
+import {byPerson, filterRows, LOG_COLL, LOG_TXT, logOps, logRows, logSummary, SRC_TXT} from "../domain/att-log.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -59,13 +59,6 @@ export function loadLog(eid, force) {
 }
 
 // ===== Vykreslení =====
-// Malý řádek pod jménem v docházce: čas poslední změny a kdo ji zapsal (jen správci, jen při rozbalené docházce)
-export function rowLog(ev, pid, x) {
-  if (!canSee() || !x) return "";
-  const r = lastWriter(rowsOf(ev), pid, x), ms = r ? r.ms : logMs(x.at);
-  if (ms == null && !r) return "";
-  return `<div class="mu" style="font-size:12px">🕘 ${fTime(ms)}${r && !r.self ? " · " + whoTxt(r) : ""}${r && r.src ? " · " + SRC_TXT[r.src] : ""}</div>`;
-}
 // Tlačítko otevření okna (pod docházkou)
 export const logBtn = ev => (canSee() ? `<button class="s w" data-alg="${esc(ev.id)}" style="margin-top:10px">🕘 Historie přihlášek</button>` : "");
 // Jeden řádek historie; withName = i jméno osoby (pohled podle času)

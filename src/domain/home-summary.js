@@ -4,7 +4,7 @@
 // Struktura: Importy -> Konstanty -> Pomocné funkce -> Události -> Platby -> Živý zápas -> Exporty (u funkcí).
 
 // ===== Importy =====
-import {score} from "../core/selectors.js";
+import {isG, score} from "../core/selectors.js";
 import {debtOf, r2, restOf} from "./cash.js";
 import {openReqs} from "./requests.js";
 
@@ -44,6 +44,13 @@ export function regClosed(e, now, today) {
 export const myAnswer = (at, eid, mid) => { if (!mid) return null; const a = (at || []).find(x => x.eid === eid && x.pid === mid); return a ? a.st || null : null; };
 // Počet odpovědí „Jdu“ u události
 export const goingCount = (at, eid) => (at || []).filter(x => x.eid === eid && x.st === "yes").length;
+// Přihlášené („Jdu“) hráčky události rozdělené na hráčky v poli a brankářky: {pl, g}; počítají se jen osoby ze soupisky players
+// (realizační tým a neznámá id se vynechají)
+export function goingSplit(at, eid, players) {
+  const byId = new Map((players || []).map(p => [p.id, p])), r = {pl: 0, g: 0};
+  (at || []).forEach(x => { const p = x.eid === eid && x.st === "yes" ? byId.get(x.pid) : null; if (p) r[isG(p) ? "g" : "pl"]++; });
+  return r;
+}
 // Příští zápas: nejbližší neuzavřený, nezahájený a nezrušený zápas, který ještě nezačal (dnešní zápas do svého začátku); null = žádný
 export function nextMatch(items, now, today) {
   const list = (items || []).filter(e => e.type === "match" && !e.closed && !e.live && !e.cancelled && e.date >= today && (e.date > today || !e.time || startMs(e) >= now));

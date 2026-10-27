@@ -79,7 +79,9 @@ async function help() {
 async function events() {
   await tap('#nav button[data-t="ev"]', 250);
   // Minulé: řádek stavu 💰 vyúčtování / 🏒 tréninku (stav tréninků se načte jednorázově)
-  if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); await tap('[data-evm="up"]', 250); }
+  if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); if (await tap("#evold", 250)) snap("ev-past-old"); await tap('[data-evm="up"]', 250); }
+  // 📉 Hráčka: vzdálenější budoucnost až tlačítkem (druhý poslech od dnes + 16 dní)
+  if (await tap("#evfar", 400)) snap("ev-far");
   if (await tap('[data-qa="e2|yes"]', 250)) snap("ev-quick");
   if (await tap("#evnt", 250)) { snap("ev-form"); await tap("#evfx", 200); }
   // 🖐 K2: okno ❌ s rychlými důvody (klepnutí na důvod uloží), nový zápas s předvyplněným časem a místem
@@ -87,7 +89,7 @@ async function events() {
   if (await tap("#evnm", 250)) { snap("ev-match-new"); await tap("#cl", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
   snap("ev-e1");
-  // 👥 Docházka rozbalená (správci: 🕘 čas a kdo zapsal u řádků) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
+  // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
   if (await tap("#evatt summary", 300)) snap("ev-e1-att");
   if (await tap("[data-alg]", 300)) {
     snap("att-log");
