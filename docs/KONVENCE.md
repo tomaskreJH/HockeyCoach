@@ -50,7 +50,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `beta.js` | 🧪 beta testeři `settings/beta`, nabídka bety |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
-| `home-summary.js` | 🏠 Domů |
+| `home-summary.js`, `home-remind.js` | 🏠 Domů, ❔ Chybí odpověď a 📲 text připomínky |
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, 🔁 převody `k: "tr"`, dluhy, VS), účty a IBAN |
 | `bank-match.js` | ⚠️ 🏦 čtení výpisu z banky (CSV) a párování plateb s předpisy |
 | `economy.js` | hospodaření události a měsíce, Moje platby po měsících |

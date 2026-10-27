@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.12 (27. 10. 2026) – 🏠 K2, krok 2: ❔ Chybí odpověď a 📲 připomenutí
+> **Nasazení – kanál 🧪 BETA:** 1) Nahrát soubory ze zipu do větve **`beta`** (nové `src/domain/home-remind.js`, `tests/home-remind.test.js`; nic se nemaže ani nepřesouvá). 2) **firestore.rules beze změny** (nepublikovat). 3) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v109`). 4) **🔒 Vyžadovat verzi: ne.** 5) Test: `docs/testy-rucni.md` kap. 16. Vydání do stabilní později s celou sérií (PR `beta → main`).
+
+**Přidáno**
+- **❔ Chybí odpověď** v 🏠 Domů (`src/domain/home-remind.js` – `nearestOpen`, `missingAnswers`; `views/home-view.js` – `missHtml`): manager, trenér a asistent vidí nahoře pruh s počtem aktivních hráček bez odpovědi u nejbližší události s otevřeným přihlašováním (stejný počet jako „bez odpovědi“ v detailu). Klepnutí rozbalí jména; **Otevřít událost →** vede do detailu (← Domů zpět).
+- **📲 Připomenout** (`reminderText`, `shareText`): sdílení telefonu (WhatsApp, SMS …) s textem – událost, den, čas, sraz, místo, termín přihlášení, jména a odkaz na stabilní verzi aplikace. Bez sdílení se text zkopíruje do schránky, jinak se ukáže k ručnímu zkopírování. Žádný server, žádné čtení ani zápis databáze.
+- ❓ Nápověda kap. 🏠 Domů. Testy: `tests/home-remind.test.js` (4); kouřový test – rozbalení a připomínka (manager, trenér, asistent).
+
+**Změněno**
+- `.github/workflows/pages.yml`: `actions/checkout@v5` (upozornění na Node.js 20).
+- `docs/KONVENCE.md` – mapa souborů (`home-remind.js`).
+
+**Beze změny:** pravidla databáze, zápis odpovědí, ostatní karty Domů, 🧪 beta kanál, živý zápis, pokladna, statistiky.
+
+**Ověřeno:** `npm test` 439 / 439. `npm run smoke` – 8 rolí bez chyb (trenér: ❔ Chybí odpověď: 8 u zápasu Sokol, text připomínky s jmény a odkazem). `npm run smoke -- --beta` bez chyb.
+
 ## v22.11 (27. 10. 2026) – 🧪 Beta kanál: testování před vydáním pro všechny
 > **Nasazení (tato verze jde přímo do `main`):** 1) Zip současného repozitáře. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nový blok `settings/beta`, ostatní beze změny). 3) Nahrát soubory ze zipu do `main` (nové: `.github/workflows/pages.yml`, `src/core/channel.js`, `src/domain/beta.js`, `src/views/beta-view.js`, `tests/beta.test.js`; nic se nemaže ani nepřesouvá). 4) **Jednorázově v GitHubu** podle README, kap. „Kanály“: Pages → Source **GitHub Actions**, vytvořit větev **`beta`** z `main`, v Environments → github-pages povolit větev `beta`, Actions → Run workflow. 5) Načíst novou verzi (cache `hokej-v108`, beta `hokej-beta-v108`). 6) ⚙️ → 🧪 Beta testování → zaškrtnout testery. 7) **🔒 Vyžadovat verzi: ne** (nechat 22.9). 8) Test: `docs/testy-rucni.md` kap. 15.
 > **Od v22.12 se nové verze nahrávají do větve `beta`**; vydání pro všechny = Pull request `beta → main` → Merge.

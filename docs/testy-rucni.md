@@ -113,6 +113,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 16. v22.12 (beta) – 🏠 Chybí odpověď a 📲 připomenutí
+- [ ] 16.1 V betě (`…/beta/`) je v záhlaví **v22.12**; stabilní verze zůstává v22.11 a testerovi ukáže pruh **🧪 Nová beta v22.12 k vyzkoušení**.
+- [ ] 16.2 Trenér v betě: nahoře v 🏠 Domů pruh **❔ Chybí odpověď: N** s nejbližší událostí s otevřeným přihlašováním; N sedí s „bez odpovědi“ v detailu události.
+- [ ] 16.3 Klepnutí rozbalí jména (abecedně), druhé klepnutí sbalí. **Otevřít událost →** otevře detail, ← Domů vrátí zpět.
+- [ ] 16.4 **📲 Připomenout** na Androidu otevře sdílení → WhatsApp skupina: text s událostí, časem, srazem, místem, termínem, jmény a odkazem na stabilní verzi.
+- [ ] 16.5 Hráčka odpoví → N se sníží (po chvíli samo); když odpoví všechny, pruh zmizí. Zamčená (po termínu) nebo zrušená událost se přeskočí na další.
+- [ ] 16.6 Hráčka ani hostující pruh nevidí; pokladník bez sportovní role také ne.
+- [ ] 16.7 GitHub Actions: běh na větvi `beta` zelený, bez upozornění na Node.js 20 u kroku checkout.
+
 ## 15. v22.11 – 🧪 Beta kanál
 - [ ] 15.1 Po nastavení GitHubu (README, kap. Kanály): Actions → Nasazení (stabilní + beta) je zelené; stabilní adresa ukazuje **v22.11**, adresa `…/beta/` také **v22.11** s fialovým pruhem **🧪 Beta v22.11 – testovací verze**.
 - [ ] 15.2 Manager: ⚙️ → **🧪 Beta testování** → zaškrtnout jednoho člena → hláška „… je beta tester“; odškrtnout a znovu zaškrtnout. V záhlaví sekce počet testerů.

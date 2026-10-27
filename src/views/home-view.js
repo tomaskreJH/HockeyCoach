@@ -1,16 +1,19 @@
 // 🏠 Domů (výchozí záložka, všichni): běžící a příští zápas, události příštích 7 dní s mojí odpovědí, moje platby, u správce pokladny
 // souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js).
 // Běžící zápas: sport rovnou do živého zápisu, ostatní 👁 náhled (live-watch.js). Jen čte a odkazuje; výpočty domain/home-summary.js.
-// Hostující nevidí počty ostatních.
+// Hostující nevidí počty ostatních. Manager / trenér / asistent: pruh ❔ Chybí odpověď u nejbližší otevřené události – klepnutí
+// rozbalí jména a 📲 Připomenout (sdílení zprávy do WhatsApp / SMS, bez serveru; domain/home-remind.js).
 // ===== Importy =====
 import {TEAM_NAME} from "../config/team-config.js";
 import {S} from "../core/state.js";
-import {dlText, esc, fd, td} from "../core/utils.js";
+import {STABLE_URL} from "../core/channel.js";
+import {dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {cashflow} from "../domain/budget-track.js";
 import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
 import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
+import {dayShort, missingAnswers, nearestOpen, reminderText} from "../domain/home-remind.js";
 import {DAYS_AHEAD, flowWarn, goingCount, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
@@ -32,7 +35,11 @@ const CSS = `<style>
 #hmw .hml{border-color:var(--no);border-width:2px}
 #hmw .hms{font-size:30px;font-weight:800;text-align:center;letter-spacing:2px;margin:4px 0}
 #hmw .hmb{display:block;width:100%;text-align:left;margin-top:8px}
+#hmw .hmq{border-color:var(--wa);border-width:2px}
+#hmw .hmn{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 </style>`;
+let missOpen = null;                                                  // id události s rozbaleným seznamem ❔ Chybí odpověď
+let missTxt = "";                                                     // text připomínky k ručnímu zkopírování (bez sdílení i schránky)
 
 // ===== Pomocné funkce =====
 const me = () => HK.pid() || HK.tid() || null;                        // člen, za kterého se ukazují odpovědi (hráčka / propojený trenér)
@@ -44,6 +51,14 @@ const when = e => fDay(e.date) + timeTxt(e) + (e.place ? " · " + esc(e.place) :
 // Zrušená událost: značka místo odpovědi
 const ansHtml = e => e.cancelled ? '<span class="hma" style="color:var(--no)">❌ Zrušeno</span>' : e.ans ? `<span class="hma">${ANS[e.ans] || ""}</span>`
   : e.past || e.locked ? '<span class="hma mu">–</span>' : '<span class="hma" style="color:var(--wa)">❔ Odpověz</span>';
+// Řádek času a srazu bez HTML (text připomínky)
+const whenPlain = e => { const t = timeParts(e, evDefaults(S.es)); return [t.range, t.meet ? "⏰ sraz " + t.meet : ""].filter(Boolean).join(" · "); };
+// 📲 Sdílení textu: nabídka sdílení telefonu (WhatsApp, SMS …), jinak zkopírovat do schránky, jinak ukázat text k ručnímu zkopírování
+async function shareText(text) {
+  if (navigator.share) { try { await navigator.share({text}); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); toast("Připomínka zkopírována – vlož ji do WhatsApp nebo SMS"); }
+  catch (e) { missTxt = text; render(); }
+}
 // Varování cashflow z uloženého rozpočtu běžící sezóny (jen správce pokladny); chyba výpočtu přehled nezastaví
 function flowOf() {
   const k = seasonKeyOf(td()), sv = (S.bd || []).find(x => x.id === k);
@@ -75,6 +90,13 @@ function weekHtml(list, mine) {
   return `<div class="cd"><div class="hmh"><h2 style="margin:0">📅 Příštích ${DAYS_AHEAD} dní</h2>${mine && q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>
 ${rows || '<div class="mu" style="margin-top:6px">V příštích ' + DAYS_AHEAD + ' dnech nejsou žádné události.</div>'}</div>`;
 }
+// ❔ Chybí odpověď (manager / trenér / asistent): nejbližší otevřená událost s hráčkami bez odpovědi; rozbalené = jména a 📲 Připomenout
+function missHtml(e, miss) {
+  if (!e || !miss.length) return "";
+  const open = missOpen === e.id;
+  const body = open ? `<div class="hmn">${miss.map(m => `<span class="tag">${esc(m.name)}</span>`).join("")}</div><div class="row"><button class="p" data-hrm>📲 Připomenout</button><button class="s" data-heo="${esc(e.id)}">Otevřít událost →</button></div>${missTxt ? `<textarea readonly rows="5" style="margin-top:8px">${esc(missTxt)}</textarea>` : ""}` : "";
+  return `<div class="cd hmq"><div class="hmh hmc" data-hms><b>❔ Chybí odpověď: ${miss.length}</b><span class="mu">${e.type === "match" ? "🆚" : "🏒"} ${esc(e.title)} · ${esc(dayShort(e.date))} ${open ? "▴" : "▾"}</span></div>${body}</div>`;
+}
 // Moje platby: ✅ vše zaplaceno / 💳 k úhradě / ⛔ po splatnosti → Moje platby
 function payHtml(p) {
   if (!p || p.state === "none") return "";
@@ -94,12 +116,15 @@ function teamHtml(t, f) {
 
 // ===== Eventy =====
 // Odkazy z přehledu: detail události (Zpět vrátí do Domů), živý zápis, Moje platby, Team → Platby / Rozpočet
-function bind(a, L) {
+function bind(a, L, M) {
   const go = fn => () => { fn(); render(); window.scrollTo(0, 0); };
   a.querySelectorAll("[data-heo]").forEach(b => b.onclick = go(() => { S.tab = "ev"; S.mid = null; S.evf = null; S.evid = b.dataset.heo; S.evBack = "home"; }));
   a.querySelectorAll("[data-hmk]").forEach(b => b.onclick = go(() => { S.tab = "mk"; S.mid = null; S.evid = null; }));
   a.querySelectorAll("[data-hpay]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "pay"; S.mid = null; S.evid = null; }));
   a.querySelectorAll("[data-hjr]").forEach(b => b.onclick = () => openJoinWindow());
+  // ❔ Chybí odpověď: rozbalit / sbalit jména, 📲 Připomenout = text ke sdílení s odkazem na stabilní verzi aplikace
+  a.querySelectorAll("[data-hms]").forEach(b => b.onclick = () => { if (!M) return; missOpen = missOpen === M.e.id ? null : M.e.id; missTxt = ""; render(); });
+  a.querySelectorAll("[data-hrm]").forEach(b => b.onclick = () => { if (M) shareText(reminderText(M.e, M.miss.map(m => m.name), {when: whenPlain(M.e), dl: M.e.dl && !M.e.locked ? dlText(M.e.dl) : "", url: location.origin + STABLE_URL})); });
   a.querySelectorAll("[data-hbud]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "bud"; S.mid = null; S.evid = null; }));
   // Manager / trenér / asistent: otevře kartu běžícího zápasu a v ní živý zápis (stejně jako ▶ Pokračovat v živém zápisu)
   // Ostatní členové: 👁 náhled běžícího zápasu jen ke čtení
@@ -118,7 +143,9 @@ export function homeView(a) {
   const next = nm ? {...nm, ans: myAnswer(S.at, nm.id, mid), going: goingCount(S.at, nm.id), locked: regClosed(nm, now, today)} : null;
   const mp = mineIds().length ? myPay(S.ch, mineIds(), now) : null;
   const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";
-  a.innerHTML = CSS + `<div id="hmw">${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${nextHtml(next, !!mid)}${weekHtml(week, !!mid)}${payHtml(mp)}${absCardHtml()}${team}</div>${absModal()}`;
-  bind(a, L);
+  // ❔ Chybí odpověď jen pro sport (manager, trenér, asistent) – nejbližší událost s otevřeným přihlašováním
+  const ne = HK.can("sport") ? nearestOpen(week) : null, M = ne ? {e: ne, miss: missingAnswers(S.pl, S.at, ne.id)} : null;
+  a.innerHTML = CSS + `<div id="hmw">${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextHtml(next, !!mid)}${weekHtml(week, !!mid)}${payHtml(mp)}${absCardHtml()}${team}</div>${absModal()}`;
+  bind(a, L, M);
   bindAbs(a);
 }

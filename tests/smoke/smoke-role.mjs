@@ -44,6 +44,13 @@ async function tabs() {
   const keys = [...document.querySelectorAll("#nav button[data-t]")].map(b => b.dataset.t);
   for (const k of keys) { await tap(`#nav button[data-t="${k}"]`, 250); snap("tab-" + k); }
 }
+// 🏠 Domů – ❔ Chybí odpověď (manager, trenér, asistent): rozbalit jména a 📲 Připomenout (bez sdílení a schránky = text k ručnímu zkopírování)
+async function homeMiss() {
+  await tap('#nav button[data-t="home"]', 250);
+  if (!(await tap("[data-hms]", 200))) return;
+  snap("home-miss");
+  if (await tap("[data-hrm]", 250)) snap("home-remind");
+}
 // 📈 Statistiky → 🏒 Trénink: období, výběr cvičení a hráčky, zpět na Zápasy
 async function trainStats() {
   if (!(await tap('#nav button[data-t="st"]', 250)) || !(await tap('[data-stv="t"]', 400))) return;
@@ -182,6 +189,7 @@ async function money() {
 try {
   await start();
   await tabs();
+  await homeMiss();
   await trainStats();
   await settings();
   await help();

@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.11 (27. 10. 2026)** – 🧪 beta kanál: nové verze se nejdřív nasazují do bety (`…/beta/`) pro vybrané testery a do stabilní verze jdou až po otestování celé série. Předtím v22.10: 🖐 rychlejší události (předvyplnění, omluva klepnutím). Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.12 (27. 10. 2026)** – 🏠 Domů: ❔ Chybí odpověď u nejbližší události (jména jedním klepnutím) a 📲 připomenutí sdílením do WhatsApp / SMS. Předtím v22.11: 🧪 beta kanál (nové verze nejdřív do `…/beta/` pro testery). Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.
