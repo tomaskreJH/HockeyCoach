@@ -9,6 +9,7 @@ import {clone, esc, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, parseAcc} from "../domain/bank-account.js";
 import {ACC, ACC_META, WHO, accMeta, cashCfg} from "../domain/cash.js";
+import {watchAudit} from "./audit-feed.js";
 
 // ===== Stav =====
 let D = null;        // rozpracované nastavení
@@ -54,6 +55,7 @@ function accHtml() {
 ${mine ? '<div class="mu" style="margin:6px 0">Potvrdit musí jiný správce pokladny.</div><button class="s w" data-apx>Zrušit návrh</button>' : '<div class="mu" style="margin:6px 0">Před potvrzením ověř číslo účtu s navrhovatelem jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
   const v1 = accIn ? accIn.a1 : ibanToCz(c.iban) || c.iban || "", v2 = accIn ? accIn.a2 : ibanToCz(c.iban2) || c.iban2 || "";
   const form = coach ? `<h3>Navrhnout změnu účtů</h3><label>Hlavní účet – číslo účtu (např. 19-2000145399/0800) nebo IBAN</label><input id="acc1" value="${esc(v1)}" inputmode="text" autocomplete="off"><div id="ack1">${chkTxt(v1).h}</div><label>Provozní účet (nepovinné; prázdné = vše na hlavní účet)</label><input id="acc2" value="${esc(v2)}" inputmode="text" autocomplete="off"><div id="ack2">${chkTxt(v2).h}</div><div class="mu" style="margin-bottom:6px">Změna se projeví až po potvrzení jiným trenérem nebo pokladníkem. Návrh i potvrzení se zapíší do auditu a hráčkám se nový účet zobrazí s varováním.</div><button class="s w" data-apr>📝 Navrhnout změnu účtů</button>` : '<div class="mu" style="margin-top:6px">Čísla účtů navrhuje jen trenér; pokladník změnu potvrzuje.</div>';
+  watchAudit("", refreshCashSettings);   // 📉 obecné záznamy auditu (změny účtů) až při otevření nastavení
   const hist = (S.au || []).filter(x => ACT_TXT[x.act]).sort((a, b) => (b.ts || "").localeCompare(a.ts || "")).slice(0, 10)
     .map(x => `<div class="mu">${esc(fDt(x.ts))} · ${esc(ACT_TXT[x.act])} · ${esc(x.by || "")}${x.note ? " · " + esc(x.note) : ""}</div>`).join("");
   return `<div class="cd"><h2>🏦 Účty pro QR platby</h2><div>Hlavní: ${accTxt(c.iban)}<br>Provozní: ${accTxt(c.iban2)}</div><div class="mu" style="margin:6px 0 10px">${last}</div>${pendH}${form}${hist ? `<h3>Historie změn účtů</h3>${hist}` : ""}</div>`;

@@ -102,3 +102,13 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 11.7 Starší odpovědi (před v22.7) jsou v historii dole jako „(poslední změna)“ s účtem, který je zapsal.
 - [ ] 11.8 Hráčka, pokladník bez trenérské role a hostující: žádné 🕘 v docházce ani tlačítko Historie.
 - [ ] 11.9 Rychlá kontrola z kap. 1.
+
+## 12. v22.8 – 📉 Čtení databáze
+- [ ] 12.1 V záhlaví je **v22.8**. ⚙️ → 💾 Data → dole **📉 Čtení databáze**: počet dokumentů na jedno spuštění, největší kolekce, odhad pro hráčku, počet spuštění do limitu. **Čísla poslat Claudovi** (manager na PC i na telefonu).
+- [ ] 12.2 Události → Minulé (trenér): u tréninků se po chvíli objeví 📋 / ⏱ / ⭐ jako dosud. Nadcházející: beze změny.
+- [ ] 12.3 Otevřít minulý trénink, ohodnotit hráčku, zpět → na kartě se stav po chvíli obnoví (⭐ ohodnoceno).
+- [ ] 12.4 Team → 💰 Platby → uzavřená událost: dole „Záznamy“ (uzavřeno, výjimky) jako dosud. Dát / zrušit výjimku → záznam přibude.
+- [ ] 12.5 ⚙️ → 💰 Nastavení pokladny: 🏦 Historie změn účtů jako dosud.
+- [ ] 12.6 ⚙️ → 💾 Data → Stáhnout zálohu (manager): soubor obsahuje `audit`.
+- [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
+- [ ] 12.8 Rychlá kontrola z kap. 1.

@@ -16,7 +16,7 @@ import {bindBudget, budgetHtml} from "./budget-view.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindCost, costHtml} from "./cost-view.js";
 import {activePl, allEvents, ANS, answer, atMap, bindSheet, cashMgr, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, MONTHS, ORD, pad, restLine, roster, rosterLine, sheetHtml, staff, titleLine} from "./event-core.js";
-import {ensureTrainStatus, statusLine} from "./event-badges.js";
+import {ensureTrainStatus, forgetTrainStatus, statusLine} from "./event-badges.js";
 import {detail} from "./event-detail.js";
 import {formView} from "./event-form.js";
 import {bindFinance, financeHtml} from "./finance.js";
@@ -59,7 +59,6 @@ ${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" s
 function list(a) {
   const P = activePl(), AT = atMap(), evs = allEvents(), today = td(), pl_ = isPl();
   if (!S.evc) { const n = new Date(); S.evc = {y: n.getFullYear(), m: n.getMonth()}; }
-  ensureTrainStatus();   // 🏒 stav tréninků pro trenéry (jednorázové čtení, překreslí se samo)
   // Za koho platí rychlá tlačítka na kartě: propojená hráčka má přednost (i u managera / trenéra / asistenta, který je zároveň hráčka),
   // jinak člen realizačního týmu (members/{email}.tid); hráčka nikdy za člena týmu (domain/event-helpers.js – selfMember)
   S.evp = selfMember(HK.pid(), pl_ ? null : HK.tid(), P.map(p => p.id), S.tr.map(t => t.id), pl_);
@@ -75,6 +74,7 @@ function list(a) {
   else if (mode === "past") shown = sortEvents(evs.filter(e => e.date < today), "past");
   else if (mode === "att") shown = [];
   else { const pre = S.evc.y + "-" + pad(S.evc.m + 1); shown = sortEvents(evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)), "cal"); }
+  ensureTrainStatus(shown);   // 🏒 stav jen zobrazených tréninků pro trenéry (📉 čtení po dokumentech, překreslí se samo)
   // Hlavička: hráčka bez propojení dostane upozornění; správce tlačítka pro založení události
   const head = pl_
     ? (S.evp ? "" : '<div class="cd" style="color:var(--no)">Tvůj účet není propojen s aktivní hráčkou. Požádej trenéra.</div>')
@@ -96,7 +96,7 @@ ${mode === "att" ? attHtml() : shown.length ? shown.map(e => card(e, AT, P)).joi
   if (mode === "att") bindAtt(a);
   a.querySelectorAll("[data-cn]").forEach(b => b.onclick = () => { const c = S.evc; c.m += +b.dataset.cn; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } S.evd = null; render(); });
   a.querySelectorAll("[data-cd]").forEach(b => b.onclick = () => { S.evd = S.evd === b.dataset.cd ? null : b.dataset.cd; render(); });
-  a.querySelectorAll("[data-eo]").forEach(c => c.onclick = () => { S.evid = c.dataset.eo; S.evBack = null; render(); window.scrollTo(0, 0); });
+  a.querySelectorAll("[data-eo]").forEach(c => c.onclick = () => { forgetTrainStatus(c.dataset.eo); S.evid = c.dataset.eo; S.evBack = null; render(); window.scrollTo(0, 0); });
   a.querySelectorAll("[data-qa]").forEach(b => b.onclick = ev => { ev.stopPropagation(); const [eid, st] = b.dataset.qa.split("|"); answer(eid, S.evp, st); });
   bindSheet(a);
 }

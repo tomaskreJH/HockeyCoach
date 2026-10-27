@@ -1,4 +1,4 @@
-// Zálohy (⚙️ → 💾 Data): stažení zálohy JSON (jen kolekce načtené v zařízení, kolekce Tréninku FETCH se načtou celé), CSV soupisky
+// Zálohy (⚙️ → 💾 Data): stažení zálohy JSON (jen kolekce načtené v zařízení, kolekce Tréninku FETCH a audit se načtou celé), CSV soupisky
 // a obnova ze zálohy (sloučit / nahradit). Neobnovuje se brána verze, matice práv, účty v settings/cash, audit ani schválený rozpočet;
 // stará záloha se nejdřív rozdělí do soukromých kolekcí (splitLegacy). Stav a zápis dostává přes kontext C ze storage.js.
 
@@ -18,10 +18,15 @@ export function backupApi(C) {
   // soukromé kolekce attnote, staffpay a plpay jsou v ní, pokud je role smí číst (manager všechny)
   async function exportJSON() {
     const out = {};
-    COLL.forEach(c => { if (first[c]) out[c] = data[c]; });
+    // Audit se v zařízení čte jen po částech (záznamy otevřené události) – do zálohy se níže načte celý
+    COLL.forEach(c => { if (first[c] && c !== "audit") out[c] = data[c]; });
     // Plány tréninků a obrázky cvičení se načtou celé až teď (bez chyby zálohy, když je pravidla nepustí)
     if (can("sport")) for (const c of FETCH) {
       try { const s = await getDocs(fsCol(C.fs(), c)); out[c] = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez " + c + ":", errTxt(e)); }
+    }
+    // 📉 Audit (jen správce pokladny): jednorázové načtení celé kolekce až při stažení zálohy
+    if (can("money")) {
+      try { const s = await getDocs(fsCol(C.fs(), "audit")); out.audit = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez audit:", errTxt(e)); }
     }
     downloadFile("hokej-zaloha-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", version: 1, exported: new Date().toISOString(), data: out}, null, 1), "application/json");
   }

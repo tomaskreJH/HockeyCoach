@@ -150,7 +150,7 @@ function moneyData(db) {
   if (HK.can("money")) {
     db.collection("charges").onSnapshot(s => { S.ch = rows(s); S.payErr = null; render(); }, ec);
     db.collection("cash").onSnapshot(s => { S.cs = rows(s); render(); }, ec);
-    db.collection("audit").onSnapshot(s => { S.au = rows(s); render(); }, ec);
+    // Audit se celý neposlouchá (📉 úspora čtení): záznamy jedné události a změny účtů na vyžádání (views/audit-feed.js)
     db.collection("evcash").onSnapshot(s => { S.ec = rows(s); render(); }, ec);
     // Platební pole hráček a platy realizačního týmu; připojí se k S.pl a S.tr
     db.collection(PPAY_COLL).onSnapshot(s => { R.pp = mapOf(s); joinPl(); render(); }, erP(PPAY_COLL));

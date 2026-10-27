@@ -10,15 +10,34 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.5~~ | hotovo | 🔁 převody mezi účty, datum platby, 🧾 Náklady (led, rozhodčí … proti výdajům), číslo účtu v QR, ➕ příjem z výpisu |
 | ~~v22.6~~ | hotovo | **E5** 📈 přehled a analýza Tréninku (Statistiky → 🏒 Trénink) |
 | ~~v22.7~~ | hotovo | 🕘 historie přihlášek na události (časy změn, kdo zapisoval za koho) |
-| v22.8 | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
+| ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
+| v22.9 | **D2** | 📉 docházka a události po oknech – **před přihlášením hráček** (čeká na čísla z 📉 a rozhodnutí) |
+| v22.x | **K2** | 🖐 komfort celé aplikace – návrh seznamu níže ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
 | později | **E6**, **H**, **F** | dlouhodobý plán tréninku, souběžné tresty, jeden zapisovatel živého zápisu |
 | **poslední** | **M** | další tým / jiný klub |
 
+## D – 📉 šetření čtení databáze (tarif Spark: 50 000 čtení / den)
+Účtuje se každý přečtený dokument. Spuštění aplikace po pauze delší než 30 min (i obnovení stránky, nová verze, 👁 náhled role) přečte **všechny dokumenty poslouchaných kolekcí**. Živý zápas je levný (1 zápis = 1 čtení na každém otevřeném zařízení), drahé je hromadné otevírání aplikace – každá hráčka čte celou `attendance`, `events`, `matches`, `players`.
+- **D1 (v22.8, hotovo):** audit a stav tréninků na kartách jen na vyžádání, 📉 odhad v ⚙️.
+- **D2 (návrh, rozhodnout podle čísel z 📉):** docházka a události se poslouchají jen v okně (např. 60 dní zpět + budoucí); starší se načtou jednorázově až v 📊 Docházce, Minulých, Statistikách a pokladně. Docházka dostane pole `d` (datum události) – zápis v `attDoc`, převod starých dat tlačítkem v ⚙️ → 💾 Data, pravidla rozšířit (`d` v `hasOnly`). ⚠️ Výpočty pokladny, ⚖️ Tarify a Moje platby čtou docházku starších událostí – musí dostat starší data před výpočtem. Řeší i otevřenou drobnost 8.
+- **D3 (později):** uzavřené měsíce docházky zabalit do jednoho dokumentu `attm/{RRRR-MM}` (1 čtení místo stovek); totéž pro `charges` a `cash` uzavřených sezón.
+- **Pojistka:** tarif Blaze má stejný limit zdarma a platí se jen čtení nad něj (řádově haléře za tisíce čtení); hlídání rozpočtu v Google Cloud upozorní, ale neomezí. Bez Blaze po překročení limitu databáze do rána (~8–9 h) nečte.
+
 ## K2 – komfort celé aplikace
-Průchod hlavních toků na Androidu (události a docházka, plán tréninku, živý trénink, zápas): méně klepnutí, výchozí hodnoty, poslední volby, rychlé akce, velká tlačítka na pevných místech, přehledy na jedné obrazovce, jednotné hlášky. Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.
+**Návrh seznamu ke schválení (27. 10. 2026)** – každá skupina = jedna malá verze:
+1. **Události a docházka:** formulář nové události předvyplní poslední použitou šablonu, místo a čas stejného druhu; ✅ ❌ ❓ odpověď s důvodem z nabídky posledních důvodů (jedno klepnutí místo psaní).
+2. **🏠 Domů:** u nejbližší události pruh „Chybí odpověď: N“ s jedním klepnutím na seznam bez odpovědi (trenér) a 📲 připomenutí přes sdílení zprávy (WhatsApp / SMS) bez serveru.
+3. **Plán tréninku:** ⧉ „Jako minule“ jedním klepnutím (kopie posledního plánu stejného dne v týdnu), sbalené bloky s celkovým časem v záhlaví.
+4. **Živý trénink:** pevná spodní lišta ⏸ / ⏭ / ➕1 min na stejném místě, zbývající čas tréninku vždy nahoře.
+5. **Zápas:** sestava „Jako minule“ (poslední sestava proti komukoli), po uzavření zápasu rovnou souhrn ke sdílení.
+6. **Jednotné hlášky:** stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.
+7. **Pokladna:** ➖ výdaj předvyplní poslední použitou kategorii, příjemce a účet.
+Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.
+
+Původní zadání: průchod hlavních toků na Androidu (události a docházka, plán tréninku, živý trénink, zápas): méně klepnutí, výchozí hodnoty, poslední volby, rychlé akce, velká tlačítka na pevných místech, přehledy na jedné obrazovce, jednotné hlášky. Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.
 
 **Sebrané připomínky k detailu události (25. 10. 2026):** výraznější záhlaví bloků (hotovo v21.7), hlavička datum / čas a sraz / místo (hotovo v21.7). Další připomínky zapisuje Claude a sám rozhodne, kdy je jich dost na verzi.
 
@@ -58,7 +77,7 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 5. Pokrytí dovedností počítá i hostující hráčku – zvážit vynechání.
 6. ⭐ Výkonnost: smazaná hráčka zůstane v `plevel/team.lv` (nevadí).
 7. Upozornění živého tréninku jen při otevřené aplikaci (bez serveru); stopky běží jen v zařízení.
-8. Poslech `events` / `attendance` jen aktuální sezóny – zeptat se před změnou (mění statistiky a docházku za starší období).
+8. Poslech `events` / `attendance` jen aktuální sezóny – řeší fáze **D2** (zeptat se před změnou: mění statistiky a docházku za starší období).
 9. `live-engine.js` ukládá přes `core/actions.js` (doména sahá na data) – oddělit jen při zásahu do živého zápisu.
 10. ⚖️ Porovnání způsobu placení je od v22.1.3 jen pro správce pokladny (Team → 💰 Platby → ⚖️ Tarify); hráčkám ho zpřístupnit až na pokyn trenéra (např. volbou v ⚙️ → Pokladna).
 11. 🏦 Výpis z banky: import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje. Přeplatek a nespárovaná platba se od v22.5 zapisují jako příjem; odchozí platby z výpisu (led, rozhodčí) se zatím nepárují – výdaje se zapisují ručně (🧾 Náklady → ➖ Zapsat platbu).

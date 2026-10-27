@@ -1,5 +1,5 @@
 // Okno ⚙️ Účet a data (všechny role, HK.openCfg z main.js): nahoře 👤 Účet (verze, Načíst novou verzi, u managera 🔒 Vyžadovat verzi),
-// pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV a obnova.
+// pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV, obnova a 📉 odhad čtení.
 // Jen vykreslení a obsluha – údaje a zápisy přes HK.cfg, oprávnění HK.can. 🔐 Práva rolí: views/perm-view.js.
 
 // ===== Importy =====
@@ -7,6 +7,7 @@ import {APP_VERSION} from "../core/app-version.js";
 import {armed, confirm2} from "../core/actions.js";
 import {LS, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {READ_LIMIT, collLabel, readCost} from "../domain/read-cost.js";
 import {permStatus, renderPerm, resetPermWork} from "./perm-view.js";
 
 // ===== Konstanty a stav =====
@@ -69,10 +70,17 @@ function eventsHtml() {
 function cashHtml() {
   return sec("cash", "💰 Pokladna", `<button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button><div class="mu" style="margin:8px 0">Přehled ⚖️ Tarify (Team → 💰 Platby) porovnává způsob placení hráček podle ceny uzavřených událostí na hlavu. Pro dříve uzavřené události (nebo po obnově zálohy) ceny doplň – opakování nic nepokazí.</div><button class="s w" id="cpr">💲 Doplnit ceny pro hráčky</button>`);
 }
-// 💾 Data: záloha a CSV (manager, trenér, asistent), obnova ze zálohy (manager)
+// 📉 Odhad čtení databáze: kolik dokumentů přečte jedno spuštění aplikace v tomto zařízení a u hráčky (limit zdarma READ_LIMIT za den)
+function readHtml() {
+  const r = readCost(C().readCounts()), n = v => v.toLocaleString("cs-CZ");
+  const top = r.top.map(([c, v]) => `${esc(collLabel(c))} ${n(v)}`).join(" · ");
+  return `<h3>📉 Čtení databáze</h3><div class="mu" style="margin-bottom:8px">Spuštění aplikace po pauze delší než 30 min přečte v tomto zařízení asi <b>${n(r.total)}</b> dokumentů${top ? ` (nejvíc ${top})` : ""}; u hráčky asi <b>${n(r.player)}</b>. Denní limit zdarma je ${n(READ_LIMIT)} čtení (obnova ráno) – do limitu se vejde asi ${n(r.starts)} takových spuštění tohoto zařízení. Každé obnovení stránky, nová verze a 👁 náhled role je nové spuštění.</div>`;
+}
+// 💾 Data: záloha a CSV (manager, trenér, asistent), obnova ze zálohy (manager), 📉 odhad čtení
 function dataHtml(coach) {
   let body = `<h3 style="margin-top:4px">Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>`;
   if (coach) body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>`;
+  body += readHtml();
   return sec("data", "💾 Data", body);
 }
 // 🛠 Vývojář: 👁 náhled role (jen DEV_EMAILS); při běžícím náhledu popis a Ukončit

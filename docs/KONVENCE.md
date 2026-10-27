@@ -53,6 +53,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `tariff-detail.js` | ⚖️ detail tarifu hráčky (měsíce, události, využití ledu, dopad na pokladnu) |
 | `block-exc.js` | 🔓 hromadné výjimky z blokace (dlužníci po osobách, výběr předpisů) |
 | `cost-check.js` | ⚠️ 🧾 kontrola nákladů událostí (očekávané náklady po kategorii a příjemci proti výdajům, měsíc výdaje `pym`) |
+| `read-cost.js` | 📉 odhad čtení databáze na jedno spuštění (`readCost`, limit `READ_LIMIT`) |
 | `event-status.js` | stav události na kartě (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení tréninku) |
 | `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
 | `drills.js`, `drill-import.js` | 📚 banka cvičení, základní sada a import CSV |
@@ -86,7 +87,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `tariff-detail-view.js` | ⚠️ ⚖️ Tarify → detail hráčky |
 | `block-exc-view.js` | ⚠️ Platby → 🔓 Výjimky: hromadná výjimka z blokace |
 | `cost-view.js` | ⚠️ Team → 🧾 Náklady (led, rozhodčí … proti zaplaceným výdajům, ➖ Zapsat platbu) |
-| `event-badges.js` | řádek stavu na kartě události (💰 / 🏒), jednorázové čtení stavu tréninků `S.trs` |
+| `event-badges.js` | řádek stavu na kartě události (💰 / 🏒), stav tréninků po dokumentech jen u zobrazených karet `S.trs` (starší v localStorage) |
+| `audit-feed.js` | ⚠️ 📉 audit pokladny na vyžádání (`watchAudit(eid)` – záznamy jedné události, `""` = změny účtů) |
 | `budget-view.js`, `budget-print.js` | 📊 rozpočet sezóny, 🖨 export |
 | `drills-view.js`, `drill-import-view.js`, `drill-picker.js`, `drill-media.js` | 📚 banka cvičení, import, výběr cvičení, 📷 obrázky a ▶ / 📄 náhled odkazů |
 | `trplan-view.js` | 📋 karta plánu v detailu tréninku, okno cvičení, společné styly a pomůcky plánu |
@@ -126,6 +128,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` (strážce `blocked()` – náhled role, starší verze). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá. Čtení na vyžádání: `S.db.doc().get()`, `S.db.collection().getAll()`, poslech jednoho dokumentu `collection().part`.
+- **📉 Šetření čtení (tarif Spark = 50 000 čtení denně):** každé spuštění aplikace po pauze delší než 30 min přečte **všechny dokumenty poslouchaných kolekcí** znovu. Kolekce, která roste s časem (audit, historie, plány, výsledky), se **nesmí poslouchat celá** – čte se po dokumentech nebo dotazem `where` jen pro to, co je na obrazovce (`audit` přes `views/audit-feed.js`, stav tréninků v `views/event-badges.js`). Odhad pro aktuální data: ⚙️ → 💾 Data → 📉 Čtení databáze.
 - Úpravy existujícího dokumentu přes `merge`: `S.db.doc(cesta).merge({pole})` (vnořený objekt nahradí, `"__del"` smaže pole, `"__now"` = čas serveru); v dávce `batch().merge` = hluboké sloučení. `set` jen pro nový dokument nebo celý vlastněný (zápas, `evcash`, plán).
 - Data jen **přidávat**; stará pole mazat nejdřív o verzi později. Pravidla: **rozšířit → převést → zúžit**. Převody dat = tlačítko v ⚙️ → 💾 Data s náhledem, idempotentní, se zálohou; po potvrzení se v další verzi odstraní.
 - **Brána verze** `settings/app = {minVer, minBy, minAt}` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi, jen manager). Klient pod minimem nezapisuje.

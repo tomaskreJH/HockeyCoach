@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.8 (27. 10. 2026) – 📉 úspora čtení databáze, krok 1 (D1) + odhad čtení v ⚙️
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat – čte se jen podle stávajících práv). 3) Nahrát soubory ze zipu (nové `src/domain/read-cost.js`, `src/views/audit-feed.js`, `tests/read-cost.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v105`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová data; starší verze jen čtou víc). 6) Test: `docs/testy-rucni.md` kap. 12 – a **poslat čísla z ⚙️ → 💾 Data → 📉 Čtení databáze** (podklad pro krok D2).
+
+**Přidáno**
+- **⚙️ → 💾 Data → 📉 Čtení databáze** (manager, trenér, asistent): kolik dokumentů přečte jedno spuštění aplikace v tomto zařízení (po pauze delší než 30 min se poslouchané kolekce čtou celé), největší kolekce, odhad pro hráčku a kolik takových spuštění se vejde do denního limitu 50 000. Výpočet `src/domain/read-cost.js` (`readCost`, `collLabel`, `READ_LIMIT`), počty `HK.cfg.readCounts()` ze `src/data/storage.js`.
+- `src/views/audit-feed.js` – `watchAudit(eid, redraw)`: poslech záznamů auditu jen jedné události (`eid ""` = změny účtů).
+- Testy: `tests/read-cost.test.js` (3).
+
+**Změněno (📉 méně čtení)**
+- ⚠️ SAHÁ NA PLATBY (jen zobrazení, výpočty beze změny): **audit pokladny se už neposlouchá celý** (`src/main.js`). 💰 Pokladna u uzavřené události čte jen své záznamy (`src/views/payments.js`), 🏦 historie změn účtů se načte až při otevření nastavení pokladny (`src/views/cash-settings.js`). Záloha JSON audit načte celý až při stažení (`src/data/backup.js`, jen správce pokladny).
+- **🏒 stav tréninku na kartách Událostí** (`src/views/event-badges.js`, `src/views/events.js`): místo celých kolekcí `trplan`, `trlive`, `treval` každých 5 min (i v Nadcházejících, kde se stav vůbec neukazuje) se čtou 3 dokumenty jen u **zobrazených** tréninků dnes a v minulosti, po 8 najednou. Stav tréninku staršího než 7 dní se pamatuje v zařízení natrvalo (localStorage `hk-trs-v1`), novější se obnoví po 10 min; otevření detailu události stav té události zapomene (po návratu se načte znovu).
+- `src/core/state.js` – popis `au` a `trs`; `docs/KONVENCE.md` – pravidlo 📉 šetření čtení, mapa souborů.
+
+**Beze změny:** zápis auditu (stejné dokumenty, stejná pravidla), pokladna a její výpočty, přihlašování, docházka, živý zápis, trénink, statistiky. Poslech ostatních kolekcí zatím beze změny (krok D2 čeká na rozhodnutí – `docs/plan.md`).
+
+**Ověřeno:** `npm test` 412 / 412. `npm run smoke` – 8 rolí bez chyb (⚙️ s 📉 odhadem u realizačního týmu, seznam Událostí se stavem tréninků, pokladna u události).
+
 ## v22.7 (27. 10. 2026) – 🕘 historie přihlášek na události (kdy a kdo za koho)
 > **Nasazení:** 1) Zip současného repozitáře, ⚙️ → 💾 Data → Stáhnout zálohu. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nový blok `attlog`; ostatní pravidla beze změny). Kdyby pravidla publikovaná nebyla, přihlašování funguje dál, jen se nezapisuje historie a okno hlásí chybu načtení. 3) Nahrát soubory ze zipu (nové `src/domain/att-log.js`, `src/views/att-log-view.js`, `tests/att-log.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v104`). 5) **🔒 Vyžadovat verzi: doporučeno 22.7**, až budou zařízení aktualizovaná (starší verze změny odpovědí do historie nezapisují; data se nepřevádějí). 6) Test: `docs/testy-rucni.md` kap. 11.
 

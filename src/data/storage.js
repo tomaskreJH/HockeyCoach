@@ -173,6 +173,8 @@ function listenPart(c, id, cb, er) {
   const key = "#" + id, put = m => { (parts[c] = parts[c] || {})[key] = m; data[c] = Object.assign({}, ...Object.values(parts[c])); first[c] = true; try { cb(view(c)); } catch (e) { console.error(e); } };
   return onSnapshot(fsDoc(fs, c, id), snap => put(snap.exists() ? {[id]: snap.data()} : {}), err => { put({}); if (er) er(err); });
 }
+// 📉 Počty dokumentů v kolekcích, které zařízení poslouchá (= čtení při spuštění po pauze > 30 min); odhad v ⚙️ → 💾 Data
+const readCounts = () => Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, Object.keys(data[c]).length]));
 const view = c => ({docs: Object.entries(data[c]).map(([id, d]) => ({id, data: () => clone(d)}))});
 function fire(c) { subs[c].forEach(s => { try { s.cb(view(c)); } catch (e) { console.error(e); } }); }
 function subscribe(c, cb, er) {
@@ -441,6 +443,6 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview,
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení
-  cfg: {...CFG, isDev, endPreview, rebuildDebtors, rebuildPrices, roleLabel, online: () => navigator.onLine}};
+  cfg: {...CFG, isDev, endPreview, rebuildDebtors, rebuildPrices, roleLabel, online: () => navigator.onLine, readCounts}};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

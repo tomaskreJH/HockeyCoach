@@ -6,7 +6,7 @@
 // Team: tm = režim záložky Team (team = formace a soupiska, pay / cash / mon / bud = Platby / Pokladna / Měsíce / Rozpočet pro správce pokladny).
 // Rozpočet: bd = rozpočty sezón (kolekce budget, id = sezóna "RRRR-RR"; jen správci pokladny).
 // Realizační tým: tr = členové (kolekce staff).
-// Pokladna: ch = předpisy (charges; správce vidí všechny, ostatní jen své), cs = příjmy a výdaje (cash, jen správci), au = audit (jen správci),
+// Pokladna: ch = předpisy (charges; správce vidí všechny, ostatní jen své), cs = příjmy a výdaje (cash, jen správci), au = audit (jen správci, načtené části – views/audit-feed.js),
 // ec = vyúčtování událostí (evcash: náklady, kdo platí, snapshot; jen správci), cc = nastavení pokladny (settings/cash), payErr = chyba načtení.
 // Docházka a dlužníci: evm "att" = přehled docházky, ao = volby přehledu {from, to, kind}, dt = souhrn dlužníků (kolekce debtors, bez částek), dtErr = chyba načtení.
 // Soukromí: an = důvody omluv (kolekce attnote, mapa id → {eid, mid, reason}; manager, trenér a asistent všechny, ostatní jen své). V at, pl a tr jsou
@@ -21,7 +21,7 @@
 // tpv = otevřené cvičení v plánu {eid, bi, li}, tpr = panel ⧉ kopie / 📑 šablon v úpravě plánu (views/trplan-reuse.js),
 // tcv = 📊 pokrytí dovedností {eid, days, st, res} (views/trplan-reuse.js). Banka cvičení: dri = 📥 hromadné přidání (sada / CSV),
 // dru = použití cvičení v plánech a šablonách {st: "load" | "ok" | "err", m: {id: počet}} pro kontrolu před smazáním.
-// Stav tréninků na kartách Událostí (views/event-badges.js): trs = {plan, live, ev: {eid: dokument}, at, busy} – jednorázové čtení pro trenéry.
+// Stav tréninků na kartách Událostí (views/event-badges.js): trs = {st: {eid: stav}, at: {eid: čas}, busy} – čtení po dokumentech pro trenéry, starší stavy v localStorage.
 // Statistiky (views/train-stats.js): stv = podzáložka "m" Zápasy / "t" Trénink, tst = 📈 načtené tréninky období {days, st, at, T, plans, ms, ev},
 // tsx = cvičení v tabulce měření, tsp = hráčka na kartě, tsk = dovednost v 🔍 Kdo netrénoval.
 // Výchozí hodnoty událostí: es = settings/events {meetT, meetM, len} – sraz tréninku a zápasu, délka tréninku (domain/event-time.js).
