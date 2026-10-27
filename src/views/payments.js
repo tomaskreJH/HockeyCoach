@@ -1,14 +1,14 @@
 // ⚠️ Pokladna u události (správce pokladny): šablona, náklady, kdo platí, pokrytí nákladů (domain/economy.js), vyúčtování, úhrady předpisů.
 // Data v evcash/{id} (ev.cx), v události jen příznak ss. Uzavření i znovuotevření = JEDNA dávka (evcash + ss + předpisy + audit + debtors);
 // po uzavření se nic automaticky nepřepočítává. Cena na hlavu evprice/{id} se zapíše po dávce zvlášť (chyba ji nesmí zastavit).
-// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny (i hromadně – payMany); výjimky z blokace i hromadně (excMany). Přehled dluhů: finance.js, pohyby: cashbook.js.
+// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny (i hromadně – payMany) s datem platby; výjimky z blokace i hromadně (excMany). Přehled dluhů: finance.js, pohyby: cashbook.js.
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, accOf, asOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
+import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, isDay, accOf, asOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {PRICE_COLL, coveredBy, eventResult, priceDoc, suggestFlat} from "../domain/economy.js";
 import {render} from "./shell.js";
@@ -88,8 +88,8 @@ export function settleEvent(ev, raw, force, d) {
 // Zámek proti dvojímu klepnutí (než se změna vrátí přes odběr dat)
 const busy = new Set();
 // Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné dávce.
-// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu; extra = doplněk poznámky (např. souhrnná platba).
-export function payCharge(cid, amt, extra) {
+// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu; extra = doplněk poznámky (např. souhrnná platba), day = datum platby (jinak dnešek).
+export function payCharge(cid, amt, extra, day) {
   const x = S.ch.find(c => c.id === cid);
   if (!x || busy.has(cid)) return false;
   const rest = restOf(x), a = amt == null ? rest : r2(amt);
@@ -99,7 +99,7 @@ export function payCharge(cid, amt, extra) {
   const d = {...chData(x), paid: r2((+x.paid || 0) + a)}, cfg = cashCfg(S.cc);
   const note = [chargeMsg(x, S), a < rest ? "částečná úhrada" : "", extra || ""].filter(Boolean).join(" · ");
   const b = S.db.batch()
-    .set("cash/" + uid(), {d: td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()})
+    .set("cash/" + uid(), {d: isDay(day) ? day : td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()})
     .set("charges/" + cid, d);
   withDebtors(b, [{id: cid, d}], []).commit();
   toast(a < rest ? "Částečná úhrada zapsána" : "Úhrada zapsána");
@@ -147,14 +147,35 @@ export function openPay(cid) {
   e.style.cssText = "position:fixed;inset:0;z-index:57;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center";
   const rest = restOf(x), close = () => { e.style.display = "none"; e.innerHTML = ""; };
   const cfg = cashCfg(S.cc);
-  e.innerHTML = `<div class="mb"><h2>💳 Úhrada</h2><div class="mu" style="margin-bottom:8px">${pn(x.mid)} · předpis ${kc(+x.amt || 0)}, zaplaceno ${kc(+x.paid || 0)}, zbývá <b>${kc(rest)}</b></div><div class="mu" style="margin-bottom:8px">VS <b>${esc(x.vs || "–")}</b> · ${esc(chargeMsg(x, S))}${twoAcc(cfg) ? " · " + esc(accName(cfg, accOf(x, cfg))) : ""}</div><label>Zaplacená částka (Kč)</label><input id="cpa" type="number" min="0" step="0.01" inputmode="decimal" value="${rest}"><div id="cpe" class="mu" style="color:var(--no);margin-bottom:8px"></div><div class="row"><button class="p" id="cpo" style="min-height:52px">Zapsat úhradu</button><button class="s" id="cpx" style="min-height:52px">Zavřít</button></div></div>`;
+  e.innerHTML = `<div class="mb"><h2>💳 Úhrada</h2><div class="mu" style="margin-bottom:8px">${pn(x.mid)} · předpis ${kc(+x.amt || 0)}, zaplaceno ${kc(+x.paid || 0)}, zbývá <b>${kc(rest)}</b></div><div class="mu" style="margin-bottom:8px">VS <b>${esc(x.vs || "–")}</b> · ${esc(chargeMsg(x, S))}${twoAcc(cfg) ? " · " + esc(accName(cfg, accOf(x, cfg))) : ""}</div><label>Zaplacená částka (Kč)</label><input id="cpa" type="number" min="0" step="0.01" inputmode="decimal" value="${rest}"><label>Datum platby</label><input id="cpd" type="date" value="${td()}" max="${td()}"><div id="cpe" class="mu" style="color:var(--no);margin-bottom:8px"></div><div class="row"><button class="p" id="cpo" style="min-height:52px">Zapsat úhradu</button><button class="s" id="cpx" style="min-height:52px">Zavřít</button></div></div>`;
   e.onclick = ev => { if (ev.target === e) close(); };
   document.getElementById("cpx").onclick = close;
   document.getElementById("cpo").onclick = () => {
-    const r = payAmount(x, document.getElementById("cpa").value);
+    const r = payAmount(x, document.getElementById("cpa").value), day = document.getElementById("cpd").value;
     if (r.err) { document.getElementById("cpe").textContent = r.err; return; }
+    if (!isDay(day)) { document.getElementById("cpe").textContent = "Zadej datum platby"; return; }
     close();
-    payCharge(cid, r.amt);
+    payCharge(cid, r.amt, "", day);
+  };
+}
+// Okno „Zaplatila vše“: více předpisů jedné osoby na jeden účet najednou s datem platby (celé zbytky přes payMany);
+// ids = předpisy, label = popis (osoba, účet), extra = doplněk poznámky (souhrnná platba s osobním VS)
+export function openPayAll(ids, label, extra) {
+  const xs = (ids || []).map(id => S.ch.find(c => c.id === id)).filter(x => x && restOf(x) > 0);
+  if (!xs.length) return;
+  let e = document.getElementById("cpay");
+  if (!e) { e = document.createElement("div"); e.id = "cpay"; document.body.appendChild(e); }
+  e.style.cssText = "position:fixed;inset:0;z-index:57;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center";
+  const tot = r2(xs.reduce((s, x) => s + restOf(x), 0)), close = () => { e.style.display = "none"; e.innerHTML = ""; };
+  e.innerHTML = `<div class="mb"><h2>✅ Zaplatila vše</h2><div class="mu" style="margin-bottom:8px">${esc(label || "")} · ${xs.length}× · celkem <b>${kc(tot)}</b></div><div class="mu" style="margin-bottom:8px">${xs.map(x => esc(chargeMsg(x, S)) + " (" + kc(restOf(x)) + ")").join("; ")}</div><label>Datum platby</label><input id="cpd" type="date" value="${td()}" max="${td()}"><div id="cpe" class="mu" style="color:var(--no);margin-bottom:8px"></div><div class="row"><button class="p" id="cpo" style="min-height:52px">Zapsat úhrady</button><button class="s" id="cpx" style="min-height:52px">Zavřít</button></div></div>`;
+  e.onclick = ev => { if (ev.target === e) close(); };
+  document.getElementById("cpx").onclick = close;
+  document.getElementById("cpo").onclick = () => {
+    const day = document.getElementById("cpd").value;
+    if (!isDay(day)) { document.getElementById("cpe").textContent = "Zadej datum platby"; return; }
+    close();
+    const n = payMany(xs.map(x => ({cid: x.id, amt: null, note: xs.length > 1 ? extra || "" : "", d: day})));
+    toast(n ? "Označeno jako zaplacené (" + n + "×)" : "Nic k zápisu");
   };
 }
 

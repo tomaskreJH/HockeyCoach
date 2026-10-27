@@ -2,12 +2,14 @@
 // s předpisy (domain/bank-match.js) – přesné shody se předvyberou, ostatní jsou k ruční kontrole; pod tím ruční výběr nezaplacených
 // předpisů po událostech. ✅ Zapsat = payMany (payments.js), potvrzení druhým klepnutím. Pohyb z výpisu nese značku bt (bez dvojího zápisu).
 // Dva účty: volí se účet výpisu (platby se nesmí slučovat). ⚙ Sloupce výpisu: ruční přiřazení uložené v settings/cash bank[účet].
+// Datum platby: z výpisu, u ručního výběru volitelné. Přeplatek vybraného páru a nespárovaná příchozí platba (➕) se zapíšou jako příjem.
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, fd, td, toast} from "../core/utils.js";
-import {ACC, accIban, accName, accOf, cashCfg, chargeMsg, contribEvent, contribYm, fmtDue, kc, overdue, personVs, r2, restOf, twoAcc} from "../domain/cash.js";
+import {esc, fd, td, toast, uid} from "../core/utils.js";
+import {HK} from "../data/storage.js";
+import {ACC, accIban, accName, accOf, cashCfg, isDay, chargeMsg, contribEvent, contribYm, fmtDue, kc, overdue, personVs, r2, restOf, twoAcc} from "../domain/cash.js";
 import {colKey, mapDoc, matchStatement, readStatement} from "../domain/bank-match.js";
 import {payMany} from "./payments.js";
 import {render} from "./shell.js";
@@ -17,6 +19,8 @@ import {render} from "./shell.js";
 // sp = vybrané páry výpisu (index), sc = ručně vybrané předpisy (cid)
 let acc = "main", stm = null;
 const sp = new Set(), sc = new Set();
+let md = null;               // datum platby ručně vybraných předpisů (prázdné = dnešek)
+const local = new Set();     // značky pohybů výpisu zapsaných v této obrazovce (než se vrátí přes odběr dat)
 const HOW = {vs: "VS předpisu", osoba: "osobní VS – souhrnná platba", "zpráva": "číslo ve zprávě – zkontroluj"};
 // Pole přiřazení sloupců v ⚙ Sloupce výpisu
 const FIELDS = [["amt", "Částka (povinné)"], ["vs", "Variabilní symbol"], ["date", "Datum"], ["name", "Plátce / název protiúčtu"], ["msg", "Zpráva pro příjemce"], ["ref", "Id pohybu"]];
@@ -29,7 +33,15 @@ function openCharges(cfg) {
   return S.ch.filter(x => restOf(x) > 0 && pl(x.mid) && (!two || accIban(cfg, accOf(x, cfg)) === ib));
 }
 // Značky už zapsaných pohybů výpisu (pokladna)
-const doneRefs = () => new Set((S.cs || []).map(m => m.bt).filter(Boolean));
+const doneRefs = () => new Set([...(S.cs || []).map(m => m.bt).filter(Boolean), ...local]);
+// Kategorie příjmu pro přeplatek a nespárovanou platbu: „Jiné příjmy“, jinak poslední kategorie příjmů
+const otherCat = cfg => (cfg.cats.in.includes("Jiné příjmy") ? "Jiné příjmy" : cfg.cats.in[cfg.cats.in.length - 1] || "Jiné příjmy");
+const who = () => { const u = HK.user(); return (u && u.email) || ""; };
+// Příjem z výpisu bez předpisu (přeplatek, nespárovaná platba) – pohyb nese značku bt, aby se nezapsal dvakrát
+function incomeOf(tx, amt, why, bt, cfg) {
+  const note = [why, tx.name || "", tx.vs ? "VS " + tx.vs : "", tx.msg || ""].filter(Boolean).join(" · ").slice(0, 200);
+  return {d: isDay(tx.date) ? tx.date : td(), k: "in", amt: r2(amt), cat: otherCat(cfg), note, acc: twoAcc(cfg) ? acc : "main", bt: String(bt), by: who()};
+}
 // Znovu spárovat načtený výpis (po změně účtu nebo po zápisu); přesné shody předvybrat
 function rematch() {
   if (!stm) return;
@@ -62,7 +74,7 @@ function toWrite() {
     const note = ["výpis" + (p.tx.name ? " " + p.tx.name : ""), p.how === "osoba" ? "souhrnná platba VS " + p.tx.vs : ""].filter(Boolean).join(" · ");
     p.items.forEach(x => list.push({cid: x.cid, amt: x.amt, note, d: p.tx.date || td(), bt: p.tx.ref}));
   });
-  sc.forEach(cid => { if (!inPair.has(cid)) list.push({cid, amt: null, note: "hromadné potvrzení"}); });
+  sc.forEach(cid => { if (!inPair.has(cid)) list.push({cid, amt: null, note: "hromadné potvrzení", d: isDay(md) ? md : td()}); });
   return list;
 }
 // Součet k zápisu (ručně vybrané = celý zbytek předpisu)
@@ -100,11 +112,11 @@ function statementHtml(cfg) {
   if (!m) return `<div class="cd"><h2>🏦 Výpis z banky</h2><div class="mu">${esc(stm.file)}</div><div style="color:var(--no)">${esc(res.err || "Výpis se nepodařilo přečíst.")}</div>${accChips}${mapHtml()}${load}<button class="s w" id="hbx" style="margin-top:10px;min-height:44px">✕ Zavřít výpis</button></div>`;
   const ex = m.pairs.filter(p => p.exact).length;
   const pairs = m.pairs.map((p, i) => {
-    const on = sp.has(i), tags = [p.how !== "vs" ? `<span class="tag sh">${esc(HOW[p.how])}</span>` : "", p.over > 0 ? `<span class="tag sh">přeplatek ${kc(p.over)}</span>` : "", !p.exact && p.over <= 0 && p.how === "vs" ? '<span class="tag sh">částečná úhrada</span>' : ""].join(" ");
+    const on = sp.has(i), tags = [p.how !== "vs" ? `<span class="tag sh">${esc(HOW[p.how])}</span>` : "", p.over > 0 ? `<span class="tag sh">přeplatek ${kc(p.over)} → příjem</span>` : "", !p.exact && p.over <= 0 && p.how === "vs" ? '<span class="tag sh">částečná úhrada</span>' : ""].join(" ");
     return `<label class="pr" style="align-items:flex-start;cursor:pointer"><input type="checkbox" data-hp="${i}" ${on ? "checked" : ""} style="width:24px;height:24px;flex:none;margin:2px 8px 0 0"><div style="flex:1;min-width:0"><b>${kc(p.tx.amt)}</b> · ${p.tx.date ? fd(p.tx.date) : "bez data"}${p.tx.name ? " · " + esc(p.tx.name) : ""}${p.tx.vs ? " · VS " + esc(p.tx.vs) : ""} ${tags}
 <div class="mu">${p.items.map(x => { const c = S.ch.find(y => y.id === x.cid); return `→ ${pn(x.mid)}: ${esc(c ? chargeMsg(c, S) : "")} · ${kc(x.amt)}`; }).join("<br>")}</div></div></label>`;
   }).join("");
-  const loose = m.loose.length ? `<details style="margin-top:8px"><summary class="mu" style="min-height:40px;padding:8px 0;cursor:pointer">❓ Nespárované příchozí platby (${m.loose.length}) – zapiš ručně tlačítkem 💳 nebo jako vklad</summary>${m.loose.map(t => `<div class="pr"><div><b>${kc(t.amt)}</b> · ${t.date ? fd(t.date) : "bez data"}${t.name ? " · " + esc(t.name) : ""}${t.vs ? " · VS " + esc(t.vs) : ""}<div class="mu">${esc(t.msg || "")}</div></div></div>`).join("")}</details>` : "";
+  const loose = m.loose.length ? `<details style="margin-top:8px"><summary class="mu" style="min-height:40px;padding:8px 0;cursor:pointer">❓ Nespárované příchozí platby (${m.loose.length}) – zapiš ručně tlačítkem 💳, nebo ➕ jako příjem (${esc(otherCat(cfg))})</summary>${m.loose.map((t, i) => { const on = armed("hbl" + i); return `<div class="pr"><div><b>${kc(t.amt)}</b> · ${t.date ? fd(t.date) : "bez data"}${t.name ? " · " + esc(t.name) : ""}${t.vs ? " · VS " + esc(t.vs) : ""}<div class="mu">${esc(t.msg || "")}</div></div><button class="${on ? "d" : "s"}" data-hbl="${i}" style="flex:none;min-height:44px;${on ? "background:var(--no);color:#fff" : ""}">${on ? "Zapsat?" : "➕ Příjem"}</button></div>`; }).join("")}</details>` : "";
   return `<div class="cd"><h2>🏦 Výpis z banky${two ? " – " + esc(accName(cfg, acc)) : ""}</h2>
 <div class="mu">${esc(stm.file)} · spárováno <b>${m.pairs.length}</b> (přesně ${ex}) · nespárováno ${m.loose.length}${m.seen.length ? ` · už zapsáno ${m.seen.length}` : ""}${m.out ? ` · výdaje ${m.out} (nepárují se)` : ""}</div>
 ${res.err ? `<div class="mu" style="color:var(--wa)">${esc(res.err)}</div>` : ""}${accChips}
@@ -126,6 +138,7 @@ function manualHtml(cfg, byId) {
 ${L.map(x => { const lock = inPair.has(x.id); return `<label class="pr hbr" data-q="${esc((pl(x.mid).name || "").toLowerCase() + " " + q)}" style="cursor:pointer;${lock ? "opacity:.55" : ""}"><input type="checkbox" data-hc="${x.id}" ${sc.has(x.id) || lock ? "checked" : ""} ${lock ? "disabled" : ""} style="width:24px;height:24px;flex:none;margin-right:8px"><div style="flex:1;min-width:0">${pn(x.mid)}<div class="mu">VS ${esc(x.vs || "–")}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${overdue(x) ? " · ⏰ po splatnosti" : ""}${lock ? " · z výpisu" : ""}</div></div><b style="flex:none">${kc(restOf(x))}</b></label>`; }).join("")}</div>`;
   }).join("");
   return `<div class="cd"><h2>☑ Ruční výběr</h2><div class="mu" style="margin-bottom:6px">Zaškrtni předpisy, které jsou zaplacené (celá částka), a dole je zapiš najednou.</div>
+<label>Datum platby</label><input id="hbd" type="date" value="${esc(isDay(md) ? md : td())}" max="${td()}" style="max-width:220px">
 <input id="hbq" type="search" placeholder="🔍 Hledat hráčku nebo událost" style="margin-bottom:6px">${body}</div>`;
 }
 // Spodní lišta: počet a součet vybraných úhrad, zápis druhým klepnutím
@@ -146,9 +159,12 @@ export function bulkHtml(byId) {
 function bindBar(a) {
   const w = a.querySelector("#hbw");
   if (w) w.onclick = () => confirm2("hbpay", () => {
+    const cfg = cashCfg(S.cc), overs = [];
+    if (stm && stm.m) sp.forEach(i => { const p = stm.m.pairs[i]; if (p && p.over > 0) overs.push(incomeOf(p.tx, p.over, "přeplatek z výpisu", p.tx.ref + "#p", cfg)); });
     const n = payMany(toWrite());
+    if (overs.length) { const b = S.db.batch(); overs.forEach(o => b.set("cash/" + uid(), o)); b.commit(); }
     sp.clear(); sc.clear(); stm = null;
-    toast(n ? "Zapsáno úhrad: " + n : "Nic k zápisu – předpisy už jsou zaplacené");
+    toast((n ? "Zapsáno úhrad: " + n : "Nic k zápisu – předpisy už jsou zaplacené") + (overs.length ? ", přeplatky jako příjem: " + overs.length : ""));
   });
 }
 // Obnova jen lišty (ruční zaškrtnutí – bez překreslení stránky, nic neposkočí)
@@ -197,6 +213,19 @@ export function bindBulk(a) {
   // Páry výpisu: zaškrtnutí, vybrat vše / zrušit
   a.querySelectorAll("[data-hp]").forEach(b => b.onchange = () => { const i = +b.dataset.hp; if (b.checked) sp.add(i); else sp.delete(i); render(); });
   a.querySelectorAll("[data-hpa]").forEach(b => b.onclick = () => { sp.clear(); if (b.dataset.hpa === "1" && stm && stm.m) stm.m.pairs.forEach((p, i) => sp.add(i)); render(); });
+  // Ruční výběr: datum platby (bez překreslení)
+  const dd = a.querySelector("#hbd");
+  if (dd) dd.onchange = () => { md = dd.value; };
+  // ➕ Nespárovaná příchozí platba jako příjem (druhým klepnutím); značka bt zabrání dvojímu zápisu
+  a.querySelectorAll("[data-hbl]").forEach(b => b.onclick = () => confirm2("hbl" + b.dataset.hbl, () => {
+    const t = stm && stm.m && stm.m.loose[+b.dataset.hbl];
+    if (!t) return;
+    S.db.doc("cash/" + uid()).set(incomeOf(t, t.amt, "výpis", t.ref, cashCfg(S.cc))).catch(() => toast("Uložení se nepovedlo"));
+    local.add(t.ref);
+    stm.m.loose = stm.m.loose.filter(x => x !== t); stm.m.seen.push(t);   // výběr párů zůstane beze změny
+    toast("Příjem zapsán");
+    render();
+  }));
   // Ruční výběr: předpis, celá událost
   a.querySelectorAll("[data-hc]").forEach(b => b.onchange = () => { if (b.checked) sc.add(b.dataset.hc); else sc.delete(b.dataset.hc); refreshBar(a); });
   a.querySelectorAll("[data-hge]").forEach(b => b.onclick = () => {

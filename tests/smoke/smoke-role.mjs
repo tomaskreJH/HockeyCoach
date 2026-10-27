@@ -125,6 +125,30 @@ async function money() {
       if (await tap("#phs", 150) && await tap("#phs", 250)) snap("pay-hist-saved");
       await tap("#phx", 150);
     }
+    // 🏦 Pokladna: převod mezi účty a výdaj s příjemcem a měsícem; 🧾 Náklady: rozbalení řádku a ➖ Zapsat platbu (předvyplněný výdaj)
+    if (await tap('[data-tm="cash"]', 250)) {
+      snap("cash");
+      if (await tap('[data-cba="tr"]', 150)) {
+        const amt = $('[data-cf="amt"]');
+        if (amt) amt.value = "250";
+        snap("cash-tr");
+        if (await tap("#cbs", 200)) snap("cash-tr-saved");
+      }
+      if (await tap('[data-cba="out"]', 150)) { snap("cash-out"); await tap("#cbc", 150); }
+    }
+    if (await tap('[data-tm="cost"]', 250)) {
+      snap("cost");
+      if (await tap("[data-cko]", 200)) {
+        snap("cost-open");
+        if (await tap("[data-ckp]", 250)) snap("cost-pay-form");
+      }
+    }
+    // Úhrada s datem platby (Podle hráček → rozbalit → 💳 / ✅ Zaplatila vše)
+    if (await tap('[data-tm="pay"]', 250) && await tap('[data-fv="pl"]', 150)) {
+      if (!$("[data-fp]")) await tap("[data-fo]", 200);   // hráčka může být rozbalená z předchozího kroku
+      if (await tap("[data-fp]", 200)) { snap("pay-one-date"); await tap("#cpx", 150); }
+      if (await tap("[data-fa]", 200)) { snap("pay-all-date"); await tap("#cpo", 250); snap("pay-all-done"); }
+    }
     await tap('[data-tm="team"]', 200);
   }
   if (await tap('#nav button[data-t="mk"]', 250) && await tap('[data-mkv="mon"]', 250)) {

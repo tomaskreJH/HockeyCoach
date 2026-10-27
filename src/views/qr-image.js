@@ -1,6 +1,7 @@
-// ⚠️ Uložení QR platby do telefonu: PNG ve vysokém rozlišení s tichou zónou a popiskem (účet, IBAN, částka, VS, zpráva, datum).
+// ⚠️ Uložení QR platby do telefonu: PNG ve vysokém rozlišení s tichou zónou a popiskem (číslo účtu hned pod QR, příjemce s číslem účtu,
+// IBAN, částka, VS, zpráva, datum).
 // Kreslí se z TÉHOŽ objektu qrcode, který okno QR v mine.js zobrazilo – obsah QR se nemění; jen po kontrole účtu.
-// Sdílet (navigator.canShare – Android, iPhone), jinde stažení; soubor QR-platba-RRRR-MM-DD-VS.png.
+// Sdílet (navigator.canShare – Android, iPhone), jinde stažení; soubor QR-platba-RRRR-MM-DD-VS-ucet-cislo-banka.png.
 // ===== Konstanty =====
 const QR_PX = 1000;     // cílová šířka samotného QR (bez tiché zóny) v pixelech
 const QUIET = 4;        // tichá zóna kolem QR v modulech (norma QR = 4)
@@ -10,8 +11,10 @@ const PAD = 0.06;       // okraj popisku vlevo / vpravo (podíl šířky obrázk
 const pad2 = n => String(n).padStart(2, "0");
 // Datum ve tvaru RRRR-MM-DD podle místního času (pro název souboru)
 const isoDay = d => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
-// Název souboru: jen bezpečné znaky (VS je číselný, ale pro jistotu se ostatní znaky vypustí)
-export const qrFileName = (vs, d = new Date()) => "QR-platba-" + isoDay(d) + (String(vs || "").replace(/[^0-9A-Za-z]/g, "") ? "-" + String(vs).replace(/[^0-9A-Za-z]/g, "") : "") + ".png";
+// Bezpečná část názvu souboru (jen písmena, číslice a pomlčky)
+const safe = s => String(s || "").replace(/\//g, "-").replace(/[^0-9A-Za-z-]/g, "");
+// Název souboru: datum, VS a číslo účtu, na který se platí („/“ → „-“), např. QR-platba-2026-10-27-1001-ucet-19-2000145399-0800.png
+export const qrFileName = (vs, acc, d = new Date()) => "QR-platba-" + isoDay(d) + (safe(vs) ? "-" + safe(vs) : "") + (safe(acc) ? "-ucet-" + safe(acc) : "") + ".png";
 
 // Zalomení textu do řádků podle šířky (canvas neumí zalamovat sám)
 function wrap(ctx, text, maxW) {
@@ -36,18 +39,18 @@ function dataUrlBlob(url) {
 }
 
 // ===== Vykreslení obrázku =====
-// q = objekt qrcode po make(); info = {title, accName, cz, iban, amt, vs, msg, inst, created}
+// q = objekt qrcode po make(); info = {title, accName (název účtu i s číslem), cz, iban, ibanFmt, amtTxt, vs, msg, inst, created}
 // Vrací canvas (nebo null, když prohlížeč canvas nepodporuje)
 export function drawQrCanvas(q, info) {
   const n = q.getModuleCount(), cell = Math.max(4, Math.ceil(QR_PX / n));
   const W = (n + QUIET * 2) * cell, fs = Math.round(W / 30), lh = Math.round(fs * 1.45), side = Math.round(W * PAD);
   const cv = document.createElement("canvas"), ctx = cv.getContext && cv.getContext("2d");
   if (!ctx) return null;
-  // Řádky popisku: [popis, hodnota, tučně?]
+  // Řádky popisku: [popis, hodnota, tučně?]; číslo účtu vždy hned pod názvem platby
   const rows = [
     ["", info.title, true],
-    ["Příjemce: ", info.accName, false],
     ["Účet: ", info.cz || info.iban, true],
+    ["Příjemce: ", info.accName, false],
     ["IBAN: ", info.ibanFmt || info.iban, false],
     ["Částka: ", info.amtTxt, true],
     ["Variabilní symbol: ", info.vs, true],

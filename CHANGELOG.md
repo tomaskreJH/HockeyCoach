@@ -2,6 +2,29 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.5 (27. 10. 2026) – pokladna: 🔁 převody mezi účty, datum platby, 🧾 Náklady, číslo účtu v QR
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat – kolekce `cash` nová pole přijme). 3) Nahrát soubory ze zipu (nové `src/domain/cost-check.js`, `src/views/cost-view.js`, `tests/cost-check.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v102`). 5) **🔒 Vyžadovat verzi: ne** (nepovinné – starší verze převody jen nezobrazí a zůstatky účtů ukáže bez nich; doporučeno nastavit 22.5, až budou aktualizovaná zařízení správců pokladny). 6) Test: `docs/testy-rucni.md` kap. 9.
+
+⚠️ SAHÁ NA PLATBY (`domain/cash.js` – `sumCash` s převody a nové funkce, `views/cashbook.js`, `views/payments.js`, `views/finance.js`, `views/bank-pair.js`, `views/money.js`, `views/mine.js`, `views/qr-image.js`, nové `domain/cost-check.js`, `views/cost-view.js`; výpočet předpisů, vyúčtování a obsah QR kódu beze změny).
+
+**Přidáno**
+- **🔁 Převod mezi vlastními účty** (Team → 🏦 Pokladna, jen při dvou účtech): pohyb `cash {k: "tr", from, to, amt, d, note}`. Do příjmů, výdajů, kategorií ani hospodaření měsíce se nepočítá, mění jen zůstatky účtů (karta Účty ukáže převody +/−). V seznamu 🔁 s filtrem Převody, 🗑 storno, v CSV pohybů typ „Převod“ s účtem „z → na“. `domain/cash.js`: `TR`, `trFrom`, `trTo`, `trCheck`.
+- **Datum platby** u všech zápisů úhrad: okno 💳 Úhrada, nové okno ✅ Zaplatila vše (místo potvrzení druhým klepnutím, se seznamem předpisů a součtem – `openPayAll`), ☑ Ruční výběr v Hromadně, 💸 výplata platů (📅 Měsíce). Z výpisu se datum bere z banky jako dosud.
+- **Team → 🧾 Náklady** (`src/views/cost-view.js`, `src/domain/cost-check.js`): po měsících sezóny očekávané náklady událostí (uzavřená = uložené náklady, jinak nastavení / šablona) po kategorii a příjemci proti výdajům stejné kategorie – nezávisle na účtu. Stav ⏳ čeká na platbu / ✅ zaplaceno / ➕ zaplaceno víc / ❔ výdaj bez události; rozbalení s událostmi a výdaji; **➖ Zapsat platbu** předvyplní výdaj v 🏦 Pokladna (kategorie, příjemce, měsíc, zbývající částka); 🗓 i budoucí měsíce, ⬇️ CSV.
+- **Výdaj: Komu a Za měsíc** – nová nepovinná pole `payee` (s nabídkou známých příjemců) a `pym` „RRRR-MM“ (led účtovaný zpětně za minulý měsíc). `domain/cash.js`: `forYm`.
+- **Číslo účtu v QR**: řádek „Účet: …“ hned pod názvem platby v uloženém obrázku, příjemce i s číslem účtu (`accLabel`), číslo účtu v názvu souboru (`QR-platba-RRRR-MM-DD-VS-ucet-cislo-banka.png`); název účtu s číslem i v okně QR, u předpisů v Moje platby a na kartě Účty.
+- **🏦 Výpis z banky**: nespárovaná příchozí platba jde zapsat **➕ Příjem** (kategorie Jiné příjmy, datum a značka z výpisu – podruhé se nenabídne); přeplatek vybraného páru se při ✅ Zapsat úhrady uloží jako příjem (otevřená drobnost 11).
+- Testy: `tests/cost-check.test.js` (8); kouřový test – 🏦 Pokladna (převod, výdaj), 🧾 Náklady (rozbalení, ➖ Zapsat platbu), úhrada a Zaplatila vše s datem (data: druhý účet, pohyby, náklad s kategorií a příjemcem).
+
+**Změněno**
+- `src/domain/cash.js` – `sumCash` s účtem vrací i `tr {in, out}` a zůstatek účtu s převody (bez účtu beze změny); `payCharge` (`views/payments.js`) přijímá datum platby.
+- `src/views/events.js` – režim 🧾 Náklady v přepínači pokladny; `src/views/team.js` – jen komentáře.
+- ❓ Nápověda kap. 12: převod, datum platby, 🧾 Náklady, ➕ Příjem z výpisu.
+
+**Beze změny:** výpočet a uzavření vyúčtování, předpisy, obsah QR kódu (SPD), párování výpisu, hospodaření měsíce a rozpočet (převody se do nich nepočítají), pravidla databáze, živý zápis, trénink, statistiky.
+
+**Ověřeno:** `npm test` 391 / 391. `npm run smoke` – 8 rolí bez chyb, 249 obrazovek (převod, výdaj, 🧾 Náklady s předvyplněným výdajem, úhrada a Zaplatila vše s datem u správců pokladny); porovnání obrazovek s v22.4 – rozdíly jen nový čip 🧾 Náklady a změněná data kouřového testu (druhý účet).
+
 ## v22.4 (27. 10. 2026) – stav na kartě události, ⚖️ detail tarifu hráčky, 🔓 hromadné výjimky z blokace
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nové `src/domain/tariff-detail.js`, `src/domain/block-exc.js`, `src/domain/event-status.js`, `src/views/tariff-detail-view.js`, `src/views/block-exc-view.js`, `src/views/event-badges.js`, `tests/v224-status.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v101`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová pole). 6) Test: `docs/testy-rucni.md` kap. 8.
 

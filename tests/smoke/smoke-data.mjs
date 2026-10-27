@@ -62,7 +62,7 @@ export function teamData() {
   const trms = {e1: {v: 1, r: {"b1_l1-s2": {d: "d2", dn: "Sprint 30 m", u: "s", low: true, ms: {p1: [5.2, 5.0], p2: [5.6]}}}, by: "trener1@smoke.cz", at: "2026-10-26"}};
   const treval = {e1: {v: 1, r: {"b1_l1-s1": {d: "d1", dn: "Rozbruslení", r: 0, n: "", pl: {p1: {r: 4, n: ""}, p2: {r: 3, n: ""}}}}, by: "trener1@smoke.cz", at: "2026-10-26"}};
   const settings = {
-    cash: {iban: "CZ6508000000192000145399", acc: {contrib: "main"}, contrib: 500, due: 14, inst: true, cats: [], tpl: {}},
+    cash: {iban: "CZ6508000000192000145399", iban2: "CZ4907100000000000123457", acc: {contrib: "main"}, contrib: 500, due: 14, inst: true, cats: [], tpl: {}},
     events: {meetT: 30, meetM: 60, durT: 60},
     app: {minVer: "21.0"}
   };
@@ -73,7 +73,9 @@ export function teamData() {
   const plevel = {team: {v: 1, lv: {p1: 4, p2: 3, p3: 3, p4: 2, p5: 3, p6: 2, p8: 3}}};
   const evpub = {e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", type: "training"}};
   return {players, staff, events, matches, attendance, drills, trplan, trlive, trms, treval, settings, charges, plpay, plevel, evpub,
-    opponents: {}, series: {}, cash: {}, evcash: {e0: {tpl: "train", cost: [{amt: 1050}], who: {}, settle: {total: 1050, n: 7, who: {}, at: "2026-10-20T10:00:00Z", by: "manager@smoke.cz"}}}, evprice: {e0: {ym: "2026-10", date: PAST, tpl: "train", head: {monthly: 150, single: 150, exempt: 0}}}, debtors: {}, attnote: {}, staffpay: {}, requests: {}, absence: {}, budget: {}, audit: {}, joinreq: {}, lineuppub: {}, drillimg: {}, trtpl: {}};
+    opponents: {}, series: {}, cash: {k1: {d: "2026-10-01", k: "in", amt: 3000, cat: "Vklady / dary", note: "", acc: "main", by: "manager@smoke.cz"}, k2: {d: "2026-10-02", k: "tr", amt: 1000, from: "main", to: "op", note: "na led", by: "manager@smoke.cz"},
+      k3: {d: "2026-10-05", k: "out", amt: 400, cat: "Pronájem ledu", payee: "Zimní stadion", pym: "2026-09", note: "", acc: "op", by: "manager@smoke.cz"}},
+    evcash: {e0: {tpl: "train", cost: [{cat: "Pronájem ledu", payee: "Zimní stadion", amt: 1050}], who: {}, settle: {cost: [{cat: "Pronájem ledu", payee: "Zimní stadion", amt: 1050}], total: 1050, n: 7, who: {}, at: "2026-10-20T10:00:00Z", by: "manager@smoke.cz"}}}, evprice: {e0: {ym: "2026-10", date: PAST, tpl: "train", head: {monthly: 150, single: 150, exempt: 0}}}, debtors: {}, attnote: {}, staffpay: {}, requests: {}, absence: {}, budget: {}, audit: {}, joinreq: {}, lineuppub: {}, drillimg: {}, trtpl: {}};
 }
 
 // ===== Účty =====

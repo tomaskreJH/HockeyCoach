@@ -1,10 +1,11 @@
 // Doména: ⚠️ pokladna (čisté funkce bez DOM) – skupiny a koeficient osob, šablony událostí, výpočet a úhrady předpisů, zůstatek,
 // přehled dluhů, měsíční příspěvky, platy realizačního týmu, hospodaření po měsících, zpráva pro příjemce a QR, částky pro CSV.
 // Platí jen hráčky (brankářky a realizační tým ne); skupina grp (monthly | single) podle měsíce z historie grpH (grpAt / asOf / grpOf).
-// Dva účty: hlavní (iban) a provozní (iban2), předpis i pohyb nese acc ("main" | "op"); souhrnná platba jen za předpisy se stejným IBAN.
+// Dva účty: hlavní (iban) a provozní (iban2), předpis i pohyb nese acc ("main" | "op"); převod mezi nimi = pohyb k "tr" (from → to).
 // Pravidla výpočtu jsou u sekcí Výpočet předpisů, Měsíční příspěvky, Účty a Zpráva pro příjemce.
 // ===== Importy =====
 import {isG, pl} from "../core/selectors.js";
+import {ibanToCz} from "./bank-account.js";
 
 // ===== Konstanty =====
 export const GRP = {monthly: "Příspěvek", single: "Za událost"};
@@ -25,6 +26,8 @@ export const CPRE = "c_";
 const SPRE = "sal_";
 // Účty týmu: hlavní a provozní
 export const ACC = {main: "Hlavní účet", op: "Provozní účet"};
+// Druh pohybu „převod mezi vlastními účty“ {k: "tr", from, to, amt, d}: do příjmů a výdajů týmu se nepočítá, mění jen zůstatky účtů
+export const TR = "tr";
 // Předpona pro osobní variabilní symbol souhrnné platby (hash "vs_" + id osoby)
 const PVS = "vs_";
 const MONTHS = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"];
@@ -111,11 +114,29 @@ export function ymAdd(ym, n) { const d = new Date(+ym.slice(0, 4), +ym.slice(5) 
 export const ymLast = ym => ym + "-" + p2(new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate());
 
 // ===== Pokladna: zůstatek, kategorie, úhrady =====
-// Součty příjmů a výdajů a zůstatek z pohybů (cash); s cfg a acc jen pohyby daného účtu
+// Součty příjmů a výdajů a zůstatek z pohybů (cash); s cfg a acc jen pohyby daného účtu.
+// Převody (k "tr") se do příjmů a výdajů nepočítají; u jednoho účtu jsou zvlášť v tr {in, out} a jsou v zůstatku účtu.
 export function sumCash(cs, cfg, acc) {
-  let i = 0, o = 0;
-  (cs || []).forEach(x => { if (acc && cashAcc(x, cfg) !== acc) return; const a = +x.amt || 0; if (x.k === "in") i += a; else if (x.k === "out") o += a; });
-  return {in: r2(i), out: r2(o), bal: r2(i - o)};
+  let i = 0, o = 0, ti = 0, to = 0;
+  (cs || []).forEach(x => {
+    const a = +x.amt || 0;
+    if (x.k === TR) { if (acc) { if (trTo(x) === acc) ti += a; if (trFrom(x) === acc) to += a; } return; }
+    if (acc && cashAcc(x, cfg) !== acc) return;
+    if (x.k === "in") i += a; else if (x.k === "out") o += a;
+  });
+  return acc ? {in: r2(i), out: r2(o), tr: {in: r2(ti), out: r2(to)}, bal: r2(i - o + ti - to)} : {in: r2(i), out: r2(o), bal: r2(i - o)};
+}
+// Zdrojový a cílový účet převodu (výchozí hlavní → provozní)
+export const trFrom = x => accKey(x && x.from, "main");
+export const trTo = x => accKey(x && x.to, trFrom(x) === "main" ? "op" : "main");
+// Kontrola převodu mezi vlastními účty: dva různé účty, kladná částka, platné datum (vrací {amt} nebo {err})
+export function trCheck(f, two) {
+  if (!two) return {err: "Převod jde jen mezi dvěma různými účty (⚙️ → Nastavení pokladny)"};
+  if (!f || f.from === f.to || !ACC[f.from] || !ACC[f.to]) return {err: "Vyber dva různé účty"};
+  const amt = r2(+String(f.amt).replace(",", "."));
+  if (!(amt > 0)) return {err: "Zadej kladnou částku"};
+  if (!isDay(f.d)) return {err: "Zadej datum převodu"};
+  return {amt};
 }
 // Součty podle kategorií zvlášť pro příjmy a výdaje
 export function catSums(cs) {
@@ -206,7 +227,7 @@ export const qrMsg = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "
 // Text QR platby; inst = požadavek na okamžitou platbu (PT:IP, banka bez podpory ho ignoruje)
 export const spdPay = (iban, amt, vs, msg, inst) => "SPD*1.0*ACC:" + String(iban).replace(/\s+/g, "").toUpperCase() + "*AM:" + (+amt).toFixed(2) + "*CC:CZK*X-VS:" + String(vs).replace(/\D/g, "").slice(0, 10) + (qrMsg(msg) ? "*MSG:" + qrMsg(msg) : "") + (inst ? "*PT:IP" : "");
 // ===== Účty =====
-// Starší záznamy bez acc: příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní. Zůstatek = příjmy (k "in") − výdaje (k "out").
+// Starší záznamy bez acc: příspěvek → účet příspěvků z nastavení, událost → provozní, ostatní → hlavní. Zůstatek = příjmy (k "in") − výdaje (k "out"); zůstatek účtu ± převody (k "tr").
 // iban / iban2 mění jen potvrzený návrh (ibanPend, potvrdí jiný správce pokladny; ibanBy, ibanOk, ibanAt) – vynucují pravidla databáze.
 // Platný klíč účtu, jinak výchozí
 const accKey = (v, def) => (v === "main" || v === "op" ? v : def);
@@ -216,6 +237,10 @@ export const twoAcc = cfg => !!cfg.iban2 && cfg.iban2 !== cfg.iban;
 export const accIban = (cfg, a) => (a === "op" ? cfg.iban2 || cfg.iban : cfg.iban || cfg.iban2);
 // Název účtu pro zobrazení (při jednom účtu „Účet týmu“)
 export const accName = (cfg, a) => (twoAcc(cfg) ? ACC[accKey(a, "main")] : "Účet týmu");
+// Název účtu i s číslem účtu v českém tvaru (QR okno a obrázek, přehled účtů), např. „Provozní účet 19-2000145399/0800“
+export const accLabel = (cfg, a) => { const cz = ibanToCz(accIban(cfg, a)); return accName(cfg, a) + (cz ? " " + cz : ""); };
+// Měsíc, za který je výdaj (pym „RRRR-MM“, jinak měsíc data pohybu) – např. led účtovaný zpětně za minulý měsíc
+export const forYm = x => (ymOk(x && x.pym) ? x.pym : String((x && x.d) || "").slice(0, 7));
 // Účet předpisu: uložené acc, u starších předpisů podle druhu (příspěvek → účet příspěvků, událost → provozní)
 export const accOf = (x, cfg) => accKey(x && x.acc, x && x.kind === "contrib" ? cfg.acc.contrib : "op");
 // Účet pohybu v pokladně: uložené acc, u starších podle kategorie

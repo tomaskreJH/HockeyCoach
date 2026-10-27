@@ -8,7 +8,7 @@ import {nm, pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {csv, downloadFile, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {CAT_SALARY, STAFF_PAY, accName, accOf, cashAcc, chargeMsg, payMsg, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
+import {CAT_SALARY, STAFF_PAY, TR, accName, forYm, isDay, trFrom, trTo, accOf, cashAcc, chargeMsg, payMsg, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {monthEconomy} from "../domain/economy.js";
 import {econData} from "./payments.js";
@@ -21,11 +21,12 @@ let skip = new Set();   // hráčky vynechané z vystavení příspěvků (pid)
 let inc = new Set();    // osvobozené hráčky, kterým se příspěvek za měsíc přesto vystaví (pid); ostatní osvobozené jsou vynechané
 let camt = {};          // ručně upravené částky příspěvků (pid -> Kč)
 let samt = {};          // ručně upravené částky platů (tid -> Kč)
+let sday = "";          // datum výplaty platů (prázdné = výchozí: dnešek v běžícím měsíci, jinak poslední den měsíce)
 let busy = 0;           // zámek proti dvojímu vystavení příspěvků (čas do kdy platí, ms)
 
 // ===== Pomocné funkce =====
 const email = () => { const u = HK.user(); return (u && u.email) || ""; };
-const resetDraft = () => { skip = new Set(); inc = new Set(); camt = {}; samt = {}; };
+const resetDraft = () => { skip = new Set(); inc = new Set(); camt = {}; samt = {}; sday = ""; };
 // Je hráčka z vystavení vynechaná? Osvobozená ve výchozím stavu ano (dokud ji nezahrneš), ostatní ne (dokud ji nevynecháš)
 const isOff = r => (r.ex ? !inc.has(r.pid) : skip.has(r.pid));
 const audit = (eid, act, note) => ({ts: new Date().toISOString(), by: email(), eid, act, note: note || ""});
@@ -79,12 +80,12 @@ export function deleteContrib(x) {
 }
 
 // ===== Zápis: platy =====
-// Výplata platu = výdaj v pokladně s pevným id (jeden plat za člena a měsíc) + audit
+// Výplata platu = výdaj v pokladně s pevným id (jeden plat za člena a měsíc) + audit; datum výplaty volitelné (sday)
 function paySalary(r, amt) {
   if (!(amt > 0)) { toast("Zadej kladnou částku"); return false; }
   if (S.cs.some(x => x.id === r.id)) { toast("Plat za tento měsíc je už zapsaný"); return false; }
   const note = "Plat " + ymShort(ym) + (r.m === "event" ? " (" + r.n + "× " + kc(r.rate) + ")" : "");
-  S.db.batch().set("cash/" + r.id, {d: salaryDay(ym, td()), k: "out", amt: r2(amt), cat: CAT_SALARY, mid: r.tid, ym, note, acc: "main", by: email()})
+  S.db.batch().set("cash/" + r.id, {d: isDay(sday) ? sday : salaryDay(ym, td()), k: "out", amt: r2(amt), cat: CAT_SALARY, mid: r.tid, ym, note, acc: "main", by: email()})
     .set("audit/" + uid(), audit("", "plat", r.name + ": " + kc(amt) + " za " + ymShort(ym))).commit();
   return true;
 }
@@ -129,6 +130,7 @@ function salaryHtml() {
     return `<div class="pr"><div>🎓 ${esc(r.name)}<div class="mu">${esc(how)} · návrh ${kc(r.amt)}</div></div><div class="evq" style="align-items:center"><input data-msa="${r.tid}" type="number" min="0" inputmode="numeric" value="${esc(samt[r.tid] != null ? samt[r.tid] : r.amt)}" style="margin:0;width:90px"><button data-msp="${r.tid}" style="min-width:110px;${armStyle(key)}">${armed(key) ? "Opravdu?" : "💸 Vyplatit"}</button></div></div>`;
   }).join("") : '<div class="msg">Nikdo z realizačního týmu nemá nastavený plat (Team → Realizační tým → Upravit → Plat).</div>';
   return `<div class="cd"><h2>💸 Platy – ${esc(ymLabel(ym))}</h2><div class="mu" style="margin-bottom:6px">Návrh podle nastavení platu člena. Vyplacením vznikne výdaj v pokladně (kategorie ${esc(CAT_SALARY)}). Každý člen má za měsíc jeden plat; oprava = storno v 🏦 Pokladna a nové vyplacení.${paidSum ? " Vyplaceno celkem " + kc(paidSum) + "." : ""}</div>
+${open.length ? `<label>Datum výplaty</label><input type="date" data-msd value="${esc(isDay(sday) ? sday : salaryDay(ym, td()))}" style="max-width:220px">` : ""}
 ${list}
 ${open.length > 1 ? `<button class="p w" data-msall style="margin-top:10px;min-height:52px;${armStyle(keyA)}">${armed(keyA) ? "Opravdu vyplatit vše? Klepni znovu" : "💸 Vyplatit vše (" + open.length + "×, " + kc(open.reduce((s, o) => s + o.amt, 0)) + ")"}</button>` : ""}</div>`;
 }
@@ -183,12 +185,18 @@ function exportCsv(kind) {
         ...rows.map(x => [nm(x.mid, {staff: true, fb: x.mid || ""}), isContrib(x) ? "Příspěvek" : x.kind === "event" ? "Událost" : (x.kind || ""), plainEvent(x.eid), csvNum(+x.amt || 0), csvNum(Math.min(+x.paid || 0, +x.amt || 0)), csvNum(restOf(x)), (x.due || "").replace("T", " "), x.vs || "", accName(cfg, accOf(x, cfg)), chargeMsg(x, S), x.exc ? "ano" : ""])]};
     }
     if (kind === "mon") return {name: "pokladna-mesice", rows: [["Měsíc", "Příjmy", "Výdaje", "Saldo", "Zůstatek"], ...monthRows(S.cs).map(r => [r.ym, csvNum(r.in), csvNum(r.out), csvNum(r.net), csvNum(r.bal)])]};
-    const src = S.cs.filter(x => (x.k === "in" || x.k === "out") && (kind !== "cash-y" || String(x.d || "").startsWith(yr))).sort((a, b) => (a.d || "").localeCompare(b.d || ""));
+    const src = S.cs.filter(x => (x.k === "in" || x.k === "out" || x.k === TR) && (kind !== "cash-y" || String(x.d || "").startsWith(yr))).sort((a, b) => (a.d || "").localeCompare(b.d || ""));
     // Starší úhrady bez uložené zprávy a VS je převezmou z předpisu
     const chOf = x => (x.cid ? S.ch.find(c => c.id === x.cid) : null);
-    const noteOf = x => { const c = chOf(x); return x.cid && !x.vs && c ? [chargeMsg(c, S), x.note || ""].filter(Boolean).join(" · ") : x.note || ""; };
+    const noteOf = x => {
+      const c = chOf(x), base = x.cid && !x.vs && c ? [chargeMsg(c, S), x.note || ""].filter(Boolean).join(" · ") : x.note || "";
+      // Výdaj: příjemce a měsíc, za který se platí (jen když jsou uložené)
+      return [x.payee || "", x.pym && forYm(x) === x.pym ? "za " + ymShort(x.pym) : "", base].filter(Boolean).join(" · ");
+    };
+    // Převod mezi účty: typ Převod, účet „z → na“, kladná částka
+    const accTxt = x => (x.k === TR ? accName(cfg, trFrom(x)) + " → " + accName(cfg, trTo(x)) : accName(cfg, cashAcc(x, cfg)));
     return {name: kind === "cash-y" ? "pokladna-" + yr : "pokladna", rows: [["Datum", "Typ", "Částka", "Účet", "Kategorie", "Osoba", "Událost / měsíc", "VS", "Poznámka / zpráva", "Zapsal"],
-      ...src.map(x => [x.d || "", x.k === "in" ? "Příjem" : "Výdaj", csvNum((x.k === "out" ? -1 : 1) * (+x.amt || 0)), accName(cfg, cashAcc(x, cfg)), x.cat || "", nm(x.mid, {staff: true, fb: x.mid || ""}), plainEvent(x.eid), x.vs || (chOf(x) || {}).vs || "", noteOf(x), x.by || ""])]};
+      ...src.map(x => [x.d || "", x.k === "in" ? "Příjem" : x.k === TR ? "Převod" : "Výdaj", csvNum((x.k === "out" ? -1 : 1) * (+x.amt || 0)), accTxt(x), x.cat || "", nm(x.mid, {staff: true, fb: x.mid || ""}), plainEvent(x.eid), x.vs || (chOf(x) || {}).vs || "", noteOf(x), x.by || ""])]};
   };
   const r = out(kind);
   downloadFile(r.name + "-" + stamp() + ".csv", csv(r.rows), "text/csv");
@@ -211,6 +219,7 @@ export function bindMoney(a) {
   const sync = () => {
     q("[data-mca]").forEach(i => { camt[i.dataset.mca] = i.value; });
     q("[data-msa]").forEach(i => { samt[i.dataset.msa] = i.value; });
+    q("[data-msd]").forEach(i => { sday = i.value; });
   };
   q("[data-mca],[data-msa]").forEach(i => { i.onchange = () => { sync(); render(); }; });
   // Výběr měsíce a roku

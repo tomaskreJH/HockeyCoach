@@ -10,7 +10,7 @@ import {esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
 import {attByMonth, attEvents, attSummary, pastEvents, seasonOf} from "../domain/attendance.js";
-import {GRP, accIban, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, grpAt, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
+import {GRP, accIban, accLabel, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, grpAt, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
 import {myMonths} from "../domain/economy.js";
 import {REQ_COLL, REQ_ST, openReq, payReqDoc, payReqError, reqYms, reqsOf} from "../domain/requests.js";
 import qrcode from "../lib/qrcode.js";
@@ -80,7 +80,7 @@ function qrHtml() {
   if (!qr) return "";
   const cfg = cashCfg(S.cc), p = payData(cfg);
   if (!p) { qr = null; return ""; }
-  const two = twoAcc(cfg), accLine = two ? `<b>${esc(accName(cfg, p.acc))}</b><br>` : "";
+  const two = twoAcc(cfg), accLine = two ? `<b>${esc(accLabel(cfg, p.acc))}</b><br>` : "";
   let body;
   // Údaje pro ruční platbu: číslo účtu v českém tvaru i IBAN, zpráva přesně jako v QR
   const msg = qrMsg(p.msg), cz = ibanToCz(p.iban);
@@ -101,7 +101,7 @@ function qrHtml() {
       q.addData(spdPay(p.iban, p.amt, p.vs, p.msg, cfg.inst), "Alphanumeric");
       q.make();
       // Údaje pro obrázek – stejné hodnoty jako v okně, zpráva přesně jako v QR
-      shown = {q, name: qrFileName(p.vs), info: {title: p.title, accName: accName(cfg, p.acc), cz, iban: p.iban, ibanFmt: ibanFmt(p.iban), amtTxt: kc(p.amt), vs: p.vs, msg, inst: !!cfg.inst, created: new Date().toLocaleDateString("cs-CZ")}};
+      shown = {q, name: qrFileName(p.vs, cz), info: {title: p.title, accName: accLabel(cfg, p.acc), cz, iban: p.iban, ibanFmt: ibanFmt(p.iban), amtTxt: kc(p.amt), vs: p.vs, msg, inst: !!cfg.inst, created: new Date().toLocaleDateString("cs-CZ")}};
       body = `<div style="background:#fff;padding:12px;border-radius:12px;width:min(300px,100%);margin:0 auto">${q.createSvgTag({cellSize: 4, margin: 4, scalable: true})}</div>
 <button class="s w" id="mksave" style="margin-top:10px;min-height:48px">⬇️ Uložit QR</button>
 <div class="mu" style="margin-top:4px;text-align:center">Platíš z tohoto telefonu? Ulož QR do Galerie a v bankovní aplikaci ho načti z obrázku.</div>
@@ -209,7 +209,7 @@ export function mineView(a) {
   const list = items.length ? items.map(({x, i}) => {
     const rest = restOf(x), od = overdue(x);
     return `<div class="cd"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(i.title)}</b><span class="tag ${rest ? (od ? "red" : "sh") : "pp"}">${rest ? (od ? "po splatnosti" : "k úhradě") : "zaplaceno"}</span></div>
-<div class="mu">${i.date ? fd(i.date) + " · " : ""}předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${x.exc && rest ? " · 🔓 výjimka od blokace" : ""}</div>${rest ? `<div class="mu">${two ? "Na účet: <b>" + esc(accName(cfg, accOf(x, cfg))) + "</b> · " : ""}VS <b>${esc(x.vs || vsHash(x.id))}</b> · zpráva: <b>${esc(qrMsg(chargeMsg(x, S)))}</b></div>` : ""}${rest ? `<button class="p w" data-mq="${x.id}" style="margin-top:8px;min-height:48px">📱 Zaplatit ${kc(rest)} (QR)</button>` : ""}</div>`;
+<div class="mu">${i.date ? fd(i.date) + " · " : ""}předpis ${kc(+x.amt || 0)}${x.paid ? " · zaplaceno " + kc(+x.paid) : ""}${x.due ? " · splatnost " + fmtDue(x.due) : ""}${x.exc && rest ? " · 🔓 výjimka od blokace" : ""}</div>${rest ? `<div class="mu">${two ? "Na účet: <b>" + esc(accLabel(cfg, accOf(x, cfg))) + "</b> · " : ""}VS <b>${esc(x.vs || vsHash(x.id))}</b> · zpráva: <b>${esc(qrMsg(chargeMsg(x, S)))}</b></div>` : ""}${rest ? `<button class="p w" data-mq="${x.id}" style="margin-top:8px;min-height:48px">📱 Zaplatit ${kc(rest)} (QR)</button>` : ""}</div>`;
   }).join("") : '<div class="msg">Zatím nemáš žádné předpisy.</div>';
   const o = mk(), tabs = `<div class="row" style="margin-bottom:10px"><button class="${o.v === "list" ? "p" : "s"}" data-mkv="list">📄 Předpisy</button><button class="${o.v === "mon" ? "p" : "s"}" data-mkv="mon">📅 Po měsících</button></div>`;
   const body = o.v === "mon" ? monthsHtml(d.items) : sum + list;

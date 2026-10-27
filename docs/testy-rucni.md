@@ -68,3 +68,15 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 8.6 Team → 💰 Platby → **🔓 Výjimky**: ⛓ Blokované – zaškrtnout 2 hráčky (nebo Vybrat vše), důvod → 🔓 Udělit výjimku → Klepni znovu. Hráčky přejdou do 🔓 S výjimkou, v Docházce mají 🔓, přihlášení „Jdu“ funguje. Volba „i na předpisy před splatností“ zahrne i budoucí splatnosti.
 - [ ] 8.7 🔓 S výjimkou → vybrat → ⛓ Zrušit výjimku → hráčka je znovu blokovaná. V detailu události (Záznamy) / auditu je „výjimka udělena hromadně“ s důvodem.
 - [ ] 8.8 Rychlá kontrola z kap. 1.
+
+## 9. v22.5 – 🔁 převod, datum platby, 🧾 Náklady, QR s číslem účtu
+- [ ] 9.1 V záhlaví je **v22.5**.
+- [ ] 9.2 Team → 🏦 Pokladna (dva účty): **🔁 Převod** → Z účtu Hlavní, 1 000 Kč, datum → Uložit převod. Karta Účty: hlavní −1 000, provozní +1 000 (řádek „převody“), celkový zůstatek, příjmy a výdaje beze změny. V seznamu 🔁 Převod Hlavní → Provozní, filtr Převody, při filtru účtu znaménko podle směru. 🗑 storno převod odebere.
+- [ ] 9.3 ➖ Výdaj: datum platby, Komu (nabídka známých příjemců), Za měsíc. Uložit → v seznamu „Zimní stadion · za 10/2026“. CSV pohybů: převod jako „Převod“, výdaj s příjemcem v poznámce.
+- [ ] 9.4 Šablona Pravidelný trénink (⚙️ → Nastavení pokladny): náklad Pronájem ledu, příjemce, částka. Team → **🧾 Náklady**: měsíc s tréninky – ⏳ čeká na platbu (součet za proběhlé tréninky), klepnutí ukáže události. **➖ Zapsat platbu** → 🏦 Pokladna s předvyplněným výdajem (kategorie, příjemce, Za měsíc, částka) → Uložit → v 🧾 Náklady ✅ zaplaceno. Výdaj zapsaný v listopadu „za říjen“ se počítá do října.
+- [ ] 9.5 Výdaj stejné kategorie bez příjemce se rozdělí na řádky kategorie; výdaj kategorie bez událostí = ❔ výdaj bez události. 🗓 I budoucí měsíce ukáže plán, ⬇️ CSV stáhne sezónu.
+- [ ] 9.6 Team → 💰 Platby → rozbalit hráčku → 💳 Zaplatit: okno má **Datum platby** (zkusit včerejšek) – v 🏦 Pokladna má úhrada zvolené datum. **✅ Zaplatila vše** otevře okno se seznamem předpisů, součtem a datem → Zapsat úhrady.
+- [ ] 9.7 ☑ Hromadně → Ruční výběr: Datum platby → zaškrtnout → ✅ Zapsat úhrady → úhrady mají zvolené datum. Výpis z banky: nespárovaná platba → **➕ Příjem** → Zapsat? → příjem (Jiné příjmy), po novém načtení stejného výpisu se nenabídne. Pár s přeplatkem → po zápisu je přeplatek v pokladně jako příjem.
+- [ ] 9.8 📅 Měsíce → 💸 Platy: Datum výplaty → Vyplatit → výdaj má zvolené datum.
+- [ ] 9.9 Hráčka: Moje platby → 📱 Zaplatit: v okně název účtu s číslem; ⬇️ Uložit QR → obrázek má pod názvem „Účet: …“, příjemce s číslem účtu, soubor má v názvu číslo účtu. Banka QR načte jako dosud.
+- [ ] 9.10 Rychlá kontrola z kap. 1.

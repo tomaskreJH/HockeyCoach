@@ -1,5 +1,5 @@
 // Záložka Team: soupiska, realizační tým, základní formace, náhradnice, přetahování; přepínač S.tm (Team | 📚 Cvičení | 💰 Platby |
-// 🏦 Pokladna | 📅 Měsíce | 📊 Rozpočet – režimy pokladny jen správce pokladny, vykresluje cashPanel() z events.js).
+// 🏦 Pokladna | 🧾 Náklady | 📅 Měsíce | 📊 Rozpočet – režimy pokladny jen správce pokladny, vykresluje cashPanel() z events.js).
 // Hráčky a realizační tým přidává a maže manager a trenér; asistent mění u hráčky stav, pokladník platby (okno Platby / Plat v modal.js).
 // Hráčka-pokladník vidí formaci jen ke čtení. Platební pole jsou v plpay/{pid} a staffpay/{tid} (nová hráčka v jedné dávce s plpay).
 // 🎟 Hostující = players.guest (domain/guests.js), počítá se jako ostatní.
@@ -67,7 +67,7 @@ a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;
 export function formV(a){
 // Režim 📚 Cvičení (banka cvičení) – vykreslí drills-view.js
 if(S.tm==="drills"&&HK.perm("drills","r")){drillsView(a,modeChips());bindChips(a);return}
-// Režim pokladny (Platby / Pokladna / Měsíce / Rozpočet) – vykreslí events.js; jinak formace a soupiska
+// Režim pokladny (Platby / Pokladna / Náklady / Měsíce / Rozpočet) – vykreslí events.js; jinak formace a soupiska
 if(S.tm!=="team"&&cashPanel(a,modeChips())){bindChips(a);return}
 S.tm="team";
 const lu=S.def.lu||{},B=benchOrder(),r=ro();

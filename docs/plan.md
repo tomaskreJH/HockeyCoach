@@ -7,7 +7,8 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.2~~ | hotovo | ⏱ ▶ Teď (skok na blok), ☑ hromadné úhrady, 🏦 párování výpisu z banky (CSV) |
 | ~~v22.3~~ | hotovo | 🕘 zpětná změna způsobu placení, ⚙ ruční sloupce výpisu (univerzální import) |
 | ~~v22.4~~ | hotovo | stav na kartě události (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení), ⚖️ detail tarifu hráčky, 🔓 hromadné výjimky z blokace |
-| v22.5 | **E5** | 📈 přehled a analýza Tréninku (níže) |
+| ~~v22.5~~ | hotovo | 🔁 převody mezi účty, datum platby, 🧾 Náklady (led, rozhodčí … proti výdajům), číslo účtu v QR, ➕ příjem z výpisu |
+| v22.6 | **E5** | 📈 přehled a analýza Tréninku (níže) |
 | potom | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
@@ -67,5 +68,6 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 8. Poslech `events` / `attendance` jen aktuální sezóny – zeptat se před změnou (mění statistiky a docházku za starší období).
 9. `live-engine.js` ukládá přes `core/actions.js` (doména sahá na data) – oddělit jen při zásahu do živého zápisu.
 10. ⚖️ Porovnání způsobu placení je od v22.1.3 jen pro správce pokladny (Team → 💰 Platby → ⚖️ Tarify); hráčkám ho zpřístupnit až na pokyn trenéra (např. volbou v ⚙️ → Pokladna).
-11. 🏦 Výpis z banky: přeplatek se jen hlásí (zapsat ručně jako vklad). Import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje.
+11. 🏦 Výpis z banky: import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje. Přeplatek a nespárovaná platba se od v22.5 zapisují jako příjem; odchozí platby z výpisu (led, rozhodčí) se zatím nepárují – výdaje se zapisují ručně (🧾 Náklady → ➖ Zapsat platbu).
 12. 🕘 Po zpětné změně placení se uzavřená vyúčtování znovu otevírají ručně (záměrně – předpisy ostatních se tím přepočítají); případně později hromadně.
+13. 🧾 Náklady páruje výdaj s náklady podle kategorie a měsíce (příjemce zpřesní párování); náklady událostí musí mít v šabloně kategorii a příjemce. Zrušená nevyúčtovaná událost se nepočítá.
