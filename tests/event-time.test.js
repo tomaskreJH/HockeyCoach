@@ -111,7 +111,7 @@ test("pravidla: settings/events zapisuje trenér a asistent (isStaff), čtou čl
   const m = rules.match(/match \/settings\/\{id\} \{([\s\S]*?)\n    \}/);
   assert.ok(m, "chybí pravidlo pro settings");
   assert.match(m[1], /allow read: if isTeam\(\) \|\| \(isHost\(\) && id in \['cash', 'events', 'app'\]\);/);
-  assert.match(m[1], /: isStaff\(\)\)\);/);
+  assert.match(m[1], /: isStaff\(\)\)\)\);/);
   const ev = rules.match(/match \/events\/\{id\} \{([\s\S]*?)\n    \}/);
   assert.match(ev[1], /allow update: if evUpdate\('events'\) \|\|/);
 });

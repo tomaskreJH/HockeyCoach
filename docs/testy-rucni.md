@@ -113,6 +113,18 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 15. v22.11 – 🧪 Beta kanál
+- [ ] 15.1 Po nastavení GitHubu (README, kap. Kanály): Actions → Nasazení (stabilní + beta) je zelené; stabilní adresa ukazuje **v22.11**, adresa `…/beta/` také **v22.11** s fialovým pruhem **🧪 Beta v22.11 – testovací verze**.
+- [ ] 15.2 Manager: ⚙️ → **🧪 Beta testování** → zaškrtnout jednoho člena → hláška „… je beta tester“; odškrtnout a znovu zaškrtnout. V záhlaví sekce počet testerů.
+- [ ] 15.3 Účet, který **není** tester (druhý telefon, např. hráčka): otevřít `…/beta/` → „🧪 Beta je jen pro testery“, žádné záložky; Přejít na stabilní verzi funguje.
+- [ ] 15.4 Tester: ⚙️ → 👤 Účet → **🧪 Otevřít betu** → beta (už přihlášený); v betě ⚙️ → 👤 Účet → Kanál 🧪 Beta, **← Stabilní verze** vrátí zpět. V betě místo 🔒 Vyžadovat verzi jen poznámka.
+- [ ] 15.5 Beta na plochu (Chrome → Přidat na plochu / Instalovat): vznikne druhá ikona **HockeyCoach β**, stabilní ikona dál otevírá stabilní verzi.
+- [ ] 15.6 Zápis v betě (např. odpověď ✅ u tréninku) je hned vidět ve stabilní verzi na druhém telefonu a naopak.
+- [ ] 15.7 Ve stabilní ⚙️ → Načíst novou verzi → beta pořád funguje i offline (ikona β v režimu letadlo se spustí); totéž obráceně.
+- [ ] 15.8 Po nahrání v22.12 do větve `beta`: tester ve stabilní vidí pruh **🧪 Nová beta v22.12 k vyzkoušení**; ✕ pruh skryje (po novém spuštění se neukáže), Vyzkoušet otevře betu. Netester pruh nevidí.
+- [ ] 15.9 ⏱ Živý trénink v betě: oznámení ⏸ / ⏭ ovládá betu (ne stabilní okno).
+- [ ] 15.10 Rychlá kontrola z kap. 1 (stabilní verze).
+
 ## 14. v22.10 – 🖐 Rychlejší události a docházka
 - [ ] 14.1 V záhlaví je **v22.10**.
 - [ ] 14.2 Události → **+ Trénink**: název, čas od – do, ⏰ sraz a místo podle posledního tréninku, řádek „↺ … podle posledního tréninku“. Změna data na jiný den v týdnu → čas a místo podle posledního tréninku toho dne.

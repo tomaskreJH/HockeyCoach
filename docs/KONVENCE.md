@@ -8,7 +8,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | Soubor | Co tam je |
 |---|---|
 | `index.html`, `manifest.webmanifest` | vstupní stránka, instalace na plochu |
-| `sw.js` | offline cache `hokej-vNN`, klepnutí na ⌚ oznámení živého tréninku |
+| `sw.js` | offline cache `hokej-vNN` (beta `hokej-beta-vNN`, kanál podle adresy), klepnutí na ⌚ oznámení živého tréninku |
+| `.github/workflows/pages.yml` | 🧪 nasazení na GitHub Pages: větev `main` do kořene, `beta` do `beta/` |
 | `styles/main.css` | všechny styly, barvy jako proměnné (`--ac`, `--ok`, `--no`, `--wa`, `--a2`) pro světlý i tmavý režim |
 | `firestore.rules` | pravidla databáze – jediná skutečná ochrana dat (publikuje se ručně) |
 | `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení, Zpět |
@@ -21,6 +22,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `drill-starter.js` | 📥 základní sada cvičení |
 | **core/** | stav a pomůcky bez domény |
 | `app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), brána verze |
+| `channel.js` | 🧪 kanál stabilní / beta podle adresy, cesty pro přepnutí, předpona cache |
 | `state.js` | sdílený stav `S` |
 | `utils.js` | DOM, formát, čas, hlášky, `csv`, `clone`, `clamp`, `ceil` (Kč nahoru), `reqWord` |
 | `selectors.js` | čtení stavu, jména `pn` / `nm`, `kindOf`, `matchesVs` |
@@ -45,6 +47,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `event-time.js`, `event-cancel.js`, `recurrence.js` | konec a ⏰ sraz události, zrušení / smazání, série tréninků |
 | `attendance.js`, `debtors.js` | docházka a 🚫 nedorazila, veřejný souhrn dlužníků |
 | `att-log.js` | 🕘 historie přihlášek (záznam `attlog`, časová osa události, kdo zapsal) |
+| `beta.js` | 🧪 beta testeři `settings/beta`, nabídka bety |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
 | `home-summary.js` | 🏠 Domů |
@@ -75,6 +78,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `event-detail.js`, `event-form.js` | detail události (pětky, plán, docházka, ⚙ úpravy, zrušení), formulář události |
 | `event-series.js`, `event-settings.js` | 🔁 série tréninků, ⏰ nastavení událostí |
 | `attendance.js`, `att-request-view.js` | 📊 docházka, ✋ žádosti o účast |
+| `beta-view.js` | 🧪 pruh bety v liště, zamčená beta, ⚙️ → 🧪 Beta testování a přepnutí kanálu v 👤 Účet |
 | `att-log-view.js` | 🕘 historie přihlášek: tichý zápis `logAtt`, čas a ✍ kdo zapsal v řádcích docházky, okno historie |
 | `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky zápasů |
 | `train-stats.js` | Statistiky: přepínač 📊 Zápasy / 🏒 Trénink, 📈 přehled Tréninku |
@@ -155,11 +159,13 @@ Klíč linky = `blok_linka`, u cvičení řady `blok_linka-cvičení` (`msKey`, 
 ## 4. Verze a vydání
 Číslování: `v22.1` = verze / fáze, `v22.1.1` = oprava nebo pokračování bez nových funkcí. Vždy se mění všechno najednou:
 1. `src/core/app-version.js` (`APP_VERSION`, `APP_DATE`) a `package.json` (shodu hlídá test),
-2. `sw.js` – cache `hokej-vNN` +1,
+2. `sw.js` – cache `VER` +1 (`hokej-vNN` / `hokej-beta-vNN`),
 3. `CHANGELOG.md` – záznam nahoře (`## vX.Y (datum) – název`, postup nasazení, Přidáno / Změněno / Opraveno / Beze změny, Ověřeno),
 4. `README.md` – řádek „Aktuální verze“,
 5. `docs/STAV.md`, `docs/plan.md` (stav fáze), `docs/testy-rucni.md` (kroky testu),
 6. `src/views/help.js` – jen při změně ovládání.
+
+**🧪 Kanál (od v22.11):** CHANGELOG u každé verze uvádí, kam se nahrává – **`beta`** (výchozí: UI, nové pohledy, opravy, přidaná pole snesitelná starší stabilní verzí) nebo **`main`** (zúžení / převod pravidel, migrace dat, naléhavé opravy; potom totéž i do `beta`). Čísla verzí a cache jsou jedna řada pro oba kanály (beta jen s předponou cache `hokej-beta-v`). Vydání do stabilní = PR `beta → main`, kód se nemění; 🔒 Vyžadovat verzi až ve stabilní. V betě a stabilní sdílí zařízení `localStorage` a offline paměť Firestore (stejný web) – klíče `localStorage` jen přidávat, verzi Firebase SDK neměnit přes betu.
 
 ## 5. Testy
 - `npm test` (Node 22+, bez instalace) spustí `tests/**/*.test.js` přes `node:test`. Před vydáním vše zelené.
@@ -179,6 +185,6 @@ Klíč linky = `blok_linka`, u cvičení řady `blok_linka-cvičení` (`msKey`, 
 1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu a zip současného repozitáře.
 2. Podle CHANGELOG **publikovat firestore.rules** před, nebo po nahrání kódu.
 3. Nahrát soubory; smazané soubory z CHANGELOG odstranit i z webu.
-4. ⚙️ → 👤 Účet → Načíst novou verzi, ověřit verzi v záhlaví.
+4. ⚙️ → 👤 Účet → Načíst novou verzi, ověřit verzi v záhlaví. Do větve **beta** nebo **main** podle CHANGELOG (README, kap. Kanály); vydání bety pro všechny = PR `beta → main`.
 5. U verzí, které mění data: po aktualizaci všech zařízení 🔒 Vyžadovat verzi.
 6. Návrat: předchozí zip, pravidla z historie v konzoli, `settings/app.minVer` snížit ručně.

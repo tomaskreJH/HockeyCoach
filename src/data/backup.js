@@ -1,5 +1,5 @@
 // Zálohy (⚙️ → 💾 Data): stažení zálohy JSON (jen kolekce načtené v zařízení, kolekce Tréninku FETCH a audit se načtou celé), CSV soupisky
-// a obnova ze zálohy (sloučit / nahradit). Neobnovuje se brána verze, matice práv, účty v settings/cash, audit ani schválený rozpočet;
+// a obnova ze zálohy (sloučit / nahradit). Neobnovuje se brána verze, matice práv, beta testeři, účty v settings/cash, audit ani schválený rozpočet;
 // stará záloha se nejdřív rozdělí do soukromých kolekcí (splitLegacy). Stav a zápis dostává přes kontext C ze storage.js.
 
 // ===== Importy =====
@@ -13,7 +13,7 @@ import {collection as fsCol, getDocs} from "https://www.gstatic.com/firebasejs/1
 // ===== Hlavní logika =====
 // C = kontext ze storage.js (data, first, kolekce, strážci zápisu, commitOps, přepočet dlužníků). Vrací funkce pro HK.
 export function backupApi(C) {
-  const {data, first, COLL, FETCH, APP_DOC, PERM_DOC, OLD_MSG, RO_MSG, can, isCash, ro, outdated, say, errTxt, stamp, commitOps, plMerged, rebuildDebtors} = C;
+  const {data, first, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, OLD_MSG, RO_MSG, can, isCash, ro, outdated, say, errTxt, stamp, commitOps, plMerged, rebuildDebtors} = C;
   // Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (asistent tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo);
   // soukromé kolekce attnote, staffpay a plpay jsou v ní, pokud je role smí číst (manager všechny)
   async function exportJSON() {
@@ -39,6 +39,7 @@ export function backupApi(C) {
   // Kolekce audit se přeskakuje: pravidla databáze dovolují jen přidávání, jiný zápis by shodil celou dávku.
   // Brána verze settings/app se ze zálohy neobnovuje ani nemaže (stará záloha nesmí snížit požadovanou verzi; pravidla mazání nedovolí).
   // Matice práv settings/perm se ze zálohy také neobnovuje ani nemaže (je to nastavení týmu, mění ji jen manager v ⚙️ → 🔐 Práva rolí).
+  // 🧪 Beta testeři settings/beta stejně (mění je jen manager nebo vývojář v ⚙️ → 🧪 Beta testování).
   // Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
   // návrhem a potvrzením (vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
   const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
@@ -59,8 +60,8 @@ export function backupApi(C) {
     COLL.forEach(c => {
       if (c === "audit") return;
       const src = bk[c] || {};
-      if (replace && bk[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC || id === PERM_DOC)) && !(c === BUDGET_COLL && data[c][id].approved)) ops.push(["del", c, id]); });
-      Object.entries(src).forEach(([id, d]) => { if (c === "settings" && (id === APP_DOC || id === PERM_DOC)) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : c === BUDGET_COLL ? keepBudget(id, d) : d]); });
+      if (replace && bk[c]) Object.keys(data[c]).forEach(id => { if (!(id in src) && !(c === "settings" && (id === "cash" || id === APP_DOC || id === PERM_DOC || id === BETA_DOC)) && !(c === BUDGET_COLL && data[c][id].approved)) ops.push(["del", c, id]); });
+      Object.entries(src).forEach(([id, d]) => { if (c === "settings" && (id === APP_DOC || id === PERM_DOC || id === BETA_DOC)) return; ops.push(["set", c, id, c === "settings" && id === "cash" ? keepAcc(d) : c === BUDGET_COLL ? keepBudget(id, d) : d]); });
     });
     // Plány tréninků a obrázky cvičení: jen doplnit / přepsat ze zálohy (v zařízení nejsou načtené celé, proto se nic nemaže)
     FETCH.forEach(c => Object.entries(bk[c] || {}).forEach(([id, d]) => ops.push(["set", c, id, d])));

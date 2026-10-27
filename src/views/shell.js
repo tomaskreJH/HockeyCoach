@@ -10,9 +10,12 @@
 // (je součástí lepicí lišty #nav, takže zůstává vidět i při posunu stránky). Záložky se řídí rolí náhledu (HK.can).
 // Brána verze: je-li tato verze starší než požadované minimum (settings/app.minVer), je v liště stálý pruh s tlačítkem Načíst novou verzi
 // (zápis zastaví strážce v data/storage.js).
+// 🧪 Beta kanál (views/beta-view.js): v betě fialový pruh se štítkem a cestou na stabilní verzi, ve stabilní nabídka novější bety testerovi;
+// účet, který není tester ani manager, vidí v betě místo aplikace jen obrazovku Přejít na stabilní verzi (bez záložek).
 import {S} from "../core/state.js";
 import {$, esc} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {betaBar, betaLockView, betaLocked, bindBetaBar} from "./beta-view.js";
 import {renderEditor} from "./editor.js";
 import {eventsView} from "./events.js";
 import {homeView} from "./home-view.js";
@@ -40,12 +43,14 @@ const pvBar = () => { const p = HK.preview && HK.preview(); return p ? `<div sty
 // Pruh staré verze přes celou šířku lišty (prázdný, když verze stačí)
 const oldBar = () => HK.outdated && HK.outdated() ? `<div style="flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 12px;background:var(--no);color:#fff;font-size:13px;font-weight:600"><span>⚠️ Starší verze aplikace – zápis je zablokovaný</span><button id="oldx" style="flex:none;padding:6px 10px;border:1px solid #fff;border-radius:8px;background:none;color:#fff;font:inherit;font-size:13px;cursor:pointer">Načíst novou verzi</button></div>` : "";
 
-// Záložky (a nad nimi případné pruhy staré verze a náhledu); obsluha klepnutí jen na tlačítka záložek (data-t)
-export function tabs(){const all=[["home","🏠"],["ev","Události"],["fo","Team"],["st","Statistiky"],["op","Soupeři"]],base=baseTabs(all),list=hasMine()?[...base,["mk","Moje platby"]]:base,bar=oldBar()+pvBar(),nav=$("#nav");nav.style.flexWrap=bar?"wrap":"";nav.innerHTML=bar+list.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}"${k==="home"?HOME_BTN:""}>${l}</button>`).join("");
+// Záložky (a nad nimi případné pruhy staré verze, náhledu a bety); obsluha klepnutí jen na tlačítka záložek (data-t); zamčená beta bez záložek
+export function tabs(){const all=[["home","🏠"],["ev","Události"],["fo","Team"],["st","Statistiky"],["op","Soupeři"]],base=baseTabs(all),list=betaLocked()?[]:hasMine()?[...base,["mk","Moje platby"]]:base,bar=oldBar()+pvBar()+betaBar(render),nav=$("#nav");nav.style.flexWrap=bar?"wrap":"";nav.innerHTML=bar+list.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}"${k==="home"?HOME_BTN:""}>${l}</button>`).join("");
 const x=nav.querySelector("#pvx");if(x)x.onclick=()=>HK.endPreview();
 const o=nav.querySelector("#oldx");if(o)o.onclick=()=>HK.refresh();
+bindBetaBar(nav,render);
 nav.querySelectorAll("button[data-t]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.hw=null;S.mid=null;S.oid=null;S.evid=null;S.evf=null;S.evr=null;S.evBack=null;render()})}
 export function render(){if(onlyPl()){if(!plTabs().includes(S.tab))S.tab="home";S.mid=null}if(S.tab==="mk"&&!hasMine())S.tab="home";if(permOff(S.tab))S.tab="home";tabs();const a=$("#app");
 if(S.err){a.innerHTML=`<div class="msg">${esc(S.err)}</div>`;return}
 if(!S.ready){a.innerHTML='<div class="msg">Načítám…</div>';return}
+if(betaLocked()){betaLockView(a);return}
 ({home:homeView,ev:a=>S.mid?matches(a):eventsView(a),ma:matches,fo:formV,st:statsView,op:oppsView,mk:mineView})[S.tab](a);modal();liveRender();renderEditor()}

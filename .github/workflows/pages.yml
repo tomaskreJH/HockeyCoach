@@ -1,0 +1,68 @@
+# Nasazení HockeyCoach na GitHub Pages: větev main = stabilní verze (kořen webu), větev beta = 🧪 beta (složka beta/).
+# Spustí se po každém nahrání do main nebo beta (i ručně v záložce Actions → Run workflow) a pokaždé postaví web z obou větví.
+# Nastavení repozitáře (jednou): Settings → Pages → Source: GitHub Actions; Settings → Environments → github-pages →
+# Deployment branches and tags: přidat větev beta (jinak nasazení z bety odmítne). Postup je v README (Nasazení nové verze).
+
+name: Nasazení (stabilní + beta)
+
+on:
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nasazení jedno po druhém (rychle po sobě nahraná main a beta se nepřepíšou napůl)
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # ===== Stažení obou větví =====
+      - name: Stabilní (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - name: Beta (větev beta, když existuje)
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: beta
+          path: beta
+
+      # ===== Složení webu =====
+      # Do webu nejde .git, .github, testy ani node_modules. Beta dostane vlastní název ikony a barvu (manifest), aby šla
+      # nainstalovat jako druhá aplikace „HockeyCoach β“ vedle stabilní.
+      - name: Složit web
+        run: |
+          set -e
+          mkdir -p _site
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'tests' --exclude 'node_modules' main/ _site/
+          if [ -f beta/index.html ]; then
+            mkdir -p _site/beta
+            rsync -a --exclude '.git' --exclude '.github' --exclude 'tests' --exclude 'node_modules' beta/ _site/beta/
+            jq '.name = "HockeyCoach β" | .short_name = "HC β" | .theme_color = "#8e44ad"' beta/manifest.webmanifest > _site/beta/manifest.webmanifest
+            echo "Beta: $(grep -o 'APP_VERSION = "[^"]*"' beta/src/core/app-version.js)"
+          else
+            echo "Větev beta zatím není – nasazuje se jen stabilní verze."
+          fi
+          echo "Stabilní: $(grep -o 'APP_VERSION = "[^"]*"' main/src/core/app-version.js)"
+          touch _site/.nojekyll
+
+      # ===== Nasazení =====
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

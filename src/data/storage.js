@@ -7,11 +7,13 @@
 // ===== Importy =====
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
 import {APP_LABEL, APP_VERSION, cmpVer, isOutdated} from "../core/app-version.js";
+import {CHANNEL, IS_BETA, cachePrefix} from "../core/channel.js";
 import {clone, esc, td, toast} from "../core/utils.js";
 import {BUDGET_COLL} from "../domain/budget.js";
 import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom} from "../domain/data-window.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
+import {BETA_DOC, canUseBeta, isTester} from "../domain/beta.js";
 import {DRILLIMG_COLL, DRILL_COLL} from "../domain/drills.js";
 import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL} from "../domain/guests.js";
@@ -35,7 +37,7 @@ import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, sign
 import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, getDocsFromCache, getDocsFromServer, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
-const VERSION = APP_LABEL;                                              // číslo verze je jen v core/app-version.js
+const VERSION = APP_LABEL + (IS_BETA ? " · 🧪 beta" : "");             // číslo verze je jen v core/app-version.js; v betě se štítkem kanálu
 { const v = document.getElementById("ver"); if (v) v.textContent = VERSION; }
 // kolekce aplikace (events = tréninky, attendance = docházka, staff = realizační tým,
 // charges = předpisy (události i měsíční příspěvky), cash = pokladna (příjmy, výdaje, platy), audit = záznamy o uzavření, znovuotevření,
@@ -114,6 +116,11 @@ const pvRead = () => { try { const o = JSON.parse(sessionStorage.getItem(PV_KEY)
 const pvWrite = o => { try { if (o) sessionStorage.setItem(PV_KEY, JSON.stringify(o)); else sessionStorage.removeItem(PV_KEY); } catch (e) {} };
 // Náhled jen ke čtení?
 const ro = () => !!(pv && !pv.write);
+// 🧪 Beta: dokument settings/beta (testeři; čtou členové týmu se zbytkem nastavení), tester podle skutečného účtu (ne náhledu role)
+const betaRaw = () => (data.settings || {})[BETA_DOC] || null;
+const tester = () => !!user && isTester(betaRaw(), user.email, isDev());
+// Smí účet pracovat v betě? Tester, nebo skutečný manager (spravuje testery)
+const betaOk = () => canUseBeta(tester(), stored.role === "manager");
 // Brána verze: požadované minimum ze settings/app (načítá se s ostatním nastavením) a test, zda je tato verze starší
 const minVer = () => ((data.settings || {})[APP_DOC] || {}).minVer || "";
 const outdated = () => isOutdated(APP_VERSION, minVer());
@@ -492,12 +499,14 @@ async function boot() {
   return db;
 }
 
+// Načíst novou verzi: zahodí service worker a cache jen tohoto kanálu (stabilní a 🧪 beta se navzájem nemažou), pak znovu načte stránku
 async function refresh() {
   try {
+    const scope = new URL("./", location.href).href, pfx = cachePrefix(CHANNEL);
     const rs = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(rs.map(r => r.unregister()));
+    await Promise.all(rs.filter(r => r.scope === scope).map(r => r.unregister()));
     const ks = await caches.keys();
-    await Promise.all(ks.map(k => caches.delete(k)));
+    await Promise.all(ks.filter(k => k.startsWith(pfx)).map(k => caches.delete(k)));
   } catch (e) {}
   location.reload();
 }
@@ -517,9 +526,9 @@ async function commitOps(ops) {
 
 // ===== Rozhraní ⚙️ a zálohy (data/cfg-api.js, data/backup.js) =====
 // Kontext pro moduly okna ⚙️ a záloh: stav účtu se předává jako funkce (mění se při přihlášení a náhledu role)
-const C = {data, first, COLL, FETCH, APP_DOC, PERM_DOC, ROLES, PID_ROLES, STAFF, RO_MSG, OLD_MSG,
+const C = {data, first, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, ROLES, PID_ROLES, STAFF, RO_MSG, OLD_MSG,
   user: () => user, role: () => role, pid: () => pid, tid: () => tid, cash: () => cash, stored: () => stored, pv: () => pv, real: () => real, fs: () => fs, auth: () => auth,
-  can, isStaff, isCash, blocked, ro, outdated, minVer, say, errTxt, stamp, pvLabel, pvWrite, startPreview, permRaw, perms, commitOps, plMerged, rebuildDebtors};
+  can, isStaff, isCash, blocked, ro, outdated, minVer, say, errTxt, stamp, pvLabel, pvWrite, startPreview, permRaw, perms, commitOps, plMerged, rebuildDebtors, isDev, betaRaw, tester};
 const CFG = cfgApi(C), {exportJSON, exportCSV, importData} = backupApi(C);
 
 // ===== Exporty a spuštění =====
@@ -532,6 +541,8 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   listMembers: async () => (await getDocs(fsCol(fs, "members"))).docs.map(d => ({email: d.id, ...d.data()})),
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview,
+  // 🧪 Beta kanál: tester() = nabídka bety a přístup do ní, betaOk() = smí pracovat v betě (tester nebo manager)
+  tester, betaOk,
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení
   cfg: {...CFG, isDev, endPreview, rebuildDebtors, rebuildPrices, roleLabel, online: () => navigator.onLine, readCounts, readCountsPlayer, winInfo, archRefresh}};
 window.HK = HK;

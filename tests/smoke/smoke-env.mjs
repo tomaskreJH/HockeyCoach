@@ -24,7 +24,8 @@ Math.random = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return se
 
 // ===== Prohlížeč =====
 const html = readFileSync(new URL("index.html", ROOT), "utf8").replace(/<script[^>]*src="src\/main\.js"[^>]*><\/script>/, "");
-const dom = new JSDOM(html, {url: "https://hockeycoach.test/", pretendToBeVisual: true});
+// Adresa stránky: stabilní kořen, s --beta (SMOKE_URL ze smoke-run.mjs) složka 🧪 bety
+const dom = new JSDOM(html, {url: process.env.SMOKE_URL || "https://hockeycoach.test/", pretendToBeVisual: true});
 const w = dom.window;
 w.Date = FrozenDate;
 globalThis.Date = FrozenDate;

@@ -92,6 +92,15 @@ service cloud.firestore {
         && request.resource.data.get('minBy', mail()) == mail();
     }
 
+    // ===== 🧪 Beta testeři (settings/beta): {testers: [e-maily], by, at} – nejvýš 50 e-mailů =====
+    // Mění manager nebo účet vývojáře (stejný seznam jako DEV_EMAILS v src/config/team-config.js); by = jeho e-mail. Dokument nejde smazat.
+    function isDevAcct() { return signedIn() && mail() in ['tomaskre@gmail.com']; }
+    function betaSettingsOk() {
+      return (isMgr() || isDevAcct()) && request.resource.data.keys().hasOnly(['testers', 'by', 'at'])
+        && request.resource.data.testers is list && request.resource.data.testers.size() <= 50
+        && request.resource.data.by == mail();
+    }
+
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
     // Manager spravuje všechny členy, převádí role a zapisuje rv. Pokladník jen členy s rolí hracka – před změnou i po ní –
     // a nikdy vlastní dokument (jinak by si mohl dát roli asistent a získat sportovní zápis). Posledního managera hlídá aplikace.
@@ -139,12 +148,12 @@ service cloud.firestore {
 
     // ===== Nastavení: základní formace manager, trenér a asistent, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení;
     // settings/app (brána verze) jen manager; settings/perm (matice práv) jen manager; čtou členové týmu (ne hostující),
-    // hostující jen cash (účet pro QR), events (sraz) a app. settings/cash ani settings/app nejde smazat =====
+    // hostující jen cash (účet pro QR), events (sraz) a app; settings/beta (🧪 testeři) manager nebo vývojář. settings/cash, app ani beta nejde smazat =====
     match /settings/{id} {
       allow read: if isTeam() || (isHost() && id in ['cash', 'events', 'app']);
-      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : isStaff()));
-      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : isStaff()));
-      allow delete: if id != 'cash' && id != 'app' && (id == 'perm' ? isMgr() : isStaff());
+      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : (id == 'beta' ? betaSettingsOk() : isStaff())));
+      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : (id == 'beta' ? betaSettingsOk() : isStaff())));
+      allow delete: if id != 'cash' && id != 'app' && id != 'beta' && (id == 'perm' ? isMgr() : isStaff());
     }
 
     // ===== Tréninky (události): čtou členové týmu, spravuje se podle matice práv (výchozí trenér a asistent); pokladník jen příznak ss =====

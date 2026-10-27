@@ -1,10 +1,13 @@
 // Rozhraní okna ⚙️ nad datovou vrstvou (HK.cfg; vykreslení je ve views/settings-view.js): přihlášený účet, náhled role,
 // členové týmu (přidání, změna, odebrání – ochrana posledního managera, pokladník jen hráčky a ne vlastní účet), brána verze
-// (od v22.9 s doplněním data události do docházky) a matice práv settings/perm (zapisuje jen manager). Kontroly rolí jsou tady a ve storage.js; stav účtu dostává přes kontext C.
+// (od v22.9 s doplněním data události do docházky; v 🧪 betě se nenastavuje), matice práv settings/perm (zapisuje jen manager)
+// a 🧪 beta testeři settings/beta (manager nebo vývojář). Kontroly rolí jsou tady a ve storage.js; stav účtu dostává přes kontext C.
 
 // ===== Importy =====
 import {KIND_OLD} from "../config/constants.js";
 import {APP_VERSION, canRaise, cmpVer} from "../core/app-version.js";
+import {IS_BETA} from "../core/channel.js";
+import {betaDocOf, testersOf} from "../domain/beta.js";
 import {ATT_D_VER, attDateFix} from "../domain/data-window.js";
 import {isGuest} from "../domain/guests.js";
 import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
@@ -16,7 +19,7 @@ import {collection as fsCol, deleteDoc, doc as fsDoc, getDocs, setDoc} from "htt
 // C = kontext ze storage.js: data, konstanty kolekcí a rolí, stav účtu jako funkce (user(), role(), pid(), tid(), cash(), stored(), pv(), real(), fs(), auth())
 // a pomůcky (can, isStaff, blocked, say, errTxt, náhled role, brána verze, matice práv). Vrací funkce pro HK.cfg.
 export function cfgApi(C) {
-  const {data, ROLES, PID_ROLES, STAFF, COLL, FETCH, APP_DOC, PERM_DOC, can, isStaff, blocked, say, errTxt, pvLabel, pvWrite, startPreview, outdated, minVer, permRaw, perms} = C;
+  const {data, ROLES, PID_ROLES, STAFF, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, can, isStaff, blocked, say, errTxt, pvLabel, pvWrite, startPreview, outdated, minVer, permRaw, perms} = C;
   let memCache = [];                     // poslední načtený seznam members (ochrana posledního managera)
   // Datová vrstva jen poskytuje údaje a zápisy (účet, členové, náhled role, záloha, kontrola dat, brána verze);
   // kontroly rolí a jejich popisky zůstávají tady, okno se ptá přes HK.cfg a HK.can.
@@ -101,7 +104,7 @@ export function cfgApi(C) {
   // Počty dokumentů ve vybraném souboru zálohy (náhled před obnovou)
   const backupCounts = obj => { const d = (obj && obj.data) || {}; return [...COLL, ...FETCH].map(c => [c, Object.keys(d[c] || {}).length]); };
   // Brána verze pro ⚙️: požadované minimum, kdo a kdy ho nastavil, zda je tato verze starší a zda ji jde vyžadovat
-  const gateInfo = () => { const a = data.settings[APP_DOC] || {}; return {min: a.minVer || "", by: a.minBy || "", at: a.minAt ? String(a.minAt).slice(0, 10) : "", old: outdated(), raise: canRaise(APP_VERSION, minVer())}; };
+  const gateInfo = () => { const a = data.settings[APP_DOC] || {}; return {min: a.minVer || "", by: a.minBy || "", at: a.minAt ? String(a.minAt).slice(0, 10) : "", old: outdated(), raise: !IS_BETA && canRaise(APP_VERSION, minVer())}; };
 
   // ===== Matice práv (⚙️ → 🔐 Práva rolí, zapisuje jen manager) =====
   // Stav pro okno: platná matice (jen upravitelné buňky), kdo a kdy ji naposledy změnil, zda jde měnit
@@ -115,6 +118,8 @@ export function cfgApi(C) {
   }
   // Manager zvýší minimální verzi na tuto (po potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
   async function raiseMinVer(close) {
+    // V 🧪 betě ne: vyšší číslo bety by zablokovalo zápis všem zařízením se stabilní verzí
+    if (IS_BETA) { say("V betě se minimální verze nenastavuje – až ve stabilní verzi po vydání"); return; }
     if (blocked()) return;
     try {
       // 📉 Od ATT_D_VER zapnou aplikace okno docházky: nejdřív doplnit datum události d do všech dokumentů docházky (idempotentní)
@@ -125,6 +130,17 @@ export function cfgApi(C) {
       await setDoc(fsDoc(C.fs(), "settings", APP_DOC), {minVer: APP_VERSION, minBy: C.user().email.toLowerCase(), minAt: new Date().toISOString()}, {merge: true}); say("Minimální verze nastavena na v" + APP_VERSION); close();
     } catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); }
   }
+
+  // ===== 🧪 Beta testeři (⚙️ → 🧪 Beta testování, manager nebo vývojář) =====
+  // Stav pro okno: seznam testerů, kdo a kdy ho naposledy změnil, zda ho účet smí měnit
+  const betaInfo = () => { const d = C.betaRaw() || {}; return {testers: testersOf(d), by: d.by || "", at: d.at ? String(d.at).slice(0, 10) : "", edit: can("admin") || C.isDev()}; };
+  // Uložení celého seznamu testerů (settings/beta). Vrací true po uložení.
+  async function saveTesters(list) {
+    if (!(can("admin") || C.isDev())) { say("Beta testery vybírá manager nebo vývojář"); return false; }
+    if (blocked()) return false;
+    try { await setDoc(fsDoc(C.fs(), "settings", BETA_DOC), betaDocOf(list, meEmail(), new Date().toISOString())); return true; }
+    catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); return false; }
+  }
   return {acct, pvInfo, runPreview, logout, PV_ROLES, memberRoles, needsPid, cashOk, staffOk, pidRoleOf, pidRoleErr, playerList, staffList,
-    joinCount, memberRows, memberInfo, canRemove, removeMember, saveMember, backupCounts, gateInfo, raiseMinVer, permState, savePerms};
+    joinCount, memberRows, memberInfo, canRemove, removeMember, saveMember, backupCounts, gateInfo, raiseMinVer, permState, savePerms, betaInfo, saveTesters};
 }

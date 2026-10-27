@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.10 (27. 10. 2026)** – 🖐 rychlejší události: nový trénink a zápas se předvyplní podle posledního (čas, sraz, místo), omluva jedním klepnutím na důvod (i naposledy použité vlastní důvody). Předtím v22.9: 📉 události a docházka v okně. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.11 (27. 10. 2026)** – 🧪 beta kanál: nové verze se nejdřív nasazují do bety (`…/beta/`) pro vybrané testery a do stabilní verze jdou až po otestování celé série. Předtím v22.10: 🖐 rychlejší události (předvyplnění, omluva klepnutím). Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.
@@ -27,13 +27,33 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního 
 
 Hosting kdekoli přes HTTPS (Firebase Hosting, Netlify, GitHub Pages) – nahrát celou složku kromě `node_modules/`.
 
+## Kanály: stabilní a 🧪 beta (od v22.11)
+Web staví GitHub Actions (`.github/workflows/pages.yml`) z obou větví: **`main` = stabilní** verze pro všechny (kořen webu), **`beta` = 🧪 beta** pro testery (složka `beta/`, např. `https://tomaskrejh.github.io/HockeyCoach/beta/`). Databáze je jedna, kód stejný – kanál se pozná podle adresy.
+
+**Jednorázové nastavení repozitáře (po nahrání v22.11 do `main`):**
+1. *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
+2. Na hlavní stránce repozitáře rozbalit větev `main` → napsat `beta` → **Create branch: beta from main**.
+3. *Settings → Environments → github-pages → Deployment branches and tags* → **Add deployment branch or tag rule** → `beta` (jinak se beta nenasadí).
+4. *Actions* → Nasazení (stabilní + beta) → **Run workflow** (nebo počkat na další nahrání). Za 1–2 min běží obě adresy.
+5. Manager v aplikaci: ⚙️ → **🧪 Beta testování** → zaškrtnout testery (vývojář je tester vždy).
+
+**Běžný postup (malé a střední verze bez zásahu do dat):**
+1. ZIP verze nahrát do větve **`beta`** (v GitHubu přepnout větev na `beta` → Add file → Upload files).
+2. Testeři dostanou ve stabilní verzi pruh **🧪 Nová beta v… k vyzkoušení** (nebo ⚙️ → 👤 Účet → 🧪 Otevřít betu); v betě je nahoře fialový pruh **🧪 Beta v…**. Beta jde přidat na plochu jako druhá ikona „HockeyCoach β“.
+3. Takto lze nasadit a testovat více verzí za sebou.
+4. **Vydání do stabilní:** *Pull requests → New → base: `main` ← compare: `beta`* → Create → **Merge**. Pak v aplikaci (stabilní) Načíst novou verzi a případně 🔒 Vyžadovat verzi.
+
+**Přímo do `main` (i do `beta`) jdou:** změny dat nebo pravidel, které nesnesou souběh starší stabilní verze, a naléhavé opravy. CHANGELOG u každé verze uvádí kanál. Po nahrání do `main` stejný ZIP nahrát i do `beta` (nebo PR `main → beta`), aby beta nebyla pozadu.
+
+**V betě platí:** 🔒 Vyžadovat verzi se nenastavuje (vyšší číslo bety by zablokovalo stabilní verzi) – až ve stabilní po vydání. Pravidla databáze musí fungovat pro stabilní i betu (data jen přidávat).
+
 ## Nasazení nové verze
 1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu + zip současného repozitáře.
 2. Podle CHANGELOG **publikovat firestore.rules** (před, nebo po nahrání kódu).
-3. Nahrát soubory; soubory, které CHANGELOG uvádí jako odstraněné, smazat i na webu.
-4. Na zařízeních ⚙️ → **Načíst novou verzi**.
-5. Když to CHANGELOG uvádí: manager ⚙️ → **🔒 Vyžadovat verzi** (starší zařízení pak nic nezapisují).
-6. Návrat: předchozí zip, pravidla z historie v konzoli Firebase, `settings/app.minVer` snížit ručně.
+3. Nahrát soubory do větve podle CHANGELOG (**beta**, nebo **main**); soubory, které CHANGELOG uvádí jako odstraněné, smazat i ve větvi.
+4. Na zařízeních ⚙️ → **Načíst novou verzi** (maže jen kopii svého kanálu).
+5. Když to CHANGELOG uvádí: manager ve **stabilní** verzi ⚙️ → **🔒 Vyžadovat verzi** (starší zařízení pak nic nezapisují).
+6. Návrat: předchozí zip, pravidla z historie v konzoli Firebase, `settings/app.minVer` snížit ručně. Beta: nahrát do `beta` obsah `main` (PR `main → beta`).
 
 **Starou verzi po nahrání** vyřeší ⚙️ → Načíst novou verzi (data zůstanou v databázi). Na webu musí být všechny soubory včetně `sw.js` a celé složky `src/`.
 

@@ -1,13 +1,16 @@
 // Okno ⚙️ Účet a data (všechny role, HK.openCfg z main.js): nahoře 👤 Účet (verze, Načíst novou verzi, u managera 🔒 Vyžadovat verzi),
-// pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV, obnova a 📉 odhad čtení.
+// pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV, obnova a 📉 odhad čtení;
+// 🧪 Beta testování (manager nebo vývojář) a přepnutí kanálu v 👤 Účet – views/beta-view.js.
 // Jen vykreslení a obsluha – údaje a zápisy přes HK.cfg, oprávnění HK.can. 🔐 Práva rolí: views/perm-view.js.
 
 // ===== Importy =====
 import {APP_VERSION} from "../core/app-version.js";
+import {IS_BETA} from "../core/channel.js";
 import {armed, confirm2} from "../core/actions.js";
 import {LS, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {READ_LIMIT, collLabel, readCost} from "../domain/read-cost.js";
+import {betaAcctHtml, betaSecHtml, bindBetaAcct, renderBetaTesters} from "./beta-view.js";
 import {permStatus, renderPerm, resetPermWork} from "./perm-view.js";
 
 // ===== Konstanty a stav =====
@@ -47,10 +50,11 @@ function verInfo() {
 // manager tu má i 🔒 Vyžadovat verzi (zvýšení minimální verze – potvrzení druhým klepnutím)
 function accountHtml(coach, staff) {
   const a = C().acct();
-  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div>${coach ? gateHtml() : ""}</div>`;
+  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div>${betaAcctHtml()}${coach ? gateHtml() : ""}</div>`;
 }
-// 🔒 Brána verze (jen manager, pod Načíst novou verzi): zvýšit minimum na tuto verzi, nebo stav, že minimum odpovídá
+// 🔒 Brána verze (jen manager, pod Načíst novou verzi): zvýšit minimum na tuto verzi, nebo stav, že minimum odpovídá; v 🧪 betě jen poznámka
 function gateHtml() {
+  if (IS_BETA) return `<div class="mu" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">🔒 Vyžadovat verzi se v betě nenastavuje (zablokovalo by stabilní verzi) – nastav ho ve stabilní verzi po vydání.</div>`;
   const g = C().gateInfo();
   return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">${g.raise ? `<button class="s w" id="cmv">🔒 Vyžadovat verzi v${esc(APP_VERSION)}</button>` : '<div class="mu">✅ Minimální verze odpovídá této verzi.</div>'}<div class="mu" style="margin-top:6px">Zařízení se starší verzí, než je minimální, nic nezapisuje a ukáže pruh Načíst novou verzi. Minimum jde jen zvýšit – nastav ho, až je nová verze na všech zařízeních.</div></div>`;
 }
@@ -117,7 +121,7 @@ async function renderMembers(el) {
 }
 // Otevře okno ⚙️ podle oprávnění přihlášeného účtu (v náhledu podle role náhledu)
 function openSettings() {
-  const el = document.getElementById("cfg"), coach = HK.can("admin"), cashier = HK.can("members"), staff = HK.can("sport"), dev = C().isDev(), team = !HK.can("guest");
+  const el = document.getElementById("cfg"), coach = HK.can("admin"), cashier = HK.can("members"), staff = HK.can("sport"), dev = C().isDev(), team = !HK.can("guest"), beta = C().betaInfo().edit;
   const q = s => el.querySelector(s), close = () => { el.innerHTML = ""; };
   pendingImport = null; seq++; resetPermWork();
   el.innerHTML = `<div class="md" id="cbg"><div class="mb"><h2>⚙️ Účet a data</h2>
@@ -127,6 +131,7 @@ function openSettings() {
  ${staff ? eventsHtml() : ""}
  ${cashier ? cashHtml() : ""}
  ${staff ? dataHtml(coach) : ""}
+ ${beta ? betaSecHtml(sec) : ""}
  ${dev ? devHtml() : ""}
  <button class="s w" id="cz" style="margin-top:14px">Zavřít</button></div></div>`;
   bindCommon(el, q, close);
@@ -136,7 +141,9 @@ function openSettings() {
   if (cashier) bindCash(q, close);
   if (coach && q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => C().raiseMinVer(close));
   if (dev) bindPv(q);
+  bindBetaAcct(q);
   if (cashier) renderMembers(el);
+  if (beta) renderBetaTesters(el);
   if (team) renderPerm(el, arm2);
 }
 

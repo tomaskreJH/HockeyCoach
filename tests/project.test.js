@@ -28,9 +28,9 @@ test("verze: core/app-version.js = package.json = nejnovější záznam v CHANGE
   assert.equal(first[1], APP_VERSION);
 });
 
-test("verze: README uvádí aktuální verzi a sw.js má název cache hokej-vNN", () => {
+test("verze: README uvádí aktuální verzi a sw.js má název cache hokej-vNN (beta hokej-beta-vNN)", () => {
   assert.ok(read("README.md").includes("v" + APP_VERSION), "README uvádí aktuální verzi");
-  assert.match(read("sw.js"), /const C = "hokej-v\d+"/);
+  assert.match(read("sw.js"), /const VER = "\d+", PFX = BETA \? "hokej-beta-v" : "hokej-v", C = PFX \+ VER;/);
 });
 
 test("verze: číslo verze není v kódu aplikace natvrdo jinde než v core/app-version.js", () => {
@@ -75,7 +75,7 @@ test("pravidla: settings/app (brána verze) zapisuje jen manager a nejde smazat;
   const rules = read("firestore.rules"), s = ruleBlock(rules, "match /settings/{id}");
   assert.match(rules, /function appSettingsOk\(\) \{\s+return isMgr\(\)/);
   assert.match(s, /id == 'app' \? appSettingsOk\(\)/);
-  assert.match(s, /allow delete: if id != 'cash' && id != 'app' && \(id == 'perm' \? isMgr\(\) : isStaff\(\)\);/);
+  assert.match(s, /allow delete: if id != 'cash' && id != 'app' && id != 'beta' && \(id == 'perm' \? isMgr\(\) : isStaff\(\)\);/);
   assert.match(s, /id == 'perm' \? permSettingsOk\(\)/);
 });
 

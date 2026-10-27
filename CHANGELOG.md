@@ -2,6 +2,31 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.11 (27. 10. 2026) – 🧪 Beta kanál: testování před vydáním pro všechny
+> **Nasazení (tato verze jde přímo do `main`):** 1) Zip současného repozitáře. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nový blok `settings/beta`, ostatní beze změny). 3) Nahrát soubory ze zipu do `main` (nové: `.github/workflows/pages.yml`, `src/core/channel.js`, `src/domain/beta.js`, `src/views/beta-view.js`, `tests/beta.test.js`; nic se nemaže ani nepřesouvá). 4) **Jednorázově v GitHubu** podle README, kap. „Kanály“: Pages → Source **GitHub Actions**, vytvořit větev **`beta`** z `main`, v Environments → github-pages povolit větev `beta`, Actions → Run workflow. 5) Načíst novou verzi (cache `hokej-v108`, beta `hokej-beta-v108`). 6) ⚙️ → 🧪 Beta testování → zaškrtnout testery. 7) **🔒 Vyžadovat verzi: ne** (nechat 22.9). 8) Test: `docs/testy-rucni.md` kap. 15.
+> **Od v22.12 se nové verze nahrávají do větve `beta`**; vydání pro všechny = Pull request `beta → main` → Merge.
+
+**Přidáno**
+- **🧪 Kanály stabilní a beta** (`src/core/channel.js`): stejný kód na dvou adresách – kořen webu (větev `main`) a složka `beta/` (větev `beta`); kanál se pozná podle adresy, vydání bety do stabilní nic nepřepisuje.
+- **Nasazení z obou větví** (`.github/workflows/pages.yml`): po nahrání do `main` nebo `beta` GitHub Actions postaví web (main do kořene, beta do `beta/`, bez testů a `.github`); beta dostane vlastní název ikony „HockeyCoach β“ a barvu (manifest), takže jde nainstalovat jako druhá aplikace.
+- **Beta testeři** (`src/domain/beta.js`, dokument `settings/beta` = {testers, by, at}): ⚙️ → **🧪 Beta testování** (manager nebo vývojář) – seznam členů týmu se zaškrtnutím, změna se hned uloží. Vývojář je tester vždy, manager smí do bety vždy. Hostující testerem být nemůže (nečte nastavení týmu).
+- **Pruh v liště** (`src/views/beta-view.js`, `views/shell.js`): v betě fialový pruh **🧪 Beta vX – testovací verze · Stabilní verze**; ve stabilní verzi testerovi **🧪 Nová beta vX k vyzkoušení · Vyzkoušet · ✕** (jen když je beta novější; ✕ skryje nabídku této bety v zařízení). Číslo bety se zjistí načtením `beta/src/core/app-version.js` z webu – jednou za spuštění, jen u testera, **bez čtení databáze**.
+- **Zamčená beta:** účet, který není tester ani manager, vidí v betě jen „🧪 Beta je jen pro testery“ s tlačítkem Přejít na stabilní verzi.
+- ⚙️ → 👤 Účet: kanál a přepnutí (🧪 Otevřít betu / ← Stabilní verze); verze v záhlaví bety se štítkem „🧪 beta“, okno „HockeyCoach β“.
+- `npm run smoke -- --beta` – kouřový test z adresy bety. Testy: `tests/beta.test.js` (12). ❓ Nápověda kap. ⚙️.
+
+**Změněno**
+- `sw.js`: kanál podle vlastní adresy, cache `hokej-vNN` (stabilní) / `hokej-beta-vNN` (beta), maže jen staré cache svého kanálu, stabilní worker neobsluhuje adresy bety, oznámení ⏱ živého tréninku jen oknům svého kanálu; offline kopie jen z cache svého kanálu.
+- **Načíst novou verzi** (`data/storage.js` – `refresh`): odregistruje workera a smaže cache jen svého kanálu (stabilní a beta se navzájem nemažou).
+- **🔒 Vyžadovat verzi** se v betě nenastavuje (`data/cfg-api.js`, `views/settings-view.js` – poznámka místo tlačítka): vyšší číslo bety by zablokovalo zápis stabilní verzi.
+- Záloha: `settings/beta` se neobnovuje ani nemaže (`data/backup.js`).
+- `firestore.rules`: `settings/beta` zapisuje manager nebo účet vývojáře (`isDevAcct`, stejný e-mail jako `DEV_EMAILS`), jen pole testers (nejvýš 50) / by / at, nejde smazat; čtení jako ostatní nastavení (členové týmu).
+- README (kap. Kanály, Nasazení), `docs/KONVENCE.md` (kap. 4 a 6 – kanál u každé verze), testy `project`, `event-time` (text pravidel).
+
+**Beze změny:** živý zápis, časomíra, střely a góly, pokladna, statistiky, docházka, tvar ostatních dokumentů, oprávnění rolí. Stabilní verze bez bety funguje jako dosud.
+
+**Ověřeno:** `npm test` 435 / 435. `npm run smoke` – 8 rolí bez chyb (manager: ⚙️ → 🧪 Beta testování se 7 členy). `npm run smoke -- --beta` – 8 rolí bez chyb (manager v betě s fialovým pruhem a poznámkou místo 🔒; hráčka, trenér a další bez testerství vidí zamčenou betu).
+
 ## v22.10 (27. 10. 2026) – 🖐 K2, krok 1: rychlejší události a docházka
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nové `src/domain/event-prefill.js`, `tests/event-prefill.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v107`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová data, paměť jen v zařízení; nechat 22.9). 6) Test: `docs/testy-rucni.md` kap. 14.
 
