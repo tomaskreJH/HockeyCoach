@@ -1,7 +1,7 @@
 // Kouřový test: testovací data týmu a účty všech rolí (stejná data pro každou roli; čas viz NOW ve smoke-env.mjs).
 
 // ===== Konstanty =====
-const TODAY = "2026-10-26", NEXT = "2026-11-02", PAST = "2026-10-19", TOMORROW = "2026-10-27";
+const TODAY = "2026-10-26", NEXT = "2026-11-02", PAST = "2026-10-19", TOMORROW = "2026-10-27", OLD = "2026-07-15";
 const STARTED = Date.parse("2026-10-26T17:00:00+01:00");
 
 // ===== Účty rolí =====
@@ -32,13 +32,18 @@ export function teamData() {
   const events = {
     e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", dl: "2026-10-25T18:00", lines, grp: 2},
     e2: {title: "Trénink", date: NEXT, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-11-01T18:00"},
-    e0: {title: "Trénink", date: PAST, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-10-18T18:00", ss: true}
+    e0: {title: "Trénink", date: PAST, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-10-18T18:00", ss: true},
+    // 📉 starší trénink mimo okno poslechu (archiv z paměti zařízení)
+    e9: {title: "Trénink", date: OLD, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-07-14T18:00"}
   };
   const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: [], ln: {}}};
   const attendance = {};
   ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"].forEach(p => { attendance["e1_" + p] = {eid: "e1", pid: p, st: "yes"}; attendance["e0_" + p] = {eid: "e0", pid: p, st: p === "p3" ? "no" : "yes"}; });
   ["t1", "t2", "t3"].forEach(t => { attendance["e1_" + t] = {eid: "e1", pid: t, st: "yes"}; });
   attendance.m1_p1 = {eid: "m1", pid: "p1", st: "yes"};
+  ["p1", "p2"].forEach(p => { attendance["e9_" + p] = {eid: "e9", pid: p, st: "yes"}; });
+  // 📉 v22.9: docházka nese datum události d (okno poslechu)
+  Object.values(attendance).forEach(a => { a.d = (events[a.eid] || matches[a.eid] || {}).date || ""; });
   // 🕘 Historie přihlášek: p1 sama, p2 zapsal trenér (po termínu), p3 jen starší odpověď bez historie
   Object.assign(attendance.e1_p1, {at: "2026-10-24T10:00:00.000Z", by: "hracka@smoke.cz"});
   Object.assign(attendance.e1_p2, {at: "2026-10-25T19:00:00.000Z", by: "trener1@smoke.cz"});
@@ -74,7 +79,7 @@ export function teamData() {
   const settings = {
     cash: {iban: "CZ6508000000192000145399", iban2: "CZ4907100000000000123457", acc: {contrib: "main"}, contrib: 500, due: 14, inst: true, cats: [], tpl: {}},
     events: {meetT: 30, meetM: 60, durT: 60},
-    app: {minVer: "21.0"}
+    app: {minVer: "22.9"}
   };
   // c2 = po splatnosti (⛓ blokace) pro 🔓 Výjimky; e0 = uzavřené vyúčtování (💰 na kartě události)
   const charges = {c1: {eid: "e0", mid: "p1", amt: 150, paid: 0, due: "2026-11-05", kind: "event", vs: "1001", acc: "op", msg: "Trenink 19.10. - Anna"},

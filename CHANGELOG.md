@@ -2,6 +2,28 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.9 (27. 10. 2026) – 📉 úspora čtení, krok 2 (D2): události a docházka v okně
+> **Nasazení:** 1) Zip současného repozitáře, ⚙️ → 💾 Data → Stáhnout zálohu. 2) **firestore.rules beze změny** (nepublikovat – docházka pole `d` povoluje už dnes). 3) Nahrát soubory ze zipu (nové `src/domain/data-window.js`, `tests/data-window.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v106`) – **události** se hned poslouchají v okně. 5) Až budou zařízení aktualizovaná: **🔒 Vyžadovat verzi 22.9 (nutné pro úsporu u docházky)** – manager na zařízení s v22.9; tlačítko nejdřív doplní datum události do všech záznamů docházky (hláška „Datum události doplněno… N×“), pak nastaví minimum. Od dalšího spuštění se i docházka poslouchá v okně. 6) Test: `docs/testy-rucni.md` kap. 13, čísla z ⚙️ → 💾 Data → 📉 porovnat s v22.8 (969 / hráčka 542).
+
+**Přidáno**
+- **📉 Okno poslechu** (`src/domain/data-window.js`, `src/data/storage.js` – `listenWin`): **události a docházka se živě poslouchají jen od data okna** – realizační tým (manager, trenér, asistent) 45 dní zpět, hráčka 14 dní zpět, budoucí vždy. Starší dokumenty („archiv“) se berou **z paměti zařízení zdarma**; ze serveru se archiv načte celý jen jednou na zařízení, pak se sám ověřuje pás 60 dní před oknem (události denně, docházka týdně). V aplikaci jsou dál **všechna data** – seznamy, 📊 Docházka, statistiky, pokladna a ⚖️ Tarify počítají stejně jako dosud.
+- Docházka nese **datum události `d`** – doplní ho datová vrstva při každém založení záznamu (i obnova ze zálohy a automatické omluvy); změna data události nebo zápasu se do její docházky propíše sama.
+- **⚙️ → 💾 Data → 📉 Čtení databáze:** u oken „živě od …, starší N z paměti zařízení, ze serveru ověřeno …“, odhad pro hráčku z jejího okna, tlačítko **↻ Obnovit starší data ze serveru** (druhým klepnutím; načte celý archiv). ❓ Nápověda kap. ⚙️.
+- `HK.cfg`: `readCountsPlayer`, `winInfo`, `archRefresh`; `readCost(counts, n, pc)` – odhad hráčky z počtů v jejím okně.
+- Testy: `tests/data-window.test.js` (5), `tests/read-cost.test.js` (+1); kouřový test – trénink e9 mimo okno (archiv) s docházkou, docházka s `d`, brána verze 22.9.
+
+**Změněno**
+- `src/data/cfg-api.js` – 🔒 Vyžadovat verzi (od 22.9) nejdřív doplní / opraví `d` v docházce (idempotentní, po dávkách 400).
+- `src/domain/guests.js` – `dayAdd` přesunut do `domain/data-window.js` (jediné místo; `views/event-badges.js` ho používá také).
+- Zástupci Firebase v testech (`tests/support/firebase-stub.mjs`, `tests/smoke/smoke-fb.mjs`) – podmínky `where` s `>=` a `<`, `getDocsFromCache`, `getDocsFromServer`. `tests/privacy.test.js` – obnova docházky ze zálohy nově zapíše i `d`.
+- `docs/KONVENCE.md` – okno poslechu, pole `d`, mapa souborů.
+
+**Beze změny:** pravidla databáze, tvar ostatních dokumentů, výpočty pokladny, statistik a docházky, živý zápis, trénink. Poslech zápasů, soupisky, pokladny a důvodů omluv zatím celý (malé kolekce; další krok D3 v `docs/plan.md`).
+
+**Upozornění:** změna staršího záznamu (mimo okno) z jiného zařízení se v ostatních zařízeních projeví při automatickém ověření (události do dne, docházka do týdne) nebo hned po ↻. Vlastní změny jsou vidět hned. Do 🔒 Vyžadovat verzi 22.9 se docházka poslouchá celá jako dosud.
+
+**Ověřeno:** `npm test` 418 / 418. `npm run smoke` – 8 rolí bez chyb (Minulé s tréninkem z archivu u managera i hráčky, ⚙️ 📉 s okny „živě od 11. 9. 2026 (3), starší 1 z paměti zařízení“ u událostí a docházky).
+
 ## v22.8 (27. 10. 2026) – 📉 úspora čtení databáze, krok 1 (D1) + odhad čtení v ⚙️
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat – čte se jen podle stávajících práv). 3) Nahrát soubory ze zipu (nové `src/domain/read-cost.js`, `src/views/audit-feed.js`, `tests/read-cost.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v105`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová data; starší verze jen čtou víc). 6) Test: `docs/testy-rucni.md` kap. 12 – a **poslat čísla z ⚙️ → 💾 Data → 📉 Čtení databáze** (podklad pro krok D2).
 

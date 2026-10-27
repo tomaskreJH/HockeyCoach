@@ -11,7 +11,7 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.6~~ | hotovo | **E5** 📈 přehled a analýza Tréninku (Statistiky → 🏒 Trénink) |
 | ~~v22.7~~ | hotovo | 🕘 historie přihlášek na události (časy změn, kdo zapisoval za koho) |
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
-| v22.9 | **D2** | 📉 docházka a události po oknech – **před přihlášením hráček** (čeká na čísla z 📉 a rozhodnutí) |
+| ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | v22.x | **K2** | 🖐 komfort celé aplikace – návrh seznamu níže ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
@@ -22,8 +22,9 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 ## D – 📉 šetření čtení databáze (tarif Spark: 50 000 čtení / den)
 Účtuje se každý přečtený dokument. Spuštění aplikace po pauze delší než 30 min (i obnovení stránky, nová verze, 👁 náhled role) přečte **všechny dokumenty poslouchaných kolekcí**. Živý zápas je levný (1 zápis = 1 čtení na každém otevřeném zařízení), drahé je hromadné otevírání aplikace – každá hráčka čte celou `attendance`, `events`, `matches`, `players`.
 - **D1 (v22.8, hotovo):** audit a stav tréninků na kartách jen na vyžádání, 📉 odhad v ⚙️.
-- **D2 (návrh, rozhodnout podle čísel z 📉):** docházka a události se poslouchají jen v okně (např. 60 dní zpět + budoucí); starší se načtou jednorázově až v 📊 Docházce, Minulých, Statistikách a pokladně. Docházka dostane pole `d` (datum události) – zápis v `attDoc`, převod starých dat tlačítkem v ⚙️ → 💾 Data, pravidla rozšířit (`d` v `hasOnly`). ⚠️ Výpočty pokladny, ⚖️ Tarify a Moje platby čtou docházku starších událostí – musí dostat starší data před výpočtem. Řeší i otevřenou drobnost 8.
-- **D3 (později):** uzavřené měsíce docházky zabalit do jednoho dokumentu `attm/{RRRR-MM}` (1 čtení místo stovek); totéž pro `charges` a `cash` uzavřených sezón.
+- **D2 (v22.9, hotovo – původní návrh):** docházka a události se poslouchají jen v okně (např. 60 dní zpět + budoucí); starší se načtou jednorázově až v 📊 Docházce, Minulých, Statistikách a pokladně. Docházka dostane pole `d` (datum události) – zápis v `attDoc`, převod starých dat tlačítkem v ⚙️ → 💾 Data, pravidla rozšířit (`d` v `hasOnly`). ⚠️ Výpočty pokladny, ⚖️ Tarify a Moje platby čtou docházku starších událostí – musí dostat starší data před výpočtem. Řeší i otevřenou drobnost 8.
+- **D2 výsledek:** okno realizační tým 45 dní, hráčka 14 dní; archiv z paměti zařízení, pás 60 dní ověřován (události denně, docházka týdně), ↻ ručně v ⚙️. Docházka v okně až po 🔒 Vyžadovat verzi 22.9.
+- **D3 (později, podle 📉):** uzavřené měsíce docházky zabalit do jednoho dokumentu `attm/{RRRR-MM}` (1 čtení místo stovek); totéž pro `charges` a `cash` uzavřených sezón; okno i pro `attnote`, `absence`, `matches`.
 - **Pojistka:** tarif Blaze má stejný limit zdarma a platí se jen čtení nad něj (řádově haléře za tisíce čtení); hlídání rozpočtu v Google Cloud upozorní, ale neomezí. Bez Blaze po překročení limitu databáze do rána (~8–9 h) nečte.
 
 ## K2 – komfort celé aplikace

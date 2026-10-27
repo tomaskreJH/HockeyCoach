@@ -1,14 +1,15 @@
 // Datová vrstva: Firebase (Firestore, přihlášení Google), oprávnění HK.can / HK.perm (jediné místo, z domain/permissions.js a settings/perm),
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
 // Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
-// onSnapshot; batch() – set / merge / delete / commit. Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js (kontext C).
+// onSnapshot; batch() – set / merge / delete / commit. 📉 Události a docházka s oknem (listenWin, domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
 // Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup.
 
 // ===== Importy =====
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
-import {APP_LABEL, APP_VERSION, isOutdated} from "../core/app-version.js";
-import {clone, esc, toast} from "../core/utils.js";
+import {APP_LABEL, APP_VERSION, cmpVer, isOutdated} from "../core/app-version.js";
+import {clone, esc, td, toast} from "../core/utils.js";
 import {BUDGET_COLL} from "../domain/budget.js";
+import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom} from "../domain/data-window.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
 import {DRILLIMG_COLL, DRILL_COLL} from "../domain/drills.js";
@@ -31,7 +32,7 @@ import {cfgApi} from "./cfg-api.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, getDocsFromCache, getDocsFromServer, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
 const VERSION = APP_LABEL;                                              // číslo verze je jen v core/app-version.js
@@ -139,6 +140,7 @@ const endPreview = () => { pvWrite(null); location.reload(); };
 function listen(c) {
   if (listening.has(c)) return;
   listening.add(c);
+  if (win[c]) { listenWin(c); return; }
   onSnapshot(fsCol(fs, c), snap => {
     data[c] = {};
     snap.docs.forEach(d => { data[c][d.id] = d.data(); });
@@ -146,6 +148,83 @@ function listen(c) {
     fire(c);
   }, err => subs[c].forEach(s => s.er && s.er(err)));
 }
+// ===== Data: 📉 okno poslechu (události, docházka) =====
+// win[c] = {from, live, arch, liveOk, at, st, err}: živě se poslouchá pole >= from, starší dokumenty (archiv) z paměti zařízení;
+// ze serveru se archiv načte celý jen jednou na zařízení (nebo ručně v ⚙️), pak po WIN[c].ttl jen pás BAND dní před oknem.
+const win = {};
+const ARCH_KEY = c => "hk-arch-" + c;
+const toMap = s => Object.fromEntries(s.docs.map(d => [d.id, d.data()]));
+const stampOf = c => { try { return JSON.parse(localStorage.getItem(ARCH_KEY(c)) || "null"); } catch (e) { return null; } };
+const stampSet = (c, v) => { try { localStorage.setItem(ARCH_KEY(c), JSON.stringify(v)); } catch (e) {} };
+// Nastavení oken po přihlášení: události vždy, docházka až od 🔒 Vyžadovat verzi ≥ ATT_D_VER (všechny aplikace zapisují datum d)
+function setupWindows(gateVer) {
+  const from = winFrom(td(), STAFF.includes(role));
+  Object.keys(WIN).forEach(c => {
+    if (c === "attendance" && cmpVer(gateVer || "0", ATT_D_VER) < 0) return;
+    win[c] = {from, live: {}, arch: {}, liveOk: false, at: (stampOf(c) || {}).at || 0, st: "", err: ""};
+  });
+}
+// Sloučení archivu a živé části (živá má přednost) a rozeslání odběratelům
+function winMerge(c) { const W = win[c]; data[c] = {...W.arch, ...W.live}; fire(c); }
+// Živý poslech okna; po prvním snímku se načte archiv, dokument, který z okna odešel (změna data), se dohledá v paměti zařízení
+function listenWin(c) {
+  const W = win[c], f = WIN[c].f;
+  onSnapshot(query(fsCol(fs, c), where(f, ">=", W.from)), snap => {
+    W.live = toMap(snap);
+    const gone = typeof snap.docChanges === "function" && snap.docChanges().some(x => x.type === "removed");
+    const firstTime = !W.liveOk;
+    W.liveOk = true; first[c] = true;
+    winMerge(c);
+    if (firstTime) archLoad(c, false);
+    else if (gone) archCache(c).then(() => winMerge(c));
+  }, err => subs[c].forEach(s => s.er && s.er(err)));
+}
+// Archiv z paměti zařízení (zdarma; chyba = beze změny)
+async function archCache(c) {
+  const W = win[c];
+  try { W.arch = toMap(await getDocsFromCache(query(fsCol(fs, c), where(WIN[c].f, "<", W.from)))); } catch (e) { /* paměť není k dispozici */ }
+}
+// Načtení archivu: paměť zařízení, pak podle archNeed celý archiv nebo pás ze serveru; force = ruční obnova z ⚙️
+async function archLoad(c, force) {
+  const W = win[c], {f, ttl, band} = WIN[c];
+  if (!W || W.st === "load") return;
+  W.st = "load"; W.err = "";
+  try {
+    if (!force) await archCache(c);
+    const need = archNeed(stampOf(c), Date.now(), ttl, Object.keys(W.arch).length, force);
+    if (need === "all") {
+      W.arch = toMap(await getDocsFromServer(query(fsCol(fs, c), where(f, "<", W.from))));
+      stampSet(c, {at: Date.now(), all: true});
+    } else if (need === "band") {
+      const lo = dayAdd(W.from, -band);
+      W.arch = mergeBand(W.arch, toMap(await getDocsFromServer(query(fsCol(fs, c), where(f, ">=", lo), where(f, "<", W.from)))), f, lo, W.from);
+      stampSet(c, {at: Date.now(), all: true});
+    }
+    W.at = (stampOf(c) || {}).at || 0; W.st = "";
+  } catch (e) { W.st = "err"; W.err = errTxt(e); console.warn("Archiv " + c + " se nenačetl ze serveru:", W.err); }
+  winMerge(c);
+}
+// Stav oken pro ⚙️ → 💾 Data: [{c, from, live, arch, at, st, err}]
+const winInfo = () => Object.entries(win).map(([c, W]) => ({c, from: W.from, live: Object.keys(W.live).length, arch: Object.keys(W.arch).length, at: W.at, st: W.st, err: W.err}));
+// Ruční obnova archivu ze serveru (čte všechny starší dokumenty)
+const archRefresh = () => Promise.all(Object.keys(win).filter(c => win[c].liveOk).map(c => archLoad(c, true)));
+
+// ===== Data: 📉 datum události v docházce (d) =====
+// Nový dokument docházky dostane datum své události (okno docházky); změna data události se propíše do její docházky
+function withD(c, d) {
+  if (c !== "attendance" || !d || typeof d !== "object" || "d" in d || !d.eid) return d;
+  return {...d, d: attDate(d.eid, data.events, data.matches)};
+}
+// Docházka události, jejíž datum se mění: [[id, nové datum]] (jen dokumenty, které zařízení vidí)
+function attMoves(c, id, d) {
+  if ((c !== "events" && c !== "matches") || !d || typeof d.date !== "string") return [];
+  return Object.entries(data.attendance || {}).filter(([, a]) => a && a.eid === id && a.d !== d.date).map(([aid]) => [aid, d.date]);
+}
+// Tiché propsání data do docházky (chyba jen do konzole – zápis nespustil uživatel)
+function moveAtt(c, id, d) {
+  attMoves(c, id, d).forEach(([aid, v]) => setDoc(fsDoc(fs, "attendance", aid), {d: v}, {merge: true}).catch(e => console.warn("Datum docházky:", errTxt(e))));
+}
+
 // Filtrovaný poslech (člen čte jen své předpisy): výsledky více dotazů téže kolekce se sloučí; odběrateli se vrací sjednocení
 const parts = {};
 function listenWhere(c, f, v, cb, er) {
@@ -174,7 +253,13 @@ function listenPart(c, id, cb, er) {
   return onSnapshot(fsDoc(fs, c, id), snap => put(snap.exists() ? {[id]: snap.data()} : {}), err => { put({}); if (er) er(err); });
 }
 // 📉 Počty dokumentů v kolekcích, které zařízení poslouchá (= čtení při spuštění po pauze > 30 min); odhad v ⚙️ → 💾 Data
-const readCounts = () => Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, Object.keys(data[c]).length]));
+// U kolekcí s oknem se počítá jen živá část (archiv z paměti zařízení se neplatí)
+const readCounts = () => Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, win[c] ? Object.keys(win[c].live).length : Object.keys(data[c]).length]));
+// Odhad pro hráčku z dat v zařízení: okno hráčky (14 dní) u kolekcí s oknem, ostatní celé
+const readCountsPlayer = () => {
+  const from = winFrom(td(), false);
+  return Object.fromEntries(Object.keys(data).filter(c => first[c]).map(c => [c, win[c] ? countFrom(data[c], WIN[c].f, from) : Object.keys(data[c]).length]));
+};
 const view = c => ({docs: Object.entries(data[c]).map(([id, d]) => ({id, data: () => clone(d)}))});
 function fire(c) { subs[c].forEach(s => { try { s.cb(view(c)); } catch (e) { console.error(e); } }); }
 function subscribe(c, cb, er) {
@@ -183,7 +268,7 @@ function subscribe(c, cb, er) {
   if (first[c]) setTimeout(() => cb(view(c)), 0);
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
-function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(d)).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); }
+function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(withD(c, d))).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); moveAtt(c, id, d); }
 // Hodnoty pro částečný zápis: "__del" smaže pole, "__now" = čas serveru (serverTimestamp), ostatní se zkopírují;
 // undefDel = i undefined smaže pole (jinak se vynechá)
 const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k, v]) => { if (v === undefined && !undefDel) return; o[k] = v === "__now" ? serverTimestamp() : v === "__del" || v === undefined ? deleteField() : clone({v}).v; }); return o; };
@@ -193,6 +278,7 @@ function mergeDoc(c, id, d) {
   if (blocked()) return;
   const o = mergeVals(d, true);
   setDoc(fsDoc(fs, c, id), o, {mergeFields: Object.keys(o)}).catch(e => say("Uložení se nepovedlo: " + errTxt(e)));
+  moveAtt(c, id, d);
 }
 // Kontrola mazání události / zápasu s vyúčtováním:
 //  - vyúčtovanou událost smaže jen správce pokladny,
@@ -272,9 +358,9 @@ async function wipeEvent(c, id) {
 // Dávka zápisů (atomicky): b.set("kolekce/id", data).delete("kolekce/id").commit()
 function makeBatch() {
   const b = writeBatch(fs), api = {
-    set: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), clone(d)); return api; },
+    set: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), clone(withD(c, d))); attMoves(c, id, d).forEach(([aid, v]) => b.set(fsDoc(fs, "attendance", aid), {d: v}, {merge: true})); return api; },
     // Částečná změna dokumentu; hodnota "__del" smaže pole
-    merge: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), mergeVals(d), {merge: true}); return api; },
+    merge: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), mergeVals(d), {merge: true}); attMoves(c, id, d).forEach(([aid, v]) => b.set(fsDoc(fs, "attendance", aid), {d: v}, {merge: true})); return api; },
     delete: p => { const [c, id] = splitPath(p); b.delete(fsDoc(fs, c, id)); return api; },
     // V náhledu jen ke čtení se dávka nepotvrdí (nic neodejde)
     commit: () => blocked() ? Promise.resolve() : b.commit().catch(e => say("Uložení se nepovedlo: " + errTxt(e)))
@@ -397,6 +483,10 @@ async function boot() {
     }
     await signOut(auth); user = null; role = null; pid = null; tid = null; cash = false; stored = {role: null, rv: null};
   }
+  // 📉 Okna poslechu: brána verze rozhodne, zda už všechny aplikace zapisují datum do docházky (1 čtení, offline z paměti)
+  let gate = "";
+  try { const g = await getDoc(fsDoc(fs, "settings", APP_DOC)); gate = g.exists() ? (g.data() || {}).minVer || "" : ""; } catch (e) { /* bez okna docházky */ }
+  setupWindows(gate);
   document.getElementById("nav").style.display = "";
   isReady = true;
   return db;
@@ -417,7 +507,7 @@ async function commitOps(ops) {
   for (let i = 0; i < ops.length; i += 400) {
     const b = writeBatch(fs);
     ops.slice(i, i + 400).forEach(([t, c, id, d]) => {
-      if (t === "set") b.set(fsDoc(fs, c, id), clone(d));
+      if (t === "set") b.set(fsDoc(fs, c, id), clone(withD(c, d)));
       else if (t === "merge") b.set(fsDoc(fs, c, id), mergeVals(d), {merge: true});
       else b.delete(fsDoc(fs, c, id));
     });
@@ -443,6 +533,6 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview,
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení
-  cfg: {...CFG, isDev, endPreview, rebuildDebtors, rebuildPrices, roleLabel, online: () => navigator.onLine, readCounts}};
+  cfg: {...CFG, isDev, endPreview, rebuildDebtors, rebuildPrices, roleLabel, online: () => navigator.onLine, readCounts, readCountsPlayer, winInfo, archRefresh}};
 window.HK = HK;
 if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});

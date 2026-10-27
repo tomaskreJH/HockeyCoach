@@ -168,7 +168,7 @@ test("záloha a obnova obsahují nové kolekce attnote, staffpay, plpay", async 
   assert.deepEqual(w["plpay/c"], {grp: "single", fx: 0.5});
   assert.deepEqual(w["staff/t9"], {name: "T"});
   assert.deepEqual(w["staffpay/t9"], {m: "month", amt: 900});
-  assert.deepEqual(w["attendance/e5_c"], {eid: "e5", pid: "c", st: "no"});
+  assert.deepEqual(w["attendance/e5_c"], {eid: "e5", pid: "c", st: "no", d: ""}, "v22.9: obnova doplní datum události d (neznámá událost = \"\")");
   assert.deepEqual(w["attnote/e5_c"], {eid: "e5", mid: "c", reason: "Nemoc"});
   assert.equal(k, 1, "důvod s jiným tvarem id se nepřevedl");
 });

@@ -21,7 +21,15 @@ export const getAuth = none, getRedirectResult = later, signInWithPopup = later,
 export const onAuthStateChanged = (auth, cb) => { const f = fb(); if (f) Promise.resolve().then(() => cb(f.user || null)); return () => {}; };
 
 // ===== firebase-firestore =====
-export const query = none, where = none, initializeFirestore = none, persistentLocalCache = none, persistentMultipleTabManager = none;
+export const initializeFirestore = none, persistentLocalCache = none, persistentMultipleTabManager = none;
+// Dotaz: kolekce a podmínky where (==, >=, <); poslech a čtení dotazu vrátí jen odpovídající dokumenty
+export const where = (f, op, v) => ({f, op, v});
+export const query = (ref, ...w) => ({c: ref && ref.c, w});
+const okW = (w, x) => !w || w.every(q => { const v = x && x[q.f]; return q.op === ">=" ? String(v == null ? "" : v) >= q.v : q.op === "<" ? String(v == null ? "" : v) < q.v : v === q.v; });
+// Čtení dotazu z paměti / ze serveru: dokumenty __fb.data[kolekce] podle podmínek
+const qDocs = ref => { const f = fb(), d = f && ref && ref.c ? (f.data || {})[ref.c] : null; return {docs: Object.entries(d || {}).filter(([, x]) => okW(ref.w, x)).map(([id, x]) => ({id, data: () => x}))}; };
+export const getDocsFromCache = async ref => qDocs(ref);
+export const getDocsFromServer = async ref => qDocs(ref);
 export const collection = (fs, c) => ({c});
 export const doc = (fs, c, id) => ({c, id});
 // Zápisy do __fb.writes (jen když ho test nastaví)
@@ -46,7 +54,7 @@ export const onSnapshot = (ref, cb) => {
   const f = fb(), d = f && ref && ref.c ? (f.data || {})[ref.c] : null;
   // Odkaz na dokument (doc) dostane snímek dokumentu, odkaz na kolekci seznam dokumentů
   if (ref && ref.id != null) { const x = (d || {})[ref.id]; if (f) cb({exists: () => x !== undefined, data: () => x}); return () => {}; }
-  if (d) cb({docs: Object.entries(d).map(([id, x]) => ({id, data: () => x}))});
+  if (d) cb({docs: Object.entries(d).filter(([, x]) => okW(ref.w, x)).map(([id, x]) => ({id, data: () => x}))});
   return () => {};
 };
 export const writeBatch = () => { const ops = []; return {set(ref, d, opt) { ops.push(entry(ref, d, opt)); }, delete(ref) { ops.push({path: path(ref), del: true}); }, update(ref, d) { ops.push({path: path(ref), d: JSON.parse(JSON.stringify(d))}); }, commit: async () => { ops.forEach(rec); }}; };

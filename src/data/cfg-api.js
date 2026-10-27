@@ -1,10 +1,11 @@
 // Rozhraní okna ⚙️ nad datovou vrstvou (HK.cfg; vykreslení je ve views/settings-view.js): přihlášený účet, náhled role,
 // členové týmu (přidání, změna, odebrání – ochrana posledního managera, pokladník jen hráčky a ne vlastní účet), brána verze
-// a matice práv settings/perm (zapisuje jen manager). Kontroly rolí jsou tady a ve storage.js; stav účtu dostává přes kontext C.
+// (od v22.9 s doplněním data události do docházky) a matice práv settings/perm (zapisuje jen manager). Kontroly rolí jsou tady a ve storage.js; stav účtu dostává přes kontext C.
 
 // ===== Importy =====
 import {KIND_OLD} from "../config/constants.js";
-import {APP_VERSION, canRaise} from "../core/app-version.js";
+import {APP_VERSION, canRaise, cmpVer} from "../core/app-version.js";
+import {ATT_D_VER, attDateFix} from "../domain/data-window.js";
 import {isGuest} from "../domain/guests.js";
 import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
 import {ROLE_KEYS, ROLE_VER, keepsManager, permDoc, roleLabel} from "../domain/permissions.js";
@@ -115,8 +116,14 @@ export function cfgApi(C) {
   // Manager zvýší minimální verzi na tuto (po potvrzení druhým klepnutím). Starší klienti pak nezapisují, dokud nenačtou novou verzi.
   async function raiseMinVer(close) {
     if (blocked()) return;
-    try { await setDoc(fsDoc(C.fs(), "settings", APP_DOC), {minVer: APP_VERSION, minBy: C.user().email.toLowerCase(), minAt: new Date().toISOString()}, {merge: true}); say("Minimální verze nastavena na v" + APP_VERSION); close(); }
-    catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); }
+    try {
+      // 📉 Od ATT_D_VER zapnou aplikace okno docházky: nejdřív doplnit datum události d do všech dokumentů docházky (idempotentní)
+      if (cmpVer(APP_VERSION, ATT_D_VER) >= 0) {
+        const fix = attDateFix(data.attendance, data.events, data.matches);
+        if (fix.length) { await C.commitOps(fix.map(([id, d]) => ["merge", "attendance", id, {d}])); say("Datum události doplněno do docházky: " + fix.length + "×"); }
+      }
+      await setDoc(fsDoc(C.fs(), "settings", APP_DOC), {minVer: APP_VERSION, minBy: C.user().email.toLowerCase(), minAt: new Date().toISOString()}, {merge: true}); say("Minimální verze nastavena na v" + APP_VERSION); close();
+    } catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); }
   }
   return {acct, pvInfo, runPreview, logout, PV_ROLES, memberRoles, needsPid, cashOk, staffOk, pidRoleOf, pidRoleErr, playerList, staffList,
     joinCount, memberRows, memberInfo, canRemove, removeMember, saveMember, backupCounts, gateInfo, raiseMinVer, permState, savePerms};

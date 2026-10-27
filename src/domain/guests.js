@@ -6,6 +6,7 @@
 
 // ===== Importy =====
 import {LN, SL} from "../config/constants.js";
+import {dayAdd} from "./data-window.js";
 import {LINE_NOS} from "./event-helpers.js";
 
 // ===== Konstanty =====
@@ -21,12 +22,6 @@ export function stable(v) {
   if (Array.isArray(v)) return "[" + v.map(stable).join(",") + "]";
   if (v && typeof v === "object") return "{" + Object.keys(v).sort().map(k => JSON.stringify(k) + ":" + stable(v[k])).join(",") + "}";
   return JSON.stringify(v === undefined ? null : v);
-}
-// Den posunutý o n dní ("RRRR-MM-DD")
-function dayAdd(day, n) {
-  const d = new Date(day + "T12:00:00");
-  d.setDate(d.getDate() + n);
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 // Jméno pro veřejnou formaci: „#12 Eva“ (hráčka), „🎓 Jana“ (realizační tým)
 const plName = p => (p.num ? "#" + p.num + " " : "") + str(p.name);

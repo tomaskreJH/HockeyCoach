@@ -53,6 +53,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `tariff-detail.js` | ⚖️ detail tarifu hráčky (měsíce, události, využití ledu, dopad na pokladnu) |
 | `block-exc.js` | 🔓 hromadné výjimky z blokace (dlužníci po osobách, výběr předpisů) |
 | `cost-check.js` | ⚠️ 🧾 kontrola nákladů událostí (očekávané náklady po kategorii a příjemci proti výdajům, měsíc výdaje `pym`) |
+| `data-window.js` | 📉 okno poslechu událostí a docházky (`WIN`, `winFrom`, `archNeed`, `mergeBand`, datum docházky `attDate` / `attDateFix`, `dayAdd`) |
 | `read-cost.js` | 📉 odhad čtení databáze na jedno spuštění (`readCost`, limit `READ_LIMIT`) |
 | `event-status.js` | stav události na kartě (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení tréninku) |
 | `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
@@ -129,6 +130,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` (strážce `blocked()` – náhled role, starší verze). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá. Čtení na vyžádání: `S.db.doc().get()`, `S.db.collection().getAll()`, poslech jednoho dokumentu `collection().part`.
 - **📉 Šetření čtení (tarif Spark = 50 000 čtení denně):** každé spuštění aplikace po pauze delší než 30 min přečte **všechny dokumenty poslouchaných kolekcí** znovu. Kolekce, která roste s časem (audit, historie, plány, výsledky), se **nesmí poslouchat celá** – čte se po dokumentech nebo dotazem `where` jen pro to, co je na obrazovce (`audit` přes `views/audit-feed.js`, stav tréninků v `views/event-badges.js`). Odhad pro aktuální data: ⚙️ → 💾 Data → 📉 Čtení databáze.
+- **📉 Okno poslechu** (`storage.js` – `listenWin`, `domain/data-window.js`): `events` (pole `date`) a `attendance` (pole `d`) se živě poslouchají od `winFrom` (realizační tým 45 dní, ostatní 14 dní), starší z paměti zařízení (`getDocsFromCache`), ze serveru celý archiv jednou na zařízení, pak pás 60 dní před oknem (`ttl`). `data[c]` = archiv + živá část, aplikace vidí vše. Docházka v okně až od brány verze ≥ `ATT_D_VER` (22.9). **Docházka musí mít `d`** – doplňuje ho `withD` v `storage.js` při každém `set`, změnu data události propíše `attMoves`; ruční zápis docházky mimo `S.db` se nepoužívá.
 - Úpravy existujícího dokumentu přes `merge`: `S.db.doc(cesta).merge({pole})` (vnořený objekt nahradí, `"__del"` smaže pole, `"__now"` = čas serveru); v dávce `batch().merge` = hluboké sloučení. `set` jen pro nový dokument nebo celý vlastněný (zápas, `evcash`, plán).
 - Data jen **přidávat**; stará pole mazat nejdřív o verzi později. Pravidla: **rozšířit → převést → zúžit**. Převody dat = tlačítko v ⚙️ → 💾 Data s náhledem, idempotentní, se zálohou; po potvrzení se v další verzi odstraní.
 - **Brána verze** `settings/app = {minVer, minBy, minAt}` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi, jen manager). Klient pod minimem nezapisuje.

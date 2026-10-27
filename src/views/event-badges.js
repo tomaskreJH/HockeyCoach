@@ -9,6 +9,7 @@ import {S} from "../core/state.js";
 import {LS, td} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {kc} from "../domain/cash.js";
+import {dayAdd} from "../domain/data-window.js";
 import {isCancelled} from "../domain/event-cancel.js";
 import {cashState, trainState} from "../domain/event-status.js";
 import {TREVAL_COLL} from "../domain/training-eval.js";
@@ -29,11 +30,7 @@ const readOne = (c, id) => Promise.resolve().then(() => S.db.doc(c + "/" + id).g
 // Vidí účet stav tréninků? (hodnocení čtou jen trenéři; hráčky a hostující ne)
 const trainer = () => !HK.can("guest") && HK.perm("treval", "r");
 // Datum před n dny ve tvaru RRRR-MM-DD (hranice „staršího“ tréninku)
-function daysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-}
+const daysAgo = n => dayAdd(td(), -n);
 // Uložené stavy starších tréninků (poškozený záznam = prázdný)
 function lsLoad() {
   try { const o = JSON.parse(LS.get(LS_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; }

@@ -20,6 +20,12 @@ test("readCost: prázdný vstup a neplatná čísla", () => {
   assert.deepEqual(readCost({a: "x", b: -3, c: 2.6}).top, [["c", 3]]);
 });
 
+test("readCost: odhad hráčky z počtů v jejím okně (v22.9)", () => {
+  const r = readCost({attendance: 900, events: 60}, 5, {attendance: 120, events: 9});
+  assert.equal(r.total, 960);
+  assert.equal(r.player, 120 + 9 + 10);
+});
+
 test("collLabel: český název, neznámá kolekce beze změny", () => {
   assert.equal(collLabel("attendance"), "docházka");
   assert.equal(collLabel("neznama"), "neznama");

@@ -112,3 +112,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.6 ⚙️ → 💾 Data → Stáhnout zálohu (manager): soubor obsahuje `audit`.
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
+
+## 13. v22.9 – 📉 Události a docházka v okně
+- [ ] 13.1 V záhlaví je **v22.9**. ⚙️ → 💾 Data → 📉: u událostí „živě od …“ (45 dní zpět), starší N z paměti zařízení, „ze serveru ověřeno …“. Číslo na spuštění je menší než u v22.8.
+- [ ] 13.2 Události → Minulé a Kalendář: i staré události (např. září) jsou vidět včetně počtů ✅ ❓ ❌ a stavu 💰 / 🏒 jako dosud.
+- [ ] 13.3 📊 Docházka, Statistiky, Team → 💰 Platby, ⚖️ Tarify a Moje platby ukazují stejná čísla jako v22.8.
+- [ ] 13.4 Manager: 👤 Účet → 🔒 Vyžadovat verzi → hláška „Datum události doplněno do docházky: N×“ a „Minimální verze nastavena na v22.9“. Načíst znovu → v 📉 přibude řádek **docházka: živě od …**.
+- [ ] 13.5 Hráčka (vlastní účet nebo 👁 náhled): odpověď na budoucí událost funguje, trenér ji vidí hned. V 📉 (realizační tým) odhad pro hráčku výrazně menší.
+- [ ] 13.6 Změna data události (✏️ Upravit) → docházka zůstane u události (počty beze změny).
+- [ ] 13.7 ↻ Obnovit starší data ze serveru (druhým klepnutím) → hláška, v 📉 nový čas ověření.
+- [ ] 13.8 Firebase konzole → Usage: další dny porovnat čtení (27. 10.: 30 000).
+- [ ] 13.9 Rychlá kontrola z kap. 1.
+

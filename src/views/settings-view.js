@@ -70,11 +70,15 @@ function eventsHtml() {
 function cashHtml() {
   return sec("cash", "💰 Pokladna", `<button class="s w" id="ccs">💰 Nastavení pokladny (IBAN, šablony, kategorie)</button><div class="mu" style="margin:8px 0">Značka ⛓ u dlužníků v Docházce se zapisuje s každou změnou předpisů. Poprvé (a po ruční změně v databázi) ji naplň přepočtem ze všech předpisů – bez částek.</div><button class="s w" id="cdb">⛓ Přepočítat dlužníky</button><div class="mu" style="margin:8px 0">Přehled ⚖️ Tarify (Team → 💰 Platby) porovnává způsob placení hráček podle ceny uzavřených událostí na hlavu. Pro dříve uzavřené události (nebo po obnově zálohy) ceny doplň – opakování nic nepokazí.</div><button class="s w" id="cpr">💲 Doplnit ceny pro hráčky</button>`);
 }
-// 📉 Odhad čtení databáze: kolik dokumentů přečte jedno spuštění aplikace v tomto zařízení a u hráčky (limit zdarma READ_LIMIT za den)
+// 📉 Odhad čtení databáze: kolik dokumentů přečte jedno spuštění aplikace v tomto zařízení a u hráčky (limit zdarma READ_LIMIT za den),
+// okna poslechu (živě od data, starší z paměti zařízení) a ↻ ruční obnova starších dat ze serveru
 function readHtml() {
-  const r = readCost(C().readCounts()), n = v => v.toLocaleString("cs-CZ");
+  const r = readCost(C().readCounts(), 5, C().readCountsPlayer()), n = v => v.toLocaleString("cs-CZ");
   const top = r.top.map(([c, v]) => `${esc(collLabel(c))} ${n(v)}`).join(" · ");
-  return `<h3>📉 Čtení databáze</h3><div class="mu" style="margin-bottom:8px">Spuštění aplikace po pauze delší než 30 min přečte v tomto zařízení asi <b>${n(r.total)}</b> dokumentů${top ? ` (nejvíc ${top})` : ""}; u hráčky asi <b>${n(r.player)}</b>. Denní limit zdarma je ${n(READ_LIMIT)} čtení (obnova ráno) – do limitu se vejde asi ${n(r.starts)} takových spuštění tohoto zařízení. Každé obnovení stránky, nová verze a 👁 náhled role je nové spuštění.</div>`;
+  const dt = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? +m[3] + ". " + +m[2] + ". " + m[1] : s || "–"; };
+  const W = C().winInfo().map(w => `<div>${esc(collLabel(w.c))}: živě od ${dt(w.from)} (${n(w.live)}), starší ${n(w.arch)} z paměti zařízení${w.st === "load" ? " · načítám…" : w.st === "err" ? ` · <span style="color:var(--wa)">ze serveru se nenačetly (${esc(w.err)})</span>` : w.at ? " · ze serveru ověřeno " + esc(new Date(w.at).toLocaleString("cs-CZ")) : ""}</div>`).join("");
+  return `<h3>📉 Čtení databáze</h3><div class="mu" style="margin-bottom:8px">Spuštění aplikace po pauze delší než 30 min přečte v tomto zařízení asi <b>${n(r.total)}</b> dokumentů${top ? ` (nejvíc ${top})` : ""}; u hráčky asi <b>${n(r.player)}</b>. Denní limit zdarma je ${n(READ_LIMIT)} čtení (obnova ráno) – do limitu se vejde asi ${n(r.starts)} takových spuštění tohoto zařízení. Každé obnovení stránky, nová verze a 👁 náhled role je nové spuštění.</div>`
+    + (W ? `<div class="mu" style="margin-bottom:8px">${W}<div style="margin-top:4px">Starší události a docházka se ze serveru ověřují samy (události denně, docházka týdně – posledních 60 dní před oknem). Změnu starších dat z jiného zařízení načte hned ↻.</div></div><button class="s w" id="carf">↻ Obnovit starší data ze serveru</button>` : "");
 }
 // 💾 Data: záloha a CSV (manager, trenér, asistent), obnova ze zálohy (manager), 📉 odhad čtení
 function dataHtml(coach) {
@@ -128,6 +132,7 @@ function openSettings() {
   bindCommon(el, q, close);
   if (cashier) bindTeam(el, q, close, coach);
   if (staff) bindData(q, close, coach);
+  if (staff && q("#carf")) q("#carf").onclick = () => arm2(q("#carf"), "arch", "Načte všechny starší dokumenty (stojí čtení) – klepni znovu", async () => { await C().archRefresh(); toast("Starší data obnovena ze serveru"); close(); });
   if (cashier) bindCash(q, close);
   if (coach && q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => C().raiseMinVer(close));
   if (dev) bindPv(q);

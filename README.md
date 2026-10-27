@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.8 (27. 10. 2026)** – 📉 úspora čtení databáze (audit pokladny a stav tréninků na kartách se čtou jen na vyžádání) a v ⚙️ → 💾 Data odhad, kolik čtení stojí jedno spuštění aplikace. Předtím v22.7: 🕘 historie přihlášek u události. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.9 (27. 10. 2026)** – 📉 události a docházka se živě poslouchají jen za poslední týdny, starší data z paměti zařízení (výrazně méně čtení databáze, všechna data v aplikaci zůstávají). Předtím v22.8: 📉 odhad čtení v ⚙️. Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

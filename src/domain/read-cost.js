@@ -22,11 +22,12 @@ export const collLabel = c => LABELS[c] || c;
 
 // ===== Hlavní logika =====
 // Odhad čtení na jedno spuštění: {total, top: [[kolekce, počet] … nejvýš n], player, starts}
-// total = toto zařízení (všechny poslouchané kolekce), player = odhad pro hráčku, starts = kolik takových spuštění se vejde do denního limitu
-export function readCost(counts, n = 5) {
+// total = toto zařízení (všechny poslouchané kolekce), player = odhad pro hráčku (pc = počty v okně hráčky, jinak counts),
+// starts = kolik takových spuštění se vejde do denního limitu
+export function readCost(counts, n = 5, pc) {
   const L = Object.entries(counts || {}).map(([c, v]) => [c, num(v)]).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const total = L.reduce((s, [, v]) => s + v, 0);
-  const player = PLAYER_COLLS.reduce((s, c) => s + num((counts || {})[c]), 0) + PLAYER_FIXED;
+  const player = PLAYER_COLLS.reduce((s, c) => s + num((pc || counts || {})[c]), 0) + PLAYER_FIXED;
   return {total, top: L.slice(0, n), player, starts: total ? Math.floor(READ_LIMIT / total) : 0};
 }
 
