@@ -49,10 +49,14 @@ export function pastEvents(evs, from, to, now) {
   const n = now == null ? Date.now() : now;
   return (evs || []).filter(e => e.start <= n && (!from || e.date >= from) && (!to || e.date <= to));
 }
+// Od kdy se počítá ⏰ pozdě a bez odpovědi: události zadané zpětně (sezóna běžela před nasazením aplikace) by přehled zkreslily.
+// U dřívějších událostí: pozdě se nepočítá a člen bez odpovědi se do události vůbec nezapočítá (ani do počtu, ani do procenta).
+export const STRICT_FROM = "2026-11-01";
+export const strict = e => String((e && e.date) || "") >= STRICT_FROM;
 // ⏰ Pozdní odpověď: poslední zápis odpovědi (attendance.at) až po termínu přihlášení události (bez termínu = nikdy pozdě).
 // Počítá se i zápis trenérem za hráčku (např. doplnění po události nebo schválená žádost) – hráčka neodpověděla včas.
 export function isLate(a, e) {
-  if (!a || !a.at || !e || !e.dl) return false;
+  if (!a || !a.at || !e || !e.dl || !strict(e)) return false;
   const t = new Date(a.at).getTime(), d = new Date(e.dl).getTime();
   return !isNaN(t) && !isNaN(d) && t > d;
 }
@@ -71,6 +75,7 @@ export function attSummary(evs, at, ids) {
     const r = {all: blank(), train: blank(), home: blank(), away: blank()};
     (evs || []).forEach(e => {
       const a = (A[e.id] || {})[id], key = keyOf(a), lt = isLate(a, e);
+      if (key === "none" && !strict(e)) return;                       // zpětně zadaná událost bez odpovědi se nepočítá
       [r.all, r[e.kind]].forEach(x => { x.n++; x[key]++; if (lt) x.late++; });
     });
     Object.values(r).forEach(x => { x.pct = x.n ? Math.round(x.yes * 100 / x.n) : null; });

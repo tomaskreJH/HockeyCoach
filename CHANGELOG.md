@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.16.1 (27. 10. 2026) – ⏰ Pozdě a bez odpovědi až od 1. 11. 2026
+> **Nasazení – kanál 🧪 BETA:** commit „v22.16.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v114`). 🔒 Vyžadovat verzi: ne. Test: `docs/testy-rucni.md` kap. 20, krok 20.8.
+
+**Opraveno**
+- Sezóna se do aplikace zadávala zpětně, takže všechny dřívější odpovědi vypadaly jako ⏰ pozdě. `domain/attendance.js` – `STRICT_FROM = "2026-11-01"`, `strict(e)`: u událostí před tímto dnem se ⏰ pozdě nepočítá a člen bez odpovědi se do události nezapočítá (ani do počtu, ani do procenta účasti). Štítek „⌛ bez odpovědi = nejde“ v detailu jen od 1. 11. (`views/event-detail.js`). Texty v 📊 Docházce a ❓ nápovědě.
+
+**Beze změny:** data, pravidla, odpovědi s „Jdu / Nejdu / ❓“ u starších událostí se počítají jako dosud.
+
+**Ověřeno:** `npm test` 447 / 447, `npm run smoke` 8 rolí bez chyb.
+
 ## v22.16 (27. 10. 2026) – ✅ Potvrzení dresů, ⏳ termín přihlášení, ⏰ pozdní odpovědi
 > **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.16“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nová pole zapisuje trenér / asistent v rámci dnešních práv). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v113`). 3) **🔒 Vyžadovat verzi: ne** – stabilní v22.11 nová pole ignoruje (hráčky v ní dresy vidí hned). 4) Test: `docs/testy-rucni.md` kap. 20. Návrat: revert commitu v22.16 (pole `lok` a nové hodnoty v `settings/events` zůstanou neškodně v databázi).
 

@@ -69,10 +69,19 @@ test("attByMonth: účast podle měsíce události, 🚫 se nepočítá do úča
 // ===== ⏰ Pozdní odpověď (v22.16) =====
 test("isLate: zápis odpovědi po termínu přihlášení; bez termínu nebo času nikdy", async () => {
   const {isLate} = await import("../src/domain/attendance.js");
-  const e = {id: "t1", dl: "2026-10-20T18:00"};
-  assert.equal(isLate({at: "2026-10-20T19:00:00.000"}, e), true);
-  assert.equal(isLate({at: "2026-10-20T17:00:00.000"}, e), false);
-  assert.equal(isLate({at: "2026-10-20T19:00:00.000"}, {id: "t1"}), false, "bez termínu");
+  const e = {id: "t1", date: "2026-11-21", dl: "2026-11-20T18:00"};
+  assert.equal(isLate({at: "2026-11-20T19:00:00.000"}, e), true);
+  assert.equal(isLate({at: "2026-11-20T17:00:00.000"}, e), false);
+  assert.equal(isLate({at: "2026-11-20T19:00:00.000"}, {id: "t1", date: "2026-11-21"}), false, "bez termínu");
+  assert.equal(isLate({at: "2026-10-20T19:00:00.000"}, {id: "t0", date: "2026-10-21", dl: "2026-10-20T18:00"}), false, "před 1. 11. 2026 se nepočítá");
   assert.equal(isLate({}, e), false, "bez času zápisu");
   assert.equal(isLate(null, e), false);
+});
+
+test("attSummary: před 1. 11. 2026 se člen bez odpovědi do události nepočítá, od 1. 11. ano", async () => {
+  const {attSummary, STRICT_FROM} = await import("../src/domain/attendance.js");
+  assert.equal(STRICT_FROM, "2026-11-01");
+  const evs = [{id: "o", kind: "train", date: "2026-10-15"}, {id: "n", kind: "train", date: "2026-11-05"}, {id: "y", kind: "train", date: "2026-10-16"}];
+  const r = attSummary(evs, [{eid: "y", pid: "a", st: "yes"}], ["a"]).a.all;
+  assert.deepEqual([r.n, r.yes, r.none, r.pct], [2, 1, 1, 50], "stará bez odpovědi vynechána, nová počítána");
 });

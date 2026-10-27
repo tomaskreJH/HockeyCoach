@@ -9,7 +9,7 @@ import {isG, kindOf, PG, pl, pn, pri, score} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {canNos, isNos, nosCount, startMs} from "../domain/attendance.js";
+import {canNos, isNos, nosCount, startMs, strict} from "../domain/attendance.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
 import {dressName, LINE_NOS, lineCounts, lokDoc, lokState, setLine, trKey} from "../domain/event-helpers.js";
 import {defEnd, endOk, meetOf, okTime} from "../domain/event-time.js";
@@ -97,7 +97,7 @@ function detail(a, ev) {
     const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen manager, trenér a asistent
     // 🚫 tlačítko: manager / trenér / asistent u odpovědi „Jdu“ po začátku události (ne u zrušené)
     const nb = !ownP && !cn && canNos(x, st0, now) ? `<button class="evns ${nos ? "on" : ""}" data-nos="${p.id}" title="Nedorazila bez omluvy">🚫</button>` : "";
-    return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : lk && !cn ? ' <span class="tag">⌛ bez odpovědi = nejde</span>' : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
+    return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : lk && !cn && strict(ev) ? ' <span class="tag">⌛ bez odpovědi = nejde</span>' : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
   };
   const rows = P.map((p, i) => (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") + pRow(p)).join("");
   const myP = me ? P.find(p => p.id === me) : null;                   // vlastní řádek hráčky (i člena týmu, který je zároveň hráčka)
@@ -119,7 +119,7 @@ function detail(a, ev) {
   const eOpen = [key, ku, kw, "evs" + ev.id].includes(S.cf) || S.evx === ev.id;
   const edits = ebtn.trim() ? `<details class="cd evx" ${eOpen ? "open" : ""}><summary><b>⚙ Úpravy ${mt ? "zápasu" : "události"}</b> <span class="mu">upravit, zrušit, smazat</span></summary><div class="row" style="margin-top:10px">${ebtn}</div></details>` : "";
   const openM = !ownP && mt && !cn ? '<button class="p w" id="evo" style="margin-top:10px;min-height:48px">🏒 Otevřít zápas</button>' : "";
-  const stats = g ? "" : `<div class="evs"><span>✅ <b>${c.yes}</b> jdou</span><span>❓ <b>${c.maybe}</b></span><span>❌ <b>${c.no}</b></span>${c.none ? `<span class="mu">${lk ? "⌛ bez odpovědi = nejde" : "bez odpovědi"} ${c.none}</span>` : ""}${nn ? `<span class="mu">🚫 ${nn}</span>` : ""}</div><div style="margin-top:4px;font-size:14px">${rosterLine(roster(ev, AT))}</div>`;
+  const stats = g ? "" : `<div class="evs"><span>✅ <b>${c.yes}</b> jdou</span><span>❓ <b>${c.maybe}</b></span><span>❌ <b>${c.no}</b></span>${c.none ? `<span class="mu">${lk && strict(ev) ? "⌛ bez odpovědi = nejde" : "bez odpovědi"} ${c.none}</span>` : ""}${nn ? `<span class="mu">🚫 ${nn}</span>` : ""}</div><div style="margin-top:4px;font-size:14px">${rosterLine(roster(ev, AT))}</div>`;
   const pL = placeLine(ev, false), tL = timeLine(ev);                // 📍 místo (bez nákladů – pokladna je níž), 🕔 čas a ⏰ sraz
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
