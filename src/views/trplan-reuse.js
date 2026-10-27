@@ -51,10 +51,15 @@ function loadTpl(eid, kind = "tpl") {
     .catch(e => { if (S.tpr !== R) return; R.st = "err"; R.err = errTxt(e); render(); });
   render();
 }
-// ✨ Připravit: předchozí trénink s plánem (nejnovější) a naposledy uložená šablona – obojí najednou
+// ✨ Připravit: předchozí trénink s plánem (stejný den v týdnu, jinak nejnovější) a naposledy uložená šablona – obojí najednou
 export function loadPrep(eid) {
   const R = S.tpr = {eid, kind: "prep", st: "load", list: [], c: null, t: null, tErr: null}, src = copySources(S.ev, eid);
-  const cp = Promise.all(src.map(e => planOf(e.id).then(p => ({ev: e, p})))).then(L => { R.c = L.find(x => x.p && (x.p.blocks || []).length) || null; });
+  // ⧉ Jako minule: přednostně nejnovější trénink stejného dne v týdnu s plánem, jinak nejnovější trénink s plánem
+  const cur = (S.ev || []).find(e => e.id === eid), dow = d => new Date(String(d || "") + "T12:00:00").getDay();
+  const cp = Promise.all(src.map(e => planOf(e.id).then(p => ({ev: e, p})))).then(L => {
+    const ok = L.filter(x => x.p && (x.p.blocks || []).length);
+    R.c = (cur && ok.find(x => dow(x.ev.date) === dow(cur.date))) || ok[0] || null;
+  });
   const tp = S.db.collection(TRTPL_COLL).getAll().then(L => { R.t = latestTpl(L); }).catch(e => { R.tErr = errTxt(e); });
   Promise.all([cp, tp]).then(() => { if (S.tpr !== R) return; R.st = "ok"; render(); });
   render();

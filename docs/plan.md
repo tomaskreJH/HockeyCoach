@@ -13,7 +13,7 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
 | ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | ~~v22.11~~ | hotovo | 🧪 beta kanál: větev `beta` → `…/beta/` pro vybrané testery, vydání pro všechny PR `beta → main` |
-| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 a v22.14 připomínky (docházka, Domů s přihlášením, karta události, nápověda podle role), další v22.15 = 3 Plán tréninku |
+| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, další 4 Živý trénink |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
@@ -33,7 +33,7 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 **Seznam schválen celý v tomto pořadí (27. 10. 2026)** – každá skupina = jedna malá verze:
 1. ~~**Události a docházka:**~~ **hotovo v22.10** (navíc 🔁 série nabídne poslední šablonu pokladny, „Jiné“ otevře psaní vlastního důvodu). formulář nové události předvyplní poslední použitou šablonu, místo a čas stejného druhu; ✅ ❌ ❓ odpověď s důvodem z nabídky posledních důvodů (jedno klepnutí místo psaní).
 2. ~~**🏠 Domů:**~~ **hotovo v22.12 (beta)** – pruh ❔ Chybí odpověď u nejbližší otevřené události nahoře v Domů (manager, trenér, asistent), jména po klepnutí, 📲 Připomenout = sdílení textu s odkazem na stabilní verzi. u nejbližší události pruh „Chybí odpověď: N“ s jedním klepnutím na seznam bez odpovědi (trenér) a 📲 připomenutí přes sdílení zprávy (WhatsApp / SMS) bez serveru.
-3. **Plán tréninku:** ⧉ „Jako minule“ jedním klepnutím (kopie posledního plánu stejného dne v týdnu), sbalené bloky s celkovým časem v záhlaví.
+3. ~~**Plán tréninku:**~~ **hotovo v22.15** – ⧉ „Jako minule“ jedním klepnutím (kopie posledního plánu stejného dne v týdnu), sbalené bloky s celkovým časem v záhlaví.
 4. **Živý trénink:** pevná spodní lišta ⏸ / ⏭ / ➕1 min na stejném místě, zbývající čas tréninku vždy nahoře.
 5. **Zápas:** sestava „Jako minule“ (poslední sestava proti komukoli), po uzavření zápasu rovnou souhrn ke sdílení.
 6. **Jednotné hlášky:** stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.

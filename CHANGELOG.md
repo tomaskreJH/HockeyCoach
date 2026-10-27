@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.15 (27. 10. 2026) – 🎽 Dresy místo pětek na tréninku, kratší detail, 📋 K2-3 plán tréninku
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.15“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v112`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 19. Vydání do stabilní se sérií v22.12 – v22.15 (PR `beta → main`). Návrat: revert commitu v22.15.
+
+**Změněno**
+- **🏠 Domů** (`views/home-view.js`): 🆚 Příští zápas opět nahoře, pod ním **📅 Tréninky – příštích 7 dní** bez zápasů (karty s ✅ ❌ ❓ zůstávají).
+- **🎽 Dresy na tréninku** (`domain/event-helpers.js` – `DRESS_NAMES`, `dressName`; `domain/training-plan.js` – `grpLabel`, `BY`; `domain/guests.js`; `views/line-split-view.js`, `trplan-view.js`, `trplan-edit.js`, `trlive-view.js`, `event-detail.js`): skupiny tréninku = **Modrá, Žlutá, Zelená, Růžová** místo „1.–4. pětka“ (krátký štítek M / Ž / Z / R), „Rozdělení do pětek“ → **Rozdělení do dresů**, volba skupin bloku 🎽 Dresy. Data beze změny (`lines` = číslo 1–4), zápas dál používá pětky.
+- **Detail události** (`views/event-detail.js`): hlavička jen název a datum (+ poznámka, u hráčky její odpověď); pod ní 📋 plán tréninku, pak **🎽 Rozdělení do dresů zkráceně** („Modrá: Hanča, Bětka, 🎓 Petr“, u trenéra „Bez dresu“); úprava dresů až po **✏️ Upravit dresy** (✓ Hotovo zavře). Místo, čas a sraz, termín a počty jsou ve sbaleném **ℹ️ Podrobnosti** (jsou i na kartě).
+- **📋 Plán tréninku (K2, krok 3)**: v úpravě plánu jsou bloky **sbalené** – záhlaví ▸ s časem od – do, délkou, režimem, cvičeními a skupinami; klepnutí rozbalí, nový blok se rozbalí sám, ▾ Rozbalit vše / ▸ Sbalit vše (`views/trplan-edit.js`). **⧉ Jako minule** v ✨ Připravit trénink bere poslední plán **stejného dne v týdnu**, jinak poslední (`views/trplan-reuse.js`).
+- ⚙️ Členové týmu: role „Asistent (zápasy, události)“ místo „(dříve Kustod)“ (`data/cfg-api.js`); nápověda bez zmínek o kustodovi.
+- ❓ Nápověda: Domů, detail události, 🎽 dresy, plán tréninku (sbalené bloky, Jako minule), rychlá reference.
+- Testy: `dressName` / `grpLabel`, upravené texty v `guests`, `training-plan`; kouřový test rozbalí sbalený blok.
+
+**Beze změny:** pravidla databáze, struktura dat, zápis odpovědí, živý zápis a pětky zápasu, pokladna, statistiky. Viditelnost dresů pro hráčky až po potvrzení trenérem – čeká na rozhodnutí (nové pole události).
+
+**Ověřeno:** `npm test` 443 / 443. `npm run smoke` – 8 rolí bez chyb.
+
 ## v22.14 (27. 10. 2026) – 🏠 Přihlášení přímo z Domů, jednotná karta události, ❓ nápověda podle role
 > **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.14“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v111`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 18. Vydání do stabilní se sérií v22.12 – v22.14 (PR `beta → main`). Návrat: požádat Clauda o revert commitu v22.14.
 

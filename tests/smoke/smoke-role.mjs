@@ -105,6 +105,7 @@ async function events() {
   }
   if (await tap("#tped", 300)) {
     snap("plan-edit");
+    await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
     if (await tap('[data-tpadd="all"]', 250)) snap("plan-edit-add");
     if (await tap("#tponly", 250)) snap("plan-edit-only");

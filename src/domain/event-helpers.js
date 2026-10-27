@@ -7,6 +7,10 @@
 // ===== Konstanty =====
 export const TR_PRE = "t:";                     // předpona klíče člena realizačního týmu v events.lines
 export const LINE_NOS = [1, 2, 3, 4];           // čísla pětek
+// Trénink: skupina (pětka) = barva dresu; zápas dál používá „N. pětka“
+export const DRESS_NAMES = {1: "Modrá", 2: "Žlutá", 3: "Zelená", 4: "Růžová"};
+// Název skupiny tréninku podle čísla (Modrá …); neznámé číslo = „N. skupina“
+export const dressName = n => DRESS_NAMES[n] || n + ". skupina";
 
 // ===== Pomocné funkce =====
 // Porovnání událostí podle data a času (bez času na konec dne)

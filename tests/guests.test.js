@@ -34,7 +34,7 @@ test("evPubDoc: hlavička bez odpovědí, sestav a statistik", () => {
 });
 
 test("lineupPubDoc: pětky tréninku a formace zápasu jako jména", () => {
-  assert.deepEqual(lineupPubDoc(EV[0], "t", PL, TR), {k: "t", date: "2026-10-25", rows: [{t: "1. pětka", n: ["#12 Eva", "#7 Host"]}, {t: "2. pětka", n: ["🎓 Trenér Petr"]}]});
+  assert.deepEqual(lineupPubDoc(EV[0], "t", PL, TR), {k: "t", date: "2026-10-25", rows: [{t: "Modrá", n: ["#12 Eva", "#7 Host"]}, {t: "Žlutá", n: ["🎓 Trenér Petr"]}]});
   assert.deepEqual(lineupPubDoc(MA[0], "m", PL, TR).rows, [{t: "1. formace", n: ["#7 Host", "#12 Eva", "#12 Eva"]}, {t: "Brankářky", n: ["#1 Jana"]}]);
   assert.equal(lineupPubDoc(EV[1], "t", PL, TR), null, "bez pětek se dokument nezakládá");
 });

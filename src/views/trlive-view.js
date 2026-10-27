@@ -67,7 +67,7 @@ const ntfOn = () => { try { return localStorage.getItem(NTF_KEY) === "1" && type
 const storedSkew = () => { try { const v = Number(localStorage.getItem(SKEW_KEY)); return isFinite(v) && localStorage.getItem(SKEW_KEY) != null ? v : null; } catch (e) { return null; } };
 // Odhad posunu hodin zařízení: z tohoto poslechu, jinak uložený z dřívějška, jinak 0
 const skew = () => (L.sess != null ? L.sess : storedSkew() || 0);
-const chip = g => `<span class="evl L${g}">${ICON[g] ? ICON[g] + " " + esc(grpLabel(g).replace(/^\S+ /, "")) : g + ". pětka"}</span>`;
+const chip = g => `<span class="evl L${g}">${ICON[g] ? ICON[g] + " " + esc(grpLabel(g).replace(/^\S+ /, "")) : esc(grpLabel(g))}</span>`;
 const staffName = (X, id) => { const t = (X.staff || []).find(x => x.id === id); return t ? t.name : "?"; };
 // Bloky plánu (původní délky) a bloky tohoto průběhu (vypuštěné / zkrácené – úpravy v trlive)
 const planB = X => (X && X.plan && X.plan.blocks) || [];

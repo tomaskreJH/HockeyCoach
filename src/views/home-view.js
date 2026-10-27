@@ -1,5 +1,5 @@
-// 🏠 Domů (výchozí záložka, všichni): nahoře 💳 Moje platby jen při dluhu, běžící zápas, události příštích 7 dní jako karty
-// z Událostí (event-core.js – cardHtml) s rychlými tlačítky ✅ ❌ ❓ (přihlášení bez dalších kliků), příští zápas za 7 dny,
+// 🏠 Domů (výchozí záložka, všichni): nahoře 💳 Moje platby jen při dluhu, běžící zápas, 🆚 příští zápas a pod ním tréninky a další akce
+// příštích 7 dní (bez zápasů) jako karty z Událostí (event-core.js – cardHtml) s rychlými tlačítky ✅ ❌ ❓ (přihlášení bez dalších kliků),
 // u správce pokladny souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js).
 // Manager / trenér / asistent: pruh ❔ Chybí odpověď u nejbližší otevřené události – jména a 📲 Připomenout (domain/home-remind.js).
 // Běžící zápas: sport rovnou do živého zápisu, ostatní 👁 náhled (live-watch.js). Výpočty domain/home-summary.js.
@@ -73,12 +73,12 @@ function liveHtml(L) {
   return `<div class="cd hml${HK.can("sport") ? "" : ' hmc" data-hwt="1'}"><div class="hmh"><b style="color:var(--no)">🔴 Zápas právě běží</b><span class="tag">${esc(L.perText)}${L.ended ? "" : L.running ? " · ▶" : " · ⏸"}</span></div>
 <div style="text-align:center;margin-top:6px"><b>${names}</b></div><div class="hms">${sc}</div>${act}</div>`;
 }
-// 📅 Příštích 7 dní (dnes až dnes + 6, jen nadcházející): stejné karty jako v Událostech, s rychlými tlačítky
+// 📅 Příštích 7 dní (dnes až dnes + 6, jen nadcházející, bez zápasů – ty má 🆚 Příští zápas): stejné karty jako v Událostech, s rychlými tlačítky
 function weekHtml(cards, q) {
-  const head = `<div class="hmt"><h2>📅 Příštích ${DAYS_AHEAD} dní</h2>${q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>`;
-  return head + (cards || `<div class="cd mu">V příštích ${DAYS_AHEAD} dnech nejsou žádné události.</div>`);
+  const head = `<div class="hmt"><h2>📅 Tréninky – příštích ${DAYS_AHEAD} dní</h2>${q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>`;
+  return head + (cards || `<div class="cd mu">V příštích ${DAYS_AHEAD} dnech nejsou žádné tréninky.</div>`);
 }
-// 🆚 Příští zápas za hranicí 7 dní (bližší je v kartách týdne): stejná karta jako v Událostech
+// 🆚 Příští zápas (nahoře nad tréninky): stejná karta jako v Událostech
 const nextHtml = card => (card ? `<div class="hmt"><h2>🆚 Příští zápas</h2></div>${card}` : "");
 // ❔ Chybí odpověď (manager / trenér / asistent): nejbližší otevřená událost s hráčkami bez odpovědi; rozbalené = jména a 📲 Připomenout
 function missHtml(e, miss) {
@@ -136,14 +136,14 @@ export function homeView(a) {
   setSelf(P);
   const now = Date.now(), today = td(), items = homeItems(S.ev, S.ma), L = liveMatch(S.ma);
   const week = upcomingEvents(items, S.at, S.evp, now, today), nm = nextMatch(items, now, today);
-  // Karty událostí týdne; příští zápas zvlášť jen za hranicí 7 dní (jinak je v kartách týdne)
+  // 🆚 Příští zápas nahoře, pod ním karty týdne bez zápasů (tréninky a další akce)
   const card = e => { const x = byId.get(e.id); return x ? cardHtml(x, AT, P) : ""; };
-  const cards = week.map(card).join(""), nextCard = nm && !week.some(e => e.id === nm.id) ? card(nm) : "";
+  const tw = week.filter(e => e.type !== "match"), cards = tw.map(card).join(""), nextCard = nm ? card(nm) : "";
   const ids = [HK.pid(), HK.tid()].filter(Boolean), mp = ids.length ? myPay(S.ch, ids, now) : null;
   const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";
   // ❔ Chybí odpověď jen pro sport (manager, trenér, asistent) – nejbližší událost s otevřeným přihlašováním
   const ne = HK.can("sport") ? nearestOpen(week) : null, M = ne ? {e: ne, miss: missingAnswers(S.pl, S.at, ne.id)} : null;
-  a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${weekHtml(cards, S.evp ? unanswered(week) : 0)}${nextHtml(nextCard)}${absCardHtml()}${team}</div></div>${sheetHtml()}${absModal()}`;
+  a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextHtml(nextCard)}${weekHtml(cards, S.evp ? unanswered(tw) : 0)}${absCardHtml()}${team}</div></div>${sheetHtml()}${absModal()}`;
   bind(a, L, M);
   bindAbs(a);
 }

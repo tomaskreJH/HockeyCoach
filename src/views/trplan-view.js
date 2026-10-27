@@ -61,9 +61,9 @@ const CSS = `<style>
 // ===== Pomocné funkce =====
 const canE = () => HK.perm("trplan", "e");
 const drillMap = () => Object.fromEntries((S.dr || []).map(d => [d.id, d]));
-// Štítek skupiny (barva pětky, brankářky fialově, útočnice červeně, obránkyně tmavě); short = jen číslo / ikona
+// Štítek skupiny (barva dresu, brankářky fialově, útočnice červeně, obránkyně tmavě); short = jen první písmeno / ikona
 const GRP_ICON = {[GK]: ["🥅", " Brankářky"], [FW]: ["⚔", " Útočnice"], [DF]: ["🛡", " Obránkyně"]};
-const grpChip = (g, short) => `<span class="evl L${g}" title="${esc(grpLabel(g))}">${GRP_ICON[g] ? GRP_ICON[g][0] + (short ? "" : GRP_ICON[g][1]) : g + (short ? "" : ". pětka")}</span>`;
+const grpChip = (g, short) => `<span class="evl L${g}" title="${esc(grpLabel(g))}">${GRP_ICON[g] ? GRP_ICON[g][0] + (short ? "" : GRP_ICON[g][1]) : short ? esc(grpLabel(g).slice(0, 1)) : esc(grpLabel(g))}</span>`;
 // Skupina přihlášené hráčky v bloku (pětka nebo post)
 const mineIn = (b, X) => groupIn(b, X.mine, X.mineP);
 const grpChips = (grp, short) => (grp || []).map(g => grpChip(g, short)).join("");
@@ -168,7 +168,7 @@ function cardHtml(ctx) {
   let body;
   if (p === undefined) body = '<div class="mu">Načítám plán…</div>';
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
-  else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do pětek.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do pětek (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
+  else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do dresů.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do dresů (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
   return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
@@ -189,7 +189,7 @@ function bindCard(a, ctx) {
   if (pr) pr.onclick = () => {
     const how = quickSplit(ctx.ev, ctx.P, ctx.A);
     open(planBlank()); loadPrep(eid);
-    toast(how ? "Pětky rozděleny: " + how : "Pětky beze změny – vyber, z čeho plán začít");
+    toast(how ? "Dresy rozděleny: " + how : "Dresy beze změny – vyber, z čeho plán začít");
   };
   const ed = a.querySelector("#tped");
   if (ed) ed.onclick = () => open(clone(planDoc(S.tp[eid] || planBlank(), drillMap())));

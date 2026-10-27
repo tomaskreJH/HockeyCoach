@@ -113,6 +113,16 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 19. v22.15 (beta) – Dresy, kratší detail, sbalené bloky plánu
+- [ ] 19.1 V betě je v záhlaví **v22.15**.
+- [ ] 19.2 🏠 Domů: nahoře 🆚 Příští zápas (karta s ✅ ❌ ❓), pod ním 📅 Tréninky – příštích 7 dní bez zápasů.
+- [ ] 19.3 Detail tréninku: hlavička jen název a datum; pod ní 📋 Plán tréninku, pak 🎽 Rozdělení do dresů („Modrá: …“); ℹ️ Podrobnosti po rozbalení ukážou místo, čas, termín a počty.
+- [ ] 19.4 Trenér: ✏️ Upravit dresy → volby – / M / Ž / Z / R, ↻ Rozdělit automaticky; ✓ Hotovo vrátí zkrácený přehled.
+- [ ] 19.5 Plán: štítky skupin Modrá / Žlutá (krátce M / Ž), hráčka vidí „🎽 vezmi si modrý dres“; ⏱ živý trénink ukazuje barvy místo pětek. Zápas a živý zápis dál pětky.
+- [ ] 19.6 ✏️ Upravit plán: bloky sbalené (▸ čas, délka, cvičení), klepnutí rozbalí, + nový blok je rozbalený, ▾ Rozbalit vše / ▸ Sbalit vše.
+- [ ] 19.7 Nový trénink → ✨ Připravit trénink → ⧉ Jako minule nabízí trénink stejného dne v týdnu.
+- [ ] 19.8 ⚙️ → 👥 Tým a členové → role: „Asistent (zápasy, události)“, nikde „Kustod“.
+
 ## 18. v22.14 (beta) – Přihlášení z Domů, karta události, nápověda podle role
 - [ ] 18.1 V betě je v záhlaví **v22.14**.
 - [ ] 18.2 Události → Nadcházející: karta v pořadí název · datum → 📍 místo → **🕔 čas · ⏰ sraz** (větší písmo) → Přihlášení do … → Útočnice / Obránkyně / Brankářky / Trenéři → tlačítka ✅ ❌ ❓.
