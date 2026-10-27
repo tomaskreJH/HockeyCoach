@@ -1,7 +1,7 @@
 // 🔁 Série tréninků: část formuláře „+ Trénink“ (dny, každý / 2. týden, do kdy, termín přihlašování, šablona pokladny, náhled termínů)
 // a volby v detailu události ze série (úprava a smazání „jen tato / tato a další“); výpočty domain/recurrence.js, vykresluje events.js.
 // Události mají ser = {id, i, x?} (x = ručně upravená), definice v series/{id}; end a meet se přenášejí do celé série.
-// „Tato a další“ smaže jen události bez odpovědí a vyúčtování.
+// „Tato a další“ smaže jen události bez odpovědí a vyúčtování. Šablona pokladny série = naposledy použitá v zařízení (localStorage).
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
@@ -16,14 +16,18 @@ import {render} from "./shell.js";
 const DN = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
 const WHY = {att: "odpovědi v docházce", ss: "vyúčtování"};
 const SHOW_MAX = 6;                       // kolik dat vypsat v hlášce o vynechaných událostech
+const TPL_KEY = "hk-ser-tpl";             // localStorage: naposledy použitá šablona pokladny série
 
 // ===== Pomocné funkce =====
 const cashMgr = () => HK.can("money");
 const dayName = s => DN[new Date(s + "T00:00:00").getDay()];
 const dList = arr => arr.slice(0, SHOW_MAX).map(x => dayName(x) + " " + fd(x)).join(", ") + (arr.length > SHOW_MAX ? " …" : "");
 const who = () => { const u = HK.user(); return (u && u.email) || ""; };
-// Výchozí nastavení opakování podle data formuláře: stejný den v týdnu, každý týden, do konce sezóny, den předem v 18:00
-const repDefault = date => ({on: true, days: date ? [new Date(date + "T00:00:00").getDay()] : [], every: 1, to: seasonEnd(date), dlD: 1, dlT: "18:00", tpl: "train", skip: []});
+// Naposledy použitá šablona pokladny (jen když v nastavení pokladny pořád existuje), jinak „train“
+const lastTpl = () => { let k = null; try { k = localStorage.getItem(TPL_KEY); } catch (e) { k = null; } return k && cashCfg(S.cc).tpls[k] ? k : "train"; };
+const saveTpl = k => { try { localStorage.setItem(TPL_KEY, k); } catch (e) { /* bez paměti zařízení */ } };
+// Výchozí nastavení opakování podle data formuláře: stejný den v týdnu, každý týden, do konce sezóny, den předem v 18:00, poslední šablona
+const repDefault = date => ({on: true, days: date ? [new Date(date + "T00:00:00").getDay()] : [], every: 1, to: seasonEnd(date), dlD: 1, dlT: "18:00", tpl: lastTpl(), skip: []});
 // Pravidlo z formuláře a všechny termíny (i vynechané) pro náhled
 const ruleOf = f => ({days: f.rep.days, every: f.rep.every, from: f.date, to: f.rep.to, skip: f.rep.skip});
 const allDates = f => datesOf(ruleOf(f), f.date, f.rep.to, []);
@@ -94,6 +98,7 @@ export function repSave(f) {
   if (!dlBeforeStart(relDl(dates[0], rel), dates[0], f.time)) { toast("Termín přihlašování musí být před začátkem tréninku"); return false; }
   const sid = S.db.collection(SERIES_COLL).newId(), ids = dates.map(() => S.db.collection("events").newId());
   const tpl = cashMgr() ? r.tpl : "train";
+  if (cashMgr()) saveTpl(tpl);
   const {series, ops} = seriesOps({sid, ids, dates, rule: ruleOf(f), d: {title: f.title, time: f.time, place: f.place, note: f.note, ...timeFields("training", f, evDefaults(S.es))}, rel, tpl, by: who(), at: new Date().toISOString()});
   commitOps(ops);
   // Definice série zvlášť: kdyby pravidla kolekci series ještě neznala, události se i tak vytvoří

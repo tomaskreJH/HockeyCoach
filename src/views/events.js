@@ -15,10 +15,10 @@ import {attHtml, bindAtt} from "./attendance.js";
 import {bindBudget, budgetHtml} from "./budget-view.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {bindCost, costHtml} from "./cost-view.js";
-import {activePl, allEvents, ANS, answer, atMap, bindSheet, cashMgr, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, MONTHS, ORD, pad, restLine, roster, rosterLine, sheetHtml, staff, titleLine} from "./event-core.js";
+import {activePl, allEvents, ANS, answer, atMap, bindSheet, cashMgr, counts, CSS, dlLine, guest, isLocked, isPl, MONTHS, ORD, pad, restLine, roster, rosterLine, sheetHtml, staff, titleLine} from "./event-core.js";
 import {ensureTrainStatus, forgetTrainStatus, statusLine} from "./event-badges.js";
 import {detail} from "./event-detail.js";
-import {formView} from "./event-form.js";
+import {formView, newTraining} from "./event-form.js";
 import {bindFinance, financeHtml} from "./finance.js";
 import {bindBanner, mineBanner} from "./mine.js";
 import {modal} from "./modal.js";
@@ -88,7 +88,7 @@ ${mode === "cal" ? calHtml(evs, today) : ""}
 ${mode === "att" ? attHtml() : shown.length ? shown.map(e => card(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}</div>` + sheetHtml() + attReqModal();
   // Eventy seznamu
   const nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
-  if (nt) nt.onclick = () => { S.evf = {id: null, type: "training", title: "Trénink", date: today, time: "", end: "", endAuto: true, meet: defs().meetT, place: "", dl: defDl(today), note: "", dlAuto: true}; render(); };
+  if (nt) nt.onclick = () => { S.evf = newTraining(today); render(); };
   if (nm) nm.onclick = () => { S.M = {k: "NEW", date: today, opp: "", home: true}; modal(); };
   a.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { S.evm = b.dataset.evm; S.evd = null; render(); });
   bindBanner(a);

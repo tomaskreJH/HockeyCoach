@@ -2,7 +2,7 @@
 // Platební pole hráčky se ukládají do plpay/{pid}, plat člena týmu do staffpay/{tid} (soukromé kolekce, domain/private-data.js).
 // Struktura: Importy -> Pomocné funkce (chips, opts) -> modal() (výběr hráčky, nový zápas, hráčka, člen týmu, gól/vyloučení) -> bindV.
 // Nový zápas = nová událost: soupeř, datum, čas začátku, místo, termín přihlašování (výchozí den předem v 18:00), doma / venku,
-// délka třetiny a prodloužení. Po vytvoření se otevře detail události v Událostech – postup: přihlášky → nominace → sestava → uzavření sestavy.
+// délka třetiny a prodloužení; čas a místo se předvyplní z posledního zápasu stejného druhu (doma / venku, domain/event-prefill.js). Po vytvoření se otevře detail události v Událostech – postup: přihlášky → nominace → sestava → uzavření sestavy.
 import {KIND,LN,POS,REA,SIT,ST} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
 import {ensureOp,save} from "../core/actions.js";
@@ -14,6 +14,7 @@ import {HK} from "../data/storage.js";
 import {FX_QUICK,GRP,STAFF_PAY,fxPct,grpHWith,grpOf,pctToFx,ymNow} from "../domain/cash.js";
 import {openPayHist} from "./pay-history.js";
 import {guestPatch} from "../domain/guests.js";
+import {matchPrefill} from "../domain/event-prefill.js";
 import {PPAY_COLL,SPAY_COLL,plPayDoc,staffPayDoc} from "../domain/private-data.js";
 import {pickModal} from "./lineup-editor.js";
 import {render} from "./shell.js";
@@ -33,10 +34,12 @@ if(!M){el.innerHTML="";return}
 
 // --- Nový zápas / úprava zápasu ---
 if(M.k==="NEW"&&M.dl===undefined){M.dl=dlDefault(M.date||td());M.dlAuto=true;M.time=M.time||"";M.place=M.place||""}
-if(M.k==="NEW"||M.k==="EM"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>${M.k==="EM"?"Upravit zápas":"Nový zápas"}</h2><label>Soupeř (vyber, nebo napiš nového)</label>${S.op.length?`<div class="chips">${[...S.op].sort((x,y)=>x.name.localeCompare(y.name,"cs")).map(o=>`<button class="chip ${norm(M.opp)===norm(o.name)?"on":""}" data-oc="${o.id}">${esc(o.name)}</button>`).join("")}</div>`:""}<input id="o" value="${esc(M.opp)}" placeholder="Název soupeře"><label>Datum</label><input type="date" id="d" value="${M.date}">${M.k==="NEW"?`<label>Čas začátku</label><input type="time" id="ti" value="${esc(M.time)}"><label>Místo</label><input id="pc" value="${esc(M.place)}"><label>Konečný termín přihlašování</label><input type="datetime-local" id="dl" value="${esc(M.dl)}">`:""}${opts("home",[[1,"Doma"],[0,"Venku"]],M.home?1:0)}${M.k==="NEW"?`<label>Délka třetiny</label>${opts("plen",[[15,"15 min"],[20,"20 min"],[25,"25 min"]],M.perLen||20)}<label>Prodloužení (jen při nerozhodném stavu po 3. třetině)</label>${opts("ot",[[1,"Ano (5 min)"],[0,"Ne – soutěž ho nehraje"]],M.ot===false?0:1)}`:""}<div class="row"><button class="p" id="ok">${M.k==="EM"?"Uložit":"Vytvořit"}</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
+// Nový zápas: čas a místo z posledního zápasu stejného druhu (doma / venku), dokud je trenér ručně nezmění (M.pfAuto)
+if(M.k==="NEW"&&M.pfAuto!==false){const p=matchPrefill(S.ma,M.date||td(),M.home);M.time=p?p.time:"";M.place=p?p.place:"";M.pf=!!p}
+if(M.k==="NEW"||M.k==="EM"){el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>${M.k==="EM"?"Upravit zápas":"Nový zápas"}</h2><label>Soupeř (vyber, nebo napiš nového)</label>${S.op.length?`<div class="chips">${[...S.op].sort((x,y)=>x.name.localeCompare(y.name,"cs")).map(o=>`<button class="chip ${norm(M.opp)===norm(o.name)?"on":""}" data-oc="${o.id}">${esc(o.name)}</button>`).join("")}</div>`:""}<input id="o" value="${esc(M.opp)}" placeholder="Název soupeře"><label>Datum</label><input type="date" id="d" value="${M.date}">${M.k==="NEW"?`<label>Čas začátku</label>${M.pf&&M.pfAuto!==false?`<div class="mu" style="margin:4px 0">↺ Čas a místo podle posledního zápasu ${M.home?"doma":"venku"}</div>`:""}<input type="time" id="ti" value="${esc(M.time)}"><label>Místo</label><input id="pc" value="${esc(M.place)}"><label>Konečný termín přihlašování</label><input type="datetime-local" id="dl" value="${esc(M.dl)}">`:""}${opts("home",[[1,"Doma"],[0,"Venku"]],M.home?1:0)}${M.k==="NEW"?`<label>Délka třetiny</label>${opts("plen",[[15,"15 min"],[20,"20 min"],[25,"25 min"]],M.perLen||20)}<label>Prodloužení (jen při nerozhodném stavu po 3. třetině)</label>${opts("ot",[[1,"Ano (5 min)"],[0,"Ne – soutěž ho nehraje"]],M.ot===false?0:1)}`:""}<div class="row"><button class="p" id="ok">${M.k==="EM"?"Uložit":"Vytvořit"}</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
 const sy=()=>{M.opp=$("#o").value;M.date=$("#d").value;if($("#ti")){M.time=$("#ti").value||"";M.place=$("#pc").value.trim();M.dl=$("#dl").value||""}};
 // Nový zápas: změna data posune výchozí termín přihlašování (dokud ho trenér nezměnil ručně)
-if(M.k==="NEW"){$("#d").onchange=()=>{sy();if(M.dlAuto)M.dl=dlDefault(M.date);modal()};$("#dl").oninput=()=>{M.dlAuto=false}}bindV(sy);el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{sy();M.opp=S.op.find(o=>o.id===b.dataset.oc).name;modal()});$("#cl").onclick=()=>{S.M=null;modal()};
+if(M.k==="NEW"){$("#d").onchange=()=>{sy();if(M.dlAuto)M.dl=dlDefault(M.date);modal()};$("#dl").oninput=()=>{M.dlAuto=false};["#ti","#pc"].forEach(q=>$(q).addEventListener("input",()=>{M.pfAuto=false}))}bindV(sy);el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{sy();M.opp=S.op.find(o=>o.id===b.dataset.oc).name;modal()});$("#cl").onclick=()=>{S.M=null;modal()};
 // Nový zápas vzniká bez nominace a sestavy jako zveřejněná událost: hráčky se přihlásí, teprve pak trenér nominuje z přihlášených
 $("#ok").onclick=async()=>{sy();const o=M.opp.trim();if(!o)return toast("Zadej soupeře");
 if(M.k==="NEW"){if(HK.blocked())return;const dt=M.date||td();if(!M.dl)return toast("Zadej konečný termín přihlašování");if(!dlBeforeStart(M.dl,dt,M.time))return toast("Termín přihlašování musí být před začátkem zápasu")}if(M.k==="EM"){const mm=S.ma.find(x=>x.id===M.id);if(mm&&mm.live)toast("Zápas je zahájen – údaje nelze měnit");else if(mm){save({...clone(mm),opp:o,date:M.date||td(),home:M.home});ensureOp(o)}S.M=null;return modal()}const d={date:M.date||td(),time:M.time||"",place:M.place||"",dl:M.dl,opp:o,home:M.home,perLen:M.perLen||20,ot:M.ot!==false,lineup:{},nom:[],events:[]};

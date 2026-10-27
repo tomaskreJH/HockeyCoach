@@ -113,6 +113,16 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 14. v22.10 – 🖐 Rychlejší události a docházka
+- [ ] 14.1 V záhlaví je **v22.10**.
+- [ ] 14.2 Události → **+ Trénink**: název, čas od – do, ⏰ sraz a místo podle posledního tréninku, řádek „↺ … podle posledního tréninku“. Změna data na jiný den v týdnu → čas a místo podle posledního tréninku toho dne.
+- [ ] 14.3 Ve formuláři ruční změna času nebo místa, pak změna data → ruční hodnoty zůstanou.
+- [ ] 14.4 **+ Zápas**: čas a místo podle posledního domácího zápasu; přepnout **Venku** → podle posledního venkovního. Ruční přepsání místa se přepnutím nezmění.
+- [ ] 14.5 ❌ Nejdu → klepnutí na **Nemoc** rovnou uloží (okno se zavře, u události ❌ s důvodem). ❓ Nejsem jistý → stejně.
+- [ ] 14.6 ❌ Nejdu → **Jiné** → kurzor v poli, napsat např. „Turnaj“ → Uložit. Příště je „Turnaj“ v nabídce nahoře (jen v tomto zařízení).
+- [ ] 14.7 + Trénink → 🔁 Opakovat (správce pokladny): zvolit jinou šablonu, vytvořit; další série nabídne tuto šablonu.
+- [ ] 14.8 Hráčka: odpověď ❌ s rychlým důvodem funguje, trenér důvod vidí.
+
 ## 13. v22.9 – 📉 Události a docházka v okně
 - [ ] 13.1 V záhlaví je **v22.9**. ⚙️ → 💾 Data → 📉: u událostí „živě od …“ (45 dní zpět), starší N z paměti zařízení, „ze serveru ověřeno …“. Číslo na spuštění je menší než u v22.8.
 - [ ] 13.2 Události → Minulé a Kalendář: i staré události (např. září) jsou vidět včetně počtů ✅ ❓ ❌ a stavu 💰 / 🏒 jako dosud.

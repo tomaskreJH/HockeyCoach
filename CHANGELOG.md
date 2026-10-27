@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.10 (27. 10. 2026) – 🖐 K2, krok 1: rychlejší události a docházka
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nové `src/domain/event-prefill.js`, `tests/event-prefill.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v107`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová data, paměť jen v zařízení; nechat 22.9). 6) Test: `docs/testy-rucni.md` kap. 14.
+
+**Přidáno**
+- **↺ Předvyplnění nového tréninku** (`src/domain/event-prefill.js` – `trainingPrefill`, `views/event-form.js` – `newTraining`): název, čas od – do (ručně zadaný konec, jinak automatika), ⏰ sraz a místo z posledního nezrušeného tréninku – přednostně stejného dne v týdnu. Změna data předvyplní znovu, dokud uživatel pole ručně nezmění. Ve formuláři řádek „↺ … podle posledního tréninku“.
+- **↺ Předvyplnění nového zápasu** (`matchPrefill`, `views/modal.js`): čas a místo z posledního zápasu stejného druhu (doma / venku); přepnutí Doma / Venku předvyplní znovu, dokud se čas a místo ručně nezmění.
+- **Omluva jedním klepnutím** (`views/event-core.js`): v okně ❌ / ❓ klepnutí na důvod rovnou uloží odpověď; „Jiné“ otevře psaní vlastního důvodu. Naposledy použité vlastní důvody (nejvýš 4, `pushReason` / `reasonChips`) se nabízejí nahoře – paměť zařízení (`localStorage hk-reasons`), žádné čtení databáze.
+- **🔁 Série:** šablona pokladny předvyplní naposledy použitou (`localStorage hk-ser-tpl`, jen když v nastavení pokladny pořád existuje).
+- ❓ Nápověda kap. Události. Testy: `tests/event-prefill.test.js` (5); kouřový test – okno ❌ s rychlými důvody a nový zápas.
+
+**Změněno**
+- `views/events.js` – „+ Trénink“ volá `newTraining` (nepoužité importy `defDl`, `defs` odebrány).
+
+**Beze změny:** pravidla databáze, tvar dokumentů, zápis odpovědi a důvodu (`setAt` – attendance + attnote v jedné dávce, 🕘 historie), blokace dluhem, úprava existující události, živý zápis, pokladna, statistiky.
+
+**Ověřeno:** `npm test` 423 / 423. `npm run smoke` – 8 rolí bez chyb (manager: formulář tréninku 17:00 · Zimní stadion z posledního tréninku, nový zápas 18:00 · Zimní stadion z posledního domácího, okno ❌ s rychlými důvody a uložením klepnutím).
+
 ## v22.9 (27. 10. 2026) – 📉 úspora čtení, krok 2 (D2): události a docházka v okně
 > **Nasazení:** 1) Zip současného repozitáře, ⚙️ → 💾 Data → Stáhnout zálohu. 2) **firestore.rules beze změny** (nepublikovat – docházka pole `d` povoluje už dnes). 3) Nahrát soubory ze zipu (nové `src/domain/data-window.js`, `tests/data-window.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v106`) – **události** se hned poslouchají v okně. 5) Až budou zařízení aktualizovaná: **🔒 Vyžadovat verzi 22.9 (nutné pro úsporu u docházky)** – manager na zařízení s v22.9; tlačítko nejdřív doplní datum události do všech záznamů docházky (hláška „Datum události doplněno… N×“), pak nastaví minimum. Od dalšího spuštění se i docházka poslouchá v okně. 6) Test: `docs/testy-rucni.md` kap. 13, čísla z ⚙️ → 💾 Data → 📉 porovnat s v22.8 (969 / hráčka 542).
 

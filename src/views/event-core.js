@@ -1,7 +1,7 @@
 // Události – společný základ pro seznam, detail a formulář: styly #evw, konstanty odpovědí, pomocné funkce (sjednocený seznam
 // událostí allEvents, odpovědi atMap, počty, nadpis a řádky karty), zápis odpovědí (attendance + důvod v attnote v jedné dávce),
 // 🚫 nedorazila, pětky a okno s důvodem omluvy. Každá změna odpovědi se zapíše i do 🕘 historie přihlášek (views/att-log-view.js). „Jdu“ hned, „Nejdu“ / „Nejsem jistý“ přes okno; hráčka jen svoji odpověď do termínu,
-// blokace „Jdu“ dluhem po splatnosti (vlastní předpisy nebo veřejný souhrn debtors).
+// blokace „Jdu“ dluhem po splatnosti (vlastní předpisy nebo veřejný souhrn debtors). Okno s důvodem nabízí i naposledy použité vlastní důvody (paměť zařízení).
 
 // ===== Importy =====
 import {POS} from "../config/constants.js";
@@ -14,6 +14,7 @@ import {cxOf} from "../domain/cash.js";
 import {memberBlocked} from "../domain/debtors.js";
 import {isCancelled} from "../domain/event-cancel.js";
 import {answerCounts} from "../domain/event-helpers.js";
+import {pushReason, reasonChips} from "../domain/event-prefill.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
@@ -22,7 +23,9 @@ import {render} from "./shell.js";
 // ===== Konstanty =====
 const ANS = {yes: {ic: "✅", t: "Jdu", cls: "pp"}, no: {ic: "❌", t: "Nejdu", cls: "red"}, maybe: {ic: "❓", t: "Nejsem jistý", cls: "sh"}};
 const ORD = ["yes", "no", "maybe"];                                   // pořadí tlačítek
-const REASONS = ["Nemoc", "Zranění", "Škola", "Práce", "Rodina", "Jiné"]; // rychlé důvody
+const OTHER = "Jiné";                                                  // rychlý důvod, který jen otevře psaní vlastního
+const REASONS = ["Nemoc", "Zranění", "Škola", "Práce", "Rodina", OTHER]; // rychlé důvody
+const RS_KEY = "hk-reasons";                                          // localStorage: naposledy použité vlastní důvody (jen toto zařízení)
 const DAYS = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
 const MONTHS = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
 // Styly jen pro tuto obrazovku (main.css se nemění)
@@ -116,6 +119,9 @@ const shortDay = s => fDay(s).replace(/ \d{4}$/, "");
 const restLine = e => (timeTxt(e) + (e.place ? " · " + esc(e.place) : "")).replace(/^ · /, "");
 // Nadpis události v jednom řádku: ikona, název a zkrácené datum (seznam i detail)
 const titleLine = (e, cn) => `${e.type === "match" ? "🆚" : "🏒"} ${cn ? "<s>" + esc(e.title) + "</s>" : esc(e.title)} · <span class="evdt">${esc(shortDay(e.date))}</span>`;
+// Naposledy použité vlastní důvody v zařízení (bez paměti = prázdný seznam)
+const recentR = () => { try { return JSON.parse(localStorage.getItem(RS_KEY) || "[]"); } catch (e) { return []; } };
+const saveR = t => { try { localStorage.setItem(RS_KEY, JSON.stringify(pushReason(recentR(), t, REASONS))); } catch (e) { /* bez paměti zařízení */ } };
 let attOpen = null;                                                     // id události s rozbalenou docházkou (jinak sbalená)
 
 // ===== Zápis dat =====
@@ -167,18 +173,23 @@ function toggleNos(ev, pid) {
 function saveLines(ev, lines) { S.db.doc("events/" + ev.id).merge({lines}); }
 
 // ===== Vykreslení: okno s důvodem =====
+// Rychlé důvody = naposledy použité vlastní (nahoře) + základní; klepnutí na důvod rovnou uloží odpověď (jedno klepnutí místo psaní)
 function sheetHtml() {
   const r = S.evr;
   if (!r) return "";
   const A = ANS[r.st];
-  return `<div class="md" id="evsh"><div class="mb"><h2>${A.ic} ${A.t}</h2><div class="mu" style="margin-bottom:8px">${who(r.pid)}</div><label>Důvod${r.st === "no" ? "" : " (nepovinný)"}</label><div class="chips">${REASONS.map(x => `<button class="chip ${r.reason === x ? "on" : ""}" data-rr="${x}">${x}</button>`).join("")}</div><input id="evrs" value="${esc(r.reason)}" placeholder="Vlastní důvod"><div class="row"><button class="p" id="evrk">Uložit</button><button class="s" id="evrc">Zavřít</button></div>${r.had ? '<button class="d w" id="evrd" style="margin-top:8px">Zrušit odpověď</button>' : ""}</div></div>`;
+  r.chips = reasonChips(recentR(), REASONS);
+  return `<div class="md" id="evsh"><div class="mb"><h2>${A.ic} ${A.t}</h2><div class="mu" style="margin-bottom:8px">${who(r.pid)}</div><label>Důvod${r.st === "no" ? "" : " (nepovinný)"} – klepnutím uložíš</label><div class="chips">${r.chips.map((x, i) => `<button class="chip ${r.reason === x ? "on" : ""}" data-rr="${i}">${esc(x)}</button>`).join("")}</div><input id="evrs" value="${esc(r.reason)}" placeholder="Vlastní důvod (zapamatuje se)"><div class="row"><button class="p" id="evrk">Uložit</button><button class="s" id="evrc">Zavřít</button></div>${r.had ? '<button class="d w" id="evrd" style="margin-top:8px">Zrušit odpověď</button>' : ""}</div></div>`;
 }
 function bindSheet(a) {
   const r = S.evr;
   if (!r) return;
   const el = id => document.getElementById(id), inp = el("evrs");
   inp.oninput = () => { r.reason = inp.value; };
-  a.querySelectorAll("[data-rr]").forEach(b => b.onclick = () => { r.reason = b.dataset.rr; render(); });
+  // Uložení odpovědi s důvodem (rychlý důvod i tlačítko Uložit); vlastní důvod se zapamatuje v zařízení
+  const save = t => { setAt(r.eid, r.pid, r.st, t); if (t) saveR(t); S.evr = null; render(); };
+  // „Jiné“ jen přesune kurzor do pole pro vlastní důvod (ten se po uložení nabídne příště nahoře)
+  a.querySelectorAll("[data-rr]").forEach(b => b.onclick = () => { const t = r.chips[+b.dataset.rr]; if (t === OTHER) { inp.value = ""; r.reason = ""; inp.focus(); } else if (t) save(t); });
   el("evrc").onclick = () => { S.evr = null; render(); };
   el("evsh").onclick = e => { if (e.target.id === "evsh") { S.evr = null; render(); } };
   const d = el("evrd");
@@ -186,7 +197,7 @@ function bindSheet(a) {
   el("evrk").onclick = () => {
     const t = inp.value.trim();
     if (r.st === "no" && !t) return toast("Zadej důvod");
-    setAt(r.eid, r.pid, r.st, t); S.evr = null; render();
+    save(t);
   };
 }
 

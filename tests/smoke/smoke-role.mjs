@@ -75,6 +75,9 @@ async function events() {
   if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); await tap('[data-evm="up"]', 250); }
   if (await tap('[data-qa="e2|yes"]', 250)) snap("ev-quick");
   if (await tap("#evnt", 250)) { snap("ev-form"); await tap("#evfx", 200); }
+  // 🖐 K2: okno ❌ s rychlými důvody (klepnutí na důvod uloží), nový zápas s předvyplněným časem a místem
+  if (await tap('[data-qa="e2|no"]', 250)) { snap("ev-reason"); await tap('[data-rr="0"]', 250); }
+  if (await tap("#evnm", 250)) { snap("ev-match-new"); await tap("#cl", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
   snap("ev-e1");
   // 👥 Docházka rozbalená (správci: 🕘 čas a kdo zapsal u řádků) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob

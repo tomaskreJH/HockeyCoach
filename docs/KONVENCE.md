@@ -41,6 +41,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `player-stats.js` | statistiky hráček `playerStats` (zápas i souhrn) |
 | `watch-feed.js` | 👁 náhled živého zápasu pro členy |
 | `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
+| `event-prefill.js` | 🖐 předvyplnění nového tréninku / zápasu z posledního stejného druhu, poslední důvody omluv |
 | `event-time.js`, `event-cancel.js`, `recurrence.js` | konec a ⏰ sraz události, zrušení / smazání, série tréninků |
 | `attendance.js`, `debtors.js` | docházka a 🚫 nedorazila, veřejný souhrn dlužníků |
 | `att-log.js` | 🕘 historie přihlášek (záznam `attlog`, časová osa události, kdo zapsal) |
