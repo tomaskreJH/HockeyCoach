@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.5 (27. 10. 2026)** – pokladna: 🔁 převody mezi vlastními účty, datum platby u všech úhrad a výplat, 🧾 Náklady (led, rozhodčí, časomíra … proti zaplaceným výdajům po měsících), číslo účtu v QR obrázku, přeplatky a nespárované platby z výpisu jako příjem. Předtím v22.4: stav na kartě události, ⚖️ detail tarifu, 🔓 hromadné výjimky. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.6 (27. 10. 2026)** – 📈 přehled Tréninku: Statistiky → 🏒 Trénink (výsledky měření se zlepšením a pořadím, karta hráčky s grafem, tým × dovednosti, kdo netrénoval, CSV). Předtím v22.5: pokladna – 🔁 převody, datum platby, 🧾 Náklady, číslo účtu v QR. Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

@@ -44,6 +44,16 @@ async function tabs() {
   const keys = [...document.querySelectorAll("#nav button[data-t]")].map(b => b.dataset.t);
   for (const k of keys) { await tap(`#nav button[data-t="${k}"]`, 250); snap("tab-" + k); }
 }
+// 📈 Statistiky → 🏒 Trénink: období, výběr cvičení a hráčky, zpět na Zápasy
+async function trainStats() {
+  if (!(await tap('#nav button[data-t="st"]', 250)) || !(await tap('[data-stv="t"]', 400))) return;
+  snap("stats-train");
+  await tap('[data-tsd="30"]', 400);
+  const p = $("#tsp");
+  if (p && p.options.length > 1) { p.value = p.options[1].value; p.onchange(); await new Promise(r => setTimeout(r, 150)); }
+  snap("stats-train-30");
+  await tap('[data-stv="m"]', 200);
+}
 // ⚙️ a všechny jeho sekce
 async function settings() {
   if (!(await tap("#gear", 250))) return;
@@ -161,6 +171,7 @@ async function money() {
 try {
   await start();
   await tabs();
+  await trainStats();
   await settings();
   await help();
   await events();

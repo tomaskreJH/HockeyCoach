@@ -80,3 +80,13 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 9.8 📅 Měsíce → 💸 Platy: Datum výplaty → Vyplatit → výdaj má zvolené datum.
 - [ ] 9.9 Hráčka: Moje platby → 📱 Zaplatit: v okně název účtu s číslem; ⬇️ Uložit QR → obrázek má pod názvem „Účet: …“, příjemce s číslem účtu, soubor má v názvu číslo účtu. Banka QR načte jako dosud.
 - [ ] 9.10 Rychlá kontrola z kap. 1.
+
+## 10. v22.6 – 📈 Statistiky → 🏒 Trénink
+- [ ] 10.1 V záhlaví je **v22.6**. Statistiky → nahoře přepínač 📊 Zápasy / 🏒 Trénink; Zápasy vypadají jako dosud.
+- [ ] 10.2 Trenér: 🏒 Trénink → souhrn „Tréninků v období“ (60 dní). Přepnout 30 / 90 / 180 dní – počty se změní.
+- [ ] 10.3 ⏲ Výsledky měření: výběr cvičení se změřenými výsledky z ⏲ stopek; nejlepší s datem, poslední, ▲ / ▼ zlepšení proti minulému tréninku, pořadí. Klepnutí na hlavičku řadí. ⬇️ CSV všech měření se otevře v Excelu.
+- [ ] 10.4 👤 Karta hráčky: výběr hráčky, počet tréninků, minuty po dovednostech, výsledky s grafem (od 2 měření), ⭐ hodnocení trenérů s poznámkami.
+- [ ] 10.5 🌡 Tým × dovednosti: minuty po dovednostech, tmavší = víc; 🔍 Kdo netrénoval – výběr dovednosti, seznam hráček; ⬇️ CSV tým × dovednosti.
+- [ ] 10.6 Hráčka (👁 Náhled role nebo vlastní účet): 🏒 Trénink → **Můj trénink** (jen svá karta, minuty po cvičeních, výsledky), tabulka měření celého týmu s jejím řádkem zvýrazněným. **Žádné ⭐ hodnocení**, žádné Tým × dovednosti.
+- [ ] 10.7 Hostující: Statistiky bez přepínače (beze změny).
+- [ ] 10.8 Rychlá kontrola z kap. 1.

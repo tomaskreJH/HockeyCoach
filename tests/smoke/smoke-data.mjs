@@ -59,7 +59,8 @@ export function teamData() {
     {id: "b4", mode: "all", dur: 15, rot: null, lanes: [{id: "l5", drill: "d2", dn: "Sprint 30 m", di: [], co: ["t1"], grp: []}]}
   ]}};
   const trlive = {e1: {v: 1, st: "run", e0: 0, wAt: STARTED, sAt: STARTED, ctl: "trener1@smoke.cz", by: "trener1@smoke.cz", at: "2026-10-26"}};
-  const trms = {e1: {v: 1, r: {"b1_l1-s2": {d: "d2", dn: "Sprint 30 m", u: "s", low: true, ms: {p1: [5.2, 5.0], p2: [5.6]}}}, by: "trener1@smoke.cz", at: "2026-10-26"}};
+  const trms = {e1: {v: 1, r: {"b1_l1-s2": {d: "d2", dn: "Sprint 30 m", u: "s", low: true, ms: {p1: [5.2, 5.0], p2: [5.6]}}}, by: "trener1@smoke.cz", at: "2026-10-26"},
+    e0: {v: 1, r: {"b1_l1": {d: "d2", dn: "Sprint 30 m", u: "s", low: true, ms: {p1: [5.4], p2: [5.5]}}}, by: "trener1@smoke.cz", at: "2026-10-19"}};
   const treval = {e1: {v: 1, r: {"b1_l1-s1": {d: "d1", dn: "Rozbruslení", r: 0, n: "", pl: {p1: {r: 4, n: ""}, p2: {r: 3, n: ""}}}}, by: "trener1@smoke.cz", at: "2026-10-26"}};
   const settings = {
     cash: {iban: "CZ6508000000192000145399", iban2: "CZ4907100000000000123457", acc: {contrib: "main"}, contrib: 500, due: 14, inst: true, cats: [], tpl: {}},

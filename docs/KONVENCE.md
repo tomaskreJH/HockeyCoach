@@ -56,11 +56,12 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
 | `drills.js`, `drill-import.js` | 📚 banka cvičení, základní sada a import CSV |
 | `training-plan.js` | 📋 plán tréninku (bloky, linky, ☕ pauza, řada cvičení `seq` / `expandLanes`, časy, točení, kontrola, `mergePlan`) |
-| `plan-reuse.js`, `skill-coverage.js` | ⧉ kopie a 📑 šablony plánu, 📊 pokrytí dovedností |
+| `plan-reuse.js`, `skill-coverage.js` | ⧉ kopie a 📑 šablony plánu, 📊 pokrytí dovedností (`groupDrills` / `groupSkills` = minuty skupiny podle plánu) |
 | `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
 | `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, upozornění, ⌚ text oznámení, `laneSub`) |
 | `training-eval.js` | ⭐ hodnocení hráček |
 | `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
+| `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
 | `shell.js` | záložky a hlavní vykreslení |
 | `help.js` | ❓ nápověda – jediný uživatelský návod |
@@ -70,7 +71,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `event-detail.js`, `event-form.js` | detail události (pětky, plán, docházka, ⚙ úpravy, zrušení), formulář události |
 | `event-series.js`, `event-settings.js` | 🔁 série tréninků, ⏰ nastavení událostí |
 | `attendance.js`, `att-request-view.js` | 📊 docházka, ✋ žádosti o účast |
-| `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky |
+| `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky zápasů |
+| `train-stats.js` | Statistiky: přepínač 📊 Zápasy / 🏒 Trénink, 📈 přehled Tréninku |
 | `live-view.js`, `live-panels.js`, `live-events.js`, `live-quick.js`, `live-feedback.js` | 🔴 živý zápis (vykreslení, panely, klepnutí, rychlý gól / trest, vibrace) |
 | `live-watch.js` | 👁 náhled živého zápasu |
 | `editor.js`, `shift-editor.js` | opravy zápisu, střídání |

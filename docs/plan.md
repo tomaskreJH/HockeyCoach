@@ -8,21 +8,13 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.3~~ | hotovo | 🕘 zpětná změna způsobu placení, ⚙ ruční sloupce výpisu (univerzální import) |
 | ~~v22.4~~ | hotovo | stav na kartě události (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení), ⚖️ detail tarifu hráčky, 🔓 hromadné výjimky z blokace |
 | ~~v22.5~~ | hotovo | 🔁 převody mezi účty, datum platby, 🧾 Náklady (led, rozhodčí … proti výdajům), číslo účtu v QR, ➕ příjem z výpisu |
-| v22.6 | **E5** | 📈 přehled a analýza Tréninku (níže) |
-| potom | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
+| ~~v22.6~~ | hotovo | **E5** 📈 přehled a analýza Tréninku (Statistiky → 🏒 Trénink) |
+| v22.7 | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
 | později | **E6**, **H**, **F** | dlouhodobý plán tréninku, souběžné tresty, jeden zapisovatel živého zápisu |
 | **poslední** | **M** | další tým / jiný klub |
-
-## E5 – 📈 přehled a analýza Tréninku
-- Statistiky → přepínač **🏒 Trénink**, výchozí období **60 dní**.
-- Tabulky výsledků měření s porovnáním: cvičení × hráčky, nejlepší výsledek po trénincích, zlepšení proti minule, pořadí týmu. **Vidí i hráčky** (motivace).
-- Karta hráčky: tréninky, minuty po dovednostech, výsledky (graf). Hodnocení trenérů (`treval`) jen realizační tým, **hráčka nikdy**.
-- Tým × dovednosti za období (teplotní mapa), „kdo co trénoval“, ⬇️ CSV.
-- `domain/training-stats.js` + testy. `trms` / `treval` / `trplan` číst jen tréninky ve zvoleném období (po dokumentu na trénink). Cvičení řady se počítají přes `expandLanes`.
-- Připravené funkce v doméně: `myResults`, `bestOf`, `ranking` (`stopwatch.js`), `playerRates`, `rateCounts`, `unrated` (`training-eval.js`), `skillCoverage` (`skill-coverage.js`).
 
 ## K2 – komfort celé aplikace
 Průchod hlavních toků na Androidu (události a docházka, plán tréninku, živý trénink, zápas): méně klepnutí, výchozí hodnoty, poslední volby, rychlé akce, velká tlačítka na pevných místech, přehledy na jedné obrazovce, jednotné hlášky. Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.

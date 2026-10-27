@@ -145,7 +145,8 @@ const SECTIONS = [
 </ul>`},
   {t: "10. Statistiky, soupeři a řazení tabulek", h: `
 <ul>
-<li><b>Záložka Statistiky</b> je přístupná všem členům týmu, včetně hráček (jen ke čtení).</li>
+<li><b>Záložka Statistiky</b> je přístupná všem členům týmu, včetně hráček (jen ke čtení). Nahoře přepínač <b>📊 Zápasy</b> / <b>🏒 Trénink</b>.</li>
+<li><b>🏒 Trénink</b> – přehled tréninků za 30 / 60 / 90 / 180 dní (výchozí 60): <b>⏲ Výsledky měření</b> (výběr cvičení; nejlepší výsledek, poslední, ▲ / ▼ zlepšení proti minule a pořadí týmu – vidí celý tým), <b>👤 Karta hráčky</b> (tréninky, minuty na ledě podle plánu po dovednostech, výsledky s grafem; hráčka vidí jen svou kartu – <b>Můj trénink</b>, minuty po cvičeních), <b>⭐ Hodnocení trenérů</b> na kartě jen pro realizační tým (hráčka ho nikdy nevidí), <b>🌡 Tým × dovednosti</b> (minuty v období, tmavší = víc) a <b>🔍 Kdo netrénoval</b> vybranou dovednost (jen trenér a asistent). ⬇️ CSV pro Excel. Minuty se počítají z plánu tréninků, na kterých hráčka byla (✅ Jdu bez 🚫).</li>
 <li><b>Statistiky hráčů</b> (jen uzavřené zápasy): Z, <b>Ø stř.</b> (průměrná délka střídání), střely, góly, %, asistence, body, +/-, TM, góly v PP, body doma a venku. +/- se nepočítá u gólů v přesilovce.</li>
 <li><b>Ø stř.</b> = celkový čas na ledě děleno počtem střídání hráčky (jen zápasy se živým zápisem, bez střídání „–“).</li>
 <li><b>Tým</b> a <b>Brankáři</b> (střely, góly, zákroky, úspěšnost). <b>Soupeři</b> (všichni členové týmu; přidat, přejmenovat a smazat jen trenér a asistent): u každého soupeře rovnou bilance V–R–P a skóre, po rozkliknutí jednotlivé zápasy – klepnutím na zápas se otevře zápis utkání s kompletním vývojem zápasu.</li>

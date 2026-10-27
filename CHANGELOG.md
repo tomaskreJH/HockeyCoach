@@ -2,6 +2,26 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.6 (27. 10. 2026) – E5 📈 přehled a analýza Tréninku (Statistiky → 🏒 Trénink)
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat – čte se jen `trplan`, `trms`, `treval` podle stávajících práv). 3) Nahrát soubory ze zipu (nové `src/domain/training-stats.js`, `src/views/train-stats.js`, `tests/training-stats.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v103`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová data, jen čtení). 6) Test: `docs/testy-rucni.md` kap. 10.
+
+**Přidáno**
+- **Statistiky → přepínač 📊 Zápasy / 🏒 Trénink** (`src/views/train-stats.js`; jen kdo čte plán tréninku – hostující beze změny). Období 30 / 60 / 90 / **180** dní, výchozí 60. Dokumenty `trplan`, `trms` a (realizační tým) `treval` se čtou jednorázově po jednom na trénink v období, platí 5 min (`S.tst`).
+- **⏲ Výsledky měření** (vidí celý tým): výběr cvičení, nejlepší výsledek s datem, poslední, ▲ / ▼ zlepšení proti minulému tréninku, pořadí týmu (řadí se klepnutím), vlastní řádek hráčky zvýrazněný; ⬇️ CSV všech měření. Stejné cvičení na více linkách jednoho tréninku se sloučí (nejlepší pokus).
+- **👤 Karta hráčky**: tréninky (s účastí ✅ bez 🚫, s plánem), minuty na ledě podle plánu po dovednostech, výsledky měření s grafem vývoje. **⭐ Hodnocení trenérů** (počty, průměr, poslední položky s poznámkou) jen s právem číst hodnocení – **hráčka nikdy** (nenačítá ho). Hráčka vidí jen svou kartu „Můj trénink“ s minutami po cvičeních (banku cvičení nečte).
+- **🌡 Tým × dovednosti** (trenér, asistent): minuty po dovednostech za období, tmavší = víc; **🔍 Kdo netrénoval** vybranou dovednost (výchozí ta s nejvíc chybějícími), hráčky bez tréninku v období; ⬇️ CSV.
+- `src/domain/training-stats.js`: `statWindow`, `measExercises`, `measTable`, `playerMeas`, `improve`, `playerLoad`, `loadSkills`, `drillList`, `missSkill`, `playerEvals`, `loadRows`, `measRows`.
+- Testy: `tests/training-stats.test.js` (9); kouřový test – Statistiky → 🏒 Trénink, 30 dní, výběr hráčky u všech rolí (data: měření tréninku e0).
+
+**Změněno**
+- `src/domain/skill-coverage.js` – nové `groupDrills` (minuty skupiny po cvičeních bez banky); `groupSkills` z něj počítá stejně jako dosud.
+- `src/views/shell.js` – záložka Statistiky přes `statsView`; `src/core/state.js` – `stv`, `tst`, `tsx`, `tsp`, `tsk`.
+- ❓ Nápověda kap. 10: přepínač a 🏒 Trénink. `docs/KONVENCE.md` – mapa souborů.
+
+**Beze změny:** statistiky zápasů (`stats.js`, výstup shodný – hlídá `d1-baseline`), 📊 pokrytí dovedností v plánu, měření a hodnocení v tréninku, pravidla databáze, pokladna, živý zápis.
+
+**Ověřeno:** `npm test` 400 / 400. `npm run smoke` – 8 rolí bez chyb (Statistiky → 🏒 Trénink u všech rolí kromě hostující; hráčka bez hodnocení a bez Tým × dovednosti).
+
 ## v22.5 (27. 10. 2026) – pokladna: 🔁 převody mezi účty, datum platby, 🧾 Náklady, číslo účtu v QR
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat – kolekce `cash` nová pole přijme). 3) Nahrát soubory ze zipu (nové `src/domain/cost-check.js`, `src/views/cost-view.js`, `tests/cost-check.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v102`). 5) **🔒 Vyžadovat verzi: ne** (nepovinné – starší verze převody jen nezobrazí a zůstatky účtů ukáže bez nich; doporučeno nastavit 22.5, až budou aktualizovaná zařízení správců pokladny). 6) Test: `docs/testy-rucni.md` kap. 9.
 

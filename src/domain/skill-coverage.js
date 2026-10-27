@@ -2,7 +2,7 @@
 // Hráčka „trénovala“ dovednost, když byla na tréninku (✅ Jdu bez 🚫) a její skupina měla v plánu linku s cvičením té dovednosti
 // (u stanovišť podle rozpisu točení, u bloku Společně linka její skupiny nebo linka pro všechny). Dovednost 🧤 se počítá jen u brankářek.
 // Plány se čtou jen pro tréninky v období (ne celá kolekce) – výběr tréninků dělá coverWindow, načtení pohled. Čisté funkce bez DOM.
-// Struktura: Importy -> Konstanty -> Pomocné funkce -> Období -> Dovednosti skupiny v plánu -> Pokrytí.
+// Struktura: Importy -> Konstanty -> Pomocné funkce -> Období -> Cvičení a dovednosti skupiny v plánu -> Pokrytí.
 
 // ===== Importy =====
 import {SKILLS} from "../config/skills.js";
@@ -32,11 +32,12 @@ export function coverWindow(events, eid, days = COVER_DEF) {
   return (events || []).filter(e => e.id !== eid && !e.cancelled && e.date && e.date >= from && e.date < cur.date).sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 
-// ===== Dovednosti skupiny v plánu =====
-// Minuty po dovednostech, které skupina g (číslo pětky, "G" nebo null = bez pětky) trénovala podle plánu; drills = mapa id → cvičení;
-// pg = skupina podle postu ("F" / "D" / "G") pro bloky dělené podle postů (chybí = jako bez skupiny)
-export function groupSkills(plan, g, drills, pg) {
-  const out = {}, D = drills || {};
+// ===== Cvičení a dovednosti skupiny v plánu =====
+// Minuty po cvičeních, která skupina g (číslo pětky, "G" nebo null = bez pětky) trénovala podle plánu: {klíč: {d (id cvičení), dn (název z plánu), min}};
+// klíč = id cvičení (bez id „n:“ + název). pg = skupina podle postu ("F" / "D" / "G") pro bloky dělené podle postů (chybí = jako bez skupiny).
+// Banku cvičení nepotřebuje – použije ji i hráčka (📈 přehled Tréninku).
+export function groupDrills(plan, g, pg) {
+  const out = {};
   ((plan && plan.blocks) || []).forEach(b => {
     const gb = groupIn(b, g, pg === undefined ? null : pg);
     rotation(b).forEach(r => {
@@ -45,10 +46,21 @@ export function groupSkills(plan, g, drills, pg) {
       if (lid == null && b.mode === "all") { const open = (b.lanes || []).find(l => !(l.grp || []).length); lid = open ? open.id : null; }
       const l = (b.lanes || []).find(x => x.id === lid), seq = l && laneSeq(b, l);
       // Řada cvičení: každé cvičení své minuty (jen část v tomto kole)
-      const parts = seq ? seqTimes(b, seq).map(x => ({d: D[x.drill], s: Math.max(0, Math.min(x.b, r.b) - Math.max(x.a, r.a))})) : [{d: l && D[l.drill], s: r.b - r.a}];
-      parts.forEach(({d, s: sec}) => { if (d && sec > 0) (d.sk || []).forEach(k => { out[k] = (out[k] || 0) + sec / 60; }); });
+      const parts = seq ? seqTimes(b, seq).map(x => ({d: x.drill, dn: x.dn, s: Math.max(0, Math.min(x.b, r.b) - Math.max(x.a, r.a))}))
+        : l ? [{d: l.drill, dn: l.dn, s: r.b - r.a}] : [];
+      parts.forEach(({d, dn, s: sec}) => {
+        if (!d || !(sec > 0)) return;
+        const o = out[d] || (out[d] = {d, dn: String(dn || ""), min: 0});
+        o.min += sec / 60;
+      });
     });
   });
+  return out;
+}
+// Minuty po dovednostech, které skupina g trénovala podle plánu (groupDrills × dovednosti cvičení z banky drills = mapa id → cvičení)
+export function groupSkills(plan, g, drills, pg) {
+  const out = {}, D = drills || {};
+  Object.values(groupDrills(plan, g, pg)).forEach(x => { const d = D[x.d]; if (d) (d.sk || []).forEach(k => { out[k] = (out[k] || 0) + x.min; }); });
   return out;
 }
 

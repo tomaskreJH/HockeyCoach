@@ -21,7 +21,7 @@ import {matches} from "./matches.js";
 import {mineView} from "./mine.js";
 import {modal} from "./modal.js";
 import {oppsView} from "./opponents.js";
-import {stats} from "./stats.js";
+import {statsView} from "./train-stats.js";
 import {formV} from "./team.js";
 
 const onlyPl = () => HK.can("onlyOwn");
@@ -48,4 +48,4 @@ nav.querySelectorAll("button[data-t]").forEach(b=>b.onclick=()=>{S.tab=b.dataset
 export function render(){if(onlyPl()){if(!plTabs().includes(S.tab))S.tab="home";S.mid=null}if(S.tab==="mk"&&!hasMine())S.tab="home";if(permOff(S.tab))S.tab="home";tabs();const a=$("#app");
 if(S.err){a.innerHTML=`<div class="msg">${esc(S.err)}</div>`;return}
 if(!S.ready){a.innerHTML='<div class="msg">Načítám…</div>';return}
-({home:homeView,ev:a=>S.mid?matches(a):eventsView(a),ma:matches,fo:formV,st:stats,op:oppsView,mk:mineView})[S.tab](a);modal();liveRender();renderEditor()}
+({home:homeView,ev:a=>S.mid?matches(a):eventsView(a),ma:matches,fo:formV,st:statsView,op:oppsView,mk:mineView})[S.tab](a);modal();liveRender();renderEditor()}
