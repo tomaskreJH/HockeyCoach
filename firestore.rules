@@ -300,6 +300,22 @@ service cloud.firestore {
       allow delete: if isStaff() || (isPlayer() && resource.data.pid == myPid() && !('nos' in resource.data));
     }
 
+    // ===== 🕘 Historie přihlášek attlog/{id} (náhodné id): jen přidávání, záznam nejde změnit =====
+    // {eid, pid, st, by, bp, src, at}: st = yes / no / maybe / del (zrušeno) / nos / nos0 (🚫 označeno / zrušeno); by = e-mail zapisujícího účtu,
+    // bp = jeho osoba (pid nebo tid z členství, prázdné bez osoby), src = abs / req / auto (prázdné = ruční), at = čas serveru.
+    // Zakládá manager, trenér a asistent za kohokoli, hráčka a hostující jen za sebe. Čte manager, trenér a asistent; mazat smí jen manager.
+    function logBp(d) { return d.bp in [get(memberPath()).data.get('pid', ''), get(memberPath()).data.get('tid', '')]; }
+    function logOk(d) {
+      return d.keys().hasOnly(['eid', 'pid', 'st', 'by', 'bp', 'src', 'at']) && d.eid is string && d.pid is string && d.bp is string
+        && d.st in ['yes', 'no', 'maybe', 'del', 'nos', 'nos0'] && d.get('src', '') in ['', 'abs', 'req', 'auto']
+        && d.by == mail() && d.at == request.time && logBp(d);
+    }
+    match /attlog/{id} {
+      allow read: if isStaff();
+      allow create: if logOk(request.resource.data) && (isStaff() || (isPlayer() && request.resource.data.pid == myPid()));
+      allow delete: if isMgr();
+    }
+
     // ===== Soukromé kolekce: citlivá data čte jen vlastník a správci =====
     // Důvod omluvy attnote/{eid}_{mid} = {eid, mid, reason} (zdravotní údaje): čte vlastník (mid = jeho pid / tid) a manager / trenér / asistent.
     // Zapisuje manager, trenér a asistent za kohokoli, hráčka jen svůj (mid z jejího členství); id = eid_mid, jen tato tři pole.

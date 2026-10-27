@@ -24,6 +24,7 @@ const DOM_LAYERS = [
   '#mod [data-pp="x"]',        // výběr hráčky na místo v sestavě
   "#mod #cl",                  // okna zápasu, hráčky, člena týmu, gólu a trestu
   "#evsh #evrc",               // okno s důvodem odpovědi na událost
+  "#algm #algx",               // 🕘 historie přihlášek události (views/att-log-view.js)
   "#plvm #plvx",               // ⭐ výkonnost hráček (rozdělení do pětek tréninku)
   "#tpd #tpdx",                // okno cvičení v plánu tréninku
   "#ed #efc",                  // opravy zápisu: formulář události

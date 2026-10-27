@@ -1,6 +1,6 @@
 // Události – společný základ pro seznam, detail a formulář: styly #evw, konstanty odpovědí, pomocné funkce (sjednocený seznam
 // událostí allEvents, odpovědi atMap, počty, nadpis a řádky karty), zápis odpovědí (attendance + důvod v attnote v jedné dávce),
-// 🚫 nedorazila, pětky a okno s důvodem omluvy. „Jdu“ hned, „Nejdu“ / „Nejsem jistý“ přes okno; hráčka jen svoji odpověď do termínu,
+// 🚫 nedorazila, pětky a okno s důvodem omluvy. Každá změna odpovědi se zapíše i do 🕘 historie přihlášek (views/att-log-view.js). „Jdu“ hned, „Nejdu“ / „Nejsem jistý“ přes okno; hráčka jen svoji odpověď do termínu,
 // blokace „Jdu“ dluhem po splatnosti (vlastní předpisy nebo veřejný souhrn debtors).
 
 // ===== Importy =====
@@ -16,6 +16,7 @@ import {isCancelled} from "../domain/event-cancel.js";
 import {answerCounts} from "../domain/event-helpers.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
+import {logAtt} from "./att-log-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -125,11 +126,12 @@ function setAt(eid, pid, st, reason) {
   b.set("attendance/" + id, attDoc(eid, pid, st, new Date().toISOString(), (u && u.email) || ""));
   if (n) b.set(NOTE_COLL + "/" + id, n); else if (S.an[id]) b.delete(NOTE_COLL + "/" + id);
   b.commit();
+  logAtt([{eid, pid, st}]);                                            // 🕘 historie přihlášek (tiše, mimo dávku)
 }
 // Smazání důvodu do dávky, jen když dokument existuje (smazání neexistujícího by pravidla hráčce odmítla)
 const delNote = (b, id) => { if (S.an[id]) b.delete(NOTE_COLL + "/" + id); return b; };
 // Zrušení odpovědi: odpověď i důvod v jedné dávce
-const clearAt = (eid, pid) => { const id = noteId(eid, pid); delNote(S.db.batch().delete("attendance/" + id), id).commit(); };
+const clearAt = (eid, pid) => { const id = noteId(eid, pid); delNote(S.db.batch().delete("attendance/" + id), id).commit(); logAtt([{eid, pid, st: "del"}]); };
 // Změna odpovědi: „Jdu“ se zapíše hned (opakované klepnutí ji zruší), „Nejdu“ a „Nejsem jistý“ otevřou okno s důvodem.
 // Hráčka smí měnit jen svoji odpověď a jen do termínu; manager, trenér a asistent kdykoli a za kohokoli (i za člena realizačního týmu).
 function answer(eid, pid, st) {
@@ -160,6 +162,7 @@ function toggleNos(ev, pid) {
   const cur = (atMap()[ev.id] || {})[pid];
   if (!canNos(cur, startMs(ev.date, ev.time), Date.now())) return toast("🚫 jde označit jen u odpovědi „Jdu“ po začátku události.");
   S.db.doc("attendance/" + noteId(ev.id, pid)).merge(nosPatch(!isNos(cur)));
+  logAtt([{eid: ev.id, pid, st: isNos(cur) ? "nos0" : "nos"}]);
 }
 function saveLines(ev, lines) { S.db.doc("events/" + ev.id).merge({lines}); }
 

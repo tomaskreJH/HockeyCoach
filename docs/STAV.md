@@ -3,10 +3,10 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.6 (27. 10. 2026) – E5 📈 přehled Tréninku: Statistiky → 🏒 Trénink (měření se zlepšením a pořadím, karta hráčky s grafem, ⭐ hodnocení jen realizační tým, tým × dovednosti, kdo netrénoval, CSV). Předtím v22.5: 🔁 převody, datum platby, 🧾 Náklady, QR s číslem účtu. Cache `hokej-v103`.
-- **Další číslo:** v22.7 (cache `hokej-v104`), opravy v22.6.x; čísla verzí i cache jen rostou.
-- **Pravidla databáze:** publikovaná v21.9.1. Ve v22.1.2 jen komentáře (publikovat lze kdykoli, není nutné), v22.1.3 – v22.6 beze změny.
-- **🔒 Vyžadovat verzi:** naposledy 22.0 (řady cvičení v `trplan`).
+- **Aktuální:** v22.7 (27. 10. 2026) – 🕘 historie přihlášek u události (kolekce `attlog`: kdy se kdo přihlásil, omluvil, odpověď zrušil, 🚫; kdo zapisoval za koho; čte manager, trenér, asistent). Předtím v22.6: E5 📈 Statistiky → 🏒 Trénink. Cache `hokej-v104`.
+- **Další číslo:** v22.8 (cache `hokej-v105`), opravy v22.7.x; čísla verzí i cache jen rostou.
+- **Pravidla databáze:** v22.7 nový blok `attlog` – **publikovat před nahráním kódu** (bez nich se historie nezapisuje, přihlašování funguje dál).
+- **🔒 Vyžadovat verzi:** naposledy 22.0. Doporučeno 22.7 po aktualizaci zařízení (starší verze změny do historie nezapisují).
 
 ## K testu
 - v22.1 – v22.1.2 – jen rychlá kontrola (`docs/testy-rucni.md`, kap. 1–4). Ostatní verze uživatel 26. 10. 2026 ohlásil jako funkční.
@@ -16,6 +16,7 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - v22.4 – stav na kartě události, ⚖️ detail tarifu, 🔓 Výjimky (kap. 8).
 - v22.5 – 🔁 převod, datum platby, 🧾 Náklady, QR s číslem účtu, ➕ příjem z výpisu (kap. 9). Import výpisu (v22.2) uživatel zatím neověřil.
 - v22.6 – 📈 Statistiky → 🏒 Trénink (kap. 10).
+- v22.7 – 🕘 Historie přihlášek (kap. 11).
 
 ## Další krok
 1. **K2** – 🖐 komfort celé aplikace: nejdřív návrh seznamu ke schválení (`docs/plan.md`).

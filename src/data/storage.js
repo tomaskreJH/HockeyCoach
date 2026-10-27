@@ -1,6 +1,6 @@
 // Datová vrstva: Firebase (Firestore, přihlášení Google), oprávnění HK.can / HK.perm (jediné místo, z domain/permissions.js a settings/perm),
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
-// Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll; doc(cesta) – set, merge, delete, get,
+// Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
 // onSnapshot; batch() – set / merge / delete / commit. Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js (kontext C).
 // Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup.
 
@@ -291,7 +291,9 @@ const db = {
     // Nové id dokumentu (bez zápisu) – pro založení hráčky a jejích platebních polí v jedné dávce
     newId: () => fsDoc(fsCol(fs, c)).id,
     // Jednorázové čtení celé kolekce [{id, ...data}] (šablony plánu, kontrola použití cvičení); chyba (práva, offline bez kopie) = výjimka
-    getAll: async () => (await getDocs(fsCol(fs, c))).docs.map(d => ({id: d.id, ...clone(d.data())}))
+    getAll: async () => (await getDocs(fsCol(fs, c))).docs.map(d => ({id: d.id, ...clone(d.data())})),
+    // Jednorázové čtení dokumentů s pole == hodnota [{id, ...data}] (🕘 historie přihlášek jedné události); chyba = výjimka
+    getWhere: async (f, v) => (await getDocs(query(fsCol(fs, c), where(f, "==", v)))).docs.map(d => ({id: d.id, ...clone(d.data())}))
   }),
   doc: p => {
     const [c, id] = splitPath(p);

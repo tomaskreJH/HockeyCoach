@@ -14,6 +14,7 @@ import {ABS_COLL, ABS_KINDS, absDoc, absError, absPlan, absRange, absReason, abs
 import {attReqDoc} from "../domain/att-requests.js";
 import {NOTE_COLL, attDoc, noteDoc, noteId} from "../domain/private-data.js";
 import {REQ_COLL} from "../domain/requests.js";
+import {logAtt} from "./att-log-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -73,21 +74,30 @@ export function absModal() {
 }
 
 // ===== Hlavní logika =====
+// 🕘 Záznamy historie přihlášek k zápisu po dávce [{eid, pid, st, src}]; vrácená omluva, která se hned zapíše znovu, se nezaznamená
+let logs = [];
+const flushLog = () => { const no = new Set(logs.filter(x => x.st === "no").map(x => x.eid + "_" + x.pid)); logAtt(logs.filter(x => x.st === "no" || !no.has(x.eid + "_" + x.pid))); logs = []; };
 // Zápis omluvy do dávky (odpověď Nejdu s abs a důvod)
 function putNo(b, eid, mid, absId, reason, at) {
   const id = noteId(eid, mid), n = noteDoc(eid, mid, reason);
+  logs.push({eid, pid: mid, st: "no", src: "abs"});
   b.set("attendance/" + id, {...attDoc(eid, mid, "no", at, me()), abs: absId});
   if (n) b.set(NOTE_COLL + "/" + id, n);
 }
 // Vrácení omluv nepřítomnosti do dávky (odpovědi a důvody u otevřených budoucích událostí)
 function putRevert(b, a) {
-  absRevert(a, items(), S.at, Date.now(), td()).forEach(id => { b.delete("attendance/" + id); if (S.an[id]) b.delete(NOTE_COLL + "/" + id); });
+  absRevert(a, items(), S.at, Date.now(), td()).forEach(id => {
+    const x = S.at.find(y => y.id === id);
+    if (x) logs.push({eid: x.eid, pid: x.pid, st: "del", src: "abs"});
+    b.delete("attendance/" + id); if (S.an[id]) b.delete(NOTE_COLL + "/" + id);
+  });
 }
 // Uložení: stará nepřítomnost (úprava) se zruší, nová se zapíše s omluvami / žádostmi – vše jedna dávka
 function save() {
   const f = S.abf, today = td(), err = absError(f, today);
   if (err) return toast(err);
   const at = new Date().toISOString(), b = S.db.batch(), old = f.id ? S.ab.find(x => x.id === f.id) : null;
+  logs = [];
   if (old) { putRevert(b, old); b.delete(ABS_COLL + "/" + old.id); }
   const id = S.db.collection(ABS_COLL).newId(), d = absDoc(f.mid, f.kind, f.from, f.to, f.note, me(), at), a = {...d, id};
   const rev = new Set(old ? absRevert(old, items(), S.at, Date.now(), today) : []);
@@ -97,6 +107,7 @@ function save() {
   // Po uzávěrce: manager / trenér / asistent zapíše rovnou, člen pošle žádost
   p.req.forEach(x => { if (staff()) putNo(b, x.eid, f.mid, id, reason, at); else b.set(REQ_COLL + "/" + S.db.collection(REQ_COLL).newId(), attReqDoc(x.eid, f.mid, "no", reason, me(), at, id)); });
   b.commit();
+  flushLog();
   S.abf = null;
   toast("Nepřítomnost uložena" + (p.write.length ? " · omluveno " + p.write.length : "") + (p.req.length && !staff() ? " · žádosti " + p.req.length : ""));
   render();
@@ -104,8 +115,10 @@ function save() {
 // Zrušení nepřítomnosti s vrácením jejích omluv
 function remove(a) {
   const b = S.db.batch();
+  logs = [];
   putRevert(b, a);
   b.delete(ABS_COLL + "/" + a.id).commit();
+  flushLog();
   toast("Nepřítomnost zrušena");
   render();
 }

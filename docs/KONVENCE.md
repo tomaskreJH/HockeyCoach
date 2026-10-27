@@ -43,6 +43,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
 | `event-time.js`, `event-cancel.js`, `recurrence.js` | konec a ⏰ sraz události, zrušení / smazání, série tréninků |
 | `attendance.js`, `debtors.js` | docházka a 🚫 nedorazila, veřejný souhrn dlužníků |
+| `att-log.js` | 🕘 historie přihlášek (záznam `attlog`, časová osa události, kdo zapsal) |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
 | `home-summary.js` | 🏠 Domů |
@@ -71,6 +72,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `event-detail.js`, `event-form.js` | detail události (pětky, plán, docházka, ⚙ úpravy, zrušení), formulář události |
 | `event-series.js`, `event-settings.js` | 🔁 série tréninků, ⏰ nastavení událostí |
 | `attendance.js`, `att-request-view.js` | 📊 docházka, ✋ žádosti o účast |
+| `att-log-view.js` | 🕘 historie přihlášek: tichý zápis `logAtt`, čas a ✍ kdo zapsal v řádcích docházky, okno historie |
 | `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky zápasů |
 | `train-stats.js` | Statistiky: přepínač 📊 Zápasy / 🏒 Trénink, 📈 přehled Tréninku |
 | `live-view.js`, `live-panels.js`, `live-events.js`, `live-quick.js`, `live-feedback.js` | 🔴 živý zápis (vykreslení, panely, klepnutí, rychlý gól / trest, vibrace) |
@@ -130,6 +132,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 - **Role** v `members/{email}`: `role` (manager / trener / asistent / hracka / host), `rv: 2`, `pid` (hráčka), `tid` (realizační tým), `cash: true` (pokladník). Jiná role = bez přístupu. Manager / trener / asistent smí mít i `pid` – na události se hlásí jako hráčka (`selfMember`). Posledního managera nejde odebrat (`keepsManager`). Pokladník bez role manager spravuje jen hráčky a nikdy vlastní dokument.
 - **Oprávnění** v aplikaci jen přes `HK.can` / `HK.perm`. Pravidla: `isMgr`, `isRoster`, `isStaff`, `isCash`, `isPlayer`, `isHost`, `isTeam`, `can(modul, akce)` z `settings/perm` s náhradou výchozích (`permDef` = `DEFAULT_PERMS`). Shodu hlídají `tests/rules-narrow.test.js` a `tests/perm-matrix.test.js`.
 - Odvozené dokumenty (`evpub`, `lineuppub`, automatické omluvy) zapisuje `views/auto-sync.js` přes `HK.syncOps`.
+- **🕘 Historie přihlášek** `attlog/{náhodné id}` = `{eid, pid, st, by, bp, src, at}` – jen přidávání (pravidla nedovolí změnu), `at` = čas serveru, `by` = e-mail zapisujícího, `bp` = jeho pid / tid. Každý zápis nebo zrušení odpovědi v `attendance` doplní záznam přes `logAtt()` (`views/att-log-view.js`) – **samostatně mimo dávku**, aby chyba historie nezastavila přihlášení. Čte manager, trenér a asistent (`getWhere("eid", …)` na vyžádání). Není v záloze JSON a při mazání události / člena zůstává.
 
 ### Kolekce Tréninku (jeden dokument na trénink)
 | Kolekce | Obsah | Čte / zapisuje |

@@ -13,6 +13,7 @@ import {WANT, attDecidePlan, attReqDoc, attReqError, myAttReqs, openAttReq, open
 import {cxOf} from "../domain/cash.js";
 import {NOTE_COLL, attDoc, noteDoc, noteId} from "../domain/private-data.js";
 import {REQ_COLL} from "../domain/requests.js";
+import {logAtt} from "./att-log-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -86,6 +87,7 @@ function decide(r, ok) {
     if (n) b.set(NOTE_COLL + "/" + id, n); else if (S.an[id]) b.delete(NOTE_COLL + "/" + id);
   }
   b.commit();
+  if (plan.att) logAtt([{eid: r.eid, pid: r.mid, st: plan.att.st, src: "req"}]);   // 🕘 historie přihlášek
   S.aqo = null; reply = "";
   toast(ok ? "Žádost schválena – docházka změněna" : "Žádost zamítnuta");
   render();

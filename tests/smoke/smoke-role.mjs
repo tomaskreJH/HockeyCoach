@@ -77,6 +77,14 @@ async function events() {
   if (await tap("#evnt", 250)) { snap("ev-form"); await tap("#evfx", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
   snap("ev-e1");
+  // 👥 Docházka rozbalená (správci: 🕘 čas a kdo zapsal u řádků) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
+  if (await tap("#evatt summary", 300)) snap("ev-e1-att");
+  if (await tap("[data-alg]", 300)) {
+    snap("att-log");
+    if (await tap('[data-alf="other"]', 150)) snap("att-log-other");
+    if (await tap('[data-alv="pers"]', 150)) snap("att-log-pers");
+    await tap("#algx", 150);
+  }
   if (await tap("#tped", 300)) {
     snap("plan-edit");
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");

@@ -39,6 +39,15 @@ export function teamData() {
   ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"].forEach(p => { attendance["e1_" + p] = {eid: "e1", pid: p, st: "yes"}; attendance["e0_" + p] = {eid: "e0", pid: p, st: p === "p3" ? "no" : "yes"}; });
   ["t1", "t2", "t3"].forEach(t => { attendance["e1_" + t] = {eid: "e1", pid: t, st: "yes"}; });
   attendance.m1_p1 = {eid: "m1", pid: "p1", st: "yes"};
+  // 🕘 Historie přihlášek: p1 sama, p2 zapsal trenér (po termínu), p3 jen starší odpověď bez historie
+  Object.assign(attendance.e1_p1, {at: "2026-10-24T10:00:00.000Z", by: "hracka@smoke.cz"});
+  Object.assign(attendance.e1_p2, {at: "2026-10-25T19:00:00.000Z", by: "trener1@smoke.cz"});
+  Object.assign(attendance.e1_p3, {at: "2026-10-20T08:00:00.000Z", by: "p3@smoke.cz"});
+  const attlog = {
+    l1: {eid: "e1", pid: "p1", st: "yes", by: "hracka@smoke.cz", bp: "p1", at: Date.parse("2026-10-24T10:00:00.000Z")},
+    l2: {eid: "e1", pid: "p2", st: "no", by: "p2@smoke.cz", bp: "p2", at: Date.parse("2026-10-23T09:00:00.000Z"), src: "abs"},
+    l3: {eid: "e1", pid: "p2", st: "yes", by: "trener1@smoke.cz", bp: "t1", at: Date.parse("2026-10-25T19:00:00.000Z")}
+  };
   const drills = {
     d1: {name: "Rozbruslení", cat: "warm", sk: ["skate"], lvl: 1, dur: 8, grp: ["all"], eq: "", desc: "Kolečka", url: "", pdf: "", img: [], meas: null, by: "x", at: "2026-10-01"},
     d2: {name: "Sprint 30 m", cat: "skill", sk: ["skate"], lvl: 1, dur: 7, grp: ["all", "st"], eq: "", desc: "", url: "", pdf: "", img: [], meas: {u: "s", low: true}, by: "x", at: "2026-10-01"},
@@ -73,7 +82,7 @@ export function teamData() {
   const plpay = {p1: {grp: "single", fx: 1, ex: false}, p2: {grp: "monthly", fx: 1, ex: false}, p8: {grp: "monthly", fx: 1, ex: false}};
   const plevel = {team: {v: 1, lv: {p1: 4, p2: 3, p3: 3, p4: 2, p5: 3, p6: 2, p8: 3}}};
   const evpub = {e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", type: "training"}};
-  return {players, staff, events, matches, attendance, drills, trplan, trlive, trms, treval, settings, charges, plpay, plevel, evpub,
+  return {players, staff, events, matches, attendance, attlog, drills, trplan, trlive, trms, treval, settings, charges, plpay, plevel, evpub,
     opponents: {}, series: {}, cash: {k1: {d: "2026-10-01", k: "in", amt: 3000, cat: "Vklady / dary", note: "", acc: "main", by: "manager@smoke.cz"}, k2: {d: "2026-10-02", k: "tr", amt: 1000, from: "main", to: "op", note: "na led", by: "manager@smoke.cz"},
       k3: {d: "2026-10-05", k: "out", amt: 400, cat: "Pronájem ledu", payee: "Zimní stadion", pym: "2026-09", note: "", acc: "op", by: "manager@smoke.cz"}},
     evcash: {e0: {tpl: "train", cost: [{cat: "Pronájem ledu", payee: "Zimní stadion", amt: 1050}], who: {}, settle: {cost: [{cat: "Pronájem ledu", payee: "Zimní stadion", amt: 1050}], total: 1050, n: 7, who: {}, at: "2026-10-20T10:00:00Z", by: "manager@smoke.cz"}}}, evprice: {e0: {ym: "2026-10", date: PAST, tpl: "train", head: {monthly: 150, single: 150, exempt: 0}}}, debtors: {}, attnote: {}, staffpay: {}, requests: {}, absence: {}, budget: {}, audit: {}, joinreq: {}, lineuppub: {}, drillimg: {}, trtpl: {}};

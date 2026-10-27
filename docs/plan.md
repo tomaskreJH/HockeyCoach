@@ -9,7 +9,8 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.4~~ | hotovo | stav na kartě události (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení), ⚖️ detail tarifu hráčky, 🔓 hromadné výjimky z blokace |
 | ~~v22.5~~ | hotovo | 🔁 převody mezi účty, datum platby, 🧾 Náklady (led, rozhodčí … proti výdajům), číslo účtu v QR, ➕ příjem z výpisu |
 | ~~v22.6~~ | hotovo | **E5** 📈 přehled a analýza Tréninku (Statistiky → 🏒 Trénink) |
-| v22.7 | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
+| ~~v22.7~~ | hotovo | 🕘 historie přihlášek na události (časy změn, kdo zapisoval za koho) |
+| v22.8 | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |

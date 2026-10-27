@@ -90,3 +90,15 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 10.6 Hráčka (👁 Náhled role nebo vlastní účet): 🏒 Trénink → **Můj trénink** (jen svá karta, minuty po cvičeních, výsledky), tabulka měření celého týmu s jejím řádkem zvýrazněným. **Žádné ⭐ hodnocení**, žádné Tým × dovednosti.
 - [ ] 10.7 Hostující: Statistiky bez přepínače (beze změny).
 - [ ] 10.8 Rychlá kontrola z kap. 1.
+
+## 11. v22.7 – 🕘 Historie přihlášek
+Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapisuje a okno ukáže „nepodařilo načíst“; samotné přihlašování funguje).
+- [ ] 11.1 V záhlaví je **v22.7**. Hráčka (vlastní účet): u budoucí události ✅ Jdu, pak ❌ Nejdu s důvodem, pak ❓ a nakonec odpověď zruší. Vše funguje jako dosud.
+- [ ] 11.2 Trenér: detail té události → rozbalit 👥 Docházka. U hráčky řádek 🕘 s časem poslední změny (bez ✍ – psala sama).
+- [ ] 11.3 Trenér změní odpověď jiné hráčce (např. ❌ s důvodem). Po chvíli je u ní 🕘 čas a **✍ zapsal(a) jméno trenéra**.
+- [ ] 11.4 🕘 Historie přihlášek: všechny změny z 11.1 a 11.3 nejnovější nahoře (✅, ❌, ❓, ↩ Odpověď zrušena), souhrn Změn / osob / za někoho / po termínu. Filtr ✍ Za někoho = jen změna trenérem. 👥 Podle osob = seskupení po hráčkách. ↻ Obnovit, Zavřít i systémové Zpět okno zavřou.
+- [ ] 11.5 Po termínu přihlašování změnit odpověď trenérem → v historii štítek ⏰ po termínu; po začátku 🚫 Nedorazila → „🚫 Označeno: nedorazila“ se štítkem po začátku.
+- [ ] 11.6 🏖 Nepřítomnost přes budoucí událost → v historii ❌ Nejdu „🏖 z nepřítomnosti“; zrušení nepřítomnosti → ↩ Odpověď zrušena. ✋ schválená žádost o změnu účasti → „✋ schválená žádost“.
+- [ ] 11.7 Starší odpovědi (před v22.7) jsou v historii dole jako „(poslední změna)“ s účtem, který je zapsal.
+- [ ] 11.8 Hráčka, pokladník bez trenérské role a hostující: žádné 🕘 v docházce ani tlačítko Historie.
+- [ ] 11.9 Rychlá kontrola z kap. 1.

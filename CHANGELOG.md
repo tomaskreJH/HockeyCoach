@@ -2,6 +2,28 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.7 (27. 10. 2026) – 🕘 historie přihlášek na události (kdy a kdo za koho)
+> **Nasazení:** 1) Zip současného repozitáře, ⚙️ → 💾 Data → Stáhnout zálohu. 2) **Publikovat firestore.rules PŘED nahráním kódu** (nový blok `attlog`; ostatní pravidla beze změny). Kdyby pravidla publikovaná nebyla, přihlašování funguje dál, jen se nezapisuje historie a okno hlásí chybu načtení. 3) Nahrát soubory ze zipu (nové `src/domain/att-log.js`, `src/views/att-log-view.js`, `tests/att-log.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v104`). 5) **🔒 Vyžadovat verzi: doporučeno 22.7**, až budou zařízení aktualizovaná (starší verze změny odpovědí do historie nezapisují; data se nepřevádějí). 6) Test: `docs/testy-rucni.md` kap. 11.
+
+**Přidáno**
+- **🕘 Historie přihlášek** (`src/views/att-log-view.js`, `src/domain/att-log.js`): každá změna odpovědi na událost se zapíše jako samostatný záznam `attlog/{id}` = `{eid, pid, st, by, bp, src, at}` – ✅ Jdu, ❌ Nejdu, ❓ Nejsem jistý, ↩ odpověď zrušena, 🚫 označeno / zrušeno; `by` = účet, který změnu zapsal, `bp` = jeho osoba (hráčka / člen týmu), `at` = čas serveru, `src` = 🏖 nepřítomnost, ✋ schválená žádost, automatická omluva. Záznam nejde změnit (jen přidat), mazat smí jen manager.
+- **Detail události → 👥 Docházka** (manager, trenér, asistent): po rozbalení se historie události jednou načte (platí 5 min) a u každého řádku je 🕘 čas poslední změny, a když ji nezapsala hráčka / člen sám, **✍ zapsal(a) jméno**.
+- **Tlačítko 🕘 Historie přihlášek** pod docházkou: okno se všemi změnami nejnovější nahoře, souhrn (změn, osob, za někoho, po termínu, po začátku), filtry **✍ Za někoho** a **⏰ Po termínu** (štítek „po začátku“ u změn po začátku události), pohled 🕒 Podle času / 👥 Podle osob, ↻ Obnovit; zavře i systémové Zpět. Odpovědi z doby před v22.7 jsou dole jako „(poslední změna)“ s časem a účtem z dokumentu docházky.
+- `src/data/storage.js` – `collection(c).getWhere(pole, hodnota)`: jednorázové čtení dokumentů s rovností.
+- Testy: `tests/att-log.test.js` (9); kouřový test – rozbalená docházka a okno historie s filtrem a pohledem podle osob (data: `attlog`, časy odpovědí).
+
+**Změněno**
+- Zápis historie je **tichý a mimo dávku odpovědi** (`HK.syncOps`) – chyba pravidel nebo sítě nikdy nezablokuje přihlášení. Zapisují: `views/event-core.js` (odpověď, zrušení, 🚫), `views/absence-view.js` (omluvy a jejich vrácení z 🏖; vrácená a hned znovu zapsaná omluva se nezaznamená dvakrát), `views/att-request-view.js` (✋ schválená žádost), `views/auto-sync.js` (automatická omluva, až po úspěšném zápisu).
+- `src/views/event-detail.js` – řádky docházky s 🕘, tlačítko a okno historie; `src/core/nav.js` – okno v systémovém Zpět; `src/core/state.js` – `alg`, `alo`.
+- `firestore.rules` – blok `attlog` (čte `isStaff`, zakládá `isStaff` za kohokoli nebo hráčka / hostující jen za sebe, `by == mail()`, `at == request.time`, `bp` z vlastního členství, bez úprav; mazat `isMgr`).
+- ❓ Nápověda kap. Události: 🕘 Historie přihlášek. `docs/KONVENCE.md` – mapa souborů a kolekce `attlog`.
+
+**Beze změny:** dokumenty `attendance` a `attnote` (tvar, pravidla, důvody omluv – v historii se důvody nezobrazují), přihlašování a blokace dluhem, 🚫, 📊 Docházka, pokladna, živý zápis, trénink, statistiky.
+
+**Upozornění (rozhodnutí do budoucna):** historie se zapisuje od v22.7 (zpětně ji dopočítat nejde – starší odpovědi mají jen poslední změnu). Není součástí zálohy JSON a při 🧨 úplném smazání události, smazání zápasu nebo člena zůstává (jen přestane být vidět). Hráčky ani pokladník bez trenérské role historii nevidí.
+
+**Ověřeno:** `npm test` 409 / 409. `npm run smoke` – 8 rolí bez chyb (manager, trenéři, asistenti: rozbalená docházka s 🕘 a ✍, okno historie, filtr ✍ Za někoho, 👥 Podle osob; hráčka, hostující a pokladník bez historie).
+
 ## v22.6 (27. 10. 2026) – E5 📈 přehled a analýza Tréninku (Statistiky → 🏒 Trénink)
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat – čte se jen `trplan`, `trms`, `treval` podle stávajících práv). 3) Nahrát soubory ze zipu (nové `src/domain/training-stats.js`, `src/views/train-stats.js`, `tests/training-stats.test.js`; nic se nemaže ani nepřesouvá). 4) Načíst novou verzi (cache `hokej-v103`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová data, jen čtení). 6) Test: `docs/testy-rucni.md` kap. 10.
 
