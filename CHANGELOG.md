@@ -2,6 +2,26 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.4 (27. 10. 2026) – stav na kartě události, ⚖️ detail tarifu hráčky, 🔓 hromadné výjimky z blokace
+> **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu (nové `src/domain/tariff-detail.js`, `src/domain/block-exc.js`, `src/domain/event-status.js`, `src/views/tariff-detail-view.js`, `src/views/block-exc-view.js`, `src/views/event-badges.js`, `tests/v224-status.test.js`; nic se nemaže). 4) Načíst novou verzi (cache `hokej-v101`). 5) **🔒 Vyžadovat verzi: ne** (žádná nová pole). 6) Test: `docs/testy-rucni.md` kap. 8.
+
+⚠️ SAHÁ NA PLATBY (`views/payments.js` – nová funkce `excMany`, nové `domain/block-exc.js`, `views/block-exc-view.js`, `views/tariff-detail-view.js`; výpočty předpisů, vyúčtování a úhrad beze změny).
+
+**Přidáno**
+- **Řádek stavu na kartě události** (`src/views/event-badges.js`, `src/domain/event-status.js`): správce pokladny (manager, pokladník) vidí 💰 vyúčtováno, ✅ / 💳 zaplaceno X/Y s částkou, ⏰ počet po splatnosti, u uplynulé události s náklady ⚠️ vyúčtování neuzavřeno. Trenéři (právo číst hodnocení) u tréninků dnes a v minulosti 📋 plán / bez plánu, ⏱ uzavřen / probíhá / nespuštěn, ⭐ ohodnoceno N hráček / bez hodnocení. Stav tréninků = jednorázové čtení `trplan`, `trlive`, `treval` (platí 5 min, `S.trs`), hráčky a hostující nic nečtou.
+- **⚖️ Tarify → klepnutí na hráčku** (`src/views/tariff-detail-view.js`, `src/domain/tariff-detail.js`): souhrn sezóny (skutečně vs. druhý způsob), hodnota ledu na uzavřených událostech, kde byla (náklady ÷ hráčky v poli), využití v %, **Kdyby neplatila** – o kolik přijde pokladna a o kolik by se platba zvedla ostatním (příspěvky na hráčku s příspěvkem, poplatky na spoluplatící v události); 📅 po měsících předpisy a navštívené události (led, platila / v příspěvku, druhý způsob). 💡 tip na úlevu při využití pod 50 % u příspěvku. Odkaz 🕘 Historie placení. Osvobozené a 0 % klepnutím na jméno.
+- **Team → 💰 Platby → 🔓 Výjimky** (`src/views/block-exc-view.js`, `src/domain/block-exc.js`): ⛓ Blokované / 🔓 S výjimkou, výběr hráček (Vybrat vše, 🔍), volitelně i předpisy před splatností, důvod do záznamů; udělení / zrušení druhým klepnutím.
+- `src/views/payments.js` – `excMany()`: hromadná výjimka (předpisy jedné osoby v jedné dávce se souhrnem dlužníků, audit na osobu, nejvýš 120 předpisů na dávku).
+- Testy: `tests/v224-status.test.js` (5); kouřový test – Minulé se štítky, ⚖️ detail hráčky, 🔓 Výjimky se zápisem (data: uzavřené vyúčtování e0, předpis po splatnosti).
+
+**Změněno**
+- `src/views/events.js` – karta události s řádkem stavu, `src/views/finance.js` – čip 🔓 Výjimky, rozbalení řádku v ⚖️ Tarify, `src/core/state.js` – `trs`.
+- ❓ Nápověda: Události (řádek stavu), kap. 12 (⚖️ detail, 🔓 Výjimky).
+
+**Beze změny:** výpočty pokladny, uzavření vyúčtování, úhrady, výjimka jednoho předpisu (🔒 / 🔓 u předpisu), pravidla databáze, živý zápis, trénink, statistiky.
+
+**Ověřeno:** `npm test` 383 / 383. `npm run smoke` – 8 rolí bez chyb, 217 obrazovek (štítky 💰 u managera a pokladníka, 🏒 u trenérů; ⚖️ detail a 🔓 Výjimky se zápisem u správců pokladny).
+
 ## v22.3 (26. 10. 2026) – 🕘 zpětná změna způsobu placení, ⚙ sloupce výpisu z banky
 > **Nasazení:** 1) Zip současného repozitáře. 2) **firestore.rules beze změny** (nepublikovat). 3) Nahrát soubory ze zipu – zip obsahuje i v22.2 (pokud v22.2 ještě není nahraná, stačí tento zip). Nové soubory `src/views/pay-history.js`, `tests/pay-history.test.js` (a z v22.2 `src/domain/bank-match.js`, `src/views/bank-pair.js`, `tests/bank-match.test.js`); nic se nemaže. 4) Načíst novou verzi (cache `hokej-v100`). 5) **🔒 Vyžadovat verzi: ne.** 6) Test: `docs/testy-rucni.md` kap. 6 a 7.
 

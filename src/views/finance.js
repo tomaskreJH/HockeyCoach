@@ -3,6 +3,7 @@
 // Úhrada přes okno z payments.js; „Zaplatila vše“ zvlášť pro každý účet (osobní VS). Nahoře žádosti o změnu placení (request-list.js).
 // ⚖️ Tarify: využívá hráčka zvolený způsob placení (domain/economy.js tariffRows) + docházka sezóny – jen pro správce pokladny.
 // ☑ Hromadně: více úhrad najednou, 🏦 párování výpisu z banky (bank-pair.js). 🕘 Historie placení hráčky: pay-history.js.
+// ⚖️ Tarify → klepnutí na hráčku = detail (tariff-detail-view.js). 🔓 Výjimky: hromadná výjimka z blokace (block-exc-view.js).
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {isG, pl, pn, pri, stOf} from "../core/selectors.js";
@@ -13,16 +14,19 @@ import {attEvents, attSummary, pastEvents, seasonOf} from "../domain/attendance.
 import {GRP, accIban, accName, accOf, cashCfg, chargeMsg, contribEvent, contribYm, costTotal, fmtDue, fxPct, kc, ledger, overdue, personVs, r2, restOf, twoAcc, ymNow} from "../domain/cash.js";
 import {tariffRows} from "../domain/economy.js";
 import {bindBulk, bulkHtml} from "./bank-pair.js";
+import {bindExc, excHtml} from "./block-exc-view.js";
 import {openMonth} from "./money.js";
 import {openPayHist} from "./pay-history.js";
 import {openPay, payCharge, toggleExc} from "./payments.js";
 import {bindReq, reqBanner, reqModal} from "./request-list.js";
 import {render} from "./shell.js";
+import {tariffDetailHtml} from "./tariff-detail-view.js";
 
 // ===== Stav (jen pro tuto obrazovku) =====
-let vw = "pl";      // pl = podle hráček, ev = podle událostí, hb = ☑ hromadně (výpis z banky), tf = ⚖️ tarify
+let vw = "pl";      // pl = podle hráček, ev = podle událostí, hb = ☑ hromadně (výpis z banky), tf = ⚖️ tarify, ex = 🔓 výjimky z blokace
 let all = false;    // v přehledu hráček zobrazit i ty bez dluhu
 let open = null;    // rozbalená hráčka
+let tfo = null;     // rozbalená hráčka v ⚖️ Tarify (detail výpočtu)
 
 // ===== Pomocné funkce =====
 const desc = (x, y) => y.date.localeCompare(x.date);
@@ -62,9 +66,9 @@ function tariffHtml() {
   const att = id => { const a = (A[id] || {}).all; return a && a.n ? `docházka ${a.yes} z ${a.n}${a.pct == null ? "" : " (" + a.pct + " %)"}` : "bez uplynulých událostí"; };
   const cnt = g => act.filter(o => o.r.grp === g), bad = g => cnt(g).filter(o => o.v.ord === 0).length;
   const sumH = `<div class="grid3"><div class="stat"><b>${cnt("monthly").length}</b>příspěvek${bad("monthly") ? ` · <span style="color:var(--no)">${bad("monthly")} nevyužívá</span>` : ""}</div><div class="stat"><b>${cnt("single").length}</b>za událost${bad("single") ? ` · <span style="color:var(--wa)">${bad("single")} 💡</span>` : ""}</div><div class="stat"><b>${skip.length}</b>osvobozené / 0 %</div></div>`;
-  const row = ({r, v}) => `<div class="it" style="cursor:default"><div><b>${esc(r.p.name)}</b> ${v.tag}<div class="mu">${esc(GRP[r.grp])}${r.fx !== 1 ? " · koeficient " + fxPct(r.fx) : ""} · ${att(r.p.id)}</div>${r.empty ? "" : `<div class="mu">Sezóna: skutečně ${kc(r.act)} → ${esc(GRP[r.alt].toLowerCase())} ${kc(r.altAmt)}${r.alt === "single" ? " (" + r.n + "× uzavřená událost)" : ""}</div>`}<div>${v.txt}</div></div></div>`;
-  const skipH = skip.length ? `<div class="mu" style="margin-top:8px">Osvobozené / koeficient 0 % (neporovnává se): ${skip.map(r => esc(r.p.name)).join(", ")}</div>` : "";
-  return `<div class="cd"><h2>⚖️ Využití tarifu – sezóna ${se.from.slice(0, 4)}/${se.to.slice(2, 4)}</h2><div class="mu" style="margin-bottom:8px">Skutečně předepsáno v sezóně vs. druhý způsob placení: za události = cena na hlavu × koeficient za uzavřené události, kde byla přihlášená; příspěvek = dnešní výše × koeficient a události, kde platí i hráčky s příspěvkem. Neuzavřené události se nepočítají. Hráčky toto porovnání nevidí.</div>${sumH}${act.length ? act.map(row).join("") : '<div class="msg">Žádná hráčka k porovnání.</div>'}${skipH}</div>`;
+  const row = ({r, v}) => `<div class="it" data-ft="${esc(r.p.id)}"><div><b>${esc(r.p.name)}</b> ${v.tag}<div class="mu">${esc(GRP[r.grp])}${r.fx !== 1 ? " · koeficient " + fxPct(r.fx) : ""} · ${att(r.p.id)}</div>${r.empty ? "" : `<div class="mu">Sezóna: skutečně ${kc(r.act)} → ${esc(GRP[r.alt].toLowerCase())} ${kc(r.altAmt)}${r.alt === "single" ? " (" + r.n + "× uzavřená událost)" : ""}</div>`}<div>${v.txt}</div></div><span class="mu">${tfo === r.p.id ? "▲" : "▼"}</span></div>${tfo === r.p.id ? tariffDetailHtml(r.p) : ""}`;
+  const skipH = skip.length ? `<div class="mu" style="margin-top:8px">Osvobozené / koeficient 0 % (neporovnává se, klepnutím události a dopad):</div><div class="chips">${skip.map(r => `<button class="chip ${tfo === r.p.id ? "on" : ""}" data-ft="${esc(r.p.id)}">${esc(r.p.name)}</button>`).join("")}</div>${skip.some(r => r.p.id === tfo) ? tariffDetailHtml(skip.find(r => r.p.id === tfo).p) : ""}` : "";
+  return `<div class="cd"><h2>⚖️ Využití tarifu – sezóna ${se.from.slice(0, 4)}/${se.to.slice(2, 4)}</h2><div class="mu" style="margin-bottom:8px">Skutečně předepsáno v sezóně vs. druhý způsob placení: za události = cena na hlavu × koeficient za uzavřené události, kde byla přihlášená; příspěvek = dnešní výše × koeficient a události, kde platí i hráčky s příspěvkem. Neuzavřené události se nepočítají. Hráčky toto porovnání nevidí. Klepnutím na hráčku detail: měsíce, události, využití a dopad na pokladnu.</div>${sumH}${act.length ? act.map(row).join("") : '<div class="msg">Žádná hráčka k porovnání.</div>'}${skipH}</div>`;
 }
 
 // ===== Vykreslení =====
@@ -82,7 +86,7 @@ export function financeHtml(evs, AT) {
 
   // Souhrn
   const grid = `<div class="grid3"><div class="stat"><b style="color:${L.owed ? "var(--no)" : "var(--ok)"}">${kc(L.owed)}</b>dluh celkem</div><div class="stat"><b>${kc(L.got)}</b>vybráno</div><div class="stat"><b>${L.debtors}</b>dlužnic</div></div>`;
-  const tabs = `<div class="chips"><button class="chip ${vw === "pl" ? "on" : ""}" data-fv="pl">Podle hráček</button><button class="chip ${vw === "ev" ? "on" : ""}" data-fv="ev">Podle událostí</button><button class="chip ${vw === "hb" ? "on" : ""}" data-fv="hb">☑ Hromadně</button><button class="chip ${vw === "tf" ? "on" : ""}" data-fv="tf">⚖️ Tarify</button></div>`;
+  const tabs = `<div class="chips"><button class="chip ${vw === "pl" ? "on" : ""}" data-fv="pl">Podle hráček</button><button class="chip ${vw === "ev" ? "on" : ""}" data-fv="ev">Podle událostí</button><button class="chip ${vw === "hb" ? "on" : ""}" data-fv="hb">☑ Hromadně</button><button class="chip ${vw === "tf" ? "on" : ""}" data-fv="tf">⚖️ Tarify</button><button class="chip ${vw === "ex" ? "on" : ""}" data-fv="ex">🔓 Výjimky</button></div>`;
 
   // Uplynulé události s náklady, které ještě nemají uzavřené vyúčtování
   const unset = past.filter(e => costTotal(e.cx || {}) > 0 && !e.raw.ss && !(e.cx || {}).settle).sort(desc);
@@ -93,6 +97,7 @@ export function financeHtml(evs, AT) {
   let body;
   if (vw === "tf") body = tariffHtml();
   else if (vw === "hb") body = bulkHtml(byId);
+  else if (vw === "ex") body = excHtml();
   else if (vw === "pl") {
     // Přehled po hráčkách: největší dluh nahoře
     const rows = L.rows.filter(r => all || r.debt > 0)
@@ -123,6 +128,9 @@ export function financeHtml(evs, AT) {
 export function bindFinance(a) {
   bindReq(a);   // pruh a okno žádostí o změnu placení
   if (vw === "hb") bindBulk(a);   // ☑ Hromadně a výpis z banky
+  if (vw === "ex") bindExc(a);    // 🔓 hromadné výjimky z blokace
+  // ⚖️ Tarify: rozbalení detailu hráčky
+  a.querySelectorAll("[data-ft]").forEach(b => b.onclick = () => { tfo = tfo === b.dataset.ft ? null : b.dataset.ft; render(); });
   a.querySelectorAll("[data-fv]").forEach(b => b.onclick = () => { vw = b.dataset.fv; render(); });
   a.querySelectorAll("[data-fall]").forEach(b => b.onclick = () => { all = !all; render(); });
   a.querySelectorAll("[data-fo]").forEach(b => b.onclick = () => { open = open === b.dataset.fo ? null : b.dataset.fo; render(); });

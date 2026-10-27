@@ -6,7 +6,8 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 |---|---|---|
 | ~~v22.2~~ | hotovo | ⏱ ▶ Teď (skok na blok), ☑ hromadné úhrady, 🏦 párování výpisu z banky (CSV) |
 | ~~v22.3~~ | hotovo | 🕘 zpětná změna způsobu placení, ⚙ ruční sloupce výpisu (univerzální import) |
-| v22.4 | **E5** | 📈 přehled a analýza Tréninku (níže) |
+| ~~v22.4~~ | hotovo | stav na kartě události (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení), ⚖️ detail tarifu hráčky, 🔓 hromadné výjimky z blokace |
+| v22.5 | **E5** | 📈 přehled a analýza Tréninku (níže) |
 | potom | **K2** | 🖐 komfort celé aplikace – nejdřív návrh seznamu ke schválení, pak malé verze |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |

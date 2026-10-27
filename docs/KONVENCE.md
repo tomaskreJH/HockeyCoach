@@ -49,6 +49,9 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, dluhy, VS), účty a IBAN |
 | `bank-match.js` | ⚠️ 🏦 čtení výpisu z banky (CSV) a párování plateb s předpisy |
 | `economy.js` | hospodaření události a měsíce, Moje platby po měsících |
+| `tariff-detail.js` | ⚖️ detail tarifu hráčky (měsíce, události, využití ledu, dopad na pokladnu) |
+| `block-exc.js` | 🔓 hromadné výjimky z blokace (dlužníci po osobách, výběr předpisů) |
+| `event-status.js` | stav události na kartě (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení tréninku) |
 | `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
 | `drills.js`, `drill-import.js` | 📚 banka cvičení, základní sada a import CSV |
 | `training-plan.js` | 📋 plán tréninku (bloky, linky, ☕ pauza, řada cvičení `seq` / `expandLanes`, časy, točení, kontrola, `mergePlan`) |
@@ -75,6 +78,9 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `finance.js`, `payments.js`, `cashbook.js`, `money.js`, `cash-settings.js`, `request-list.js` | ⚠️ správa pokladny: platby, pokladna u události, pohyby, měsíce, nastavení, žádosti o placení |
 | `bank-pair.js` | ⚠️ Platby → ☑ Hromadně: více úhrad najednou, 🏦 výpis z banky |
 | `pay-history.js` | ⚠️ 🕘 historie placení hráčky (zpětná změna způsobu placení, dopad) |
+| `tariff-detail-view.js` | ⚠️ ⚖️ Tarify → detail hráčky |
+| `block-exc-view.js` | ⚠️ Platby → 🔓 Výjimky: hromadná výjimka z blokace |
+| `event-badges.js` | řádek stavu na kartě události (💰 / 🏒), jednorázové čtení stavu tréninků `S.trs` |
 | `budget-view.js`, `budget-print.js` | 📊 rozpočet sezóny, 🖨 export |
 | `drills-view.js`, `drill-import-view.js`, `drill-picker.js`, `drill-media.js` | 📚 banka cvičení, import, výběr cvičení, 📷 obrázky a ▶ / 📄 náhled odkazů |
 | `trplan-view.js` | 📋 karta plánu v detailu tréninku, okno cvičení, společné styly a pomůcky plánu |
@@ -90,7 +96,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
 | **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `prompt-dalsi-vlakno.md`, `archiv/` |
 
-**⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
+**⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `views/block-exc-view.js`, `domain/block-exc.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 
 ## 2. Struktura souboru
 - Pořadí: **Importy → Konstanty a stav → Pomocné funkce → Hlavní logika → Eventy → Exporty**, sekce `// ===== Název =====`.

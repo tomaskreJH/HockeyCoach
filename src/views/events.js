@@ -1,5 +1,5 @@
 // Záložka Události: Nadcházející / Minulé / Kalendář / 📊 Docházka, karta události s rychlými tlačítky ✅ ❌ ❓ (za propojenou hráčku,
-// jinak za člena realizačního týmu – selfMember), + Trénink / + Zápas. Detail: event-detail.js, formulář: event-form.js, základ: event-core.js.
+// jinak za člena realizačního týmu – selfMember), řádek stavu 💰 vyúčtování / 🏒 tréninku (event-badges.js), + Trénink / + Zápas. Detail: event-detail.js, formulář: event-form.js, základ: event-core.js.
 // Režimy pokladny v záložce Team (💰 Platby, 🏦 Pokladna, 📅 Měsíce, 📊 Rozpočet) vykresluje cashPanel().
 
 // ===== Importy =====
@@ -15,6 +15,7 @@ import {attHtml, bindAtt} from "./attendance.js";
 import {bindBudget, budgetHtml} from "./budget-view.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
 import {activePl, allEvents, ANS, answer, atMap, bindSheet, cashMgr, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, MONTHS, ORD, pad, restLine, roster, rosterLine, sheetHtml, staff, titleLine} from "./event-core.js";
+import {ensureTrainStatus, statusLine} from "./event-badges.js";
 import {detail} from "./event-detail.js";
 import {formView} from "./event-form.js";
 import {bindFinance, financeHtml} from "./finance.js";
@@ -51,11 +52,13 @@ function card(e, AT, P) {
 <div class="mu">${rl}${mt ? (m.home ? " · doma" : " · venku") : ""}${pay}</div>
 <div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
 ${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}
+${statusLine(e)}
 ${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" style="margin-top:6px">${esc(mine.reason)}</div>` : ""}</div>`;
 }
 function list(a) {
   const P = activePl(), AT = atMap(), evs = allEvents(), today = td(), pl_ = isPl();
   if (!S.evc) { const n = new Date(); S.evc = {y: n.getFullYear(), m: n.getMonth()}; }
+  ensureTrainStatus();   // 🏒 stav tréninků pro trenéry (jednorázové čtení, překreslí se samo)
   // Za koho platí rychlá tlačítka na kartě: propojená hráčka má přednost (i u managera / trenéra / asistenta, který je zároveň hráčka),
   // jinak člen realizačního týmu (members/{email}.tid); hráčka nikdy za člena týmu (domain/event-helpers.js – selfMember)
   S.evp = selfMember(HK.pid(), pl_ ? null : HK.tid(), P.map(p => p.id), S.tr.map(t => t.id), pl_);

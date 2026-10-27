@@ -58,3 +58,13 @@ Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se
 - [ ] 7.6 ☑ Hromadně → načíst CSV z banky týmu: pokud se sloupce poznají, ⚙ ukazuje „automaticky“. Zkusit ⚙ → změnit sloupec VS na jiný → páry se změní; ↺ Automaticky vrátí.
 - [ ] 7.7 Soubor s jinými sloupci (např. upravené záhlaví v Excelu, uložit jako CSV): ⚙ se otevře sám, přiřadit částku a VS → páry; 💾 Uložit → načíst znovu → „sloupce: uložené pro účet“. 🗑 Zapomenout uložené.
 - [ ] 7.8 Rychlá kontrola z kap. 1.
+
+## 8. v22.4 – stav na kartě události, ⚖️ detail tarifu, 🔓 Výjimky
+- [ ] 8.1 V záhlaví je **v22.4**.
+- [ ] 8.2 Pokladník / manager: Události → Minulé – u události s uzavřeným vyúčtováním štítky **💰 vyúčtováno** a **✅ / 💳 zaplaceno X/Y · částka**, případně **⏰ N po splatnosti**; u uplynulé události s náklady bez uzavření **⚠️ vyúčtování neuzavřeno**. Po úhradě se štítek změní.
+- [ ] 8.3 Trenér: u tréninků dnes a v minulosti **📋 plán / bez plánu**, **⏱ uzavřen / probíhá / nespuštěn**, **⭐ ohodnoceno N / bez hodnocení** (načte se chvíli po otevření seznamu; po novém hodnocení se obnoví nejpozději do 5 min nebo po znovuotevření aplikace).
+- [ ] 8.4 Hráčka a hostující štítky nevidí; asistent bez práva pokladny nevidí 💰.
+- [ ] 8.5 Team → 💰 Platby → ⚖️ Tarify → klepnout na hráčku: souhrn sezóny, hodnota ledu a využití %, **Kdyby neplatila** (pokladna −, zvýšení ostatním), 📅 Po měsících a událostech (předpisy + navštívené uzavřené události: led, platila / v příspěvku, druhý způsob). Hráčka s nízkým využitím a příspěvkem má 💡 tip na úlevu. 🕘 Historie placení se otevře z detailu. Osvobozené – klepnutí na jméno.
+- [ ] 8.6 Team → 💰 Platby → **🔓 Výjimky**: ⛓ Blokované – zaškrtnout 2 hráčky (nebo Vybrat vše), důvod → 🔓 Udělit výjimku → Klepni znovu. Hráčky přejdou do 🔓 S výjimkou, v Docházce mají 🔓, přihlášení „Jdu“ funguje. Volba „i na předpisy před splatností“ zahrne i budoucí splatnosti.
+- [ ] 8.7 🔓 S výjimkou → vybrat → ⛓ Zrušit výjimku → hráčka je znovu blokovaná. V detailu události (Záznamy) / auditu je „výjimka udělena hromadně“ s důvodem.
+- [ ] 8.8 Rychlá kontrola z kap. 1.

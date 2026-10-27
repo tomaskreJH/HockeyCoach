@@ -32,7 +32,7 @@ export function teamData() {
   const events = {
     e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", dl: "2026-10-25T18:00", lines, grp: 2},
     e2: {title: "Trénink", date: NEXT, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-11-01T18:00"},
-    e0: {title: "Trénink", date: PAST, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-10-18T18:00"}
+    e0: {title: "Trénink", date: PAST, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-10-18T18:00", ss: true}
   };
   const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: [], ln: {}}};
   const attendance = {};
@@ -66,12 +66,14 @@ export function teamData() {
     events: {meetT: 30, meetM: 60, durT: 60},
     app: {minVer: "21.0"}
   };
-  const charges = {c1: {eid: "e0", mid: "p1", amt: 150, paid: 0, due: "2026-11-05", kind: "event", vs: "1001", acc: "op", msg: "Trenink 19.10. - Anna"}};
+  // c2 = po splatnosti (⛓ blokace) pro 🔓 Výjimky; e0 = uzavřené vyúčtování (💰 na kartě události)
+  const charges = {c1: {eid: "e0", mid: "p1", amt: 150, paid: 0, due: "2026-11-05", kind: "event", vs: "1001", acc: "op", msg: "Trenink 19.10. - Anna"},
+    c2: {eid: "e0", mid: "p2", amt: 150, paid: 0, due: "2026-10-20", kind: "event", vs: "1002", acc: "op", msg: "Trenink 19.10."}};
   const plpay = {p1: {grp: "single", fx: 1, ex: false}, p2: {grp: "monthly", fx: 1, ex: false}, p8: {grp: "monthly", fx: 1, ex: false}};
   const plevel = {team: {v: 1, lv: {p1: 4, p2: 3, p3: 3, p4: 2, p5: 3, p6: 2, p8: 3}}};
   const evpub = {e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", type: "training"}};
   return {players, staff, events, matches, attendance, drills, trplan, trlive, trms, treval, settings, charges, plpay, plevel, evpub,
-    opponents: {}, series: {}, cash: {}, evcash: {}, evprice: {}, debtors: {}, attnote: {}, staffpay: {}, requests: {}, absence: {}, budget: {}, audit: {}, joinreq: {}, lineuppub: {}, drillimg: {}, trtpl: {}};
+    opponents: {}, series: {}, cash: {}, evcash: {e0: {tpl: "train", cost: [{amt: 1050}], who: {}, settle: {total: 1050, n: 7, who: {}, at: "2026-10-20T10:00:00Z", by: "manager@smoke.cz"}}}, evprice: {e0: {ym: "2026-10", date: PAST, tpl: "train", head: {monthly: 150, single: 150, exempt: 0}}}, debtors: {}, attnote: {}, staffpay: {}, requests: {}, absence: {}, budget: {}, audit: {}, joinreq: {}, lineuppub: {}, drillimg: {}, trtpl: {}};
 }
 
 // ===== Účty =====

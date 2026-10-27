@@ -1,7 +1,7 @@
 // ⚠️ Pokladna u události (správce pokladny): šablona, náklady, kdo platí, pokrytí nákladů (domain/economy.js), vyúčtování, úhrady předpisů.
 // Data v evcash/{id} (ev.cx), v události jen příznak ss. Uzavření i znovuotevření = JEDNA dávka (evcash + ss + předpisy + audit + debtors);
 // po uzavření se nic automaticky nepřepočítává. Cena na hlavu evprice/{id} se zapíše po dávce zvlášť (chyba ji nesmí zastavit).
-// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny (i hromadně – payMany). Přehled dluhů: finance.js, pohyby: cashbook.js.
+// Předpis nese účet (acc) a zprávu (msg); úhrada je převezme do pokladny (i hromadně – payMany); výjimky z blokace i hromadně (excMany). Přehled dluhů: finance.js, pohyby: cashbook.js.
 // ===== Importy =====
 import {confirm2} from "../core/actions.js";
 import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
@@ -169,6 +169,35 @@ export function toggleExc(cid) {
   const b = S.db.batch().set("charges/" + cid, d).set("audit/" + uid(), auditDoc(x.eid || "", on ? "exc" : "exc-off", pn(x.mid) + (on ? ": výjimka z blokace udělena" : ": výjimka zrušena")));
   withDebtors(b, [{id: cid, d}], []).commit();
   toast(on ? "Výjimka udělena" : "Výjimka zrušena");
+}
+
+// Hromadná výjimka z blokace (Team → 💰 Platby → 🔓 Výjimky): cids = předpisy, on = udělit / zrušit, note = důvod do auditu.
+// Předpisy jedné osoby vždy v jedné dávce (souhrn dlužníků po osobách) + jeden záznam auditu na osobu; nejvýš PAY_CHUNK předpisů na dávku.
+// Vrací počet změněných předpisů.
+export function excMany(cids, on, note) {
+  const byMid = new Map();
+  (cids || []).forEach(cid => {
+    const x = S.ch.find(c => c.id === cid);
+    if (!x || busy.has("e" + cid) || !!x.exc === !!on) return;
+    if (!byMid.has(x.mid)) byMid.set(x.mid, []);
+    byMid.get(x.mid).push(x);
+  });
+  let b = null, n = 0, sets = [], cnt = 0;
+  const flush = () => { if (b) withDebtors(b, sets, []).commit(); b = null; sets = []; n = 0; };
+  const why = String(note || "").trim().slice(0, 120);
+  byMid.forEach((xs, mid) => {
+    if (b && n + xs.length > PAY_CHUNK) flush();
+    if (!b) b = S.db.batch();
+    xs.forEach(x => {
+      const d = chData(x);
+      if (on) d.exc = true; else delete d.exc;
+      b.set("charges/" + x.id, d); sets.push({id: x.id, d}); n++; cnt++;
+      busy.add("e" + x.id); setTimeout(() => busy.delete("e" + x.id), 1500);
+    });
+    b.set("audit/" + uid(), auditDoc("", on ? "exc" : "exc-off", pn(mid) + (on ? ": výjimka z blokace udělena hromadně" : ": výjimka zrušena hromadně") + " (" + xs.length + "×)" + (why ? " · " + why : "")));
+  });
+  flush();
+  return cnt;
 }
 
 // ===== Vykreslení =====

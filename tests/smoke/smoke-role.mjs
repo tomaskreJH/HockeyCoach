@@ -61,6 +61,8 @@ async function help() {
 // Události: rychlé tlačítko, detail tréninku s plánem, úprava plánu, živý trénink (▶ Teď)
 async function events() {
   await tap('#nav button[data-t="ev"]', 250);
+  // Minulé: řádek stavu 💰 vyúčtování / 🏒 tréninku (stav tréninků se načte jednorázově)
+  if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); await tap('[data-evm="up"]', 250); }
   if (await tap('[data-qa="e2|yes"]', 250)) snap("ev-quick");
   if (await tap("#evnt", 250)) { snap("ev-form"); await tap("#evfx", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
@@ -85,10 +87,20 @@ async function events() {
   }
   await tap("#evb", 200);
 }
-// Peníze: Team → 💰 Platby → ⚖️ Tarify a ☑ Hromadně (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
+// Peníze: Team → 💰 Platby → ⚖️ Tarify (detail), 🔓 Výjimky a ☑ Hromadně (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
 async function money() {
   if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
-    if (await tap('[data-fv="tf"]', 250)) snap("pay-tariff");
+    if (await tap('[data-fv="tf"]', 250)) {
+      snap("pay-tariff");
+      if (await tap("[data-ft]", 250)) snap("pay-tariff-detail");   // ⚖️ detail hráčky: měsíce, události, dopad na pokladnu
+    }
+    // 🔓 Výjimky: výběr dlužnice po splatnosti a hromadná výjimka druhým klepnutím
+    if (await tap('[data-fv="ex"]', 250)) {
+      snap("pay-exc");
+      const cb = $("[data-xs]");
+      if (cb) { cb.checked = true; cb.dispatchEvent(new window.Event("change")); await wait(150); }
+      if (await tap("#xgo", 200)) { snap("pay-exc-arm"); if (await tap("#xgo", 300)) snap("pay-exc-done"); }
+    }
     // ☑ Hromadně: zaškrtnutí předpisu, zápis druhým klepnutím
     if (await tap('[data-fv="hb"]', 250)) {
       snap("pay-bulk");
