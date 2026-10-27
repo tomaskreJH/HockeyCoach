@@ -8,7 +8,8 @@ import {TEAM_NAME} from "../config/team-config.js";
 import {ensureOp,save} from "../core/actions.js";
 import {compactRot,isG,lineIds,liveIds,luPlayers,pl,pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {$,clone,dlBeforeStart,dlDefault,esc,norm,td,toast,uid} from "../core/utils.js";
+import {$,clone,dlBeforeStart,esc,norm,td,toast,uid} from "../core/utils.js";
+import {dlFor,evDefaults} from "../domain/event-time.js";
 import {addPen,el_,fitLayout,goalPen,logEv,migrate,procExp} from "../domain/live-engine.js";
 import {HK} from "../data/storage.js";
 import {FX_QUICK,GRP,STAFF_PAY,fxPct,grpHWith,grpOf,pctToFx,ymNow} from "../domain/cash.js";
@@ -18,6 +19,8 @@ import {matchPrefill} from "../domain/event-prefill.js";
 import {PPAY_COLL,SPAY_COLL,plPayDoc,staffPayDoc} from "../domain/private-data.js";
 import {pickModal} from "./lineup-editor.js";
 import {render} from "./shell.js";
+// Výchozí termín přihlášení nového zápasu podle ⚙️ → ⏰ Nastavení událostí
+const dlDefault=date=>dlFor(date,"match",evDefaults(S.es));
 
 // ===== Pomocné funkce =====
 export function chips(key,ids,sel,multi){return`<div class="chips">${ids.map(id=>`<button class="chip ${(multi?(sel||[]).includes(id):sel===id)?"on":""}" data-k="${key}" data-id="${id}">${pn(id)}</button>`).join("")||'<span class="mu">Nejdřív nastav sestavu zápasu.</span>'}</div>`}

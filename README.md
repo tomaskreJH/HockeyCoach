@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.15 (27. 10. 2026, 🧪 beta)** – 🏠 příští zápas nad tréninky týdne, 🎽 trénink dělí do dresů (Modrá, Žlutá, Zelená, Růžová), kratší detail události (plán a dresy nahoře, podrobnosti sbalené), 📋 sbalené bloky v úpravě plánu a ⧉ Jako minule podle dne v týdnu. Předtím v22.14: přihlášení z Domů, nápověda podle role. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.16 (27. 10. 2026, 🧪 beta)** – ✅ dresy vidí hráčky až po potvrzení trenérem, ⏳ výchozí termín přihlášení v ⚙️, ⏰ pozdní odpovědi v 📊 Docházce, ⌛ bez odpovědi = nejde. Předtím v22.15: dresy místo pětek, kratší detail, sbalené bloky plánu. Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

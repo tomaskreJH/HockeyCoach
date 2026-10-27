@@ -37,11 +37,11 @@ export const nosPatch = on => ({[NOS_KEY]: on ? true : "__del"});
 export const nosCount = (A, ids) => (ids || []).filter(id => isNos((A || {})[id])).length;
 
 // ===== Výpočet přehledu =====
-// Sjednocený seznam událostí pro docházku: {id, kind: "train" | "home" | "away", date, start (ms)}; zrušené události se vynechají
+// Sjednocený seznam událostí pro docházku: {id, kind: "train" | "home" | "away", date, start (ms), dl (termín přihlášení)}; zrušené události se vynechají
 const counted = e => isDayStr(e.date) && !(e.cancelled && typeof e.cancelled === "object");
 export function attEvents(trainings, matches) {
-  const t = (trainings || []).filter(counted).map(e => ({id: e.id, kind: "train", date: e.date, start: startMs(e.date, e.time)}));
-  const m = (matches || []).filter(counted).map(x => ({id: x.id, kind: x.home ? "home" : "away", date: x.date, start: startMs(x.date, x.time)}));
+  const t = (trainings || []).filter(counted).map(e => ({id: e.id, kind: "train", date: e.date, start: startMs(e.date, e.time), dl: e.dl || ""}));
+  const m = (matches || []).filter(counted).map(x => ({id: x.id, kind: x.home ? "home" : "away", date: x.date, start: startMs(x.date, x.time), dl: x.dl || ""}));
   return [...t, ...m];
 }
 // Uplynulé události v období [from, to] (obě meze včetně; prázdná mez = bez omezení)
@@ -49,13 +49,20 @@ export function pastEvents(evs, from, to, now) {
   const n = now == null ? Date.now() : now;
   return (evs || []).filter(e => e.start <= n && (!from || e.date >= from) && (!to || e.date <= to));
 }
-// Prázdný řádek přehledu pro jeden typ
-const blank = () => ({n: 0, yes: 0, no: 0, maybe: 0, none: 0, nos: 0, pct: null});
+// ⏰ Pozdní odpověď: poslední zápis odpovědi (attendance.at) až po termínu přihlášení události (bez termínu = nikdy pozdě).
+// Počítá se i zápis trenérem za hráčku (např. doplnění po události nebo schválená žádost) – hráčka neodpověděla včas.
+export function isLate(a, e) {
+  if (!a || !a.at || !e || !e.dl) return false;
+  const t = new Date(a.at).getTime(), d = new Date(e.dl).getTime();
+  return !isNaN(t) && !isNaN(d) && t > d;
+}
+// Prázdný řádek přehledu pro jeden typ (late = z toho ⏰ odpověď po termínu)
+const blank = () => ({n: 0, yes: 0, no: 0, maybe: 0, none: 0, nos: 0, late: 0, pct: null});
 // Kategorie odpovědi v přehledu: „Jdu“ se značkou 🚫 = nos (nepočítá se do účasti), jinak st, chybějící = none
 const keyOf = a => isNos(a) ? "nos" : a && (a.st === "yes" || a.st === "no" || a.st === "maybe") ? a.st : "none";
 // Přehled docházky členů: výsledek {memberId: {all, train, home, away}}, každý typ {n, yes, no, maybe, none, nos, pct}
 //  - evs = uplynulé události (pastEvents), at = odpovědi, ids = členové (hráčky nebo realizační tým)
-//  - yes = účast bez 🚫, nos = 🚫 nedorazila bez omluvy; pct = procento účasti zaokrouhlené na celé číslo, null bez události
+//  - yes = účast bez 🚫, nos = 🚫 nedorazila bez omluvy, late = ⏰ odpověď po termínu; pct = procento účasti zaokrouhlené na celé číslo, null bez události
 export function attSummary(evs, at, ids) {
   const A = {};
   (at || []).forEach(a => { (A[a.eid] = A[a.eid] || {})[a.pid] = a; });
@@ -63,8 +70,8 @@ export function attSummary(evs, at, ids) {
   (ids || []).forEach(id => {
     const r = {all: blank(), train: blank(), home: blank(), away: blank()};
     (evs || []).forEach(e => {
-      const key = keyOf((A[e.id] || {})[id]);
-      [r.all, r[e.kind]].forEach(x => { x.n++; x[key]++; });
+      const a = (A[e.id] || {})[id], key = keyOf(a), lt = isLate(a, e);
+      [r.all, r[e.kind]].forEach(x => { x.n++; x[key]++; if (lt) x.late++; });
     });
     Object.values(r).forEach(x => { x.pct = x.n ? Math.round(x.yes * 100 / x.n) : null; });
     out[id] = r;

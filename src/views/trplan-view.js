@@ -9,6 +9,7 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {lokState} from "../domain/event-helpers.js";
 import {clock, DF, FW, GK, groupIn, grpLabel, hm2min, isBreak, isFixedLane, isPosBlock, laneOf, laneSeq, laneTags, MODES, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, POS_GRPS, posGroups, posGrp, rotation, seqMinutes, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
 import {bindMedia, bindThumbs, mediaHtml, thumbsHtml} from "./drill-media.js";
 import {quickSplit} from "./line-split-view.js";
@@ -78,7 +79,8 @@ function derive(ctx) {
     mineP: mp ? (isG(mp) ? GK : posGrp(mp.pos)) : null,
     coaches: T.filter(t => yes(t.id)), staff: T,
     start: start == null ? 0 : start, total: start != null && end != null && end > start ? end - start : 0,
-    mine: mp ? myGroup(L, me, isG(mp)) : null, tid: HK.tid ? HK.tid() : null
+    // Hráčka (bez práva upravovat plán) vidí svou barvu dresu až po ✅ potvrzení dresů trenérem; brankářka svou skupinu vždy
+    mine: mp && (canE() || isG(mp) || lokState(ev.raw) !== "none") ? myGroup(L, me, isG(mp)) : null, tid: HK.tid ? HK.tid() : null, lok: lokState(ev.raw)
   };
 }
 const staffName = (X, id) => { const t = X.staff.find(x => x.id === id); return t ? t.name : "?"; };
@@ -140,7 +142,7 @@ function issuesHtml(p, X, D) {
 function bodyHtml(p, X, D, staff) {
   const T = planTimes(p.blocks), used = planMinutes(p.blocks);
   const head = `${p.goal ? `<div style="margin-bottom:4px">🎯 <b>${esc(p.goal)}</b></div>` : ""}<div class="mu">${p.blocks.length} ${p.blocks.length === 1 ? "blok" : p.blocks.length < 5 ? "bloky" : "bloků"} · ${used} min${X.total ? " z " + X.total : ""}</div>
-${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}${!staff && DRESS[X.mine] ? ` · 🎽 vezmi si <b>${DRESS[X.mine]}</b> dres` : ""}</div>` : !staff && HK.pid() ? '<div class="mu" style="margin:6px 0">Zatím nejsi v žádné pětce (rozdělení dělá trenér po přihlášení).</div>' : ""}`;
+${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}${!staff && DRESS[X.mine] ? ` · 🎽 vezmi si <b>${DRESS[X.mine]}</b> dres` : ""}</div>` : !staff && HK.pid() ? (X.lok === "none" ? '<div class="mu" style="margin:6px 0">🎽 Barvu dresu uvidíš, až trenér rozdělení potvrdí.</div>' : '<div class="mu" style="margin:6px 0">Zatím nemáš dres (rozdělení dělá trenér po přihlášení).</div>') : ""}`;
   return head + (staff ? issuesHtml(p, X, D) : "") + p.blocks.map((b, bi) => blockHtml(b, bi, T[bi], X, D)).join("");
 }
 // Okno cvičení: obrázky (klepnutí = celá obrazovka), popis a odkazy; hráčka vidí název a obrázky z kopie v plánu

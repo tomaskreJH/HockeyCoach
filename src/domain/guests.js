@@ -7,7 +7,7 @@
 // ===== Importy =====
 import {LN, SL} from "../config/constants.js";
 import {dayAdd} from "./data-window.js";
-import {dressName, LINE_NOS} from "./event-helpers.js";
+import {dressName, LINE_NOS, lokState} from "./event-helpers.js";
 
 // ===== Konstanty =====
 export const GUEST_KEY = "guest";                    // příznak v players: hostující hráčka
@@ -69,7 +69,8 @@ function matchRows(lu, P) {
 // Dokument lineuppub: {k, date, rows: [{t, n: [jména]}]}; null = událost formaci nemá (dokument se nezakládá / smaže)
 export function lineupPubDoc(e, k, players, staff) {
   const P = Object.fromEntries((players || []).map(p => [p.id, p])), T = Object.fromEntries((staff || []).map(t => [t.id, t]));
-  const rows = k === "t" ? trainRows(e.lines, P, T) : matchRows(e.lineup, P);
+  // Trénink: dresy jen po ✅ potvrzení trenérem (stejně jako hráčky)
+  const rows = k === "t" ? (lokState(e) === "none" ? [] : trainRows(e.lines, P, T)) : matchRows(e.lineup, P);
   return rows.length ? {k, date: str(e.date), rows} : null;
 }
 

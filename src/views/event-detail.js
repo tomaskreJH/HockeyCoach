@@ -11,7 +11,7 @@ import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {canNos, isNos, nosCount, startMs} from "../domain/attendance.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
-import {dressName, LINE_NOS, lineCounts, setLine, trKey} from "../domain/event-helpers.js";
+import {dressName, LINE_NOS, lineCounts, lokDoc, lokState, setLine, trKey} from "../domain/event-helpers.js";
 import {defEnd, endOk, meetOf, okTime} from "../domain/event-time.js";
 import {bindLog, logBtn, logModal} from "./att-log-view.js";
 import {attReqBanner, attReqBox, attReqModal, bindAttReqAdmin, bindAttReqBox} from "./att-request-view.js";
@@ -38,7 +38,14 @@ let attOpen = null;                                                     // id ud
 const short = id => { const p = pl(id); return p ? esc(p.name) : "?"; };
 function linesHtml(ev, A, P, T, ro) {
   const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)), goT = T.filter(t => A[t.id] && A[t.id].st === "yes"), L = ev.raw.lines || {};
-  const c = lineCounts(L, going.map(p => p.id), goT.map(t => t.id)), edit = !ro && S.lse === ev.id;
+  const c = lineCounts(L, going.map(p => p.id), goT.map(t => t.id)), edit = !ro && S.lse === ev.id, lk = lokState(ev.raw);
+  // ✅ Potvrzení dresů: hráčka vidí dresy až po potvrzení; trenér vidí stav a tlačítko (zápis pole lok – jen s právem upravovat události)
+  if (ro && lk === "none") return `<div class="cd"><h2>🎽 Rozdělení do dresů</h2><div class="mu">Dresy uvidíš, až trenér trénink připraví a rozdělení potvrdí.</div></div>`;
+  const lok = ev.raw.lok || {}, when = lok.at ? new Date(lok.at).toLocaleString("cs-CZ", {day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+  const canLok = !ro && HK.perm("events", "e") && Object.keys(L).length;
+  const lokH = ro ? (lk === "changed" ? '<div class="mu" style="color:var(--wa);margin-bottom:6px">⚠️ Dresy se po potvrzení změnily – zkontroluj svou barvu.</div>' : "")
+    : lk === "ok" ? `<div class="mu" style="color:var(--ok);margin-bottom:6px">✅ Potvrzeno ${esc(when)} – hráčky dresy vidí.</div>`
+    : `<div style="margin-bottom:6px;color:var(--wa)">${lk === "changed" ? "⚠️ Změněno po potvrzení (" + esc(when) + ") – hráčky vidí upozornění." : "⏳ Nepotvrzeno – hráčky dresy zatím nevidí."}</div>${canLok ? `<button class="p w" id="lsok" style="margin-bottom:8px">✅ ${lk === "changed" ? "Potvrdit znovu" : "Potvrdit dresy"}</button>` : ""}`;
   if (!edit) {
     // Zkrácený přehled: jeden řádek na barvu (hráčky, pak 🎓 realizační tým), bez dresu jen pro trenéry
     const rows = LINE_NOS.map(n => {
@@ -48,13 +55,13 @@ function linesHtml(ev, A, P, T, ro) {
     const free = ro ? "" : going.filter(p => !L[p.id]).map(p => short(p.id));
     const freeH = free.length ? `<div class="mu" style="margin-top:6px">Bez dresu: ${free.join(", ")}</div>` : "";
     const btn = ro ? "" : `<button class="s w" id="lse" style="margin-top:8px">✏️ Upravit dresy</button>`;
-    return `<div class="cd"><h2>🎽 Rozdělení do dresů</h2>${rows || `<div class="mu">${ro ? "Trenér zatím dresy nerozdělil." : going.length ? "Zatím nerozděleno – ✨ Připravit trénink nebo ✏️ Upravit dresy." : "Zatím se nikdo nepřihlásil."}</div>`}${freeH}${btn}</div>`;
+    return `<div class="cd"><h2>🎽 Rozdělení do dresů</h2>${lokH}${rows || `<div class="mu">${ro ? "Trenér zatím dresy nerozdělil." : going.length ? "Zatím nerozděleno – ✨ Připravit trénink nebo ✏️ Upravit dresy." : "Zatím se nikdo nepřihlásil."}</div>`}${freeH}${btn}</div>`;
   }
   // Úprava: řádek = klíč v lines a jméno (HTML), volby – / Modrá / Žlutá / Zelená / Růžová
   const row = (key, label) => `<div class="pr"><div>${label}</div><div class="evln">${[0, ...LINE_NOS].map(n => `<button class="chip ${(L[key] || 0) === n ? (n ? "L" + n : "on") : ""}" data-ln="${key}|${n}" title="${n ? dressName(n) : "bez dresu"}">${n ? dressName(n).slice(0, 1) : "–"}</button>`).join("")}</div></div>`;
   const trH = goT.length ? '<div class="lnl">Realizační tým</div>' + goT.map(t => row(trKey(t.id), "🎓 " + esc(t.name) + (kindOf(t) ? ` <span class="mu">${esc(kindOf(t))}</span>` : ""))).join("") : "";
   return `<div class="cd"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">🎽 Rozdělení do dresů</h2><button class="p" id="lsdone" style="flex:none">✓ Hotovo</button></div>
-<div class="mu" style="margin:6px 0 8px">Z hráček, které jdou (bez brankářek), a přihlášeného realizačního týmu.</div>
+<div class="mu" style="margin:6px 0 8px">Z hráček, které jdou (bez brankářek), a přihlášeného realizačního týmu.</div>${lokH}
 <div style="margin-bottom:10px">${LINE_NOS.map(n => `<span class="evl L${n}">${dressName(n)}: ${c.pl[n]}${c.tr[n] ? " + 🎓" + c.tr[n] : ""}</span>`).join("")}<span class="evl L0">bez dresu: ${c.free}</span></div>
 ${splitHtml(ev, P, A)}
 ${going.length || goT.length ? going.map(p => row(p.id, pn(p.id))).join("") + trH : '<div class="msg">Zatím se nikdo nepřihlásil.</div>'}</div>`;
@@ -90,7 +97,7 @@ function detail(a, ev) {
     const showReason = x && x.reason && (!ownP || mine);                // důvody ostatních vidí jen manager, trenér a asistent
     // 🚫 tlačítko: manager / trenér / asistent u odpovědi „Jdu“ po začátku události (ne u zrušené)
     const nb = !ownP && !cn && canNos(x, st0, now) ? `<button class="evns ${nos ? "on" : ""}" data-nos="${p.id}" title="Nedorazila bez omluvy">🚫</button>` : "";
-    return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
+    return `<div class="pr"><div>${p.id === S.evp ? "<b>" : ""}${pn(p.id)}${p.id === S.evp ? "</b>" : ""}${debtTag(p.id)}${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : lk && !cn ? ' <span class="tag">⌛ bez odpovědi = nejde</span>' : ""}${nos ? ' <span class="tag red">🚫 Nedorazila</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${p.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
   };
   const rows = P.map((p, i) => (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") + pRow(p)).join("");
   const myP = me ? P.find(p => p.id === me) : null;                   // vlastní řádek hráčky (i člena týmu, který je zároveň hráčka)
@@ -112,7 +119,7 @@ function detail(a, ev) {
   const eOpen = [key, ku, kw, "evs" + ev.id].includes(S.cf) || S.evx === ev.id;
   const edits = ebtn.trim() ? `<details class="cd evx" ${eOpen ? "open" : ""}><summary><b>⚙ Úpravy ${mt ? "zápasu" : "události"}</b> <span class="mu">upravit, zrušit, smazat</span></summary><div class="row" style="margin-top:10px">${ebtn}</div></details>` : "";
   const openM = !ownP && mt && !cn ? '<button class="p w" id="evo" style="margin-top:10px;min-height:48px">🏒 Otevřít zápas</button>' : "";
-  const stats = g ? "" : `<div class="evs"><span>✅ <b>${c.yes}</b> jdou</span><span>❓ <b>${c.maybe}</b></span><span>❌ <b>${c.no}</b></span>${c.none ? `<span class="mu">bez odpovědi ${c.none}</span>` : ""}${nn ? `<span class="mu">🚫 ${nn}</span>` : ""}</div><div style="margin-top:4px;font-size:14px">${rosterLine(roster(ev, AT))}</div>`;
+  const stats = g ? "" : `<div class="evs"><span>✅ <b>${c.yes}</b> jdou</span><span>❓ <b>${c.maybe}</b></span><span>❌ <b>${c.no}</b></span>${c.none ? `<span class="mu">${lk ? "⌛ bez odpovědi = nejde" : "bez odpovědi"} ${c.none}</span>` : ""}${nn ? `<span class="mu">🚫 ${nn}</span>` : ""}</div><div style="margin-top:4px;font-size:14px">${rosterLine(roster(ev, AT))}</div>`;
   const pL = placeLine(ev, false), tL = timeLine(ev);                // 📍 místo (bez nákladů – pokladna je níž), 🕔 čas a ⏰ sraz
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
@@ -193,6 +200,9 @@ ${cancelHtml(ev, mt)}</div>` + sheetHtml() + attReqModal() + (ownP || g ? "" : l
   const lse = a.querySelector("#lse"), lsd = a.querySelector("#lsdone");
   if (lse) lse.onclick = () => { S.lse = ev.id; render(); };
   if (lsd) lsd.onclick = () => { S.lse = null; render(); };
+  // ✅ Potvrdit dresy: lok = {by, at, h – otisk rozdělení}; další změna dresů se hráčkám ukáže jako upozornění
+  const lso = a.querySelector("#lsok");
+  if (lso) lso.onclick = () => { S.db.doc(path).merge({lok: lokDoc(ev.raw.lines, (HK.user() || {}).email, new Date().toISOString())}); S.lse = null; toast("Dresy potvrzeny – hráčky je teď vidí"); };
   // Dresy (pětky): klíč je id hráčky, nebo "t:" + id člena realizačního týmu
   a.querySelectorAll("[data-ln]").forEach(b => b.onclick = () => {
     const [key, n] = b.dataset.ln.split("|");

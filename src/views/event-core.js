@@ -7,7 +7,7 @@
 import {POS} from "../config/constants.js";
 import {isG, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {dlDefault, dlText, esc, fd, td, toast} from "../core/utils.js";
+import {dlText, esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {canNos, isNos, nosPatch, startMs} from "../domain/attendance.js";
 import {costTotal, cxOf, kc} from "../domain/cash.js";
@@ -15,7 +15,7 @@ import {memberBlocked} from "../domain/debtors.js";
 import {cancelText, isCancelled} from "../domain/event-cancel.js";
 import {answerCounts} from "../domain/event-helpers.js";
 import {pushReason, reasonChips} from "../domain/event-prefill.js";
-import {evDefaults, timeParts} from "../domain/event-time.js";
+import {dlFor, evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
 import {statusLine} from "./event-badges.js";
@@ -78,8 +78,8 @@ const fDl = dlText;                    // text termínu přihlašování (core/u
 const dlMs = dl => { const t = dl ? new Date(dl).getTime() : NaN; return isNaN(t) ? null : t; };
 // Přihlašování je uzavřeno po termínu, po dni události, nebo je událost zrušená
 const isLocked = ev => { const t = dlMs(ev.dl); return (t != null && Date.now() > t) || ev.date < td() || isCancelled(ev); };
-// Výchozí termín: den před událostí v 18:00 (core/utils.js – stejný i pro nový zápas v modal.js)
-const defDl = dlDefault;
+// Výchozí termín tréninku podle ⚙️ → ⏰ Nastavení událostí (dny předem a čas; zápas v modal.js stejně přes dlFor)
+const defDl = date => dlFor(date, "training", defs());
 const activePl = () => S.pl.filter(p => stOf(p) !== "end").sort((x, y) => pri(x) - pri(y) || x.name.localeCompare(y.name, "cs"));
 // Členové realizačního týmu (trenéři, asistenti…) seřazení podle jména; zapisují se do docházky, neplatí a nenominují se
 const trs = () => [...S.tr].sort((x, y) => (x.name || "").localeCompare(y.name || "", "cs"));

@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.15 (27. 10. 2026, **jen v betě**) – 🏠 příští zápas nad tréninky, 🎽 dresy místo pětek na tréninku, kratší detail události, 📋 sbalené bloky a Jako minule (K2-3). Cache `hokej-v112` / `hokej-beta-v112`.
-- **Další číslo:** v22.16 (cache `hokej-v113`), opravy v22.15.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.15** (série k vydání: v22.12 – v22.15).
+- **Aktuální:** v22.16 (27. 10. 2026, **jen v betě**) – ✅ potvrzení dresů (`events.lok`), ⏳ výchozí termín přihlášení (`settings/events` dlT / dlM / dlH), ⏰ pozdní odpovědi v Docházce, ⌛ bez odpovědi = nejde. Cache `hokej-v113` / `hokej-beta-v113`.
+- **Další číslo:** v22.17 (cache `hokej-v114`), opravy v22.16.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** od v22.12 se verze nahrávají do větve **`beta`** (od v22.13 zapisuje Claude přímo – jeden commit na verzi, návrat = revert commitu; `main` chráněná, jen PR); do `main` jen vydání (PR `beta → main`), změny pravidel / dat, které nesnesou starší stabilní verzi, a naléhavé opravy. Ve stabilní: **v22.11**. V betě: **v22.16** (série k vydání: v22.12 – v22.16).
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
@@ -26,9 +26,10 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - v22.13 (beta) – docházka bez posouvání, počty v Domů, okno událostí hráčky (kap. 17).
 - v22.14 (beta) – přihlášení z Domů, karta události, platby jen při dluhu, nápověda podle role (kap. 18).
 - v22.15 (beta) – dresy, kratší detail, sbalené bloky plánu (kap. 19).
+- v22.16 (beta) – potvrzení dresů, termín přihlášení, ⏰ pozdě (kap. 20).
 
 ## Další krok
-1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), **čeká rozhodnutí: potvrzení dresů trenérem (nové pole události) a jak přimět hráčky odpovídat včas**, pak 4 Živý trénink (⧉ Jako minule, sbalené bloky).
+1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), **další v22.17 = 4 Živý trénink** (⧉ Jako minule, sbalené bloky).
 2. **D3** jen podle čísel z 📉 (zabalení uzavřených měsíců docházky).
 3. Pak N, P2, G (odloženo), M poslední.
 

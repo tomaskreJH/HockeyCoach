@@ -113,6 +113,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 20. v22.16 (beta) – Potvrzení dresů, termín přihlášení, ⏰ pozdě
+- [ ] 20.1 V betě je v záhlaví **v22.16**.
+- [ ] 20.2 Trenér: detail tréninku → 🎽 „⏳ Nepotvrzeno – hráčky dresy zatím nevidí“ → **✅ Potvrdit dresy** → „✅ Potvrzeno …“.
+- [ ] 20.3 Hráčka (👁 Náhled role) před potvrzením: v 🎽 „Dresy uvidíš, až trenér…“, v plánu „🎽 Barvu dresu uvidíš…“; po potvrzení dresy i „vezmi si … dres“.
+- [ ] 20.4 Trenér změní dres jedné hráčce → „⚠️ Změněno po potvrzení“ + Potvrdit znovu; hráčka vidí ⚠️ upozornění.
+- [ ] 20.5 ⚙️ → 📅 Události → ⏰ Nastavení událostí: trénink 2 dny předem, čas 20:00 → Uložit → + Trénink na čtvrtek předvyplní termín úterý 20:00; + Zápas podle nastavení zápasu.
+- [ ] 20.6 Události → 📊 Docházka: sloupec ⏰ Pozdě (odpověď po termínu, i zapsaná trenérem). Moje platby → 📅 Po měsících → 📊 Moje docházka: „⏰ pozdě N“.
+- [ ] 20.7 Detail události po uzávěrce: hráčka bez odpovědi má štítek „⌛ bez odpovědi = nejde“.
+
 ## 19. v22.15 (beta) – Dresy, kratší detail, sbalené bloky plánu
 - [ ] 19.1 V betě je v záhlaví **v22.15**.
 - [ ] 19.2 🏠 Domů: nahoře 🆚 Příští zápas (karta s ✅ ❌ ❓), pod ním 📅 Tréninky – příštích 7 dní bez zápasů.

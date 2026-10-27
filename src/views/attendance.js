@@ -37,9 +37,10 @@ function debtorList() {
   const now = Date.now();
   return (S.dt || []).filter(x => pl(x.id)).map(x => ({id: x.id, st: debtorState(x, now)})).filter(x => x.st).sort((a, b) => b.st.days - a.st.days);
 }
-// Buňky jednoho řádku tabulky: účast, procento, 🚫 nedorazila bez omluvy, nejdu, nejistá, bez odpovědi
-const cells = r => `<td><b>${r.yes}</b>/${r.n}</td><td>${r.pct == null ? "–" : r.pct + " %"}</td><td>${r.nos ? `<b style="color:var(--no)">${r.nos}</b>` : 0}</td><td>${r.no}</td><td>${r.maybe}</td><td>${r.none}</td>`;
-const HEAD = (first) => `<tr><th>${first}</th><th>✅ Účast</th><th>%</th><th>🚫</th><th>❌</th><th>❓</th><th>Bez odp.</th></tr>`;
+// Buňky jednoho řádku tabulky: účast, procento, 🚫 nedorazila bez omluvy, ⏰ odpověď po termínu, nejdu, nejistá, bez odpovědi
+const red = n => (n ? `<b style="color:var(--no)">${n}</b>` : 0);
+const cells = r => `<td><b>${r.yes}</b>/${r.n}</td><td>${r.pct == null ? "–" : r.pct + " %"}</td><td>${red(r.nos)}</td><td>${r.late ? `<b style="color:var(--wa)">${r.late}</b>` : 0}</td><td>${r.no}</td><td>${r.maybe}</td><td>${red(r.none)}</td>`;
+const HEAD = (first) => `<tr><th>${first}</th><th>✅ Účast</th><th>%</th><th>🚫</th><th>⏰ Pozdě</th><th>❌</th><th>❓</th><th>Bez odp.</th></tr>`;
 
 // ===== Vykreslení =====
 export function attHtml() {
@@ -50,7 +51,7 @@ export function attHtml() {
   const sum = attSummary(evs, S.at, [...P.map(p => p.id), ...T.map(t => t.id)]), k = o.kind;
   const nOf = kk => evs.filter(e => kk === "all" || e.kind === kk).length;
   // Přepínač období a typu událostí
-  const head = `<div class="cd"><h2>Docházka</h2><div class="mu" style="margin-bottom:8px">Uplynulé události v období ${range(o)}. Účast = odpověď „Jdu“; 🚫 nedorazila bez omluvy, ❓ nejistá a bez odpovědi se do účasti nepočítají.</div>
+  const head = `<div class="cd"><h2>Docházka</h2><div class="mu" style="margin-bottom:8px">Uplynulé události v období ${range(o)}. Účast = odpověď „Jdu“; 🚫 nedorazila bez omluvy, ❓ nejistá a bez odpovědi (= nejde) se do účasti nepočítají. ⏰ Pozdě = odpověď nebo její změna až po termínu přihlášení – trenér pak nestihne připravit trénink.</div>
 <div class="row" style="align-items:flex-end"><div style="flex:1"><label>Od</label><input type="date" id="atf" value="${o.from}"></div><div style="flex:1"><label>Do</label><input type="date" id="att" value="${o.to}"></div></div>
 <button class="s w" id="ats" style="margin-top:6px">Tato sezóna (1. 8. – 1. 7.)</button>
 <div class="chips" style="margin-top:10px">${ATT_KINDS.map(([kk, t]) => `<button class="chip ${k === kk ? "on" : ""}" data-atk="${kk}">${KIND_ICON[kk]} ${t} (${nOf(kk)})</button>`).join("")}</div></div>`;
@@ -64,8 +65,8 @@ export function attHtml() {
   const trRows = T.map(t => `<tr><td>🎓 ${esc(t.name || "?")}</td>${cells(sum[t.id][k])}</tr>`).join("");
   const empty = !evs.some(e => k === "all" || e.kind === k);
   const body = empty ? '<div class="msg">V tomto období zatím žádná uplynulá událost tohoto typu.</div>'
-    : `<div class="cd"><h2>Hráčky</h2>${P.length ? `<div class="tw"><table class="sortable" style="min-width:380px">${HEAD("Hráčka")}${plRows}</table></div>` : '<div class="msg">Žádné hráčky.</div>'}</div>
-${T.length ? `<div class="cd"><h2>Realizační tým</h2><div class="tw"><table class="sortable" style="min-width:380px">${HEAD("Člen")}${trRows}</table></div></div>` : ""}`;
+    : `<div class="cd"><h2>Hráčky</h2>${P.length ? `<div class="tw"><table class="sortable" style="min-width:440px">${HEAD("Hráčka")}${plRows}</table></div>` : '<div class="msg">Žádné hráčky.</div>'}</div>
+${T.length ? `<div class="cd"><h2>Realizační tým</h2><div class="tw"><table class="sortable" style="min-width:440px">${HEAD("Člen")}${trRows}</table></div></div>` : ""}`;
   return head + debtH + body;
 }
 

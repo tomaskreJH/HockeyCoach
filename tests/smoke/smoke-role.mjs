@@ -95,6 +95,8 @@ async function events() {
   if (await tap("#evnm", 250)) { snap("ev-match-new"); await tap("#cl", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
   snap("ev-e1");
+  // ✅ Potvrdit dresy (trenér): hráčky pak dresy uvidí
+  if (await tap("#lsok", 250)) snap("ev-e1-lok");
   // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
   if (await tap("#evatt summary", 300)) snap("ev-e1-att");
   if (await tap("[data-alg]", 300)) {

@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.16 (27. 10. 2026) – ✅ Potvrzení dresů, ⏳ termín přihlášení, ⏰ pozdní odpovědi
+> **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.16“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nová pole zapisuje trenér / asistent v rámci dnešních práv). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v113`). 3) **🔒 Vyžadovat verzi: ne** – stabilní v22.11 nová pole ignoruje (hráčky v ní dresy vidí hned). 4) Test: `docs/testy-rucni.md` kap. 20. Návrat: revert commitu v22.16 (pole `lok` a nové hodnoty v `settings/events` zůstanou neškodně v databázi).
+
+**Přidáno (data – schváleno uživatelem 27. 10. 2026)**
+- **✅ Potvrzení dresů** – pole události `lok = {by, at, h}` (`domain/event-helpers.js` – `linesSig`, `lokState`, `lokDoc`; `views/event-detail.js`): trenér v 🎽 Rozdělení do dresů klepne **✅ Potvrdit dresy**. Hráčka (a hostující – `lineuppub`, `domain/guests.js`) vidí dresy i svou barvu v plánu (`views/trplan-view.js`) až po potvrzení; plán tréninku vidí hned. Změna dresů po potvrzení → hráčky vidí „⚠️ Dresy se po potvrzení změnily“, trenér **Potvrdit znovu**. Brankářka svou skupinu vidí vždy.
+- **⏳ Výchozí termín přihlášení** – `settings/events` nově `dlT`, `dlM` (dní před tréninkem / zápasem, 0–14) a `dlH` (čas); ⚙️ → ⏰ Nastavení událostí (`views/event-settings.js`). Předvyplní se novému tréninku, zápasu i sérii (`domain/event-time.js` – `dlFor`; `views/event-core.js`, `modal.js`, `event-series.js`). Výchozí beze změny: den předem v 18:00.
+
+**Změněno**
+- **📊 Docházka** – sloupec **⏰ Pozdě** = odpověď nebo její změna po termínu přihlášení (z `attendance.at` proti `dl`, i zápis trenérem; `domain/attendance.js` – `isLate`, `attSummary.late`); v 📊 Moje docházka „⏰ pozdě N“. Bez odpovědi je v tabulce červeně.
+- **⌛ Bez odpovědi = nejde** – po uzávěrce v detailu události u hráčky bez odpovědi štítek a v podrobnostech „⌛ bez odpovědi = nejde N“ (do dresů ani plánu se nepočítá – jako dosud).
+- **Pokladna** – beze změny výpočtu: 🚫 nedorazila bez omluvy se do vyúčtování počítá (platí), odhlášení ❌ s důvodem neplatí; popsáno v ❓ nápovědě.
+- ❓ Nápověda (dresy, termín, ⏰ pozdě, pokladna), testy `isLate`, `dlFor`, `lokState`; kouřový test ✅ Potvrdit dresy.
+
+**Beze změny:** pravidla databáze, zápis odpovědí, živý zápis, statistiky. Notifikace (N) později.
+
+**Ověřeno:** `npm test` 446 / 446. `npm run smoke` – 8 rolí bez chyb.
+
 ## v22.15 (27. 10. 2026) – 🎽 Dresy místo pětek na tréninku, kratší detail, 📋 K2-3 plán tréninku
 > **Nasazení – kanál 🧪 BETA:** zapsáno přímo do větve **`beta`** (commit „v22.15“; nic se nemaže ani nepřesouvá). 1) **firestore.rules beze změny** (nepublikovat). 2) Actions: běh na `beta` zelený → v betě Načíst novou verzi (cache `hokej-beta-v112`). 3) **🔒 Vyžadovat verzi: ne.** 4) Test: `docs/testy-rucni.md` kap. 19. Vydání do stabilní se sérií v22.12 – v22.15 (PR `beta → main`). Návrat: revert commitu v22.15.
 

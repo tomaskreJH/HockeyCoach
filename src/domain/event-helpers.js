@@ -11,6 +11,17 @@ export const LINE_NOS = [1, 2, 3, 4];           // čísla pětek
 export const DRESS_NAMES = {1: "Modrá", 2: "Žlutá", 3: "Zelená", 4: "Růžová"};
 // Název skupiny tréninku podle čísla (Modrá …); neznámé číslo = „N. skupina“
 export const dressName = n => DRESS_NAMES[n] || n + ". skupina";
+// ✅ Potvrzení dresů trenérem: pole události lok = {by, at, h}; h = otisk rozdělení (lines) v okamžiku potvrzení.
+// Hráčky vidí dresy (i svou barvu v plánu) až po potvrzení; změna rozdělení po potvrzení = stav "changed" (hráčky vidí upozornění).
+export const linesSig = lines => Object.keys(lines || {}).filter(k => +lines[k] > 0).sort().map(k => k + ":" + +lines[k]).join(",");
+// Stav potvrzení: "none" (nepotvrzeno), "ok" (potvrzeno, beze změny), "changed" (po potvrzení změněno)
+export function lokState(e) {
+  const l = e && e.lok;
+  if (!l || typeof l !== "object" || !l.at) return "none";
+  return linesSig(e.lines) === String(l.h || "") ? "ok" : "changed";
+}
+// Hodnota pole lok pro potvrzení (by = e-mail, at = čas ISO)
+export const lokDoc = (lines, by, at) => ({by: String(by || ""), at: String(at || ""), h: linesSig(lines)});
 
 // ===== Pomocné funkce =====
 // Porovnání událostí podle data a času (bez času na konec dne)
