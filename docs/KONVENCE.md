@@ -1,6 +1,24 @@
 # Konvence projektu HockeyCoach (programovací řád)
 
 Vstup pro každou úpravu: nejdřív `docs/STAV.md` a tento soubor, pak jen soubory, kterých se úprava týká. Co tu není, řeší stávající kód – piš stejně jako sousední kód.
+Role a pravidla pro Claude jsou v pokynech projektu claude.ai „HockeyCoach“ (samostatná šablona zadání už není potřeba); jak se podle nich pracuje v repozitáři: kap. 0.
+
+## 0. Práce s Claude (od v22.17)
+**Start vlákna (šetři limit):**
+1. Aktualizovat z repozitáře: `git clone --depth 1 -b beta` (pokračuje se vždy od větve `beta`). **Vypsat načtenou verzi** (`src/core/app-version.js` → `APP_VERSION`) a porovnat se `docs/STAV.md`.
+2. `npm test` (Node 22+) musí být zelený ještě před prací, jinak to nejdřív ohlásit. `npm install` jen pro kouřový test.
+3. Přečíst jen `docs/STAV.md` a tento soubor; k úkolu cíleně kapitolu `docs/plan.md` a poslední záznam `CHANGELOG.md`. Kód cíleně (`grep -n`, výřezy), nic dvakrát, žádní subagenti.
+4. Výsledek ručního testu verzí „k testu“ ze `STAV.md` – zeptat se jednou krátkou otázkou, pokud ho uživatel nenapíše. Nález = oprava (vX.Y.Z) dřív než nová funkce.
+
+**Zápis a vydání:**
+1. Změny zapisuje Claude **přímo do větve `beta`** – **jedna verze = jeden commit** se zprávou `vX.Y – název`. Do `main` nikdy (chráněná); vydání dělá uživatel přes PR `beta → main`. Návrat = revert commitu. Žádné ZIP ani úpravy NAJDI / NAHRAĎ.
+2. Soubory celé, **bez zkracování** (`// ... zbytek kódu ...` je zakázané), struktura podle kap. 2, stručné české komentáře.
+3. **Před změnou `firestore.rules` nebo dat (migrace, nové pole s `hasOnly`) se zeptat** – nejde vrátit přes Git. Data jen přidávat; pravidla rozšířit → převést → zúžit; stará pole mazat až o verzi později.
+4. Neměnit funkční logiku, která s úkolem nesouvisí (živý zápis, střely, góly, časomíra, pokladna…). Vyžaduje-li úkol zásah jinde, nejdřív upozornit a zeptat se.
+5. Každá verze: vše z kap. 4 najednou (verze, cache, CHANGELOG, README, STAV, plan, testy-rucni, help). U verze uvést, zda **publikovat firestore.rules** a zda nastavit **🔒 Vyžadovat verzi** (jen ve stabilní).
+6. Před commitem `npm test` zelený a `npm run smoke` bez chyb; co bylo ověřeno, patří do CHANGELOG.
+
+**Šetření:** kreditů Claude (cílené čtení, testy s filtrem `grep -E "^not ok|^# (pass|fail)"`, ptát se jen na kritická rozhodnutí, drobnosti přidávat k nejbližší větší verzi) i **čtení databáze** (kap. 3, 📉). Odpověď na konci krátce: načtená verze → nová verze, commit, postup nasazení v pár bodech, výsledek testů.
 
 ## 1. Mapa souborů
 Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobnosti o funkcích jsou v hlavičce a v komentářích každého souboru.
@@ -101,14 +119,14 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `trplan-edit.js` | 📋 úprava plánu na celé stránce (bloky, čas, skupiny, řada cvičení, ⭐ Jen moje linky, uložení se sloučením) |
 | `trplan-reuse.js` | ⧉ kopie, 📑 šablony, 📊 pokrytí dovedností, ✨ příprava |
 | `line-split-view.js` | rozdělení do pětek, okno ⭐ výkonnosti |
-| `trlive-view.js` | ⏱ živý trénink (karta, obrazovka, řízení hodin, zbytek plánu) |
-| `trlive-alerts.js` | ⏱ vibrace, zvuk, ⌚ oznámení, Wake Lock |
+| `trlive-view.js` | ⏱ živý trénink (karta, obrazovka, přilepené záhlaví se zbývajícím časem, spodní lišta řídícího, 🔒 zámek dotyku, zbytek plánu) |
+| `trlive-alerts.js` | ⏱ vibrace, zvuk, ⌚ oznámení (i změna od řídícího), Wake Lock s obnovou a stavem ☀ |
 | `stopwatch-view.js`, `treval-view.js` | ⏲ stopky a výsledky, ⭐ hodnocení |
 | `settings-view.js`, `perm-view.js` | ⚙️ Účet a data, 🔐 práva rolí |
 | `join-view.js` | ✋ žádost o přijetí do týmu |
 | `auto-sync.js` | tichý zápis odvozených dat (`HK.syncOps`) |
 | **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
-| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `prompt-dalsi-vlakno.md`, `archiv/` |
+| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `archiv/` (pravidla pro Claude: kap. 0 a pokyny projektu) |
 
 **⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `views/block-exc-view.js`, `domain/block-exc.js`, `domain/cost-check.js`, `views/cost-view.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 
@@ -182,9 +200,9 @@ Klíč linky = `blok_linka`, u cvičení řady `blok_linka-cvičení` (`msKey`, 
 - Nová obrazovka nebo tok = doplnit krok do `smoke-role.mjs` a data do `smoke-data.mjs`.
 
 ## 6. Nasazení (postup pro správce)
-1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu a zip současného repozitáře.
-2. Podle CHANGELOG **publikovat firestore.rules** před, nebo po nahrání kódu.
-3. Nahrát soubory; smazané soubory z CHANGELOG odstranit i z webu.
-4. ⚙️ → 👤 Účet → Načíst novou verzi, ověřit verzi v záhlaví. Do větve **beta** nebo **main** podle CHANGELOG (README, kap. Kanály); vydání bety pro všechny = PR `beta → main`.
-5. U verzí, které mění data: po aktualizaci všech zařízení 🔒 Vyžadovat verzi.
-6. Návrat: předchozí zip, pravidla z historie v konzoli, `settings/app.minVer` snížit ručně.
+1. Záloha dat: ⚙️ → 💾 Data → Stáhnout zálohu (kód má historii v Gitu).
+2. Podle CHANGELOG **publikovat firestore.rules** před, nebo po commitu (jen u verzí, které to uvádějí – po dotazu).
+3. Commit verze zapíše Claude do `beta`; GitHub Actions nasadí betu za 1–2 min (`…/beta/`).
+4. ⚙️ → 👤 Účet → Načíst novou verzi, ověřit verzi v záhlaví. Vydání bety pro všechny = PR `beta → main` (README, kap. Kanály).
+5. U verzí, které mění data: po aktualizaci všech zařízení ve stabilní 🔒 Vyžadovat verzi.
+6. Návrat: revert commitu verze v `beta` (ve stabilní revert merge v `main` přes PR), pravidla z historie v konzoli, `settings/app.minVer` snížit ručně.

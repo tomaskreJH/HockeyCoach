@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.16.2 (27. 10. 2026, 🧪 beta)** – docházka před 1. 11. 2026: všechny události, „Jdu“ = účast, vše ostatní = nejde, bez ⏰ pozdě; v22.16: ✅ dresy vidí hráčky až po potvrzení trenérem, ⏳ výchozí termín přihlášení v ⚙️, ⏰ pozdní odpovědi v 📊 Docházce, ⌛ bez odpovědi = nejde. Předtím v22.15: dresy místo pětek, kratší detail, sbalené bloky plánu. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.17 (28. 10. 2026, 🧪 beta)** – ⏱ živý trénink na ledě: zbývající čas plánu a tréninku vždy nahoře, řídící má ⏸ / ⏭ / +1 min v pevné liště dole, ostatní trenéry upozorní změna od řídícího, 🔒 zámek dotyku do kapsy, ☀ obrazovka nezhasne (obnova zámku), hodiny správně i po zápisu bez signálu. Předtím v22.16.2: docházka před 1. 11. 2026. Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.
@@ -8,10 +8,9 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního 
 | Dokument | Obsah |
 |---|---|
 | [docs/STAV.md](docs/STAV.md) | kde projekt stojí – **vstup pro vývoj** |
-| [docs/KONVENCE.md](docs/KONVENCE.md) | programovací řád, mapa souborů, testy, vydání verze |
+| [docs/KONVENCE.md](docs/KONVENCE.md) | práce s Claude (kap. 0), programovací řád, mapa souborů, testy, vydání verze |
 | [docs/plan.md](docs/plan.md) | nehotové fáze |
 | [docs/testy-rucni.md](docs/testy-rucni.md) | ruční test na telefonu |
-| [docs/prompt-dalsi-vlakno.md](docs/prompt-dalsi-vlakno.md) | šablona zadání pro nové vlákno s Claude |
 | `docs/archiv/` | hotové plány, starší CHANGELOG a testy |
 
 ## Spuštění a testy
@@ -38,22 +37,22 @@ Web staví GitHub Actions (`.github/workflows/pages.yml`) z obou větví: **`mai
 5. Manager v aplikaci: ⚙️ → **🧪 Beta testování** → zaškrtnout testery (vývojář je tester vždy).
 
 **Běžný postup (malé a střední verze bez zásahu do dat):**
-1. ZIP verze nahrát do větve **`beta`** (v GitHubu přepnout větev na `beta` → Add file → Upload files).
+1. Claude zapíše verzi do větve **`beta`** jako jeden commit `vX.Y – název` (do `main` nikdy; návrat = revert commitu).
 2. Testeři dostanou ve stabilní verzi pruh **🧪 Nová beta v… k vyzkoušení** (nebo ⚙️ → 👤 Účet → 🧪 Otevřít betu); v betě je nahoře fialový pruh **🧪 Beta v…**. Beta jde přidat na plochu jako druhá ikona „HockeyCoach β“.
 3. Takto lze nasadit a testovat více verzí za sebou.
 4. **Vydání do stabilní:** *Pull requests → New → base: `main` ← compare: `beta`* → Create → **Merge**. Pak v aplikaci (stabilní) Načíst novou verzi a případně 🔒 Vyžadovat verzi.
 
-**Přímo do `main` (i do `beta`) jdou:** změny dat nebo pravidel, které nesnesou souběh starší stabilní verze, a naléhavé opravy. CHANGELOG u každé verze uvádí kanál. Po nahrání do `main` stejný ZIP nahrát i do `beta` (nebo PR `main → beta`), aby beta nebyla pozadu.
+**Mimo betu:** změny dat nebo pravidel, které nesnesou souběh starší stabilní verze, a naléhavé opravy připraví Claude také jako commit v `beta`; do `main` je dostane uživatel PR `beta → main` (případně hned po commitu). CHANGELOG u každé verze uvádí, zda je potřeba vydat hned. Pravidla `firestore.rules` publikuje uživatel ručně v konzoli Firebase – Claude se před jejich změnou vždy zeptá.
 
 **V betě platí:** 🔒 Vyžadovat verzi se nenastavuje (vyšší číslo bety by zablokovalo stabilní verzi) – až ve stabilní po vydání. Pravidla databáze musí fungovat pro stabilní i betu (data jen přidávat).
 
 ## Nasazení nové verze
-1. Záloha: ⚙️ → 💾 Data → Stáhnout zálohu + zip současného repozitáře.
-2. Podle CHANGELOG **publikovat firestore.rules** (před, nebo po nahrání kódu).
-3. Nahrát soubory do větve podle CHANGELOG (**beta**, nebo **main**); soubory, které CHANGELOG uvádí jako odstraněné, smazat i ve větvi.
+1. Záloha dat: ⚙️ → 💾 Data → Stáhnout zálohu (kód má historii v Gitu).
+2. Podle CHANGELOG **publikovat firestore.rules** (před, nebo po commitu).
+3. Commit verze je v `beta` (zapisuje Claude, včetně smazaných souborů); vydání pro všechny PR `beta → main`.
 4. Na zařízeních ⚙️ → **Načíst novou verzi** (maže jen kopii svého kanálu).
 5. Když to CHANGELOG uvádí: manager ve **stabilní** verzi ⚙️ → **🔒 Vyžadovat verzi** (starší zařízení pak nic nezapisují).
-6. Návrat: předchozí zip, pravidla z historie v konzoli Firebase, `settings/app.minVer` snížit ručně. Beta: nahrát do `beta` obsah `main` (PR `main → beta`).
+6. Návrat: revert commitu verze (beta), ve stabilní revert merge PR; pravidla z historie v konzoli Firebase, `settings/app.minVer` snížit ručně.
 
 **Starou verzi po nahrání** vyřeší ⚙️ → Načíst novou verzi (data zůstanou v databázi). Na webu musí být všechny soubory včetně `sw.js` a celé složky `src/`.
 

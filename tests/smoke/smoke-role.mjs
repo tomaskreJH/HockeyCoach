@@ -116,6 +116,16 @@ async function events() {
   }
   if (await tap("#tlgo", 600)) {
     snap("trlive");
+    // v22.17: přilepené záhlaví se zbývajícím časem vždy; řídící má pevnou spodní lištu ⏸ / ⏭ / +1 min
+    if (!$("#tlv .tltop #tlr")) throw new Error("⏱ chybí zbývající čas v záhlaví");
+    if ($("#tlv .tlbot")) snap("trlive-bar");
+    // 🔒 Zámek dotyku: zapnout, odemknout dvojitým klepnutím
+    if (await tap("#tlk", 200)) {
+      snap("trlive-lock");
+      if (!$("#tllock #tlc2")) throw new Error("🔒 zamčená obrazovka bez odpočtu");
+      await tap("#tllock", 0); await tap("#tllock", 200);
+      if ($("#tllock")) throw new Error("🔒 zámek dotyku se dvojitým klepnutím neodemkl");
+    }
     // ▶ Teď: první klepnutí se zeptá (u cizího řídícího nejdřív převzetí řízení), další skočí na blok (bloky mezi se vypustí)
     if (await tap("[data-tlj]", 200)) {
       snap("trlive-jump-arm");

@@ -2,6 +2,26 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.17 (28. 10. 2026) – ⏱ Živý trénink na ledě (K2/4) + kontrola před ostrým testem
+> **Nasazení – kanál 🧪 BETA:** commit „v22.17“ do větve **`beta`**. firestore.rules beze změny (pole `trlive` se nemění). V betě Načíst novou verzi (cache `hokej-beta-v116`). 🔒 Vyžadovat verzi: ne. Test: kap. 21 (ostrý trénink). Odstraněno: `docs/prompt-dalsi-vlakno.md`.
+
+**Přidáno**
+- `views/trlive-view.js` – **přilepené záhlaví**: zbývá plán, čas do konce tréninku a přetahování / rezerva vždy nahoře (i při posunu obrazovky); **pevná spodní lišta řídícího** ⏸ Pauza / ▶ Dál · ⏭ Další · +1 min (vždy stejné místo, velká tlačítka), ⏮ / ✂ −1 min / +5 min / ⏹ zůstaly nad linkami; ostatní trenéři lištu nemají (méně omylů, převzetí řízení dál druhým klepnutím). **🔒 Zámek dotyku**: černá obrazovka s odpočtem do kapsy, odemknutí dvojitým klepnutím, hodiny a upozornění běží dál.
+- `domain/training-live.js` – `remoteKind` / `remoteNote`: změnu hodin od řídícího trenéra (▶ start, ⏸, ▶ pokračování, ⏭ / ⏮ / ±min / ▶ Teď, 📋 úprava dalších bloků, ⏹) ostatní zařízení ohlásí vibrací, zvukem a ⌚ oznámením „co teď / kolik zbývá / co potom“ (`views/trlive-alerts.js` → `remote`).
+- `views/trlive-alerts.js` – ☀ stav zámku obrazovky v záhlaví („obrazovka nezhasne“ / ⚠ „může zhasnout“ – úsporný režim), obnova ztraceného Wake Lock každých 5 s, ochrana proti souběžné žádosti.
+
+**Opraveno**
+- `domain/training-live.js` – `liveSec`: zápis řídícího odeslaný bez signálu (zimák) má čas serveru až z doručení – ostatním by hodiny ujely o dobu bez signálu. Při rozdílu čas serveru − čas zařízení > 15 s (`LATE_MS`) se počítá od času zařízení zápisu (telefony mají čas ze sítě).
+- Ostatní trenéři se dřív o ⏸ / ⏭ / +1 min od řídícího nedozvěděli (odpočet se jen tiše změnil).
+
+**Změněno**
+- `docs/KONVENCE.md` kap. 0 **Práce s Claude** (start vlákna, commit do `beta`, bez ZIP, dotaz před pravidly / daty, šetření) – nahrazuje šablonu `docs/prompt-dalsi-vlakno.md` (pravidla jsou v pokynech projektu). README, KONVENCE kap. 6 a STAV podle zápisu commitem (návrat = revert).
+- `views/help.js` – ⏱ Živý trénink: spodní lišta, ohlášení změn, ☀, 🔒.
+
+**Beze změny:** plán tréninku, stopky, hodnocení, živý zápis zápasu, pokladna, pravidla databáze.
+
+**Ověřeno:** `npm test` 451 / 451 (nové `tests/training-live-sync.test.js`), `npm run smoke` 8 rolí bez chyb (nově záhlaví, spodní lišta řídícího, 🔒 zamknutí a odemknutí).
+
 ## v22.16.2 (27. 10. 2026) – 📊 Docházka před 1. 11. 2026: vše kromě „Jdu“ = nejde
 > **Nasazení – kanál 🧪 BETA:** commit „v22.16.2“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v115`). 🔒 Vyžadovat verzi: ne. Test: kap. 20, krok 20.8.
 

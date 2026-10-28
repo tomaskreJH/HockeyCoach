@@ -113,6 +113,23 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
+## 21. v22.17 (beta) – ⏱ Živý trénink na ledě (ostrý test 28. 10. 2026)
+**Před ledem (doma / v šatně, 5 minut, každý trenér na svém telefonu):**
+- [ ] 21.1 V betě je v záhlaví **v22.17** (⚙️ → 👤 Účet → Načíst novou verzi).
+- [ ] 21.2 Telefon: vypnutý **úsporný režim baterie** (jinak systém nedovolí držet obrazovku), Chrome / HockeyCoach má povolená oznámení; v aplikaci hodinek (Garmin Connect) povolená oznámení z Chrome / HockeyCoach.
+- [ ] 21.3 Detail tréninku → 📋 Plán → ⏱ Živý trénink → klepnout **⌚** (systém se zeptá na povolení) → přijde zkušební oznámení „⌚ Oznámení zapnuta“ i na hodinky; tlačítko ukazuje ⌚✓.
+- [ ] 21.4 Nahoře v okně svítí **☀ obrazovka nezhasne** (⚠ = úsporný režim nebo starý prohlížeč).
+- [ ] 21.5 Řídící trenér (jediný) ▶ Spustit trénink. Ostatní trenéři mají stejný odpočet (rozdíl do 1 s) a **nic neovládají** – jen sledují své stanoviště (📍 Moje stanoviště, u řady cvičení vlastní odpočet).
+
+**Na ledě:**
+- [ ] 21.6 Odpočet běží všem stejně; 60 s a 10 s před koncem kola / cvičení vibrace + ⌚ oznámení „co teď / co potom“, při točení dlouhá vibrace.
+- [ ] 21.7 Řídící: dole pevná lišta **⏸ Pauza · ⏭ Další · +1 min** (vždy stejné místo). Po ⏸ / ⏭ / +1 min dostanou ostatní trenéři vibraci a oznámení „⏸ Trénink pozastaven“ / „↪ Změna: …“ / „▶ Pokračujeme“.
+- [ ] 21.8 Nahoře vždy vidět **zbývá plán** a **do konce tréninku** (i když se obrazovka posune dolů).
+- [ ] 21.9 **🔒** → černá obrazovka s velkým odpočtem; telefon do kapsy – nic se omylem nezmáčkne, vibrace a oznámení chodí dál; **dvojité klepnutí** odemkne.
+- [ ] 21.10 Obrazovka během celého tréninku nezhasne (telefon položený i v kapse se zámkem dotyku). Po zhasnutí tlačítkem a odemčení telefonu se ☀ obnoví samo.
+- [ ] 21.11 (bez signálu) Řídící spustí / posune hodiny s vypnutými daty → po zapnutí dat mají ostatní stejný čas jako řídící (ne o dobu bez signálu pozadu).
+- [ ] 21.12 Baterie: kolik % ubylo za trénink se svítící obrazovkou (se 🔒 by mělo být méně) – napiš do vlákna.
+
 ## 20. v22.16 (beta) – Potvrzení dresů, termín přihlášení, ⏰ pozdě
 - [ ] 20.1 V betě je v záhlaví **v22.16**.
 - [ ] 20.2 Trenér: detail tréninku → 🎽 „⏳ Nepotvrzeno – hráčky dresy zatím nevidí“ → **✅ Potvrdit dresy** → „✅ Potvrzeno …“.
