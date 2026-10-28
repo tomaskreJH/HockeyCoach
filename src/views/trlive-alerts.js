@@ -1,9 +1,10 @@
 // ⏱ Živý trénink – upozornění: vibrace a zvuk 60 s a 10 s před koncem kola a při točení (🔔 hk-tl-mute), ⌚ systémové oznámení „co teď / co potom“
-// (hk-tl-ntf; Android ho zrcadlí na hodinky, řídící má akce ⏸ / ⏭ přes sw.js) a Wake Lock obrazovky. Stav a pomůcky bere z trlive-view.js.
+// (hk-tl-ntf; Android ho zrcadlí na hodinky, řídící má akce ⏸ / ⏭ přes sw.js), ohlášení změny od řídícího trenéra (remote) ostatním
+// zařízením a Wake Lock obrazovky (obnova po ztrátě, stav pro ☀ v záhlaví). Stav a pomůcky bere z trlive-view.js.
 
 // ===== Importy =====
 import {toast} from "../core/utils.js";
-import {laneSub, liveAt, liveNote} from "../domain/training-live.js";
+import {laneSub, liveAt, liveNote, remoteNote} from "../domain/training-live.js";
 import {clock, grpLabel, isBreak, laneSeq, laneTags, MODES} from "../domain/training-plan.js";
 import {canE, L, liveB, me, mine, muted, NTF_KEY, ntfOn, paint, subAt} from "./trlive-view.js";
 
@@ -21,13 +22,16 @@ function beep(n, len = 160, f = 880) {
   } catch (e) { /* zvuk není k dispozici */ }
 }
 const buzz = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* bez vibrací */ } };
-// Upozornění: vibrace + zvuk v aplikaci a ⌚ oznámení (kind 60 | 10 | "switch" | "end", at = poloha v plánu po změně)
+// Upozornění: vibrace + zvuk v aplikaci a ⌚ oznámení (kind 60 | 10 | "switch" | "end" | "r:…" změna od řídícího, at = poloha v plánu po změně)
 function alarm(kind, at) {
   if (kind === 60) { buzz([200, 100, 200]); beep(2); }
   else if (kind === 10) { buzz([300, 100, 300, 100, 300]); beep(3, 160, 1100); }
-  else { buzz(800); beep(1, 700, 660); }
+  else if (kind === "switch" || kind === "end") { buzz(800); beep(1, 700, 660); }
+  else { buzz([150, 80, 150]); beep(2, 120, 740); }
   notify(kind, at);
 }
+// Změna hodin od řídícího trenéra (kind z remoteKind: start | pause | resume | jump | adj | end) – vibrace, zvuk a ⌚ oznámení
+const remote = (kind, at) => alarm("r:" + kind, at);
 // Kde jsem v kole (pro text oznámení): moje linka (trenér / skupina hráčky), jinak jediná linka bloku, jinak blok
 function spot(B, at, X) {
   if (isBreak(B[at.bi])) return {where: "☕ Pauza", what: B[at.bi].brk || "", who: ""};
@@ -57,7 +61,9 @@ function notify(kind, at) {
   const live = at && !at.done, cur = live ? spot(B, at, X) : null, s = live ? subAt(B, at, X) : null;
   // Řada cvičení: potom = další cvičení řady (v tomtéž kole), konec = konec cvičení
   const n = live ? liveAt(B, s && s.nx ? at.ba + s.nx.a : at.b) : null, nxt = n && !n.done ? spot(B, n, X) : null;
-  const t = liveNote(kind, cur, nxt, live ? (s ? s.left : at.left) : 0, live && X.start != null ? clock(X.start, s ? Math.min(at.ba + s.b, at.b) : at.b) : "");
+  const left = live ? (s ? s.left : at.left) : 0, till = live && X.start != null ? clock(X.start, s ? Math.min(at.ba + s.b, at.b) : at.b) : "";
+  const rk = typeof kind === "string" && kind.startsWith("r:") ? kind.slice(2) : null;
+  const t = rk ? remoteNote(rk, cur, nxt, left, till) : liveNote(kind, cur, nxt, left, till);
   show(t.title, t.body);
 }
 // ⌚ Zapnutí / vypnutí oznámení (zapnutí si řekne o povolení systému)
@@ -71,10 +77,22 @@ async function toggleNtf() {
   save("1"); paint();
   show("⌚ Oznámení zapnuta", "60 s a 10 s před koncem kola a při točení přijde, co je teď a co následuje – i na hodinky.");
 }
+// Wake Lock: obrazovka nezhasne, dokud je otevřená obrazovka živého tréninku. Systém ho uvolní při skrytí aplikace (zhasnutí
+// tlačítkem, přepnutí aplikace) nebo v úsporném režimu – tik ho pak obnovuje (wakeTry). L.wakeP = žádost právě běží.
 async function wakeOn() {
-  try { if (navigator.wakeLock && !L.wake && document.visibilityState === "visible") { L.wake = await navigator.wakeLock.request("screen"); L.wake.addEventListener("release", () => { L.wake = null; }); } } catch (e) { L.wake = null; }
+  if (!navigator.wakeLock || L.wake || L.wakeP || document.visibilityState !== "visible") return;
+  L.wakeP = true;
+  try {
+    const w = await navigator.wakeLock.request("screen");
+    // Obrazovka mezitím zavřená → zámek hned pustit
+    if (!L.el) { try { w.release(); } catch (e) { /* už uvolněno */ } }
+    else { L.wake = w; w.addEventListener("release", () => { if (L.wake === w) L.wake = null; }); }
+  } catch (e) { L.wake = null; }
+  L.wakeP = false;
 }
 function wakeOff() { try { if (L.wake) L.wake.release(); } catch (e) { /* už uvolněno */ } L.wake = null; }
+// Stav pro záhlaví: "on" = obrazovka nezhasne, "off" = zámek se nepodařil (úsporný režim, skrytá aplikace), "na" = prohlížeč neumí
+const wakeState = () => (typeof navigator === "undefined" || !navigator.wakeLock ? "na" : L.wake ? "on" : "off");
 
 // ===== Exporty =====
-export {alarm, beep, show, toggleNtf, wakeOff, wakeOn};
+export {alarm, beep, remote, show, toggleNtf, wakeOff, wakeOn, wakeState};

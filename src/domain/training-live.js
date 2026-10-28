@@ -1,6 +1,8 @@
 // Doména: ⏱ živý trénink – společné hodiny trlive/{eid} a „kde jsme teď“ v plánu (blok, kolo točení, cvičení řady, zbývá).
 // Dokument: {v, st run|pause|end, e0 (s od začátku plánu), wAt, sAt (čas serveru), ctl (řídící), adj {blok: min}, skip [blok], by, at}.
 // Čas při běhu = e0 + (teď − sAt), posun hodin zařízení se dorovná odhadem skew. Úpravy adj / skip (i ▶ Teď = skok na blok) platí jen pro průběh.
+// Zápis odeslaný se zpožděním (řídící byl na zimáku bez signálu) má sAt = čas doručení – pak se počítá od času zařízení wAt (LATE_MS).
+// Změnu hodin od řídícího trenéra ostatním zařízením ohlásí remoteKind (⏸ / ▶ / ↪ / 📋) – vibrace a ⌚ oznámení.
 // Upozornění vibrací, zvukem a systémovým oznámením (i na hodinky) s textem „co teď / co potom“ (liveNote).
 // ===== Importy =====
 import {BLK_DUR_MAX, GK, isPosBlock, laneSeq, planTimes, posGrp, rotation, seqStep} from "./training-plan.js";
@@ -15,6 +17,7 @@ export const LIVE_MAX = 6 * 3600;                       // nejdelší možný č
 export const SKEW_MAX = 12 * 3600 * 1000;               // větší odchylka hodin se nebere vážně (ms)
 export const ADJ_MAX = 30;                              // nejvýš tolik upravených / vypuštěných bloků (jako bloků plánu)
 const NOW_MARK = "__now";                               // značka pro storage.js: čas serveru (serverTimestamp)
+export const LATE_MS = 15000;                           // sAt o víc než 15 s po wAt = zápis čekal bez signálu → počítat od wAt
 
 // ===== Pomocné funkce =====
 const num = v => (typeof v === "number" && isFinite(v) ? v : null);
@@ -29,11 +32,14 @@ export function tsMs(v) {
 // ===== Hodiny =====
 // Sekundy od začátku plánu (null = hodiny nebyly spuštěny). now = čas zařízení (ms), skew = odhad (čas zařízení − čas serveru, ms).
 // Bez potvrzeného času serveru (zápis právě odchází) se počítá od wAt – to je čas téhož zařízení, které zapsalo.
+// Zápis doručený se zpožděním (sAt − wAt > LATE_MS, řídící byl offline): čas zařízení wAt převedený odhadem skew na toto zařízení
+// (hodiny telefonů se řídí sítí, odchylka bývá do 1–2 s; zpožděný čas serveru by všem posunul hodiny o dobu bez signálu).
 export function liveSec(live, now, skew = 0) {
   if (!live || !LIVE_ST[live.st]) return null;
   const e0 = clamp(num(live.e0) || 0, 0, LIVE_MAX);
   if (live.st !== "run") return e0;
-  const s = tsMs(live.sAt), ref = s != null ? s + (num(skew) || 0) : num(live.wAt);
+  const s = tsMs(live.sAt), w = num(live.wAt), sk = num(skew) || 0;
+  const ref = s == null ? w : w != null && s - w > LATE_MS ? w + sk : s + sk;
   if (ref == null) return e0;
   return clamp(e0 + (now - ref) / 1000, 0, LIVE_MAX);
 }
@@ -181,6 +187,30 @@ export function liveNote(kind, cur, nxt, left, till) {
   const t = mmss(left);
   if (kind === 10) return {title: "⏱ " + t + " → " + (nxt ? [nxt.where, nxt.what].filter(Boolean).join(" · ") : "konec"), body: (cur ? "Teď: " + line(cur) + " · " : "") + next};
   return {title: "⏱ Ještě " + t + (cur && cur.what ? " · " + cur.what : ""), body: (cur ? "Teď: " + line(cur) + " · " : "") + next};
+}
+// Změna hodin od jiného zařízení (řídící trenér) pro upozornění ostatních: "start" | "pause" | "resume" | "end" | "jump" (posun,
+// ⏭ / ⏮ / ±min / ▶ Teď) | "adj" (úprava dalších bloků) | null (beze změny, vlastní zápis, první načtení, potvrzení serveru téhož zápisu)
+export function remoteKind(old, nw, me) {
+  if (!old || !nw || !LIVE_ST[nw.st]) return null;
+  if (String(nw.by || nw.ctl || "").toLowerCase() === String(me || "").toLowerCase()) return null;
+  if (old.wAt === nw.wAt && old.st === nw.st && old.e0 === nw.e0) return null;
+  const st0 = LIVE_ST[old.st] ? old.st : null;
+  if (nw.st !== st0) return nw.st === "pause" ? "pause" : nw.st === "end" ? "end" : st0 === "pause" ? "resume" : "start";
+  if (nw.st === "end") return null;
+  const same = JSON.stringify([old.adj || {}, old.skip || []]) === JSON.stringify([nw.adj || {}, nw.skip || []]);
+  // Úprava dalších bloků (keep) zapisuje hodiny beze skoku – e0 sedí s během starého stavu (tolerance 3 s na posun hodin)
+  if (!same && Math.abs((num(nw.e0) || 0) - (liveSec(old, num(nw.wAt) || 0) || 0)) < 3) return "adj";
+  if (nw.st === "pause" && old.e0 === nw.e0) return same ? null : "adj";
+  return "jump";
+}
+// Text oznámení o změně od řídícího (kind z remoteKind); cur / nxt / left / till jako liveNote
+export function remoteNote(kind, cur, nxt, left, till) {
+  const now = x => (x ? [x.where, x.what].filter(Boolean).join(" · ") : "");
+  const next = nxt ? "Potom: " + now(nxt) : "Potom: konec plánu";
+  if (kind === "pause") return {title: "⏸ Trénink pozastaven", body: cur ? "Teď: " + now(cur) + " · ještě " + mmss(left) : ""};
+  if (kind === "end") return {title: "⏹ Trénink ukončen", body: ""};
+  const head = kind === "start" ? "▶ Trénink začal" : kind === "resume" ? "▶ Pokračujeme" : kind === "adj" ? "📋 Plán upraven" : "↪ Změna";
+  return {title: head + (cur ? ": " + now(cur) : ""), body: ["ještě " + mmss(left) + (till ? " (do " + till + ")" : ""), cur && cur.who ? cur.who : "", next].filter(Boolean).join(" · ")};
 }
 // Mm:ss pro odpočet (záporné = 0:00)
 export function mmss(sec) {

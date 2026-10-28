@@ -28,6 +28,8 @@ const CSS = `<style>
 </style>`;
 
 // ===== Pomocné funkce =====
+// Podpis zápisu: kdo a kdy (pravidla databáze vyžadují by / at)
+const stamp = () => { const u = HK.user(); return {by: ((u && u.email) || "").toLowerCase(), at: new Date().toISOString()}; };
 const errTxt = e => (e && (e.code || e.message)) || "chyba";
 // Datum události česky (d. m. rrrr)
 const dmy = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); return m ? +m[3] + ". " + +m[2] + ". " + m[1] : String(s || ""); };

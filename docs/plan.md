@@ -1,6 +1,6 @@
 # Plán – jen nehotové fáze
 
-Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Trénink) a `CHANGELOG.md`. Aktuální stav: `docs/STAV.md`.
+Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGELOG-do-v20.md`). Aktuální stav: `docs/STAV.md`.
 
 | Pořadí | Fáze | Obsah |
 |---|---|---|
@@ -13,7 +13,7 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
 | ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | ~~v22.11~~ | hotovo | 🧪 beta kanál: větev `beta` → `…/beta/` pro vybrané testery, vydání pro všechny PR `beta → main` |
-| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, další 4 Živý trénink |
+| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, další 5 Zápas |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
@@ -34,7 +34,7 @@ Hotové fáze a jejich rozhodnutí: `docs/archiv/` (plán v18 – v21, plán Tr�
 1. ~~**Události a docházka:**~~ **hotovo v22.10** (navíc 🔁 série nabídne poslední šablonu pokladny, „Jiné“ otevře psaní vlastního důvodu). formulář nové události předvyplní poslední použitou šablonu, místo a čas stejného druhu; ✅ ❌ ❓ odpověď s důvodem z nabídky posledních důvodů (jedno klepnutí místo psaní).
 2. ~~**🏠 Domů:**~~ **hotovo v22.12 (beta)** – pruh ❔ Chybí odpověď u nejbližší otevřené události nahoře v Domů (manager, trenér, asistent), jména po klepnutí, 📲 Připomenout = sdílení textu s odkazem na stabilní verzi. u nejbližší události pruh „Chybí odpověď: N“ s jedním klepnutím na seznam bez odpovědi (trenér) a 📲 připomenutí přes sdílení zprávy (WhatsApp / SMS) bez serveru.
 3. ~~**Plán tréninku:**~~ **hotovo v22.15** – ⧉ „Jako minule“ jedním klepnutím (kopie posledního plánu stejného dne v týdnu), sbalené bloky s celkovým časem v záhlaví.
-4. **Živý trénink:** pevná spodní lišta ⏸ / ⏭ / ➕1 min na stejném místě, zbývající čas tréninku vždy nahoře.
+4. ~~**Živý trénink:**~~ **hotovo v22.17 (beta)** – pevná spodní lišta řídícího ⏸ / ⏭ / +1 min, zbývá plán a do konce tréninku v přilepeném záhlaví; navíc po kontrole před ostrým testem: ohlášení změny od řídícího ostatním trenérům, 🔒 zámek dotyku, obnova Wake Lock se stavem ☀, hodiny správně po zápisu bez signálu. **v22.18 ⚡ improvizace** (zadáno 28. 10. 2026): ➕ cvičení / ☕ pauza do plánu za běhu (z banky i nové názvem, 💾 do banky), trénink bez plánu, 👥 Na ledě s 🚫.
 5. **Zápas:** sestava „Jako minule“ (poslední sestava proti komukoli), po uzavření zápasu rovnou souhrn ke sdílení.
 6. **Jednotné hlášky:** stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.
 7. **Pokladna:** ➖ výdaj předvyplní poslední použitou kategorii, příjemce a účet.
@@ -79,7 +79,7 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 4. Smazání tréninku ponechá `trplan`, `trlive`, `trms`, `treval` (osiřelé, nevadí).
 5. Pokrytí dovedností počítá i hostující hráčku – zvážit vynechání.
 6. ⭐ Výkonnost: smazaná hráčka zůstane v `plevel/team.lv` (nevadí).
-7. Upozornění živého tréninku jen při otevřené aplikaci (bez serveru); stopky běží jen v zařízení.
+7. Upozornění živého tréninku jen při otevřené obrazovce ⏱ (bez serveru – proto ☀ obrazovka svítí a 🔒 zámek dotyku); stopky běží jen v zařízení. Úsporný režim telefonu může zámek obrazovky zakázat (⚠ v záhlaví).
 8. Poslech `events` / `attendance` jen aktuální sezóny – řeší fáze **D2** (zeptat se před změnou: mění statistiky a docházku za starší období).
 9. `live-engine.js` ukládá přes `core/actions.js` (doména sahá na data) – oddělit jen při zásahu do živého zápisu.
 10. ⚖️ Porovnání způsobu placení je od v22.1.3 jen pro správce pokladny (Team → 💰 Platby → ⚖️ Tarify); hráčkám ho zpřístupnit až na pokyn trenéra (např. volbou v ⚙️ → Pokladna).

@@ -111,16 +111,42 @@ async function events() {
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
     if (await tap('[data-tpadd="all"]', 250)) snap("plan-edit-add");
     if (await tap("#tponly", 250)) snap("plan-edit-only");
-    await tap("#tpx", 250);
-    await tap("#tpx", 250);
+    // v22.18.1: 💾 Uložit plán musí zapsat trplan (chyběl podpis stamp – uložení tiše padalo)
+    const n0 = globalThis.__fb.writes.length;
+    if (await tap("#tpok", 300) && !globalThis.__fb.writes.slice(n0).some(w => /^trplan\//.test(w.path))) throw new Error("📋 Uložit plán nic nezapsal");
   }
   if (await tap("#tlgo", 600)) {
     snap("trlive");
+    // v22.17: přilepené záhlaví se zbývajícím časem vždy; řídící má pevnou spodní lištu ⏸ / ⏭ / +1 min
+    if (!$("#tlv .tltop #tlr")) throw new Error("⏱ chybí zbývající čas v záhlaví");
+    if ($("#tlv .tlbot")) snap("trlive-bar");
+    // 🔒 Zámek dotyku: zapnout, odemknout dvojitým klepnutím
+    if (await tap("#tlk", 200)) {
+      snap("trlive-lock");
+      if (!$("#tllock #tlc2")) throw new Error("🔒 zamčená obrazovka bez odpočtu");
+      await tap("#tllock", 0); await tap("#tllock", 200);
+      if ($("#tllock")) throw new Error("🔒 zámek dotyku se dvojitým klepnutím neodemkl");
+    }
     // ▶ Teď: první klepnutí se zeptá (u cizího řídícího nejdřív převzetí řízení), další skočí na blok (bloky mezi se vypustí)
     if (await tap("[data-tlj]", 200)) {
       snap("trlive-jump-arm");
       for (let i = 0; i < 2 && document.querySelector("[data-tlj]"); i++) await tap("[data-tlj]", 300);
       snap("trlive-jump");
+    }
+    // v22.18 ⚡ improvizace: 👥 Na ledě, ➕ cvičení – hledání v bance, nové cvičení názvem, ▶ Hned vloží blok a skočí na něj
+    if (await tap('[data-tq="ice"]', 200)) { snap("trlive-ice"); await tap('[data-tq="ice"]', 150); }
+    if (await tap('[data-tq="add"]', 250)) {
+      if (!$("#tlq #tlqs")) throw new Error("⚡ okno vložení cvičení bez hledání");
+      const s = $("#tlqs"), n0 = (globalThis.__fb.writes || []).length;
+      s.value = "Hra 2 na 2"; s.dispatchEvent(new window.Event("input"));
+      await wait(150);
+      snap("trlive-quick");
+      await tap('[data-tqm="5"]', 150);
+      await tap('[data-tqx="ok"]', 300);
+      if ($("#tlq") && await tap('[data-tqx="ok"]', 300)) { /* převzetí řízení druhým klepnutím */ }
+      if ($("#tlq")) throw new Error("⚡ vložení cvičení se nezavřelo");
+      if ((globalThis.__fb.writes || []).length <= n0) throw new Error("⚡ vložení cvičení nic nezapsalo");
+      snap("trlive-quick-done");
     }
     await tap("#tlx", 200);
   }

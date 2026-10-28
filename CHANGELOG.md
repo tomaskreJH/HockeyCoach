@@ -2,6 +2,53 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.18.1 (28. 10. 2026) – Oprava: plán tréninku nešel uložit
+> **Nasazení – kanál 🧪 BETA:** commit „v22.18.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v118`). 🔒 Vyžadovat verzi: ne. Test: kap. 22, krok 22.0.
+
+**Opraveno** (nález uživatele 28. 10. 2026 – trénink nešlo uložit, ani druhému trenérovi)
+- `views/trplan-edit.js` (💾 Uložit plán), `views/trplan-reuse.js` (📑 Uložit jako šablonu), `views/line-split-view.js` (⭐ Výkonnost) – úklid v22.1.2 odstranil pomocnou funkci `stamp` (kdo a kdy zapsal) jako „nepoužitou“; klepnutí na uložení skončilo chybou bez hlášky. Funkce je zpět v každém souboru. Chyba je i ve stabilní v22.11.
+
+**Přidáno:** `tests/stamp-defined.test.js` (každé volání `stamp()` má definici nebo import), kouřový test klepne na 💾 Uložit plán a ověří zápis.
+
+**Ověřeno:** `npm test` 458 / 458, `npm run smoke` 8 rolí bez chyb, kontrola nedefinovaných názvů v celém `src` (eslint `no-undef`) bez nálezu.
+
+## v22.18 (28. 10. 2026) – ⚡ Improvizace na ledě
+> **Nasazení – kanál 🧪 BETA:** commit „v22.18“ do větve **`beta`**. firestore.rules beze změny (zápisy jen do `trplan`, `trlive`, `drills` a pole 🚫 `attendance.nos` v dosavadním tvaru). V betě Načíst novou verzi (cache `hokej-beta-v117`). 🔒 Vyžadovat verzi: ne. Test: kap. 22. Odstraněno: `docs/archiv/` plány v18 – v21, plán Trénink a otestované ruční testy v21 (historie v CHANGELOG a Gitu).
+
+**Přidáno**
+- `domain/training-impro.js` – hledání v bance (`quickHits`), nový blok (`quickBlock`: cvičení pro všechny, 🥅 brankářky zvlášť, ☕ pauza), kam vložit (`quickIdx`), plán s vloženým blokem (`quickPlan`), začátek bloku v průběhu (`quickSec`), nové cvičení do banky z názvu (`quickDrill`), počty na ledě (`iceCounts`).
+- `views/trlive-quick.js` – v ⏱ živém tréninku lišta **➕ Cvičení · ☕ Pauza · 👥 Na ledě** (kdo smí upravovat plán): hledání v 📚 bance nebo nové cvičení názvem (💾 i do banky s kategorií), délka klepnutím, kdy **▶ Hned** (současné cvičení skončí, hodiny všem skočí na nové) / ⏭ po tomto bloku / ⤓ na konec. Zápis jednou dávkou (cvičení + plán + hodiny); u cizího řídícího převzetí druhým klepnutím. **👥 Na ledě**: počty v dresech, 🚫 nedorazila / ↩ Je tu (stávající `toggleNos`).
+- **Trénink bez plánu** – v kartě plánu **⚡ Bez plánu – improvizovat na ledě**; obrazovka rovnou nabídne první cvičení, které vytvoří plán a spustí hodiny.
+
+**Změněno**
+- `views/trplan-view.js` – `derive`: hráčka s 🚫 nedorazila není na ledě (zmizí z linek, skupin, stopek a hodnocení); `absent` = seznam pro vrácení.
+- `views/trlive-view.js` – vložený blok a 🚫 překreslí obrazovku i ostatním trenérům; psaní do hledání nepřeruší překreslení.
+- ❓ Nápověda (⚡ Improvizace na ledě, řádek v tabulce Kde co najdu), KONVENCE (mapa souborů), README, STAV, plan, testy-rucni kap. 22.
+
+**Beze změny:** hodiny a ovládání živého tréninku, plán a jeho úprava, stopky, hodnocení, pokladna, živý zápis zápasu, pravidla databáze.
+
+**Ověřeno:** `npm test` 457 / 457 (nové `tests/training-impro.test.js`), `npm run smoke` 8 rolí bez chyb (nově 👥 Na ledě, ➕ nové cvičení a vložení).
+
+## v22.17 (28. 10. 2026) – ⏱ Živý trénink na ledě (K2/4) + kontrola před ostrým testem
+> **Nasazení – kanál 🧪 BETA:** commit „v22.17“ do větve **`beta`**. firestore.rules beze změny (pole `trlive` se nemění). V betě Načíst novou verzi (cache `hokej-beta-v116`). 🔒 Vyžadovat verzi: ne. Test: kap. 21 (ostrý trénink). Odstraněno: `docs/prompt-dalsi-vlakno.md`.
+
+**Přidáno**
+- `views/trlive-view.js` – **přilepené záhlaví**: zbývá plán, čas do konce tréninku a přetahování / rezerva vždy nahoře (i při posunu obrazovky); **pevná spodní lišta řídícího** ⏸ Pauza / ▶ Dál · ⏭ Další · +1 min (vždy stejné místo, velká tlačítka), ⏮ / ✂ −1 min / +5 min / ⏹ zůstaly nad linkami; ostatní trenéři lištu nemají (méně omylů, převzetí řízení dál druhým klepnutím). **🔒 Zámek dotyku**: černá obrazovka s odpočtem do kapsy, odemknutí dvojitým klepnutím, hodiny a upozornění běží dál.
+- `domain/training-live.js` – `remoteKind` / `remoteNote`: změnu hodin od řídícího trenéra (▶ start, ⏸, ▶ pokračování, ⏭ / ⏮ / ±min / ▶ Teď, 📋 úprava dalších bloků, ⏹) ostatní zařízení ohlásí vibrací, zvukem a ⌚ oznámením „co teď / kolik zbývá / co potom“ (`views/trlive-alerts.js` → `remote`).
+- `views/trlive-alerts.js` – ☀ stav zámku obrazovky v záhlaví („obrazovka nezhasne“ / ⚠ „může zhasnout“ – úsporný režim), obnova ztraceného Wake Lock každých 5 s, ochrana proti souběžné žádosti.
+
+**Opraveno**
+- `domain/training-live.js` – `liveSec`: zápis řídícího odeslaný bez signálu (zimák) má čas serveru až z doručení – ostatním by hodiny ujely o dobu bez signálu. Při rozdílu čas serveru − čas zařízení > 15 s (`LATE_MS`) se počítá od času zařízení zápisu (telefony mají čas ze sítě).
+- Ostatní trenéři se dřív o ⏸ / ⏭ / +1 min od řídícího nedozvěděli (odpočet se jen tiše změnil).
+
+**Změněno**
+- `docs/KONVENCE.md` kap. 0 **Práce s Claude** (start vlákna, commit do `beta`, bez ZIP, dotaz před pravidly / daty, šetření) – nahrazuje šablonu `docs/prompt-dalsi-vlakno.md` (pravidla jsou v pokynech projektu). README, KONVENCE kap. 6 a STAV podle zápisu commitem (návrat = revert).
+- `views/help.js` – ⏱ Živý trénink: spodní lišta, ohlášení změn, ☀, 🔒.
+
+**Beze změny:** plán tréninku, stopky, hodnocení, živý zápis zápasu, pokladna, pravidla databáze.
+
+**Ověřeno:** `npm test` 451 / 451 (nové `tests/training-live-sync.test.js`), `npm run smoke` 8 rolí bez chyb (nově záhlaví, spodní lišta řídícího, 🔒 zamknutí a odemknutí).
+
 ## v22.16.2 (27. 10. 2026) – 📊 Docházka před 1. 11. 2026: vše kromě „Jdu“ = nejde
 > **Nasazení – kanál 🧪 BETA:** commit „v22.16.2“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v115`). 🔒 Vyžadovat verzi: ne. Test: kap. 20, krok 20.8.
 

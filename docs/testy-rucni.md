@@ -1,7 +1,7 @@
 # Ruční testy na Androidu
 
 Kontrolní seznam po nasazení. `npm test` a `npm run smoke` ověří výpočty, zápisy a vykreslení, **ne** telefon, pravidla databáze, vibrace, oznámení ani hodinky.
-Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se přesunou do `docs/archiv/` (starší: `docs/archiv/testy-rucni-v21.md`). Výsledek zapiš do vlákna: číslo kroku + ✅ / ❌ + co se stalo.
+Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se smažou (historie v `CHANGELOG.md` a v Gitu). Výsledek zapiš do vlákna: číslo kroku + ✅ / ❌ + co se stalo.
 
 **Příprava:** na všech telefonech ⚙️ → 👤 Účet → Načíst novou verzi (číslo v záhlaví). Druhý telefon nebo 👁 Náhled role (⚙️ → 🛠 Vývojář) pro ostatní role.
 
@@ -112,6 +112,34 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.6 ⚙️ → 💾 Data → Stáhnout zálohu (manager): soubor obsahuje `audit`.
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
+
+## 22. v22.18 (beta) – ⚡ Improvizace na ledě
+- [ ] 22.0 (v22.18.1) V záhlaví **v22.18.1**. 📋 Plán → ✏️ Upravit → **💾 Uložit plán** uloží (i druhý trenér); 📑 Uložit jako šablonu; 🎽 Rozdělení → ⭐ Výkonnost – hvězdy se uloží.
+- [ ] 22.1 V betě je v záhlaví **v22.18**.
+- [ ] 22.2 Trénink **bez plánu** (trenér): 📋 Plán tréninku → **⚡ Bez plánu – improvizovat na ledě** → otevře se okno ➕ Cvičení. Napsat část názvu → nabídka z 📚 banky; vybrat → délka podle banky → **✅ Vložit a začít** → hodiny běží, ostatní trenéři vidí stejný blok.
+- [ ] 22.3 Během tréninku **➕ Cvičení** → napsat nový název (v bance není) → 💾 Uložit i do banky + kategorie → délka 5 → **▶ Hned** → současné cvičení skončí, odpočet běží na novém; ostatním přijde vibrace / ⌚ „↪ Změna“. V 📚 bance je nové cvičení s poznámkou ⚡.
+- [ ] 22.4 **⏭ Po tomto bloku** a **⤓ Na konec**: hodiny se nezmění, blok je v 📋 Zbytek plánu a „zbývá plán“ naroste. **☕ Pauza** stejně.
+- [ ] 22.5 **🥅 Brankářky zvlášť**: blok má druhou linku brankářek („vlastní cvičení“), trenér brankářek ji vidí jako své stanoviště.
+- [ ] 22.6 **👥 Na ledě** (po začátku tréninku): počty v dresech; 🚫 u hráčky → zmizí z linek a počtů, v docházce události má 🚫; **↩ Je tu** vrátí.
+- [ ] 22.7 Hodiny řídí jiný trenér: ✅ Vložit s ▶ Hned se nejdřív zeptá na převzetí řízení, druhé klepnutí vloží.
+- [ ] 22.8 Po tréninku: detail tréninku ukazuje plán i s vloženými bloky, ⭐ hodnocení a 🏒 Statistiky je započítají.
+
+## 21. v22.17 (beta) – ⏱ Živý trénink na ledě (ostrý test 28. 10. 2026)
+**Před ledem (doma / v šatně, 5 minut, každý trenér na svém telefonu):**
+- [ ] 21.1 V betě je v záhlaví **v22.17** (⚙️ → 👤 Účet → Načíst novou verzi).
+- [ ] 21.2 Telefon: vypnutý **úsporný režim baterie** (jinak systém nedovolí držet obrazovku), Chrome / HockeyCoach má povolená oznámení; v aplikaci hodinek (Garmin Connect) povolená oznámení z Chrome / HockeyCoach.
+- [ ] 21.3 Detail tréninku → 📋 Plán → ⏱ Živý trénink → klepnout **⌚** (systém se zeptá na povolení) → přijde zkušební oznámení „⌚ Oznámení zapnuta“ i na hodinky; tlačítko ukazuje ⌚✓.
+- [ ] 21.4 Nahoře v okně svítí **☀ obrazovka nezhasne** (⚠ = úsporný režim nebo starý prohlížeč).
+- [ ] 21.5 Řídící trenér (jediný) ▶ Spustit trénink. Ostatní trenéři mají stejný odpočet (rozdíl do 1 s) a **nic neovládají** – jen sledují své stanoviště (📍 Moje stanoviště, u řady cvičení vlastní odpočet).
+
+**Na ledě:**
+- [ ] 21.6 Odpočet běží všem stejně; 60 s a 10 s před koncem kola / cvičení vibrace + ⌚ oznámení „co teď / co potom“, při točení dlouhá vibrace.
+- [ ] 21.7 Řídící: dole pevná lišta **⏸ Pauza · ⏭ Další · +1 min** (vždy stejné místo). Po ⏸ / ⏭ / +1 min dostanou ostatní trenéři vibraci a oznámení „⏸ Trénink pozastaven“ / „↪ Změna: …“ / „▶ Pokračujeme“.
+- [ ] 21.8 Nahoře vždy vidět **zbývá plán** a **do konce tréninku** (i když se obrazovka posune dolů).
+- [ ] 21.9 **🔒** → černá obrazovka s velkým odpočtem; telefon do kapsy – nic se omylem nezmáčkne, vibrace a oznámení chodí dál; **dvojité klepnutí** odemkne.
+- [ ] 21.10 Obrazovka během celého tréninku nezhasne (telefon položený i v kapse se zámkem dotyku). Po zhasnutí tlačítkem a odemčení telefonu se ☀ obnoví samo.
+- [ ] 21.11 (bez signálu) Řídící spustí / posune hodiny s vypnutými daty → po zapnutí dat mají ostatní stejný čas jako řídící (ne o dobu bez signálu pozadu).
+- [ ] 21.12 Baterie: kolik % ubylo za trénink se svítící obrazovkou (se 🔒 by mělo být méně) – napiš do vlákna.
 
 ## 20. v22.16 (beta) – Potvrzení dresů, termín přihlášení, ⏰ pozdě
 - [ ] 20.1 V betě je v záhlaví **v22.16**.
