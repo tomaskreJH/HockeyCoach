@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.18 (28. 10. 2026) – ⚡ Improvizace na ledě
+> **Nasazení – kanál 🧪 BETA:** commit „v22.18“ do větve **`beta`**. firestore.rules beze změny (zápisy jen do `trplan`, `trlive`, `drills` a pole 🚫 `attendance.nos` v dosavadním tvaru). V betě Načíst novou verzi (cache `hokej-beta-v117`). 🔒 Vyžadovat verzi: ne. Test: kap. 22. Odstraněno: `docs/archiv/` plány v18 – v21, plán Trénink a otestované ruční testy v21 (historie v CHANGELOG a Gitu).
+
+**Přidáno**
+- `domain/training-impro.js` – hledání v bance (`quickHits`), nový blok (`quickBlock`: cvičení pro všechny, 🥅 brankářky zvlášť, ☕ pauza), kam vložit (`quickIdx`), plán s vloženým blokem (`quickPlan`), začátek bloku v průběhu (`quickSec`), nové cvičení do banky z názvu (`quickDrill`), počty na ledě (`iceCounts`).
+- `views/trlive-quick.js` – v ⏱ živém tréninku lišta **➕ Cvičení · ☕ Pauza · 👥 Na ledě** (kdo smí upravovat plán): hledání v 📚 bance nebo nové cvičení názvem (💾 i do banky s kategorií), délka klepnutím, kdy **▶ Hned** (současné cvičení skončí, hodiny všem skočí na nové) / ⏭ po tomto bloku / ⤓ na konec. Zápis jednou dávkou (cvičení + plán + hodiny); u cizího řídícího převzetí druhým klepnutím. **👥 Na ledě**: počty v dresech, 🚫 nedorazila / ↩ Je tu (stávající `toggleNos`).
+- **Trénink bez plánu** – v kartě plánu **⚡ Bez plánu – improvizovat na ledě**; obrazovka rovnou nabídne první cvičení, které vytvoří plán a spustí hodiny.
+
+**Změněno**
+- `views/trplan-view.js` – `derive`: hráčka s 🚫 nedorazila není na ledě (zmizí z linek, skupin, stopek a hodnocení); `absent` = seznam pro vrácení.
+- `views/trlive-view.js` – vložený blok a 🚫 překreslí obrazovku i ostatním trenérům; psaní do hledání nepřeruší překreslení.
+- ❓ Nápověda (⚡ Improvizace na ledě, řádek v tabulce Kde co najdu), KONVENCE (mapa souborů), README, STAV, plan, testy-rucni kap. 22.
+
+**Beze změny:** hodiny a ovládání živého tréninku, plán a jeho úprava, stopky, hodnocení, pokladna, živý zápis zápasu, pravidla databáze.
+
+**Ověřeno:** `npm test` 457 / 457 (nové `tests/training-impro.test.js`), `npm run smoke` 8 rolí bez chyb (nově 👥 Na ledě, ➕ nové cvičení a vložení).
+
 ## v22.17 (28. 10. 2026) – ⏱ Živý trénink na ledě (K2/4) + kontrola před ostrým testem
 > **Nasazení – kanál 🧪 BETA:** commit „v22.17“ do větve **`beta`**. firestore.rules beze změny (pole `trlive` se nemění). V betě Načíst novou verzi (cache `hokej-beta-v116`). 🔒 Vyžadovat verzi: ne. Test: kap. 21 (ostrý trénink). Odstraněno: `docs/prompt-dalsi-vlakno.md`.
 

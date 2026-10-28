@@ -84,6 +84,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `plan-reuse.js`, `skill-coverage.js` | ⧉ kopie a 📑 šablony plánu, 📊 pokrytí dovedností (`groupDrills` / `groupSkills` = minuty skupiny podle plánu) |
 | `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
 | `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, upozornění, ⌚ text oznámení, `laneSub`) |
+| `training-impro.js` | ⚡ improvizace na ledě (hledání v bance, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
 | `training-eval.js` | ⭐ hodnocení hráček |
 | `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
@@ -120,13 +121,14 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `trplan-reuse.js` | ⧉ kopie, 📑 šablony, 📊 pokrytí dovedností, ✨ příprava |
 | `line-split-view.js` | rozdělení do pětek, okno ⭐ výkonnosti |
 | `trlive-view.js` | ⏱ živý trénink (karta, obrazovka, přilepené záhlaví se zbývajícím časem, spodní lišta řídícího, 🔒 zámek dotyku, zbytek plánu) |
+| `trlive-quick.js` | ⚡ improvizace v živém tréninku (➕ cvičení / ☕ pauza do plánu, trénink bez plánu, 👥 Na ledě s 🚫) |
 | `trlive-alerts.js` | ⏱ vibrace, zvuk, ⌚ oznámení (i změna od řídícího), Wake Lock s obnovou a stavem ☀ |
 | `stopwatch-view.js`, `treval-view.js` | ⏲ stopky a výsledky, ⭐ hodnocení |
 | `settings-view.js`, `perm-view.js` | ⚙️ Účet a data, 🔐 práva rolí |
 | `join-view.js` | ✋ žádost o přijetí do týmu |
 | `auto-sync.js` | tichý zápis odvozených dat (`HK.syncOps`) |
 | **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
-| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `archiv/` (pravidla pro Claude: kap. 0 a pokyny projektu) |
+| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `archiv/` (jen starší CHANGELOG; pravidla pro Claude: kap. 0 a pokyny projektu) |
 
 **⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `views/block-exc-view.js`, `domain/block-exc.js`, `domain/cost-check.js`, `views/cost-view.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 

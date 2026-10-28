@@ -4,6 +4,7 @@
 // ⏲ stopky (stopwatch-view.js) a ⭐ výzva k hodnocení (treval-view.js). Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js.
 // v22.17: zbývající čas plánu a tréninku nahoře (přilepené záhlaví), řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku
 // (černá obrazovka s odpočtem do kapsy, odemknutí dvojitým klepnutím), ☀ stav zámku obrazovky, změnu od řídícího ohlásí ostatním.
+// v22.18: ⚡ improvizace (trlive-quick.js) – ➕ cvičení / ☕ pauza do plánu za běhu, trénink bez plánu, 👥 kdo je na ledě.
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -19,6 +20,7 @@ import {render} from "./shell.js";
 import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
 import {bindLiveEval, liveEvalHtml} from "./treval-view.js";
 import {alarm, beep, remote, show, toggleNtf, wakeOff, wakeOn, wakeState} from "./trlive-alerts.js";
+import {bindQuick, quickEmptyHtml, quickHtml} from "./trlive-quick.js";
 
 // ===== Konstanty a stav =====
 const MUTE_KEY = "hk-tl-mute", SKEW_KEY = "hk-clk", NTF_KEY = "hk-tl-ntf";
@@ -31,8 +33,9 @@ const UNLOCK_MS = 600;                                   // 🔒 zámek dotyku: 
 // L = poslech a obrazovka: eid, un (konec poslechu), live (dokument | null | undefined = načítá se), t0 (začátek poslechu),
 // sess (odhad posunu hodin z tohoto poslechu), getX (údaje tréninku z trplan-view), el (obrazovka), timer, wake, ac (zvuk), shown, prev
 // rest = 📋 Zbytek plánu rozbalený (null = podle toho, zda plán přetahuje); wakeP = žádost o zámek obrazovky běží, wakeT = poslední pokus;
-// lock = 🔒 zámek dotyku zapnutý, tap = čas posledního klepnutí na zamčenou obrazovku
-let L = {eid: null, un: null, live: undefined, t0: 0, sess: null, getX: null, el: null, timer: null, wake: null, wakeP: false, wakeT: 0, ac: null, shown: "", prev: null, rest: null, lock: false, tap: 0};
+// lock = 🔒 zámek dotyku zapnutý, tap = čas posledního klepnutí na zamčenou obrazovku;
+// q = ⚡ rozpracované vložení cvičení (undefined = bez plánu se okno otevře samo, null = zavřené), ice = 👥 Na ledě otevřené
+let L = {eid: null, un: null, live: undefined, t0: 0, sess: null, getX: null, el: null, timer: null, wake: null, wakeP: false, wakeT: 0, ac: null, shown: "", prev: null, rest: null, lock: false, tap: 0, q: undefined, ice: false};
 const CSS = `<style>
 #tlv{position:fixed;inset:0;z-index:40;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
 #tlv .tltop{position:sticky;top:-12px;z-index:3;background:var(--bg);margin:-12px 0 0;padding:12px 0 6px;border-bottom:1px solid var(--bd)}
@@ -144,6 +147,12 @@ function cardHtml(eid) {
   const v = L.live, st = v && LIVE_ST[v.st] ? v.st : null;
   const txt = v === undefined ? "" : st === "run" ? "🔴 Právě běží" : st === "pause" ? "⏸ Pozastaveno" : st === "end" ? "Skončil" : canE() ? "Spustíš na ledě – hodiny uvidí celý realizační tým." : "Až trenér spustí, uvidíš, kde právě jste.";
   return `<div class="row" style="align-items:center;margin:8px 0"><button class="${st === "run" || st === "pause" ? "p" : "s"}" id="tlgo" style="flex:none;min-height:48px">⏱ Živý trénink</button><span class="mu" style="font-size:13px">${txt}</span></div>`;
+}
+
+// ⚡ Trénink bez plánu: tlačítko do karty plánu (jen kdo smí plán upravovat); otevře obrazovku s oknem prvního cvičení
+function improHtml(eid) {
+  const v = L.live, st = v && LIVE_ST[v.st] ? v.st : null;
+  return `<div style="margin-top:10px"><button class="${st === "run" || st === "pause" ? "p" : "s"} w" id="tlgo" style="min-height:52px">⚡ Bez plánu – improvizovat na ledě</button><div class="mu" style="font-size:12px;margin:4px 0">Cvičení vkládáš postupně přímo na ledě (z banky nebo nové), hodiny vidí celý realizační tým.</div></div>`;
 }
 
 // ===== Vykreslení: obrazovka =====
@@ -261,7 +270,7 @@ ${go(x)}${x.skip ? `<button class="s" data-tla="${esc(x.id)}|skip">↩ Vrátit</
 function screenHtml() {
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live;
   const head = `<div class="tlh"><button class="s" id="tlx" style="flex:none;min-height:48px">✕ Zavřít</button><h2>⏱ ${esc((X && X.ev && X.ev.title) || "Živý trénink")}</h2><button class="s" id="tlk" style="flex:none;min-height:48px" title="Zámek dotyku – do kapsy">🔒</button><button class="s" id="tln" style="flex:none;min-height:48px" title="Oznámení i na hodinky">${ntfOn() ? "⌚✓" : "⌚"}</button><button class="s" id="tlm" style="flex:none;min-height:48px">${muted() ? "🔕" : "🔔"}</button></div>`;
-  if (!X || !B.length) return CSS + head + '<div class="msg">Plán tréninku je prázdný – nejdřív ho připrav v detailu tréninku.</div>';
+  if (!X || !B.length) return CSS + head + (canE() && X ? quickEmptyHtml(X) : '<div class="msg">Plán tréninku je prázdný – nejdřív ho připrav v detailu tréninku.</div>');
   if (v === undefined) return CSS + head + '<div class="mu">Načítám hodiny…</div>';
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), st = v && LIVE_ST[v.st] ? v.st : null, T = planTimes(B);
   const b = B[at.bi], total = T[T.length - 1].b;
@@ -270,30 +279,35 @@ function screenHtml() {
 <div class="tlbud" id="tlg">${st && st !== "end" ? budgetText(X, total, sec || 0) : ""}</div>
 <div class="mu" style="font-size:13px">${st ? LIVE_ST[st] : "Čeká na spuštění"}${v && v.ctl ? " · řídí " + ctlName(v.ctl) : ""} · <span id="tlw">${wakeTxt()}</span></div>`;
   const top = `<div class="tltop">${head}${info}</div>`;
-  if (at.done) return CSS + top + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at) + rateHtml(B, at, X) + botHtml(v, at) + lockHtml(B, at, X);
+  if (at.done) return CSS + top + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at) + quickHtml(X) + rateHtml(B, at, X) + botHtml(v, at) + lockHtml(B, at, X);
   const sub = isBreak(b) ? `Blok ${at.bi + 1}/${B.length} · ☕ Pauza` : `Blok ${at.bi + 1}/${B.length} · ${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${at.nr > 1 ? ` · kolo ${at.ri + 1}/${at.nr}` : ""}`;
   return CSS + top + `<div style="text-align:center;margin-top:8px;font-weight:700">${sub}</div>
 ${(() => { const c = clk(B, at, X); return `${c.s ? `<div class="mu" style="text-align:center">🔁 ${c.s.it ? "moje cvičení " + (c.s.i + 1) + "/" + c.s.n : "řada skončila – volno"}</div>` : ""}<div class="tlbig" id="tlc">${mmss(c.left)}</div>${at.nr > 1 || c.s ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}`; })()}
 <div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>
-${controlsHtml(v, at)}${rateHtml(B, at, X)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
+${controlsHtml(v, at)}${quickHtml(X)}${rateHtml(B, at, X)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
 }
 // Celé překreslení obrazovky (změna stavu, kola nebo bloku); tik mění jen čísla
 function paint() {
   if (!L.el) return;
+  // ⚡ Psaní do hledání cvičení nesmí překreslení přerušit: kurzor a výběr se vrátí
+  const f = document.activeElement, keep = f && L.el.contains(f) && (f.id === "tlqs" || f.id === "tlqb") ? {id: f.id, a: f.selectionStart, b: f.selectionEnd} : null;
   L.el.innerHTML = screenHtml();
   bind();
   L.shown = shownKey();
+  if (keep) { const e = L.el.querySelector("#" + keep.id); if (e) { e.focus(); try { e.setSelectionRange(keep.a, keep.b); } catch (x) { /* pole bez výběru */ } } }
 }
 function shownKey() {
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live;
   const at = B.length ? liveAt(B, liveSec(v, Date.now(), skew()) || 0) : null;
-  return (at ? clk(B, at, X).key : "-") + "|" + (v ? v.st + v.e0 + v.ctl + JSON.stringify([v.adj || {}, v.skip || []]) : "0") + "|" + (L.eid || "") + "|" + (L.lock ? 1 : 0);
+  // ⚡ Změna plánu (vložený blok) a 👥 kdo chybí (🚫) překreslí obrazovku i u ostatních trenérů
+  const pk = planB(X).map(b => b.id + ":" + b.dur).join(","), ab = ((X && X.absent) || []).join(",");
+  return (at ? clk(B, at, X).key : "-") + "|" + (v ? v.st + v.e0 + v.ctl + JSON.stringify([v.adj || {}, v.skip || []]) : "0") + "|" + (L.eid || "") + "|" + (L.lock ? 1 : 0) + "|" + pk + "|" + ab;
 }
 // Tik: odpočet, upozornění při čerstvém překročení hranic, při změně kola / stavu celé překreslení
 function tick() {
   if (!L.el) return;
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live;
-  if (!B.length || v === undefined) return;
+  if (!B.length || v === undefined) { if (v !== undefined && shownKey() !== L.shown) paint(); return; }
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), run = v && v.st === "run";
   // Skrytá aplikace (zhasnutý telefon) tiká řidčeji – hranice se poznají i později (oznámení na hodinky přijde se zpožděním)
   const hid = document.visibilityState === "hidden", win = hid ? HID_WIN : 3, sw = hid ? HID_WIN : 1.5;
@@ -371,6 +385,8 @@ function bind() {
     if (other) { S.cf = null; }
     run();
   };
+  // ⚡ Improvizace: ➕ cvičení / ☕ pauza / 👥 Na ledě (zápis hodin u ▶ Hned přes převzetí řízení)
+  bindQuick(el, guarded);
   el.querySelectorAll("[data-tl]").forEach(b => b.onclick = () => {
     const k = b.dataset.tl;
     guarded(() => {
@@ -406,7 +422,7 @@ function bind() {
 function open(eid, getX) {
   if (L.el) close();
   ensureLive(eid);
-  L.getX = getX; L.prev = null; L.rest = null;
+  L.getX = getX; L.prev = null; L.rest = null; L.q = undefined; L.ice = false;
   S.tl = {eid};
   const el = document.createElement("div");
   el.id = "tlv";
@@ -421,7 +437,7 @@ function close() {
   if (L.timer) clearInterval(L.timer);
   L.timer = null;
   if (L.el) L.el.remove();
-  L.el = null; L.prev = null; S.tl = null; L.lock = false;
+  L.el = null; L.prev = null; S.tl = null; L.lock = false; L.q = undefined; L.ice = false;
   wakeOff();
   render();
 }
@@ -446,6 +462,12 @@ export function liveCardHtml(eid) {
   ensureLive(eid);
   return cardHtml(eid);
 }
+// ⚡ Tlačítko „Bez plánu – improvizovat“ do karty plánu bez bloků (jen kdo smí plán upravovat); poslech trlive/{eid}
+export function liveImproHtml(eid) {
+  if (!HK.can("sport") || !canE()) return "";
+  ensureLive(eid);
+  return improHtml(eid);
+}
 // getX = údaje tréninku (derive z trplan-view + D, plan, ev, end) – čtou se při každém překreslení obrazovky
 export function bindLiveCard(a, eid, getX) {
   const b = a.querySelector("#tlgo");
@@ -454,4 +476,4 @@ export function bindLiveCard(a, eid, getX) {
 }
 
 // ===== Exporty pro trlive-alerts.js =====
-export {L, NTF_KEY, canE, liveB, me, mine, muted, ntfOn, paint, subAt};
+export {L, NTF_KEY, canE, liveB, me, mine, muted, ntfOn, paint, planB, skew, subAt};

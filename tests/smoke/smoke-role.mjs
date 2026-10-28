@@ -132,6 +132,21 @@ async function events() {
       for (let i = 0; i < 2 && document.querySelector("[data-tlj]"); i++) await tap("[data-tlj]", 300);
       snap("trlive-jump");
     }
+    // v22.18 ⚡ improvizace: 👥 Na ledě, ➕ cvičení – hledání v bance, nové cvičení názvem, ▶ Hned vloží blok a skočí na něj
+    if (await tap('[data-tq="ice"]', 200)) { snap("trlive-ice"); await tap('[data-tq="ice"]', 150); }
+    if (await tap('[data-tq="add"]', 250)) {
+      if (!$("#tlq #tlqs")) throw new Error("⚡ okno vložení cvičení bez hledání");
+      const s = $("#tlqs"), n0 = (globalThis.__fb.writes || []).length;
+      s.value = "Hra 2 na 2"; s.dispatchEvent(new window.Event("input"));
+      await wait(150);
+      snap("trlive-quick");
+      await tap('[data-tqm="5"]', 150);
+      await tap('[data-tqx="ok"]', 300);
+      if ($("#tlq") && await tap('[data-tqx="ok"]', 300)) { /* převzetí řízení druhým klepnutím */ }
+      if ($("#tlq")) throw new Error("⚡ vložení cvičení se nezavřelo");
+      if ((globalThis.__fb.writes || []).length <= n0) throw new Error("⚡ vložení cvičení nic nezapsalo");
+      snap("trlive-quick-done");
+    }
     await tap("#tlx", 200);
   }
   await tap("#evb", 200);

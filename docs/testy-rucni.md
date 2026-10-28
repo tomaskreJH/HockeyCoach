@@ -1,7 +1,7 @@
 # Ruční testy na Androidu
 
 Kontrolní seznam po nasazení. `npm test` a `npm run smoke` ověří výpočty, zápisy a vykreslení, **ne** telefon, pravidla databáze, vibrace, oznámení ani hodinky.
-Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se přesunou do `docs/archiv/` (starší: `docs/archiv/testy-rucni-v21.md`). Výsledek zapiš do vlákna: číslo kroku + ✅ / ❌ + co se stalo.
+Po každé verzi se přidá kapitola netestované verze; otestované kapitoly se smažou (historie v `CHANGELOG.md` a v Gitu). Výsledek zapiš do vlákna: číslo kroku + ✅ / ❌ + co se stalo.
 
 **Příprava:** na všech telefonech ⚙️ → 👤 Účet → Načíst novou verzi (číslo v záhlaví). Druhý telefon nebo 👁 Náhled role (⚙️ → 🛠 Vývojář) pro ostatní role.
 
@@ -112,6 +112,16 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.6 ⚙️ → 💾 Data → Stáhnout zálohu (manager): soubor obsahuje `audit`.
 - [ ] 12.7 Firebase konzole → Firestore → Usage: druhý den porovnat čtení s 27. 10. (30 000).
 - [ ] 12.8 Rychlá kontrola z kap. 1.
+
+## 22. v22.18 (beta) – ⚡ Improvizace na ledě
+- [ ] 22.1 V betě je v záhlaví **v22.18**.
+- [ ] 22.2 Trénink **bez plánu** (trenér): 📋 Plán tréninku → **⚡ Bez plánu – improvizovat na ledě** → otevře se okno ➕ Cvičení. Napsat část názvu → nabídka z 📚 banky; vybrat → délka podle banky → **✅ Vložit a začít** → hodiny běží, ostatní trenéři vidí stejný blok.
+- [ ] 22.3 Během tréninku **➕ Cvičení** → napsat nový název (v bance není) → 💾 Uložit i do banky + kategorie → délka 5 → **▶ Hned** → současné cvičení skončí, odpočet běží na novém; ostatním přijde vibrace / ⌚ „↪ Změna“. V 📚 bance je nové cvičení s poznámkou ⚡.
+- [ ] 22.4 **⏭ Po tomto bloku** a **⤓ Na konec**: hodiny se nezmění, blok je v 📋 Zbytek plánu a „zbývá plán“ naroste. **☕ Pauza** stejně.
+- [ ] 22.5 **🥅 Brankářky zvlášť**: blok má druhou linku brankářek („vlastní cvičení“), trenér brankářek ji vidí jako své stanoviště.
+- [ ] 22.6 **👥 Na ledě** (po začátku tréninku): počty v dresech; 🚫 u hráčky → zmizí z linek a počtů, v docházce události má 🚫; **↩ Je tu** vrátí.
+- [ ] 22.7 Hodiny řídí jiný trenér: ✅ Vložit s ▶ Hned se nejdřív zeptá na převzetí řízení, druhé klepnutí vloží.
+- [ ] 22.8 Po tréninku: detail tréninku ukazuje plán i s vloženými bloky, ⭐ hodnocení a 🏒 Statistiky je započítají.
 
 ## 21. v22.17 (beta) – ⏱ Živý trénink na ledě (ostrý test 28. 10. 2026)
 **Před ledem (doma / v šatně, 5 minut, každý trenér na svém telefonu):**

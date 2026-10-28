@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.17 (28. 10. 2026, **jen v betě**) – ⏱ živý trénink na ledě: přilepené záhlaví (zbývá plán / do konce tréninku), pevná spodní lišta řídícího ⏸ / ⏭ / +1 min, ohlášení změny od řídícího ostatním (vibrace + ⌚), 🔒 zámek dotyku, ☀ Wake Lock s obnovou, hodiny po zpožděném zápisu bez signálu (`LATE_MS`). Cache `hokej-v116` / `hokej-beta-v116`.
-- **Další číslo:** v22.18 (cache `hokej-v117`), opravy v22.17.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.11**. V betě: **v22.17** (série k vydání: v22.12 – v22.17).
+- **Aktuální:** v22.18 (28. 10. 2026, **jen v betě**) – ⚡ improvizace na ledě: ➕ cvičení / ☕ pauza do plánu během živého tréninku (z banky i nové názvem, 💾 do banky; ▶ Hned / po bloku / na konec), trénink bez plánu, 👥 Na ledě s 🚫 nedorazila (chybějící zmizí z linek). Cache `hokej-v117` / `hokej-beta-v117`.
+- **Další číslo:** v22.19 (cache `hokej-v118`), opravy v22.18.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.11**. V betě: **v22.18** (série k vydání: v22.12 – v22.18).
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
@@ -28,9 +28,10 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - v22.15 (beta) – dresy, kratší detail, sbalené bloky plánu (kap. 19).
 - v22.16 (beta) – potvrzení dresů, termín přihlášení, ⏰ pozdě (kap. 20).
 - **v22.17 (beta) – ostrý test živého tréninku 28. 10. 2026 (kap. 21)**: oznámení, ☀ obrazovka, synchronní odpočet, řídící vs. ostatní trenéři, 🔒, baterie.
+- **v22.18 (beta) – ⚡ improvizace na ledě (kap. 22)**: bez plánu, ➕ cvičení ▶ Hned, nové cvičení do banky, 👥 🚫.
 
 ## Další krok
-1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), 4 hotovo v22.17 (živý trénink na ledě), **další v22.18 = 5 Zápas** (sestava „Jako minule“, souhrn ke sdílení) – nejdřív nálezy z ostrého testu tréninku (v22.17.x).
+1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), 4 hotovo v22.17 (živý trénink na ledě) + ⚡ improvizace v22.18, **další v22.19 = 5 Zápas** (sestava „Jako minule“, souhrn ke sdílení) – nejdřív nálezy z ostrého testu tréninku (v22.17.x).
 2. **D3** jen podle čísel z 📉 (zabalení uzavřených měsíců docházky).
 3. Pak N, P2, G (odloženo), M poslední.
 

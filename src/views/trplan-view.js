@@ -1,6 +1,6 @@
 // 📋 Plán tréninku v detailu tréninku: karta pod rozdělením do pětek (bloky za sebou od začátku tréninku, linky s cvičením, trenéry
 // a skupinami – 🎽 pětky / ⚔ posty / 🥅, rozpis točení stanovišť, 🔁 řady cvičení), okno cvičení #tpd, ✨ Připravit trénink; pod kartou
-// ⏱ živý trénink, ⏲ výsledky měření a ⭐ hodnocení. Poslech jen trplan/{eid} otevřeného tréninku; číst HK.perm("trplan", "r"),
+// ⏱ živý trénink (bez plánu ⚡ improvizace), ⏲ výsledky měření a ⭐ hodnocení. Poslech jen trplan/{eid} otevřeného tréninku; číst HK.perm("trplan", "r"),
 // hráčka vidí svou skupinu zvýrazněnou. Úprava plánu: trplan-edit.js; společné styly a pomůcky (derive, grpChip …) exportuje tento soubor.
 
 // ===== Importy =====
@@ -9,6 +9,7 @@ import {isG} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {isNos} from "../domain/attendance.js";
 import {lokState} from "../domain/event-helpers.js";
 import {clock, DF, FW, GK, groupIn, grpLabel, hm2min, isBreak, isFixedLane, isPosBlock, laneOf, laneSeq, laneTags, MODES, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, POS_GRPS, posGroups, posGrp, rotation, seqMinutes, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
 import {bindMedia, bindThumbs, mediaHtml, thumbsHtml} from "./drill-media.js";
@@ -16,7 +17,7 @@ import {quickSplit} from "./line-split-view.js";
 import {render} from "./shell.js";
 import {bindMsCard, msCardHtml} from "./stopwatch-view.js";
 import {bindEvalCard, evalCardHtml} from "./treval-view.js";
-import {bindLiveCard, liveCardHtml} from "./trlive-view.js";
+import {bindLiveCard, liveCardHtml, liveImproHtml} from "./trlive-view.js";
 import {bindCover, coverHtml, loadPrep} from "./trplan-reuse.js";
 
 // ===== Konstanty a stav =====
@@ -70,12 +71,14 @@ const mineIn = (b, X) => groupIn(b, X.mine, X.mineP);
 const grpChips = (grp, short) => (grp || []).map(g => grpChip(g, short)).join("");
 // Odvozené údaje tréninku pro plán: skupiny (pětky i posty), trenéři, délka, začátek, skupina přihlášené hráčky, id člena týmu
 function derive(ctx) {
-  const {P, A, T, ev} = ctx, yes = id => A[id] && A[id].st === "yes", L = ev.raw.lines || {};
+  // Na ledě = „Jdu“ bez 🚫 nedorazila (⚡ improvizace: chybějící hráčky zmizí z linek, skupin i hodnocení); absent = 🚫 pro vrácení
+  const {P, A, T, ev} = ctx, go = id => A[id] && A[id].st === "yes", yes = id => go(id) && !isNos(A[id]), L = ev.raw.lines || {};
   const skP = P.filter(p => yes(p.id) && !isG(p)), sk = skP.map(p => p.id), gk = P.filter(p => yes(p.id) && isG(p)).map(p => p.id);
+  const absent = P.filter(p => go(p.id) && isNos(A[p.id])).map(p => p.id);
   const start = hm2min(ev.time), end = hm2min(ctx.end), me = HK.pid(), mp = P.find(p => p.id === me);
   return {
     groups: planGroups(L, sk, gk), pgroups: posGroups(skP, gk), pgFull: [...POS_GRPS, ...(gk.length ? [GK] : [])], pos: Object.fromEntries(skP.map(p => [p.id, p.pos])),
-    roster: {lines: L, skaters: skP.map(p => ({id: p.id, pos: p.pos})), goalies: gk}, cnt: {sk, gk, L},
+    roster: {lines: L, skaters: skP.map(p => ({id: p.id, pos: p.pos})), goalies: gk}, cnt: {sk, gk, L}, absent,
     mineP: mp ? (isG(mp) ? GK : posGrp(mp.pos)) : null,
     coaches: T.filter(t => yes(t.id)), staff: T,
     start: start == null ? 0 : start, total: start != null && end != null && end > start ? end - start : 0,
@@ -170,7 +173,7 @@ function cardHtml(ctx) {
   let body;
   if (p === undefined) body = '<div class="mu">Načítám plán…</div>';
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
-  else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do dresů.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do dresů (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
+  else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do dresů.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do dresů (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' + liveImproHtml(eid) : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
   return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }

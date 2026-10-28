@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.17 (28. 10. 2026, 🧪 beta)** – ⏱ živý trénink na ledě: zbývající čas plánu a tréninku vždy nahoře, řídící má ⏸ / ⏭ / +1 min v pevné liště dole, ostatní trenéry upozorní změna od řídícího, 🔒 zámek dotyku do kapsy, ☀ obrazovka nezhasne (obnova zámku), hodiny správně i po zápisu bez signálu. Předtím v22.16.2: docházka před 1. 11. 2026. Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.18 (28. 10. 2026, 🧪 beta)** – ⚡ improvizace na ledě: ➕ cvičení nebo ☕ pauza do plánu během tréninku (z banky i nové názvem, ▶ Hned / po bloku / na konec), trénink bez připraveného plánu, 👥 kdo je na ledě a 🚫 chybějící hráčky. Předtím v22.17: živý trénink na ledě (lišta řídícího, 🔒, ☀). Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.
@@ -11,7 +11,7 @@ Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního 
 | [docs/KONVENCE.md](docs/KONVENCE.md) | práce s Claude (kap. 0), programovací řád, mapa souborů, testy, vydání verze |
 | [docs/plan.md](docs/plan.md) | nehotové fáze |
 | [docs/testy-rucni.md](docs/testy-rucni.md) | ruční test na telefonu |
-| `docs/archiv/` | hotové plány, starší CHANGELOG a testy |
+| `docs/archiv/` | starší CHANGELOG (do v20) |
 
 ## Spuštění a testy
 - Lokálně: `npm start` a otevřít `http://localhost:3000` (z `file://` se moduly nenačtou).
