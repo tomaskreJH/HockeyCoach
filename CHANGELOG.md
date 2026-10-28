@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.18.1 (28. 10. 2026) – Oprava: plán tréninku nešel uložit
+> **Nasazení – kanál 🧪 BETA:** commit „v22.18.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v118`). 🔒 Vyžadovat verzi: ne. Test: kap. 22, krok 22.0.
+
+**Opraveno** (nález uživatele 28. 10. 2026 – trénink nešlo uložit, ani druhému trenérovi)
+- `views/trplan-edit.js` (💾 Uložit plán), `views/trplan-reuse.js` (📑 Uložit jako šablonu), `views/line-split-view.js` (⭐ Výkonnost) – úklid v22.1.2 odstranil pomocnou funkci `stamp` (kdo a kdy zapsal) jako „nepoužitou“; klepnutí na uložení skončilo chybou bez hlášky. Funkce je zpět v každém souboru. Chyba je i ve stabilní v22.11.
+
+**Přidáno:** `tests/stamp-defined.test.js` (každé volání `stamp()` má definici nebo import), kouřový test klepne na 💾 Uložit plán a ověří zápis.
+
+**Ověřeno:** `npm test` 458 / 458, `npm run smoke` 8 rolí bez chyb, kontrola nedefinovaných názvů v celém `src` (eslint `no-undef`) bez nálezu.
+
 ## v22.18 (28. 10. 2026) – ⚡ Improvizace na ledě
 > **Nasazení – kanál 🧪 BETA:** commit „v22.18“ do větve **`beta`**. firestore.rules beze změny (zápisy jen do `trplan`, `trlive`, `drills` a pole 🚫 `attendance.nos` v dosavadním tvaru). V betě Načíst novou verzi (cache `hokej-beta-v117`). 🔒 Vyžadovat verzi: ne. Test: kap. 22. Odstraněno: `docs/archiv/` plány v18 – v21, plán Trénink a otestované ruční testy v21 (historie v CHANGELOG a Gitu).
 

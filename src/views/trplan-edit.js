@@ -6,6 +6,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
+import {HK} from "../data/storage.js";
 import {BLK_DUR_MAX, BLK_DUR_MIN, blockBlank, blockExtras, breakBlank, BRK_MAX, BY, clock, DF, FW, GK, groupsFor, grpLabel, isBreak, isFixedLane, isPosBlock, laneBlank, laneSeq, laneTags, mergePlan, MODES, moveBlock, PLAN_MAX, planDoc, planIssues, planMinutes, planTimes, posGrp, seqBlank, seqMinutes, seqOk, seqStart, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
 import {openDrillPicker} from "./drill-picker.js";
 import {render} from "./shell.js";
@@ -14,6 +15,8 @@ import {blockHtml, CSS, derive, drillMap, ensurePlan, GRP_ICON, grpChip, issuesH
 const grpChips = (grp, short) => (grp || []).map(g => grpChip(g, short)).join("");
 
 // ===== Konstanty a pomocné funkce úpravy =====
+// Podpis zápisu: kdo a kdy (pravidla databáze vyžadují by / at)
+const stamp = () => { const u = HK.user(); return {by: ((u && u.email) || "").toLowerCase(), at: new Date().toISOString()}; };
 const QUICK_DUR = [5, 8, 10, 12, 15, 20, 30];             // rychlá volba délky bloku (min)
 const QUICK_BRK = [2, 3, 5, 10];                          // rychlá volba délky ☕ pauzy (min)
 // Klíč skupiny z atributu tlačítka (číslo pětky nebo F / D / G)

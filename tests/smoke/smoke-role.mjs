@@ -111,8 +111,9 @@ async function events() {
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
     if (await tap('[data-tpadd="all"]', 250)) snap("plan-edit-add");
     if (await tap("#tponly", 250)) snap("plan-edit-only");
-    await tap("#tpx", 250);
-    await tap("#tpx", 250);
+    // v22.18.1: 💾 Uložit plán musí zapsat trplan (chyběl podpis stamp – uložení tiše padalo)
+    const n0 = globalThis.__fb.writes.length;
+    if (await tap("#tpok", 300) && !globalThis.__fb.writes.slice(n0).some(w => /^trplan\//.test(w.path))) throw new Error("📋 Uložit plán nic nezapsal");
   }
   if (await tap("#tlgo", 600)) {
     snap("trlive");

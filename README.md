@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.18 (28. 10. 2026, 🧪 beta)** – ⚡ improvizace na ledě: ➕ cvičení nebo ☕ pauza do plánu během tréninku (z banky i nové názvem, ▶ Hned / po bloku / na konec), trénink bez připraveného plánu, 👥 kdo je na ledě a 🚫 chybějící hráčky. Předtím v22.17: živý trénink na ledě (lišta řídícího, 🔒, ☀). Historie v [CHANGELOG.md](CHANGELOG.md).
+**Aktuální verze: v22.18.1 (28. 10. 2026, 🧪 beta)** – oprava: 💾 Uložit plán tréninku, 📑 šablona a ⭐ Výkonnost se znovu ukládají. v22.18: ⚡ improvizace na ledě: ➕ cvičení nebo ☕ pauza do plánu během tréninku (z banky i nové názvem, ▶ Hned / po bloku / na konec), trénink bez připraveného plánu, 👥 kdo je na ledě a 🚫 chybějící hráčky. Předtím v22.17: živý trénink na ledě (lišta řídícího, 🔒, ☀). Historie v [CHANGELOG.md](CHANGELOG.md).
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

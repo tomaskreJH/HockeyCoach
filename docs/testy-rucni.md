@@ -114,6 +114,7 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 12.8 Rychlá kontrola z kap. 1.
 
 ## 22. v22.18 (beta) – ⚡ Improvizace na ledě
+- [ ] 22.0 (v22.18.1) V záhlaví **v22.18.1**. 📋 Plán → ✏️ Upravit → **💾 Uložit plán** uloží (i druhý trenér); 📑 Uložit jako šablonu; 🎽 Rozdělení → ⭐ Výkonnost – hvězdy se uloží.
 - [ ] 22.1 V betě je v záhlaví **v22.18**.
 - [ ] 22.2 Trénink **bez plánu** (trenér): 📋 Plán tréninku → **⚡ Bez plánu – improvizovat na ledě** → otevře se okno ➕ Cvičení. Napsat část názvu → nabídka z 📚 banky; vybrat → délka podle banky → **✅ Vložit a začít** → hodiny běží, ostatní trenéři vidí stejný blok.
 - [ ] 22.3 Během tréninku **➕ Cvičení** → napsat nový název (v bance není) → 💾 Uložit i do banky + kategorie → délka 5 → **▶ Hned** → současné cvičení skončí, odpočet běží na novém; ostatním přijde vibrace / ⌚ „↪ Změna“. V 📚 bance je nové cvičení s poznámkou ⚡.

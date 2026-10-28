@@ -24,6 +24,8 @@ const HINT = {
 let unsub = null;
 
 // ===== Pomocné funkce =====
+// Podpis zápisu: kdo a kdy (pravidla databáze vyžadují by / at)
+const stamp = () => { const u = HK.user(); return {by: ((u && u.email) || "").toLowerCase(), at: new Date().toISOString()}; };
 // Volby rozdělení: z paměti zařízení, jinak výchozí
 function opts() {
   if (!S.lsp) {

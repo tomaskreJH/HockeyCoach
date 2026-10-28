@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.18 (28. 10. 2026, **jen v betě**) – ⚡ improvizace na ledě: ➕ cvičení / ☕ pauza do plánu během živého tréninku (z banky i nové názvem, 💾 do banky; ▶ Hned / po bloku / na konec), trénink bez plánu, 👥 Na ledě s 🚫 nedorazila (chybějící zmizí z linek). Cache `hokej-v117` / `hokej-beta-v117`.
-- **Další číslo:** v22.19 (cache `hokej-v118`), opravy v22.18.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.11**. V betě: **v22.18** (série k vydání: v22.12 – v22.18).
+- **Aktuální:** v22.18.1 (28. 10. 2026, **jen v betě**) – oprava ukládání plánu tréninku, 📑 šablony a ⭐ Výkonnosti (chyběl podpis `stamp` od úklidu v22.1.2). v22.18: ⚡ improvizace na ledě: ➕ cvičení / ☕ pauza do plánu během živého tréninku (z banky i nové názvem, 💾 do banky; ▶ Hned / po bloku / na konec), trénink bez plánu, 👥 Na ledě s 🚫 nedorazila (chybějící zmizí z linek). Cache `hokej-v118` / `hokej-beta-v118`.
+- **Další číslo:** v22.19 (cache `hokej-v119`), opravy v22.18.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.11**. V betě: **v22.18.1** (série k vydání: v22.12 – v22.18.1). ⚠️ Ve stabilní v22.11 je stejná chyba ukládání plánu – opravu přinese vydání bety.
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
