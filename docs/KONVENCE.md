@@ -49,7 +49,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `nav.js` | systémové Zpět uvnitř aplikace |
 | `table-sort.js` | řazení tabulek |
 | **data/** | |
-| `storage.js` | Firebase, přihlášení a role, **oprávnění `HK.can` / `HK.perm`**, náhled role, strážce zápisu `blocked()`, poslech, zápisy a dávky, kontext `C` pro moduly níže |
+| `storage.js` | Firebase, přihlášení a role, **oprávnění `HK.can` / `HK.perm`**, náhled role, strážce zápisu `blocked()`, poslech, zápisy a dávky, transakce `tx` (úhrady předpisů), kontext `C` pro moduly níže |
 | `cfg-api.js` | rozhraní okna ⚙️ `HK.cfg` (účet, členové, náhled role, brána verze, matice práv) – `cfgApi(C)` |
 | `backup.js` | záloha JSON, CSV soupisky, obnova ze zálohy – `backupApi(C)` |
 | `firebase-config.js` | nastavení projektu Firebase |

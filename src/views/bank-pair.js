@@ -161,10 +161,14 @@ function bindBar(a) {
   if (w) w.onclick = () => confirm2("hbpay", () => {
     const cfg = cashCfg(S.cc), overs = [];
     if (stm && stm.m) sp.forEach(i => { const p = stm.m.pairs[i]; if (p && p.over > 0) overs.push(incomeOf(p.tx, p.over, "přeplatek z výpisu", p.tx.ref + "#p", cfg)); });
-    const n = payMany(toWrite());
-    if (overs.length) { const b = S.db.batch(); overs.forEach(o => b.set("cash/" + uid(), o)); b.commit(); }
-    sp.clear(); sc.clear(); stm = null;
-    toast((n ? "Zapsáno úhrad: " + n : "Nic k zápisu – předpisy už jsou zaplacené") + (overs.length ? ", přeplatky jako příjem: " + overs.length : ""));
+    // Úhrady transakcí nad aktuálním stavem předpisů (v22.18.2); při chybě (bez připojení) se nic dalšího nezapíše a výběr zůstane
+    payMany(toWrite()).then(r => {
+      if (r.err && !r.n) return toast(r.err);
+      if (overs.length) { const b = S.db.batch(); overs.forEach(o => b.set("cash/" + uid(), o)); b.commit(); }
+      sp.clear(); sc.clear(); stm = null;
+      toast((r.n ? "Zapsáno úhrad: " + r.n : "Nic k zápisu – předpisy už jsou zaplacené") + (r.skip && r.n ? ", už zaplaceno jinde: " + r.skip : "") + (overs.length ? ", přeplatky jako příjem: " + overs.length : "") + (r.err ? " · ⚠️ zbytek: " + r.err : ""));
+      render();
+    });
   });
 }
 // Obnova jen lišty (ruční zaškrtnutí – bez překreslení stránky, nic neposkočí)

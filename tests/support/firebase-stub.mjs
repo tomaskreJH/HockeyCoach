@@ -58,3 +58,15 @@ export const onSnapshot = (ref, cb) => {
   return () => {};
 };
 export const writeBatch = () => { const ops = []; return {set(ref, d, opt) { ops.push(entry(ref, d, opt)); }, delete(ref) { ops.push({path: path(ref), del: true}); }, update(ref, d) { ops.push({path: path(ref), d: JSON.parse(JSON.stringify(d))}); }, commit: async () => { ops.forEach(rec); }}; };
+// Transakce: čte z __fb.data, zápisy zaznamená do __fb.writes až po úspěšném fn (jako potvrzení dávky)
+export const runTransaction = async (fs, fn) => {
+  const ops = [], f = fb();
+  const t = {
+    get: async ref => { const x = f && ref ? ((f.data || {})[ref.c] || {})[ref.id] : undefined; return {exists: () => x !== undefined, data: () => x}; },
+    set(ref, d, opt) { ops.push(entry(ref, d, opt)); return t; },
+    delete(ref) { ops.push({path: path(ref), del: true}); return t; }
+  };
+  const r = await fn(t);
+  ops.forEach(rec);
+  return r;
+};

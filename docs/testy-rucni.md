@@ -222,3 +222,10 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 13.8 Firebase konzole → Usage: další dny porovnat čtení (27. 10.: 30 000).
 - [ ] 13.9 Rychlá kontrola z kap. 1.
 
+## 23. v22.18.2 (beta) – Opravy z kontroly kódu
+- [ ] 23.1 V betě je v záhlaví **v22.18.2**.
+- [ ] 23.2 Dvojí úhrada: dva telefony (pokladník + trenér s pokladnou), oba otevřou týž nezaplacený předpis. Na prvním 💳 Úhrada → zapsat. Na druhém hned potom (bez obnovení) 💳 Úhrada → hláška „už je zaplacený“ / „zbývá už jen …“, v 📒 pokladně jen jeden příjem.
+- [ ] 23.3 Úhrada bez připojení (režim letadlo): 💳 Úhrada → hláška „chybí připojení“, nic se nezapíše; po připojení úhrada projde. Totéž ✅ Zaplatila vše.
+- [ ] 23.4 🏦 Výpis z banky: ✅ Zapsat → počet úhrad jako dosud; bez připojení hláška, výběr zůstane.
+- [ ] 23.5 Zápas: na prvním zařízení běží hodiny v živém zápisu; na druhém v detailu zápasu „Uzavřít a potvrdit zápas“ → hláška „Nejdřív přeruš hodiny v živém zápisu“. Po přerušení hodin uzavření projde a vyúčtování vznikne jako dosud.
+- [ ] 23.6 GitHub → Actions → poslední běh „Nasazení (stabilní + beta)“: krok **test** zelený, potom deploy.

@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.18.2 (29. 10. 2026) – Opravy z kontroly kódu (dvojí úhrada, uzavření zápasu, testy v CI)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.18.2“ do větve **`beta`**. firestore.rules beze změny (transakce zapisuje stejné dokumenty jako dosavadní dávka). V betě Načíst novou verzi (cache `hokej-beta-v119`). 🔒 Vyžadovat verzi: ne. Test: kap. 23.
+
+**Opraveno** (kontrola kódu v22.18.1, 28. 10. 2026)
+- **Dvojí úhrada** (nález A): `views/payments.js` – 💳 Úhrada (`payCharge`) a hromadné úhrady (`payMany`: ✅ Zaplatila vše, 🏦 výpis) se zapisují **transakcí nad aktuálním stavem předpisu na serveru** (nové `S.db.tx` v `data/storage.js`, plán částek `payPlan` v `domain/cash.js`). Dvě zařízení se zastaralou kopií dat už nezapíšou do pokladny dvojí příjem za týž předpis – druhé dostane hlášku „už je zaplacený“ / „zbývá už jen …“, u hromadného zápisu „× už zaplaceno jinde“. Úhrady se nově zapisují **jen online** (bez připojení hláška, nic se nezapíše); souhrn dlužníků ve stejné transakci jako dosud.
+- **Uzavření zápasu s běžícími hodinami** (nález B): `views/matches.js` – „Uzavřít a potvrdit zápas“ při běžících hodinách hlásí „Nejdřív přeruš hodiny v živém zápisu“ (stejně jako úpravy). Uzavřený zápas už nemůže dál přičítat čas na ledě a statistiky.
+
+**Změněno**
+- `views/bank-pair.js` – ✅ Zapsat čeká na výsledek transakce; při chybě (bez připojení) zůstane výběr i výpis a přeplatky se nezapíšou.
+- `.github/workflows/pages.yml` – před nasazením běží `npm test` a kouřový test nahrané větve; při chybě se web nenasadí (nález C).
+- `docs/STAV.md` – stabilní = v22.18.1 (PR #2, nález D).
+
+**Beze změny:** výpočet předpisů a vyúčtování, výjimky z blokace, živý zápis (střely, góly, časomíra), pravidla databáze.
+
+**Ověřeno:** `npm test` 463 / 463 (nové `tests/pay-race.test.js`: závod dvou zařízení u `payCharge` i `payMany`, chyba bez připojení, `payPlan`), `npm run smoke` 8 rolí bez chyb.
+
 ## v22.18.1 (28. 10. 2026) – Oprava: plán tréninku nešel uložit
 > **Nasazení – kanál 🧪 BETA:** commit „v22.18.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v118`). 🔒 Vyžadovat verzi: ne. Test: kap. 22, krok 22.0.
 

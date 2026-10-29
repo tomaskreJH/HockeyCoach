@@ -68,8 +68,9 @@ a.querySelectorAll("[data-edt]").forEach(b=>b.onclick=()=>{if(m.live&&m.live.run
 a.querySelectorAll("[data-rpt]").forEach(b=>b.onclick=()=>{S.rp=true;renderReport()});bindH2h(a);
 Q("#em").onclick=()=>{S.M={k:"EM",id:m.id,opp:m.opp,date:m.date,home:m.home};modal()};
 Q("#tn").onclick=()=>{S.showNom=!S.showNom;render()};
-// Uzavření zápasu: spolu s ním se vytvoří vyúčtování plateb podle aktuální docházky (u venkovního zápasu bez plateb)
-Q("#cz").onclick=()=>confirm2("c"+m.id,()=>{const n=clone(m);n.closed=true;settleEvent(evOfMatch(n),n);save(n)});
+// Uzavření zápasu: spolu s ním se vytvoří vyúčtování plateb podle aktuální docházky (u venkovního zápasu bez plateb).
+// Běžící hodiny uzavření blokují stejně jako úpravy (v22.18.2, nález B kontroly): uzavřený zápas by jinak dál přičítal čas a statistiky.
+Q("#cz").onclick=()=>{if(m.live&&m.live.running)return toast("Nejdřív přeruš hodiny v živém zápisu");confirm2("c"+m.id,()=>{const n=clone(m);n.closed=true;settleEvent(evOfMatch(n),n);save(n)})};
 Q("#ro").onclick=()=>confirm2("o"+m.id,()=>{const n=clone(m);delete n.closed;save(n)});
 Q("#to").onclick=()=>{S.showOp=!S.showOp;render()};
 Q("#ra").onclick=()=>{const c=$("#rc").value.trim(),nm=$("#rn").value.trim();if(!c&&!nm)return toast("Zadej číslo nebo jméno");const n=clone(m);n.opr=[...(n.opr||[]),{id:uid(),num:c,name:nm,g:0,a:0,pim:0}].sort((x,y)=>(+x.num||999)-(+y.num||999));save(n)};

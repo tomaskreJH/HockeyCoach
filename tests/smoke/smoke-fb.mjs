@@ -61,3 +61,15 @@ export const writeBatch = () => {
     commit: async () => { ops.forEach(o => o()); }
   };
 };
+// Transakce: čte aktuální data, zápisy provede až po úspěšném fn (jako potvrzení dávky)
+export const runTransaction = async (fs, fn) => {
+  const ops = [];
+  const t = {
+    get: async ref => { const x = col(ref.c)[ref.id]; return {exists: () => x !== undefined, data: () => copy(x)}; },
+    set(ref, d, opt) { ops.push(() => put(ref, d, opt)); return t; },
+    delete(ref) { ops.push(() => deleteDoc(ref)); return t; }
+  };
+  const r = await fn(t);
+  ops.forEach(o => o());
+  return r;
+};
