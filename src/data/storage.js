@@ -1,7 +1,7 @@
 // Datová vrstva: Firebase (Firestore, přihlášení Google), oprávnění HK.can / HK.perm (jediné místo, z domain/permissions.js a settings/perm),
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
 // Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
-// onSnapshot; batch() – set / merge / delete / commit. 📉 Události a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
+// onSnapshot; batch() – set / merge / delete / commit; tx(cesty, fn) – transakce nad aktuálním stavem serveru (úhrady předpisů). 📉 Události a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
 // Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup.
 
 // ===== Importy =====
@@ -34,7 +34,7 @@ import {cfgApi} from "./cfg-api.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, getDocsFromCache, getDocsFromServer, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {collection as fsCol, deleteDoc, deleteField, doc as fsDoc, getDoc, getDocs, getDocsFromCache, getDocsFromServer, initializeFirestore, onSnapshot, persistentLocalCache, persistentMultipleTabManager, query, runTransaction, serverTimestamp, setDoc, where, writeBatch} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty a stav =====
 const VERSION = APP_LABEL + (IS_BETA ? " · 🧪 beta" : "");             // číslo verze je jen v core/app-version.js; v betě se štítkem kanálu
@@ -388,6 +388,25 @@ function makeBatch() {
   };
   return api;
 }
+// Transakce (v22.18.2, úhrady předpisů – nález A kontroly): přečte dokumenty paths ze SERVERU (ne z offline paměti), fn(cur, w)
+// podle nich naplánuje zápisy (w.set / w.delete s cestou "kolekce/id", stejné rozhraní jako dávka) a vrátí výsledek.
+// Souběžná změna týchž dokumentů z jiného zařízení = Firestore fn zopakuje nad novým stavem (fn proto nesmí měnit nic mimo w).
+// Bez připojení transakce selže (výjimka) – volající to oznámí. V náhledu jen ke čtení / u starší verze vrací null (nic neodejde).
+async function runTx(paths, fn) {
+  if (blocked()) return null;
+  return runTransaction(fs, async t => {
+    const cur = {};
+    for (const p of paths || []) {
+      const [c, id] = splitPath(p), s = await t.get(fsDoc(fs, c, id));
+      cur[p] = s.exists() ? clone(s.data()) : null;
+    }
+    const w = {
+      set: (p, d) => { const [c, id] = splitPath(p); t.set(fsDoc(fs, c, id), clone(d)); return w; },
+      delete: p => { const [c, id] = splitPath(p); t.delete(fsDoc(fs, c, id)); return w; }
+    };
+    return fn(cur, w);
+  });
+}
 
 const db = {
   collection: c => ({
@@ -415,7 +434,8 @@ const db = {
       onSnapshot: (cb, er) => subscribe(c, () => { const d = data[c][id]; cb({exists: !!d, data: () => d ? clone(d) : undefined}); }, er)
     };
   },
-  batch: makeBatch
+  batch: makeBatch,
+  tx: runTx
 };
 
 // ===== Přihlášení a role =====

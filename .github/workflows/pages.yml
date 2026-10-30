@@ -2,6 +2,7 @@
 # Spustí se po každém nahrání do main nebo beta (i ručně v záložce Actions → Run workflow) a pokaždé postaví web z obou větví.
 # Nastavení repozitáře (jednou): Settings → Pages → Source: GitHub Actions; Settings → Environments → github-pages →
 # Deployment branches and tags: přidat větev beta (jinak nasazení z bety odmítne). Postup je v README (Nasazení nové verze).
+# Od v22.18.2 se před nasazením spustí testy nahrané větve (npm test + kouřový test všech rolí) – při chybě se nic nenasadí.
 
 name: Nasazení (stabilní + beta)
 
@@ -21,7 +22,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ===== Testy nahrané větve (main nebo beta) =====
+  # Stejné ověření jako před commitem (docs/KONVENCE.md kap. 0): npm test zelený, kouřový test všech rolí bez chyb.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testy (npm test)
+        run: npm test
+      - name: Kouřový test (všechny role)
+        run: |
+          npm install --no-save --no-audit --no-fund jsdom@26
+          npm run smoke
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: github-pages

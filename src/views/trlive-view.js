@@ -220,7 +220,9 @@ function controlsHtml(v, at) {
   const take = other ? `<div class="mu" style="margin-top:6px">Řídí ${ctlName(v.ctl)} – první klepnutí na ovládání ${arm ? "<b>potvrdí převzetí</b>" : "se zeptá na převzetí řízení"}.</div>` : "";
   if (!st || st === "end" || (at && at.done && st !== "pause")) {
     const kr = "tlre" + L.eid;
-    return `<div class="tlctl" style="grid-template-columns:1fr"><button class="p" data-tl="${st ? "restart" : "start"}" style="${armed(kr) ? "background:var(--wa)" : ""}">${st ? (armed(kr) ? "Spustit znovu od začátku? Klepni znovu" : "↺ Spustit znovu od začátku") : "▶ Spustit trénink"}</button></div>${take}`;
+    // v22.19.1: plán doběhl, ale trénink běží dál (víc ledu, zdržení) – ⏹ Konec musí zůstat, jinak by zůstal navždy „Právě běží“
+    const endDone = st && st !== "end" ? `<button class="d tlend" data-tl="end" style="min-height:52px;${armed("tlend" + L.eid) ? "background:var(--no);color:#fff" : ""}">${armed("tlend" + L.eid) ? "Ukončit trénink? Klepni znovu" : "⏹ Konec tréninku"}</button>` : "";
+    return `<div class="tlctl" style="grid-template-columns:1fr">${endDone}<button class="${endDone ? "s" : "p"}" data-tl="${st ? "restart" : "start"}" style="${armed(kr) ? "background:var(--wa)" : ""}">${st ? (armed(kr) ? "Spustit znovu od začátku? Klepni znovu" : "↺ Spustit znovu od začátku") : "▶ Spustit trénink"}</button></div>${take}`;
   }
   // Řídím já: ⏸ / ⏭ / +1 min jsou v pevné spodní liště (botHtml), tady jen méně časté akce
   const endB = `<button class="d tlend" data-tl="end" style="${armed("tlend" + L.eid) ? "background:var(--no);color:#fff" : ""}">${armed("tlend" + L.eid) ? "Ukončit trénink? Klepni znovu" : "⏹ Konec"}</button>`;

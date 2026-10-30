@@ -13,7 +13,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
 | ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | ~~v22.11~~ | hotovo | 🧪 beta kanál: větev `beta` → `…/beta/` pro vybrané testery, vydání pro všechny PR `beta → main` |
-| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, další 5 Zápas |
+| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); další přehlednější živý trénink, úprava proběhlého tréninku, 5 Zápas |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
@@ -86,3 +86,4 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 11. 🏦 Výpis z banky: import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje. Přeplatek a nespárovaná platba se od v22.5 zapisují jako příjem; odchozí platby z výpisu (led, rozhodčí) se zatím nepárují – výdaje se zapisují ručně (🧾 Náklady → ➖ Zapsat platbu).
 12. 🕘 Po zpětné změně placení se uzavřená vyúčtování znovu otevírají ručně (záměrně – předpisy ostatních se tím přepočítají); případně později hromadně.
 13. 🧾 Náklady páruje výdaj s náklady podle kategorie a měsíce (příjemce zpřesní párování); náklady událostí musí mít v šabloně kategorii a příjemce. Zrušená nevyúčtovaná událost se nepočítá.
+14. Kontrola kódu v22.18.1 (28. 10. 2026) – A, B, C, D opraveny ve v22.18.2. **Pravidla čekají na souhlas** (nelze vrátit přes Git): `settings/beta` číst jen manager / vývojář; `budgetKeep` – starší revize rozpočtu neměnné (ne jen počet); `treval` u hráček vynutit pravidly. Mimo kód: ověřit nasazená pravidla v konzoli proti `firestore.rules`, zvážit App Check. Uzavřený zápas z doby před v22.18.2 s běžícími hodinami: Znovu otevřít → přerušit hodiny → uzavřít.

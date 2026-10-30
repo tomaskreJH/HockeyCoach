@@ -2,6 +2,56 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.20 (30. 10. 2026) – Příprava na trénink pro hráčky (popis, video, PDF)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.20“ do větve **`beta`**. firestore.rules beze změny (kopie `dx` je uvnitř linek plánu `trplan`, pravidla kontrolují jen horní pole). V betě Načíst novou verzi (cache `hokej-beta-v122`). 🔒 Vyžadovat verzi: ne. Test: kap. 25.
+
+**Přidáno** (požadavek uživatele 30. 10. 2026 – hráčky se mají na trénink připravit, obsah cvičení není tajný)
+- 📋 Plán tréninku → klepnutí na cvičení: hráčka nově vidí kromě názvu a obrázků i **kategorii, úroveň, délku, pomůcky, popis, ▶ video a 📄 PDF**. Banku cvičení dál nečte (šetří čtení databáze) – podrobnosti se při uložení plánu zkopírují do plánu (`dx`, jen u prvního výskytu cvičení, u řady na položkách řady).
+- Realizační tým: u plánu uloženého dřív (nebo když se cvičení v bance změnilo) karta ukáže **👀 Hráčky zatím nevidí aktuální popis…** a **📤 Zpřístupnit hráčkám** – plán se uloží znovu s aktuální kopií, bloky, linky a skupiny se nemění. Stejně se kopie obnoví každým 💾 Uložit plán, ⚡ cvičením na ledě i šablonou.
+- `domain/training-plan.js`: `drillDx`, `planDetails`, `planDxStale`; `planDoc` ukládá kopii `dx` (bez banky zachová dosavadní). Testy `tests/plan-details.test.js`.
+
+**Beze změny:** banka cvičení (hráčka ji dál nevidí), hodnocení trenérů (hráčky nevidí), živý trénink, měření, pravidla databáze.
+
+**Ověřeno:** `npm test`, `npm run smoke` bez chyb.
+
+## v22.19.1 (30. 10. 2026) – Oprava: trénink nešel ukončit po doběhnutí plánu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.19.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v121`). 🔒 Vyžadovat verzi: ne. Test: kap. 24, krok 24.7.
+
+**Opraveno** (nález uživatele 30. 10. 2026 – trénink po skončení plánu zůstal „🔴 Právě běží“)
+- `views/trlive-view.js` – po uplynutí času plánu zmizelo tlačítko ⏹ Konec (zůstalo jen ↺ Spustit znovu), trénink tak nešel ukončit. Nově je nahoře **⏹ Konec tréninku** (druhým klepnutím), pod ním ↺ Spustit znovu. Trénink se dál **neukončuje automaticky** (může být víc ledu, zdržení) – rozhodnutí uživatele.
+
+**Beze změny:** hodiny živého tréninku, ⚡ improvizace, měření, statistiky.
+
+**Ověřeno:** `npm test`, `npm run smoke` bez chyb.
+
+## v22.19 (30. 10. 2026) – 🏃 Oprava pořadí uložené štafety (i zpětně)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.19“ do větve **`beta`**. firestore.rules beze změny (nové pole `l` je uvnitř mapy `r` dokumentu `trms`, pravidla ho nekontrolují). V betě Načíst novou verzi (cache `hokej-beta-v120`). 🔒 Vyžadovat verzi: ne. Test: kap. 24.
+
+**Přidáno** (požadavek uživatele 30. 10. 2026 – hráčky se při štafetě vyměnily a nesedělo pořadí)
+- ⏲ Výsledky měření → u běhu štafety **✏️ Opravit pořadí** (kdo smí měřit, i po tréninku). Okno ukáže běh tak, jak byl nastavený: skupiny A–D, pořadí předávek a čas každého úseku. Klepnutí na hráčku a pak na jiné místo = jména se prohodí (i mezi skupinami), **časy zůstávají na místě**. 💾 Uložit pořadí přesune čas úseku do pokusů nové hráčky (u původní se smaže) – pořadí a nejlepší časy v tabulce sedí. ↺ Vrátit, ✕ Zrušit (i systémové Zpět).
+- Karta výsledků: poslední 3 běhy štafety, starší pod „Starší běhy (N)“.
+- `domain/relay.js`: běh štafety nově ukládá úseky skupiny (`rl[].g[].l`); `relayRunLegs` (úseky starších běhů se dohledají z pokusů hráček odzadu a ověří součtem proti času skupiny), `relaySameSet`, `relaySwapPatch`. Kde čas úseku dohledat nejde (pokusy se mezitím změnily), prohodí se jen jméno v běhu a okno to oznámí.
+
+**Beze změny:** měření stopkami a průběh štafety, ostatní linky a hodnocení, živý zápis zápasu (střely, góly, časomíra), pokladna, pravidla databáze.
+
+**Ověřeno:** `npm test` (nové testy v `tests/relay.test.js`: uložení úseků, dohledání starších běhů, prohození jmen a přesun pokusů, návrat opravou zpět, běh s neznámými úseky), `npm run smoke` bez chyb.
+
+## v22.18.2 (29. 10. 2026) – Opravy z kontroly kódu (dvojí úhrada, uzavření zápasu, testy v CI)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.18.2“ do větve **`beta`**. firestore.rules beze změny (transakce zapisuje stejné dokumenty jako dosavadní dávka). V betě Načíst novou verzi (cache `hokej-beta-v119`). 🔒 Vyžadovat verzi: ne. Test: kap. 23.
+
+**Opraveno** (kontrola kódu v22.18.1, 28. 10. 2026)
+- **Dvojí úhrada** (nález A): `views/payments.js` – 💳 Úhrada (`payCharge`) a hromadné úhrady (`payMany`: ✅ Zaplatila vše, 🏦 výpis) se zapisují **transakcí nad aktuálním stavem předpisu na serveru** (nové `S.db.tx` v `data/storage.js`, plán částek `payPlan` v `domain/cash.js`). Dvě zařízení se zastaralou kopií dat už nezapíšou do pokladny dvojí příjem za týž předpis – druhé dostane hlášku „už je zaplacený“ / „zbývá už jen …“, u hromadného zápisu „× už zaplaceno jinde“. Úhrady se nově zapisují **jen online** (bez připojení hláška, nic se nezapíše); souhrn dlužníků ve stejné transakci jako dosud.
+- **Uzavření zápasu s běžícími hodinami** (nález B): `views/matches.js` – „Uzavřít a potvrdit zápas“ při běžících hodinách hlásí „Nejdřív přeruš hodiny v živém zápisu“ (stejně jako úpravy). Uzavřený zápas už nemůže dál přičítat čas na ledě a statistiky.
+
+**Změněno**
+- `views/bank-pair.js` – ✅ Zapsat čeká na výsledek transakce; při chybě (bez připojení) zůstane výběr i výpis a přeplatky se nezapíšou.
+- `.github/workflows/pages.yml` – před nasazením běží `npm test` a kouřový test nahrané větve; při chybě se web nenasadí (nález C).
+- `docs/STAV.md` – stabilní = v22.18.1 (PR #2, nález D).
+
+**Beze změny:** výpočet předpisů a vyúčtování, výjimky z blokace, živý zápis (střely, góly, časomíra), pravidla databáze.
+
+**Ověřeno:** `npm test` 463 / 463 (nové `tests/pay-race.test.js`: závod dvou zařízení u `payCharge` i `payMany`, chyba bez připojení, `payPlan`), `npm run smoke` 8 rolí bez chyb.
+
 ## v22.18.1 (28. 10. 2026) – Oprava: plán tréninku nešel uložit
 > **Nasazení – kanál 🧪 BETA:** commit „v22.18.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v118`). 🔒 Vyžadovat verzi: ne. Test: kap. 22, krok 22.0.
 

@@ -222,3 +222,26 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 13.8 Firebase konzole → Usage: další dny porovnat čtení (27. 10.: 30 000).
 - [ ] 13.9 Rychlá kontrola z kap. 1.
 
+## 23. v22.18.2 (beta) – Opravy z kontroly kódu
+- [ ] 23.1 V betě je v záhlaví **v22.18.2**.
+- [ ] 23.2 Dvojí úhrada: dva telefony (pokladník + trenér s pokladnou), oba otevřou týž nezaplacený předpis. Na prvním 💳 Úhrada → zapsat. Na druhém hned potom (bez obnovení) 💳 Úhrada → hláška „už je zaplacený“ / „zbývá už jen …“, v 📒 pokladně jen jeden příjem.
+- [ ] 23.3 Úhrada bez připojení (režim letadlo): 💳 Úhrada → hláška „chybí připojení“, nic se nezapíše; po připojení úhrada projde. Totéž ✅ Zaplatila vše.
+- [ ] 23.4 🏦 Výpis z banky: ✅ Zapsat → počet úhrad jako dosud; bez připojení hláška, výběr zůstane.
+- [ ] 23.5 Zápas: na prvním zařízení běží hodiny v živém zápisu; na druhém v detailu zápasu „Uzavřít a potvrdit zápas“ → hláška „Nejdřív přeruš hodiny v živém zápisu“. Po přerušení hodin uzavření projde a vyúčtování vznikne jako dosud.
+- [ ] 23.6 GitHub → Actions → poslední běh „Nasazení (stabilní + beta)“: krok **test** zelený, potom deploy.
+
+## 24. v22.19 (beta) – 🏃 Oprava pořadí uložené štafety
+- [ ] 24.1 V betě je v záhlaví **v22.19**.
+- [ ] 24.2 Starší trénink se štafetou (uložená před v22.19): 📋 Plán → ⏲ Výsledky měření → u běhu **✏️ Opravit pořadí** → okno ukáže skupiny, pořadí a časy úseků (součet = čas skupiny).
+- [ ] 24.3 Klepni na hráčku, pak na jiné místo → jména se prohodí, časy zůstanou na místě, změněné místo je orámované s „původně …“. ↺ Vrátit vrátí rozpracované změny.
+- [ ] 24.4 💾 Uložit pořadí → hláška, v kartě běh s novými jmény; v tabulce pokusů má každá hráčka čas svého úseku (u původní zmizel).
+- [ ] 24.5 Nová štafeta (v22.19) → oprava pořadí → uložit; znovu otevřít a prohodit zpět → stav jako na začátku.
+- [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
+- [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
+
+## 25. v22.20 (beta) – Příprava na trénink pro hráčky
+- [ ] 25.1 V betě je v záhlaví **v22.20**.
+- [ ] 25.2 Trenér: starší plán (uložený před v22.20) → v kartě 👀 „Hráčky zatím nevidí…“ → **📤 Zpřístupnit hráčkám** → hláška, upozornění zmizí, plán beze změny.
+- [ ] 25.3 👁 Náhled role hráčka (nebo účet hráčky): 📋 Plán → klepnout na cvičení → kategorie, úroveň, délka, pomůcky, popis, ▶ video a 📄 PDF se zobrazí a přehrají.
+- [ ] 25.4 Změnit popis cvičení v 📚 bance → u plánu se znovu ukáže 👀 upozornění; 💾 Uložit plán nebo 📤 ho vyřeší.
+- [ ] 25.5 Hráčka dál nevidí 📚 banku cvičení ani ⭐ hodnocení trenérů.

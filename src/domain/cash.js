@@ -157,6 +157,23 @@ export function payAmount(x, v) {
   if (a > rest + 1e-9) return {err: "Částka je vyšší než zbývá (" + kc(rest) + ")"};
   return {amt: Math.min(a, rest)};
 }
+// Plán úhrad nad AKTUÁLNÍM stavem předpisů (v22.18.2 – čte se v transakci ze serveru, ne ze zastaralé kopie zařízení):
+// list = [{cid, amt (null = celý zbytek), ...}], chOf(cid) = předpis {id, amt, paid, …} nebo null (smazaný).
+// Částka se omezí zbytkem po dřívějších položkách téhož předpisu; zaplacený nebo smazaný předpis vypadne (skip).
+// Vrací {lines: [{x, a, part, o}], paid: Map(cid → přidaná částka), skip}; part = částečná úhrada (zbude dluh).
+export function payPlan(list, chOf) {
+  const paid = new Map(), lines = [];
+  let skip = 0;
+  (list || []).forEach(o => {
+    const x = chOf(o.cid);
+    if (!x) { skip++; return; }
+    const rest = r2(restOf(x) - (paid.get(x.id) || 0)), a = o.amt == null ? rest : r2(Math.min(+o.amt || 0, rest));
+    if (!(a > 0)) { skip++; return; }
+    paid.set(x.id, r2((paid.get(x.id) || 0) + a));
+    lines.push({x, a, part: a < restOf(x), o});
+  });
+  return {lines, paid, skip};
+}
 
 // ===== Nastavení a šablony =====
 const W = (m, s, x) => ({monthly: {pays: m, mode: "calc", flat: 0}, single: {pays: s, mode: "calc", flat: 0}, exempt: {pays: x, mode: "calc", flat: 0}});

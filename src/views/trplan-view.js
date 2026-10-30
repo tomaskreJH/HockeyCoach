@@ -11,7 +11,7 @@ import {clone, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {isNos} from "../domain/attendance.js";
 import {lokState} from "../domain/event-helpers.js";
-import {clock, DF, FW, GK, groupIn, grpLabel, hm2min, isBreak, isFixedLane, isPosBlock, laneOf, laneSeq, laneTags, MODES, myGroup, planBlank, planDoc, planGroups, planIssues, planMinutes, planTimes, POS_GRPS, posGroups, posGrp, rotation, seqMinutes, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
+import {clock, DF, FW, GK, groupIn, grpLabel, hm2min, isBreak, isFixedLane, isPosBlock, laneOf, laneSeq, laneTags, MODES, myGroup, planBlank, planDetails, planDoc, planDxStale, planGroups, planIssues, planMinutes, planTimes, POS_GRPS, posGroups, posGrp, rotation, seqMinutes, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
 import {bindMedia, bindThumbs, mediaHtml, thumbsHtml} from "./drill-media.js";
 import {quickSplit} from "./line-split-view.js";
 import {render} from "./shell.js";
@@ -62,6 +62,8 @@ const CSS = `<style>
 
 // ===== Pomocné funkce =====
 const canE = () => HK.perm("trplan", "e");
+// Kdo a kdy zapsal (stejně jako při 💾 Uložit plán v trplan-edit.js)
+const stamp = () => { const u = HK.user(); return {by: ((u && u.email) || "").toLowerCase(), at: new Date().toISOString()}; };
 const drillMap = () => Object.fromEntries((S.dr || []).map(d => [d.id, d]));
 // Štítek skupiny (barva dresu, brankářky fialově, útočnice červeně, obránkyně tmavě); short = jen první písmeno / ikona
 const GRP_ICON = {[GK]: ["🥅", " Brankářky"], [FW]: ["⚔", " Útočnice"], [DF]: ["🛡", " Obránkyně"]};
@@ -148,7 +150,8 @@ function bodyHtml(p, X, D, staff) {
 ${X.mine != null || (X.mineP && p.blocks.some(isPosBlock)) ? `<div style="margin:6px 0">Tvoje skupina: ${X.mine != null ? grpChip(X.mine) : ""}${X.mineP && X.mineP !== GK && p.blocks.some(isPosBlock) ? grpChip(X.mineP) : ""}${!staff && DRESS[X.mine] ? ` · 🎽 vezmi si <b>${DRESS[X.mine]}</b> dres` : ""}</div>` : !staff && HK.pid() ? (X.lok === "none" ? '<div class="mu" style="margin:6px 0">🎽 Barvu dresu uvidíš, až trenér rozdělení potvrdí.</div>' : '<div class="mu" style="margin:6px 0">Zatím nemáš dres (rozdělení dělá trenér po přihlášení).</div>') : ""}`;
   return head + (staff ? issuesHtml(p, X, D) : "") + p.blocks.map((b, bi) => blockHtml(b, bi, T[bi], X, D)).join("");
 }
-// Okno cvičení: obrázky (klepnutí = celá obrazovka), popis a odkazy; hráčka vidí název a obrázky z kopie v plánu
+// Okno cvičení: obrázky (klepnutí = celá obrazovka), popis, pomůcky, video a PDF – příprava na trénink pro celý tým.
+// Realizační tým čte z banky; hráčka banku nečte – vidí kopii v plánu (název a obrázky di, podrobnosti dx – planDetails, od v22.20).
 function drillSheetHtml(p, X, D) {
   const v = S.tpv;
   if (!v || !p) return "";
@@ -157,12 +160,15 @@ function drillSheetHtml(p, X, D) {
   const l = l0 && seq && v.si != null ? {...l0, ...(seq[v.si] || {})} : l0;
   if (!l) return "";
   const d = D[l.drill], name = d ? d.name : l.dn, img = d ? d.img || [] : l.di || [];
+  const i = d || planDetails(p)[l.drill] || null;            // podrobnosti: banka, jinak kopie v plánu
+  const meta = i ? [CATS[i.cat] || "", LEVELS[i.lvl] || "", i.dur ? +i.dur + " min" : ""].filter(Boolean).join(" · ") : "";
   const co = (l.co || []).map(id => "🎓 " + esc(staffName(X, id))).join(", ");
   return `<div class="md" id="tpd"><div class="mb"><h2>${esc(name || "Cvičení")}</h2>
-${d ? `<div class="mu">${esc(CATS[d.cat] || "")} · ${LEVELS[d.lvl] || ""} · ${+d.dur || "?"} min</div>` : ""}${co ? `<div class="mu">${co}</div>` : ""}
+${meta ? `<div class="mu">${esc(meta)}</div>` : ""}${co ? `<div class="mu">${co}</div>` : ""}
 ${thumbsHtml(img, 160, render) || '<div class="mu" style="margin:6px 0">Bez obrázku.</div>'}
-${d && d.eq ? `<div class="mu">Pomůcky: ${esc(d.eq)}</div>` : ""}${d && d.desc ? `<div style="white-space:pre-wrap;margin:6px 0">${esc(d.desc)}</div>` : ""}
-${d && d.url ? mediaHtml(d.url, "▶ Přehrát video") : ""}${d && d.pdf ? mediaHtml(d.pdf, "📄 Zobrazit PDF") : ""}
+${i && i.eq ? `<div class="mu">Pomůcky: ${esc(i.eq)}</div>` : ""}${i && i.desc ? `<div style="white-space:pre-wrap;margin:6px 0">${esc(i.desc)}</div>` : ""}
+${i && i.url ? mediaHtml(i.url, "▶ Přehrát video") : ""}${i && i.pdf ? mediaHtml(i.pdf, "📄 Zobrazit PDF") : ""}
+${!i && !img.length ? '<div class="mu" style="margin:6px 0">Popis trenér zatím nezveřejnil.</div>' : ""}
 <button class="s w" id="tpdx" style="margin-top:10px;min-height:52px">Zavřít</button></div></div>`;
 }
 // Karta „📋 Plán tréninku“ v detailu tréninku (ctx z events.js: ev, P, A, T, end)
@@ -175,7 +181,7 @@ function cardHtml(ctx) {
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
   else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do dresů.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do dresů (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' + liveImproHtml(eid) : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
-  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
+  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${e && p && (p.blocks || []).length && planDxStale(p, D) ? '<div class="msg" style="margin:8px 0">👀 Hráčky zatím nevidí aktuální popis, videa a PDF cvičení (plán uložený dřív nebo cvičení se v bance změnilo).<button class="p w" id="tpshr" style="min-height:48px;margin-top:6px">📤 Zpřístupnit hráčkám</button></div>' : ""}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
 
 // ===== Eventy =====
@@ -195,6 +201,16 @@ function bindCard(a, ctx) {
     const how = quickSplit(ctx.ev, ctx.P, ctx.A);
     open(planBlank()); loadPrep(eid);
     toast(how ? "Dresy rozděleny: " + how : "Dresy beze změny – vyber, z čeho plán začít");
+  };
+  // 📤 Zpřístupnit hráčkám: uloží plán znovu s kopií podrobností cvičení z banky (dx) – bloky, linky a skupiny beze změny
+  const shr = a.querySelector("#tpshr");
+  if (shr) shr.onclick = () => {
+    const cur = S.tp[eid];
+    if (!cur || !canE()) return;
+    const doc = {...planDoc(cur, drillMap()), ...stamp()};
+    S.db.doc(TRPLAN_COLL + "/" + eid).set(doc);
+    S.tp[eid] = doc; render();
+    toast("Hráčky teď vidí popis, videa a PDF cvičení");
   };
   const ed = a.querySelector("#tped");
   if (ed) ed.onclick = () => open(clone(planDoc(S.tp[eid] || planBlank(), drillMap())));

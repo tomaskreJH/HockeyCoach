@@ -8,7 +8,7 @@ import {goingOf, isG, pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {clone, esc, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, isDay, accOf, asOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
+import {ACC, CAT_CONTRIB, CAT_EVENT, GRP, WHO, accName, isDay, accOf, asOf, calcCash, cashCfg, chargeMsg, cxOf, defDue, evCash, evItem, fmtDue, fxPct, grpKey, kc, overdue, payAmount, payMsg, payPlan, planCharges, r2, restOf, twoAcc, ymLabel} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {PRICE_COLL, coveredBy, eventResult, priceDoc, suggestFlat} from "../domain/economy.js";
 import {watchAudit} from "./audit-feed.js";
@@ -86,58 +86,106 @@ export function settleEvent(ev, raw, force, d) {
 }
 
 // ===== Úhrady =====
-// Zámek proti dvojímu klepnutí (než se změna vrátí přes odběr dat)
+// Úhrada se zapisuje TRANSAKCÍ nad aktuálním stavem předpisu na serveru (v22.18.2, nález A kontroly kódu): dvě zařízení
+// se zastaralou kopií dat nemůžou zaplatit týž předpis dvakrát (do pokladny by šel dvojí příjem). Bez připojení se úhrada
+// nezapíše (hláška) – úhrady zapisuje pokladník doma podle výpisu, ne v hale.
+// Zámek proti dvojímu klepnutí (než transakce doběhne a změna se vrátí přes odběr dat)
 const busy = new Set();
-// Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné dávce.
-// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu; extra = doplněk poznámky (např. souhrnná platba), day = datum platby (jinak dnešek).
-export function payCharge(cid, amt, extra, day) {
-  const x = S.ch.find(c => c.id === cid);
-  if (!x || busy.has(cid)) return false;
-  const rest = restOf(x), a = amt == null ? rest : r2(amt);
-  if (rest <= 0 || !(a > 0) || a > rest + 1e-9) return false;
-  busy.add(cid);
-  setTimeout(() => busy.delete(cid), 2000);
-  const d = {...chData(x), paid: r2((+x.paid || 0) + a)}, cfg = cashCfg(S.cc);
-  const note = [chargeMsg(x, S), a < rest ? "částečná úhrada" : "", extra || ""].filter(Boolean).join(" · ");
-  const b = S.db.batch()
-    .set("cash/" + uid(), {d: isDay(day) ? day : td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()})
-    .set("charges/" + cid, d);
-  withDebtors(b, [{id: cid, d}], []).commit();
-  toast(a < rest ? "Částečná úhrada zapsána" : "Úhrada zapsána");
-  return true;
+const lock = cid => { busy.add(cid); setTimeout(() => busy.delete(cid), 2000); };
+// Hláška k chybě transakce (nejčastěji bez připojení)
+const txErr = e => "Úhrada se nezapsala – " + (e && /offline|unavailable/i.test(String(e.code || e.message)) ? "chybí připojení (úhrady se zapisují jen online)" : (e && (e.code || e.message)) || String(e));
+// Pohyb do pokladny k úhradě a předpisu x (aktuální stav ze serveru); note = poznámka, day = datum platby, bt = značka pohybu výpisu
+function payMove(x, a, note, day, bt, cfg) {
+  const mv = {d: isDay(day) ? day : td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid: x.id, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()};
+  if (bt) mv.bt = String(bt);
+  return mv;
 }
-// Hromadná úhrada (☑ Hromadně, 🏦 výpis): list = [{cid, amt (null = celý zbytek), note, d (datum platby), bt (značka pohybu výpisu)}].
-// Každá položka = příjem do pokladny + nová zaplacená částka; předpisy jedné osoby vždy v jedné dávce (souhrn dlužníků
-// se počítá po osobách), nejvýš PAY_CHUNK předpisů na dávku (limit 500 zápisů). Vrací počet zapsaných úhrad.
+// Předpisy pro souhrn dlužníků: místní kopie, v níž se platné předpisy nahradí stavem ze serveru (fresh = {cid: předpis})
+const chWith = fresh => S.ch.map(c => fresh[c.id] || c);
+
+// Úhrada předpisu (částečná i plná; amt prázdné = celý zbytek): příjem do pokladny + nová zaplacená částka v jedné transakci.
+// Pohyb nese zprávu pro příjemce (stejnou jako v QR), VS a účet předpisu; extra = doplněk poznámky (např. souhrnná platba), day = datum platby (jinak dnešek).
+// Vrací Promise<boolean> (true = zapsáno); výsledek oznámí hláškou.
+export async function payCharge(cid, amt, extra, day) {
+  const x0 = S.ch.find(c => c.id === cid);
+  if (!x0 || busy.has(cid)) return false;
+  const rest0 = restOf(x0), a0 = amt == null ? rest0 : r2(amt);
+  if (rest0 <= 0 || !(a0 > 0) || a0 > rest0 + 1e-9) return false;
+  lock(cid);
+  const cfg = cashCfg(S.cc), path = "charges/" + cid;
+  try {
+    const r = await S.db.tx([path], (cur, w) => {
+      const x = cur[path] ? {...cur[path], id: cid} : null;
+      if (!x) return {err: "Předpis mezitím někdo smazal"};
+      const rest = restOf(x), a = amt == null ? rest : r2(amt);
+      if (rest <= 0) return {err: "Předpis už je zaplacený (zapsalo jiné zařízení)"};
+      if (a > rest + 1e-9) return {err: "Zbývá už jen " + kc(rest) + " – předpis mezitím změnilo jiné zařízení"};
+      const d = {...chData(x), paid: r2((+x.paid || 0) + a)};
+      const note = [chargeMsg(x, S), a < rest ? "částečná úhrada" : "", extra || ""].filter(Boolean).join(" · ");
+      w.set("cash/" + uid(), payMove(x, a, note, day, "", cfg)).set(path, d);
+      applyDebtors(w, debtorPlanFor(chWith({[cid]: x}), [{id: cid, d}], [], isStaffId));
+      return {part: a < rest};
+    });
+    if (!r) return false;
+    if (r.err) { toast(r.err); return false; }
+    toast(r.part ? "Částečná úhrada zapsána" : "Úhrada zapsána");
+    return true;
+  } catch (e) {
+    toast(txErr(e));
+    return false;
+  }
+}
+// Hromadná úhrada (☑ Hromadně, ✅ Zaplatila vše, 🏦 výpis): list = [{cid, amt (null = celý zbytek), note, d (datum platby), bt (značka pohybu výpisu)}].
+// Každá položka = příjem do pokladny + nová zaplacená částka; předpisy jedné osoby vždy v jedné transakci (souhrn dlužníků
+// se počítá po osobách), nejvýš PAY_CHUNK předpisů na transakci (limit 500 zápisů). Částky se počítají z aktuálního stavu
+// na serveru (payPlan) – co mezitím zaplatilo jiné zařízení, vypadne. Vrací Promise<{n, skip, err}>:
+// n = počet zapsaných úhrad, skip = položky bez zápisu (zaplacené / smazané), err = hláška chyby (zbytek se nezapsal).
 const PAY_CHUNK = 120;
-export function payMany(list) {
-  const cfg = cashCfg(S.cc), paid = new Map(), byMid = new Map();
+export async function payMany(list) {
+  const cfg = cashCfg(S.cc), byMid = new Map();
+  // Skupiny po osobách (podle místní kopie; částky se počítají až v transakci)
   (list || []).forEach(o => {
     const x = S.ch.find(c => c.id === o.cid);
     if (!x || busy.has(x.id)) return;
-    const rest = r2(restOf(x) - (paid.get(x.id) || 0)), a = o.amt == null ? rest : r2(Math.min(+o.amt || 0, rest));
-    if (!(a > 0)) return;
-    paid.set(x.id, r2((paid.get(x.id) || 0) + a));
-    const note = [chargeMsg(x, S), a < restOf(x) ? "částečná úhrada" : "", o.note || ""].filter(Boolean).join(" · ");
-    const mv = {d: o.d || td(), k: "in", amt: a, cat: x.kind === "contrib" ? CAT_CONTRIB : CAT_EVENT, mid: x.mid, cid: x.id, eid: x.eid || "", note, vs: x.vs || "", acc: accOf(x, cfg), by: who()};
-    if (o.bt) mv.bt = String(o.bt);
     if (!byMid.has(x.mid)) byMid.set(x.mid, []);
-    byMid.get(x.mid).push(mv);
+    byMid.get(x.mid).push(o);
   });
-  let b = null, n = 0, sets = [], cnt = 0;
-  const flush = () => { if (b) withDebtors(b, sets, []).commit(); b = null; sets = []; n = 0; };
-  byMid.forEach(mvs => {
-    if (b && n + new Set(mvs.map(m => m.cid)).size > PAY_CHUNK) flush();
-    if (!b) b = S.db.batch();
-    mvs.forEach(m => b.set("cash/" + uid(), m));
-    [...new Set(mvs.map(m => m.cid))].forEach(cid => {
-      const x = S.ch.find(c => c.id === cid), d = {...chData(x), paid: r2((+x.paid || 0) + paid.get(cid))};
-      b.set("charges/" + cid, d); sets.push({id: cid, d}); n++; cnt++;
-      busy.add(cid); setTimeout(() => busy.delete(cid), 2000);
-    });
+  // Dávky transakcí: celé osoby, nejvýš PAY_CHUNK různých předpisů
+  const chunks = [];
+  let cur = [], cids = new Set();
+  byMid.forEach(os => {
+    const own = new Set(os.map(o => o.cid));
+    if (cur.length && cids.size + own.size > PAY_CHUNK) { chunks.push(cur); cur = []; cids = new Set(); }
+    cur.push(...os); own.forEach(c => cids.add(c));
   });
-  flush();
-  return cnt;
+  if (cur.length) chunks.push(cur);
+  let n = 0, skip = 0;
+  for (const part of chunks) {
+    const paths = [...new Set(part.map(o => "charges/" + o.cid))];
+    part.forEach(o => lock(o.cid));
+    try {
+      const r = await S.db.tx(paths, (now, w) => {
+        const fresh = {};
+        paths.forEach(p => { if (now[p]) { const id = p.slice(8); fresh[id] = {...now[p], id}; } });
+        const plan = payPlan(part, cid => fresh[cid] || null), sets = [];
+        plan.lines.forEach(({x, a, part: pt, o}) => {
+          const note = [chargeMsg(x, S), pt ? "částečná úhrada" : "", o.note || ""].filter(Boolean).join(" · ");
+          w.set("cash/" + uid(), payMove(x, a, note, o.d, o.bt, cfg));
+        });
+        plan.paid.forEach((add, cid) => {
+          const x = fresh[cid], d = {...chData(x), paid: r2((+x.paid || 0) + add)};
+          w.set("charges/" + cid, d); sets.push({id: cid, d});
+        });
+        if (sets.length) applyDebtors(w, debtorPlanFor(chWith(fresh), sets, [], isStaffId));
+        return {n: plan.lines.length, skip: plan.skip};
+      });
+      if (!r) return {n, skip, err: ""};
+      n += r.n; skip += r.skip;
+    } catch (e) {
+      return {n, skip, err: txErr(e)};
+    }
+  }
+  return {n, skip, err: ""};
 }
 // Okno s volbou částky úhrady (výchozí = celý zbytek)
 export function openPay(cid) {
@@ -175,8 +223,11 @@ export function openPayAll(ids, label, extra) {
     const day = document.getElementById("cpd").value;
     if (!isDay(day)) { document.getElementById("cpe").textContent = "Zadej datum platby"; return; }
     close();
-    const n = payMany(xs.map(x => ({cid: x.id, amt: null, note: xs.length > 1 ? extra || "" : "", d: day})));
-    toast(n ? "Označeno jako zaplacené (" + n + "×)" : "Nic k zápisu");
+    payMany(xs.map(x => ({cid: x.id, amt: null, note: xs.length > 1 ? extra || "" : "", d: day}))).then(r => {
+      // Výsledek transakce: chyba (bez připojení), zapsané úhrady, nebo nic (vše už zaplatilo jiné zařízení)
+      if (r.err) return toast(r.err);
+      toast(r.n ? "Označeno jako zaplacené (" + r.n + "×)" + (r.skip ? ", " + r.skip + "× už zaplaceno jinde" : "") : "Nic k zápisu – už je zaplaceno");
+    });
   };
 }
 
