@@ -1,6 +1,7 @@
 // ⏲ Stopky a výsledky měření: karta „⏲ Výsledky měření“ v kartě plánu (pořadí, vidí celý tým kromě hostující) a okno stopek #tsw
 // (z karty i z ⏱ živého tréninku). Čas klepnutím na jméno (víc hráček souběžně), počty a body číslem; 🏃 štafeta (domain/relay.js).
 // Data trms/{eid}, poslech jen u otevřeného tréninku, zápis dávkou s hlubokým sloučením. Měřit HK.perm("treval", "e"), číst trplan r.
+// v22.19: ✏️ Opravit pořadí uloženého běhu štafety (okno #rle) – i zpětně po tréninku; jména se prohodí, časy úseků zůstanou na místě.
 // ===== Importy =====
 import {UNITS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";
@@ -9,7 +10,7 @@ import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {MS_MAX, TRMS_COLL, addTry, bestOf, dropTry, fmtVal, measLanes, msPatch, msVal, ranking, swSec, swStart, swStop, swText} from "../domain/stopwatch.js";
-import {RL_GROUPS, RL_NAMES, relayDone, relayLine, relayLive, relayPatch, relayRank, relayResize, relaySplit, relayStart, relayTap, relayToggle, relayUndo} from "../domain/relay.js";
+import {RL_GROUPS, RL_NAMES, relayDone, relayLine, relayLive, relayPatch, relayRank, relayResize, relayRunLegs, relaySameSet, relaySplit, relayStart, relaySwapPatch, relayTap, relayToggle, relayUndo} from "../domain/relay.js";
 import {isFixedLane} from "../domain/training-plan.js";
 import {groupPids} from "../domain/training-live.js";
 import {render} from "./shell.js";
@@ -21,6 +22,8 @@ let M = {eid: null, un: null, res: undefined, err: null};
 // run ({pid: začátek ms}), val ({pid: rozepsané číslo}), loc ({pid: pokusy} – poslední zápis, než dorazí z databáze), el, timer,
 // mode ("one" jednotlivě | "rl" štafeta), rl = {G (skupiny – pořadí hráček), sel (skupina pro nasazení klepnutím), st (běžící štafeta | null)}
 let W = null;
+// E = otevřené okno opravy běhu štafety: eid, key (linka), ri (index běhu v rl), G (jména po skupinách – rozpracované), sel ([gi, k] | null), el
+let E = null;
 const CSS = `<style>
 #tsw{position:fixed;inset:0;z-index:45;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
 #tsw .swh{display:flex;gap:8px;align-items:center;margin-bottom:6px}
@@ -49,6 +52,17 @@ const CSS = `<style>
 #tsw .rlnm b{font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #tsw .rlnm small{font-size:13px;color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #tsw .rlt{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+#rle{position:fixed;inset:0;z-index:46;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
+#rle .swh{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+#rle .swh h2{flex:1;min-width:0;margin:0;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rle .rlbox{border:2px solid var(--bd);border-radius:10px;padding:6px;margin-bottom:6px}
+#rle .rer{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;border:2px solid var(--bd);border-radius:10px;background:var(--cd,transparent);color:var(--tx);padding:4px 10px;margin-bottom:3px;text-align:left;font-size:16px}
+#rle .rer.ch{border-color:var(--wa)}
+#rle .rer.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 18%,transparent)}
+#rle .rek{min-width:26px;font-weight:800;color:var(--mu)}
+#rle .renm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rle .renm small{display:block;font-size:12px;color:var(--mu)}
+#rle .ret{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
 #evw .mst{width:100%;border-collapse:collapse;margin:4px 0 8px}
 #evw .mst td,#evw .mst th{padding:4px 3px;border-bottom:1px solid var(--bd);font-size:13px;text-align:left}
 #evw .mst tr.me td{font-weight:800;background:color-mix(in srgb,var(--ac) 14%,transparent)}
@@ -80,8 +94,9 @@ function ensureMs(eid) {
   M.un = S.db.collection(TRMS_COLL).part(eid).onSnapshot(v => {
     const d = v.docs.find(x => x.id === eid);
     M.res = d ? d.data() : null; M.err = null;
+    if (E && E.el && E.eid === eid) paintEdit();                // otevřená oprava štafety: překreslit nad novými daty
     if (W && W.el && W.eid === eid) { W.loc = {}; paint(); }
-    else if (S.evid === eid && !S.tpe) render();
+    else if (S.evid === eid && !S.tpe && !E) render();
   }, e => { M.err = (e && (e.code || e.message)) || "chyba"; M.res = null; if (S.evid === eid) render(); });
 }
 
@@ -102,13 +117,17 @@ function cardHtml(eid, plan, D) {
 ${M.err ? `<div class="msg">Výsledky se nepodařilo načíst (${esc(M.err)}). Manager musí publikovat pravidla databáze ve verzi v21.4.</div>` : ""}
 ${show.map((m, i) => { const e = entryOf(m.key) || {u: m.u, low: m.low, ms: {}};
     const rl = Array.isArray(e.rl) ? e.rl : [];
-    return `<div class="row" style="align-items:center;flex-wrap:nowrap;margin-top:6px"><div style="flex:1"><b>${esc(m.dn)}</b><div class="mu" style="font-size:12px">${esc(UNITS[m.u] || "")} · ${m.low ? "nižší je lepší" : "vyšší je lepší"}</div></div>${can && m.bi != null ? `<button class="s" data-msgo="${i}" style="flex:none;min-height:44px">⏲ Měřit</button>` : ""}</div>${tableHtml(e, my)}${rl.length ? relayRunsHtml(rl) : ""}`; }).join("")}</div>`;
+    return `<div class="row" style="align-items:center;flex-wrap:nowrap;margin-top:6px"><div style="flex:1"><b>${esc(m.dn)}</b><div class="mu" style="font-size:12px">${esc(UNITS[m.u] || "")} · ${m.low ? "nižší je lepší" : "vyšší je lepší"}</div></div>${can && m.bi != null ? `<button class="s" data-msgo="${i}" style="flex:none;min-height:44px">⏲ Měřit</button>` : ""}</div>${tableHtml(e, my)}${rl.length ? relayRunsHtml(rl, m.key) : ""}`; }).join("")}</div>`;
 }
 
-// 🏃 Běhy štafety v kartě výsledků: poslední 3 běhy (skupiny podle času, hráčky ve skupině)
-function relayRunsHtml(rl) {
-  const last = rl.slice(-3).reverse();
-  return `<div class="mu" style="font-size:13px;margin:-4px 0 8px">🏃 Štafeta ${rl.length}×${last.map(run => `<div>• ${esc(relayLine(run))}<br><small>${(run.g || []).map((g, i) => (RL_NAMES[i] || "?") + ": " + (g.p || []).map(p => esc(nm(p))).join(", ")).join(" | ")}</small></div>`).join("")}</div>`;
+// 🏃 Běhy štafety v kartě výsledků: poslední 3 běhy (skupiny podle času, hráčky ve skupině), starší sbalené;
+// kdo smí měřit, má u běhu ✏️ Opravit pořadí (key = linka, i jejím uloženým během i po tréninku)
+function relayRunsHtml(rl, key) {
+  const can = canMs(), idx = rl.map((_, r) => r).reverse();
+  const one = r => { const run = rl[r];
+    return `<div style="margin-top:4px">• ${esc(relayLine(run))}${can ? ` <button class="s" data-rle="${esc(key)}|${r}" style="min-height:32px;padding:0 8px;font-size:12px">✏️ Opravit pořadí</button>` : ""}<br><small>${(run.g || []).map((g, i) => (RL_NAMES[i] || "?") + ": " + (g.p || []).map(p => esc(nm(p))).join(", ")).join(" | ")}</small></div>`; };
+  const old = idx.slice(3);
+  return `<div class="mu" style="font-size:13px;margin:-4px 0 8px">🏃 Štafeta ${rl.length}×${idx.slice(0, 3).map(one).join("")}${old.length ? `<details><summary>Starší běhy (${old.length})</summary>${old.map(one).join("")}</details>` : ""}</div>`;
 }
 
 // ===== Vykreslení: okno stopek =====
@@ -178,6 +197,69 @@ function tick() {
   Object.keys(W.run).forEach(pid => { const e = W.el.querySelector(`[data-swt="${CSS_ESC(pid)}"]`); if (e) e.textContent = swText(swSec(W.run, pid, now)); });
 }
 const CSS_ESC = s => (window.CSS && window.CSS.escape ? window.CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&"));
+
+// ===== Oprava uloženého běhu štafety (okno #rle) =====
+// Řádky běhu: pořadí předávek s časem úseku (časy patří místu, ne jménu). Klepnutí na hráčku ji vybere, klepnutí na jiné místo
+// jména prohodí (i mezi skupinami). Změněná místa jsou orámovaná; uložení přesune úseky do pokusů nových hráček.
+function editHtml() {
+  const e = entryOf(E.key), rl = (e && e.rl) || [], run = rl[E.ri];
+  if (!run) return CSS + `<div class="swh"><button class="s" id="rlex" style="flex:none;min-height:48px">✕ Zavřít</button><h2>🏃 Oprava štafety</h2></div><div class="msg">Běh už v uložených výsledcích není.</div>`;
+  const R = relayRunLegs(rl, e.ms)[E.ri], ch = !relaySameSet(run, E.G) ? false : E.G.some((g, gi) => g.some((p, k) => p !== run.g[gi].p[k]));
+  const unk = R.g.some(x => !x.ok), when = run.at ? new Date(run.at) : null;
+  const whenTxt = when && !isNaN(when) ? when.toLocaleString("cs-CZ", {day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+  return CSS + `<div class="swh"><button class="s" id="rlex" style="flex:none;min-height:48px">✕ Zrušit</button><h2>🏃 ${esc(e.dn || "Štafeta")}</h2></div>
+<div class="mu" style="font-size:13px;margin-bottom:6px">Běh ${E.ri + 1}/${rl.length}${whenTxt ? " · " + esc(whenTxt) : ""}. Časy úseků zůstávají v pořadí, mění se jen jména: klepni na hráčku a pak na místo, kam patří – jména se prohodí.</div>
+${unk ? '<div class="msg">U části běhu se časy úseků nepodařilo dohledat (pokusy se mezitím změnily) – tam se prohodí jen jména v běhu, pokusy hráček zůstanou.</div>' : ""}
+${run.g.map((g, gi) => `<div class="rlbox"><b>${RL_NAMES[gi] || "?"} · ${esc(fmtVal(g.t, "s"))}</b>${E.G[gi].map((p, k) => {
+    const on = E.sel && E.sel[0] === gi && E.sel[1] === k, chg = p !== g.p[k], l = R.g[gi].l[k];
+    return `<button class="rer ${on ? "on" : chg ? "ch" : ""}" data-rex="${gi}|${k}"><span class="rek">${k + 1}.</span><span class="renm">${esc(nm(p))}${chg ? `<small>původně ${esc(nm(g.p[k]))}</small>` : ""}</span><span class="ret">${l != null ? esc(fmtVal(l, "s").replace(" s", "")) : "–"}</span></button>`;
+  }).join("")}</div>`).join("")}
+<div class="row" style="margin-top:6px"><button class="p" id="rlesv" style="min-height:52px" ${ch ? "" : "disabled"}>💾 Uložit pořadí</button><button class="s" id="rlerv" style="min-height:52px" ${ch ? "" : "disabled"}>↺ Vrátit</button></div>`;
+}
+function paintEdit() {
+  if (!E || !E.el) return;
+  E.el.innerHTML = editHtml();
+  const el = E.el, on = (sel, fn) => el.querySelectorAll(sel).forEach(b => { b.onclick = () => fn(b); });
+  el.querySelector("#rlex").onclick = closeEdit;
+  // Výběr místa a prohození jmen (druhé klepnutí na totéž místo výběr zruší)
+  on("[data-rex]", b => {
+    const [gi, k] = b.dataset.rex.split("|").map(Number);
+    if (!E.sel) E.sel = [gi, k];
+    else if (E.sel[0] === gi && E.sel[1] === k) E.sel = null;
+    else { const [a, c] = E.sel, x = E.G[a][c]; E.G[a][c] = E.G[gi][k]; E.G[gi][k] = x; E.sel = null; buzz(30); }
+    paintEdit();
+  });
+  const rv = el.querySelector("#rlerv");
+  if (rv) rv.onclick = () => { const run = ((entryOf(E.key) || {}).rl || [])[E.ri]; E.G = run ? run.g.map(g => [...(g.p || [])]) : E.G; E.sel = null; paintEdit(); };
+  const sv = el.querySelector("#rlesv");
+  if (sv) sv.onclick = saveEdit;
+}
+// Uložení opravy: dávka s hlubokým sloučením (pokusy dotčených hráček a seznam běhů linky); ostatní linky beze změny
+function saveEdit() {
+  if (!canMs()) { toast("Opravit smí jen realizační tým"); return; }
+  const e = entryOf(E.key), r = relaySwapPatch({key: E.key, ...e}, e, E.ri, E.G);
+  if (!r.patch) { toast("Běh se mezitím změnil – otevři opravu znovu"); return; }
+  S.db.batch().merge(TRMS_COLL + "/" + E.eid, {...r.patch, by: me(), at: new Date().toISOString()}).commit();
+  toast(r.lost ? "Pořadí uloženo (u " + r.lost + " míst jen jméno, čas úseku nebyl známý)" : "Pořadí uloženo – časy úseků přesunuty k hráčkám");
+  closeEdit();
+}
+function closeEdit() {
+  if (E && E.el) E.el.remove();
+  E = null;
+  render();
+}
+// Otevření opravy běhu ri linky key v tréninku eid
+function openRelayEdit(eid, key, ri) {
+  if (!canMs()) { toast("Opravit smí jen realizační tým"); return; }
+  const run = ((entryOf(key) || {}).rl || [])[ri];
+  if (!run || M.eid !== eid) return;
+  if (E) closeEdit();
+  const el = document.createElement("div");
+  el.id = "rle";
+  document.body.appendChild(el);
+  E = {eid, key, ri, G: run.g.map(g => [...(g.p || [])]), sel: null, el};
+  paintEdit();
+}
 
 // ===== Eventy =====
 // Zápis pokusů hráček (byPid = {pid: pokusy}) jednou dávkou s hlubokým sloučením; jiné linky a hráčky zůstanou
@@ -299,4 +381,6 @@ export function bindMsCard(a, eid, getX) {
     const pids = lanePids(blk, lane, X);
     openStopwatch(eid, m, pids, allPids(X));
   });
+  // ✏️ Opravit pořadí uloženého běhu štafety (data-rle = "linka|index běhu")
+  a.querySelectorAll("[data-rle]").forEach(b => b.onclick = () => { const s = b.dataset.rle, i = s.lastIndexOf("|"); openRelayEdit(eid, s.slice(0, i), +s.slice(i + 1)); });
 }

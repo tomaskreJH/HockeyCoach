@@ -229,3 +229,11 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 23.4 🏦 Výpis z banky: ✅ Zapsat → počet úhrad jako dosud; bez připojení hláška, výběr zůstane.
 - [ ] 23.5 Zápas: na prvním zařízení běží hodiny v živém zápisu; na druhém v detailu zápasu „Uzavřít a potvrdit zápas“ → hláška „Nejdřív přeruš hodiny v živém zápisu“. Po přerušení hodin uzavření projde a vyúčtování vznikne jako dosud.
 - [ ] 23.6 GitHub → Actions → poslední běh „Nasazení (stabilní + beta)“: krok **test** zelený, potom deploy.
+
+## 24. v22.19 (beta) – 🏃 Oprava pořadí uložené štafety
+- [ ] 24.1 V betě je v záhlaví **v22.19**.
+- [ ] 24.2 Starší trénink se štafetou (uložená před v22.19): 📋 Plán → ⏲ Výsledky měření → u běhu **✏️ Opravit pořadí** → okno ukáže skupiny, pořadí a časy úseků (součet = čas skupiny).
+- [ ] 24.3 Klepni na hráčku, pak na jiné místo → jména se prohodí, časy zůstanou na místě, změněné místo je orámované s „původně …“. ↺ Vrátit vrátí rozpracované změny.
+- [ ] 24.4 💾 Uložit pořadí → hláška, v kartě běh s novými jmény; v tabulce pokusů má každá hráčka čas svého úseku (u původní zmizel).
+- [ ] 24.5 Nová štafeta (v22.19) → oprava pořadí → uložit; znovu otevřít a prohodit zpět → stav jako na začátku.
+- [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.

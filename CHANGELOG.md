@@ -2,6 +2,18 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.19 (30. 10. 2026) – 🏃 Oprava pořadí uložené štafety (i zpětně)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.19“ do větve **`beta`**. firestore.rules beze změny (nové pole `l` je uvnitř mapy `r` dokumentu `trms`, pravidla ho nekontrolují). V betě Načíst novou verzi (cache `hokej-beta-v120`). 🔒 Vyžadovat verzi: ne. Test: kap. 24.
+
+**Přidáno** (požadavek uživatele 30. 10. 2026 – hráčky se při štafetě vyměnily a nesedělo pořadí)
+- ⏲ Výsledky měření → u běhu štafety **✏️ Opravit pořadí** (kdo smí měřit, i po tréninku). Okno ukáže běh tak, jak byl nastavený: skupiny A–D, pořadí předávek a čas každého úseku. Klepnutí na hráčku a pak na jiné místo = jména se prohodí (i mezi skupinami), **časy zůstávají na místě**. 💾 Uložit pořadí přesune čas úseku do pokusů nové hráčky (u původní se smaže) – pořadí a nejlepší časy v tabulce sedí. ↺ Vrátit, ✕ Zrušit (i systémové Zpět).
+- Karta výsledků: poslední 3 běhy štafety, starší pod „Starší běhy (N)“.
+- `domain/relay.js`: běh štafety nově ukládá úseky skupiny (`rl[].g[].l`); `relayRunLegs` (úseky starších běhů se dohledají z pokusů hráček odzadu a ověří součtem proti času skupiny), `relaySameSet`, `relaySwapPatch`. Kde čas úseku dohledat nejde (pokusy se mezitím změnily), prohodí se jen jméno v běhu a okno to oznámí.
+
+**Beze změny:** měření stopkami a průběh štafety, ostatní linky a hodnocení, živý zápis zápasu (střely, góly, časomíra), pokladna, pravidla databáze.
+
+**Ověřeno:** `npm test` (nové testy v `tests/relay.test.js`: uložení úseků, dohledání starších běhů, prohození jmen a přesun pokusů, návrat opravou zpět, běh s neznámými úseky), `npm run smoke` bez chyb.
+
 ## v22.18.2 (29. 10. 2026) – Opravy z kontroly kódu (dvojí úhrada, uzavření zápasu, testy v CI)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.18.2“ do větve **`beta`**. firestore.rules beze změny (transakce zapisuje stejné dokumenty jako dosavadní dávka). V betě Načíst novou verzi (cache `hokej-beta-v119`). 🔒 Vyžadovat verzi: ne. Test: kap. 23.
 
