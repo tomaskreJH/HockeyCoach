@@ -237,3 +237,4 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.4 💾 Uložit pořadí → hláška, v kartě běh s novými jmény; v tabulce pokusů má každá hráčka čas svého úseku (u původní zmizel).
 - [ ] 24.5 Nová štafeta (v22.19) → oprava pořadí → uložit; znovu otevřít a prohodit zpět → stav jako na začátku.
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
+- [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).

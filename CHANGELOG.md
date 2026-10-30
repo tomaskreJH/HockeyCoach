@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.19.1 (30. 10. 2026) – Oprava: trénink nešel ukončit po doběhnutí plánu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.19.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v121`). 🔒 Vyžadovat verzi: ne. Test: kap. 24, krok 24.7.
+
+**Opraveno** (nález uživatele 30. 10. 2026 – trénink po skončení plánu zůstal „🔴 Právě běží“)
+- `views/trlive-view.js` – po uplynutí času plánu zmizelo tlačítko ⏹ Konec (zůstalo jen ↺ Spustit znovu), trénink tak nešel ukončit. Nově je nahoře **⏹ Konec tréninku** (druhým klepnutím), pod ním ↺ Spustit znovu. Trénink se dál **neukončuje automaticky** (může být víc ledu, zdržení) – rozhodnutí uživatele.
+
+**Beze změny:** hodiny živého tréninku, ⚡ improvizace, měření, statistiky.
+
+**Ověřeno:** `npm test`, `npm run smoke` bez chyb.
+
 ## v22.19 (30. 10. 2026) – 🏃 Oprava pořadí uložené štafety (i zpětně)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.19“ do větve **`beta`**. firestore.rules beze změny (nové pole `l` je uvnitř mapy `r` dokumentu `trms`, pravidla ho nekontrolují). V betě Načíst novou verzi (cache `hokej-beta-v120`). 🔒 Vyžadovat verzi: ne. Test: kap. 24.
 

@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.19 (30. 10. 2026, **jen v betě**) – 🏃 ✏️ Opravit pořadí uložené štafety (i zpětně; jména se prohodí, časy úseků zůstanou na místě). Cache `hokej-v120` / `hokej-beta-v120`. Předtím v22.18.2 – opravy z kontroly kódu v22.18.1: úhrady předpisů transakcí (žádná dvojí úhrada ze dvou zařízení, úhrady jen online), zápas nejde uzavřít s běžícími hodinami, testy v CI před nasazením. Cache `hokej-v119` / `hokej-beta-v119`.
-- **Další číslo:** v22.20 (cache `hokej-v121`), opravy v22.19.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.18.1** (PR #2, 28. 10. 2026). V betě: **v22.19**. Po každém vydání (PR) upravit tento řádek.
+- **Aktuální:** v22.19.1 (30. 10. 2026, **jen v betě**) – oprava: ⏹ Konec tréninku i po doběhnutí plánu (cache `hokej-v121` / `hokej-beta-v121`). v22.19: 🏃 ✏️ Opravit pořadí uložené štafety (i zpětně; jména se prohodí, časy úseků zůstanou na místě). Cache `hokej-v120` / `hokej-beta-v120`. Předtím v22.18.2 – opravy z kontroly kódu v22.18.1: úhrady předpisů transakcí (žádná dvojí úhrada ze dvou zařízení, úhrady jen online), zápas nejde uzavřít s běžícími hodinami, testy v CI před nasazením. Cache `hokej-v119` / `hokej-beta-v119`.
+- **Další číslo:** v22.20 (cache `hokej-v122`), opravy v22.19.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.18.1** (PR #2, 28. 10. 2026). V betě: **v22.19.1**. Po každém vydání (PR) upravit tento řádek.
 - **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
