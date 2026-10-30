@@ -2,6 +2,8 @@
 // Dokument: {v, goal, blocks: [{id, mode "all"|"st", by?, brk?, dur, rot, lanes: [{id, drill, dn, di, co [tid], grp, seq?}]}], by, at}.
 // Skupiny: pětky 1–4 nebo posty (by: "pos" – "F" / "D") + 🥅 "G" (netočí se). ☕ Pauza = blok s brk bez linek (mimo cvičení a přehledy).
 // Řada cvičení seq = [{id, drill, dn, di, dur}] jen u linky, která se netočí; drill / dn / di linky = první cvičení řady.
+// v22.20: dx = kopie podrobností cvičení z banky pro hráčky (kategorie, úroveň, délka, pomůcky, popis, video, PDF) – jen u prvního
+// výskytu cvičení v plánu (velikost dokumentu); čte se přes planDetails. Hráčka banku nečte, přípravu na trénink vidí z plánu.
 // Cvičení řady pro hodnocení, měření a pokrytí rozkládá expandLanes (klíč blok_linka-cvičení).
 // ===== Importy =====
 import {dressName, LINE_NOS} from "./event-helpers.js";
@@ -97,20 +99,37 @@ export function blockBlank(mode, groups, by) {
 // Nový blok ☕ pauza (pití, odpočinek) – Společně, bez linek
 export const breakBlank = () => ({id: newPid("b"), mode: "all", dur: BRK_DUR, rot: null, lanes: [], brk: BRK_DEF});
 export const planBlank = () => ({v: PLAN_VER, goal: "", blocks: []});
-// Normalizovaný plán k uložení (jen známá pole, meze délek a počtů); drills = mapa id → cvičení z banky (kopie názvu a obrázků pro hráčky)
+// Kopie podrobností cvičení pro hráčky (dx): jen neprázdná pole, délky jako v bance; null = nic ke kopírování
+const DX_MAX = {eq: 200, desc: 2000, url: 300};
+export function drillDx(d) {
+  if (!d) return null;
+  const o = {};
+  if (typeof d.cat === "string" && d.cat) o.cat = str(d.cat, 20);
+  if (typeof d.lvl === "string" && d.lvl) o.lvl = str(d.lvl, 20);
+  if (Number.isFinite(+d.dur) && +d.dur > 0) o.dur = clamp(Math.round(+d.dur), 1, 60);
+  ["eq", "desc", "url", "pdf"].forEach(k => { const v = str(d[k], k === "pdf" ? DX_MAX.url : DX_MAX[k]); if (v) o[k] = v; });
+  return Object.keys(o).length ? o : null;
+}
+// Normalizovaný plán k uložení (jen známá pole, meze délek a počtů); drills = mapa id → cvičení z banky (kopie názvu, obrázků a podrobností pro hráčky)
 export function planDoc(p, drills) {
-  const D = drills || {}, src = p || {};
-  // Kopie názvu a obrázků cvičení z banky (hráčka banku nečte)
-  const drillOf = x => { const d = D[x.drill]; return {drill: str(x.drill, 40), dn: str(d ? d.name : x.dn, PLAN_MAX.dn), di: (d ? d.img || [] : x.di || []).filter(y => typeof y === "string").slice(0, PLAN_MAX.di)}; };
+  const D = drills || {}, src = p || {}, seen = new Set();
+  // Kopie názvu a obrázků cvičení z banky (hráčka banku nečte); podrobnosti dx jen u prvního výskytu cvičení (z banky, jinak dosavadní kopie)
+  const addDx = (o, x) => { const id = o.drill, d = D[id]; if (id && !seen.has(id)) { const dx = d ? drillDx(d) : drillDx(x && x.dx); if (dx) { o.dx = dx; seen.add(id); } } return o; };
+  const drillOf = (x, noDx) => {
+    const d = D[x.drill], o = {drill: str(x.drill, 40), dn: str(d ? d.name : x.dn, PLAN_MAX.dn), di: (d ? d.img || [] : x.di || []).filter(y => typeof y === "string").slice(0, PLAN_MAX.di)};
+    return noDx ? o : addDx(o, x);
+  };
   const lane = (l, mode, pos) => {
     const grp = uniq((l.grp || []).map(g => grpKey(g, pos)).filter(g => g != null)).sort(grpSort);
-    const o = {id: str(l.id, 24) || newPid("l"), ...drillOf(l),
+    // Linka s řadou: podrobnosti nesou položky řady (cvičení linky = první cvičení řady), jinak linka sama
+    const hasSeq = Array.isArray(l.seq) && l.seq.length > 0;
+    const o = {id: str(l.id, 24) || newPid("l"), ...drillOf(l, hasSeq),
       co: uniq((l.co || []).filter(x => typeof x === "string" && x)).slice(0, 6), grp: mode === "all" && !grp.includes(GK) ? grp.filter(g => g !== GK) : grp};
     // Řada cvičení jen u linky, která se netočí; první cvičení řady je zároveň cvičením linky
     if (Array.isArray(l.seq) && l.seq.length && seqOk({mode, brk: null}, o)) {
       o.seq = l.seq.slice(0, PLAN_MAX.seq).map(x => ({id: str(x && x.id, 24) || newPid("s"), ...drillOf(x || {}), dur: clamp(int(x && x.dur, BLK_DUR_DEF), BLK_DUR_MIN, BLK_DUR_MAX)}));
       Object.assign(o, {drill: o.seq[0].drill, dn: o.seq[0].dn, di: o.seq[0].di});
-    }
+    } else if (hasSeq) addDx(o, l);                         // řada se nepoužila (linka se točí) – podrobnosti k lince
     return o;
   };
   const blocks = (Array.isArray(src.blocks) ? src.blocks : []).slice(0, PLAN_MAX.blocks).map(b => {
@@ -122,6 +141,20 @@ export function planDoc(p, drills) {
     return o;
   });
   return {v: PLAN_VER, goal: str(src.goal, PLAN_MAX.goal), blocks};
+}
+// Podrobnosti cvičení z kopie v plánu: {id cvičení: dx} (pro hráčku, která banku nečte)
+export function planDetails(plan) {
+  const m = {};
+  const take = x => { if (x && x.drill && x.dx && typeof x.dx === "object" && !m[x.drill]) m[x.drill] = x.dx; };
+  ((plan && plan.blocks) || []).forEach(b => (b.lanes || []).forEach(l => { take(l); (Array.isArray(l.seq) ? l.seq : []).forEach(take); }));
+  return m;
+}
+// Liší se kopie podrobností v plánu od banky? (plán uložený před v22.20 nebo cvičení se v bance změnilo – hráčky vidí starší / žádný popis)
+export function planDxStale(plan, drills) {
+  const D = drills || {}, have = planDetails(plan), ids = new Set();
+  ((plan && plan.blocks) || []).forEach(b => (b.lanes || []).forEach(l => [l, ...(Array.isArray(l.seq) ? l.seq : [])].forEach(x => { if (x && x.drill) ids.add(x.drill); })));
+  const key = o => (o ? JSON.stringify(Object.keys(o).sort().map(k => [k, o[k]])) : "");   // nezávisle na pořadí klíčů (Firestore je řadí)
+  return [...ids].some(id => D[id] && key(drillDx(D[id])) !== key(have[id]));
 }
 // Přesun bloku o krok nahoru (-1) / dolů (+1); vrací nový seznam
 export function moveBlock(blocks, id, dir) {

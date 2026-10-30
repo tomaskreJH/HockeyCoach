@@ -2,6 +2,18 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.20 (30. 10. 2026) – Příprava na trénink pro hráčky (popis, video, PDF)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.20“ do větve **`beta`**. firestore.rules beze změny (kopie `dx` je uvnitř linek plánu `trplan`, pravidla kontrolují jen horní pole). V betě Načíst novou verzi (cache `hokej-beta-v122`). 🔒 Vyžadovat verzi: ne. Test: kap. 25.
+
+**Přidáno** (požadavek uživatele 30. 10. 2026 – hráčky se mají na trénink připravit, obsah cvičení není tajný)
+- 📋 Plán tréninku → klepnutí na cvičení: hráčka nově vidí kromě názvu a obrázků i **kategorii, úroveň, délku, pomůcky, popis, ▶ video a 📄 PDF**. Banku cvičení dál nečte (šetří čtení databáze) – podrobnosti se při uložení plánu zkopírují do plánu (`dx`, jen u prvního výskytu cvičení, u řady na položkách řady).
+- Realizační tým: u plánu uloženého dřív (nebo když se cvičení v bance změnilo) karta ukáže **👀 Hráčky zatím nevidí aktuální popis…** a **📤 Zpřístupnit hráčkám** – plán se uloží znovu s aktuální kopií, bloky, linky a skupiny se nemění. Stejně se kopie obnoví každým 💾 Uložit plán, ⚡ cvičením na ledě i šablonou.
+- `domain/training-plan.js`: `drillDx`, `planDetails`, `planDxStale`; `planDoc` ukládá kopii `dx` (bez banky zachová dosavadní). Testy `tests/plan-details.test.js`.
+
+**Beze změny:** banka cvičení (hráčka ji dál nevidí), hodnocení trenérů (hráčky nevidí), živý trénink, měření, pravidla databáze.
+
+**Ověřeno:** `npm test`, `npm run smoke` bez chyb.
+
 ## v22.19.1 (30. 10. 2026) – Oprava: trénink nešel ukončit po doběhnutí plánu
 > **Nasazení – kanál 🧪 BETA:** commit „v22.19.1“ do větve **`beta`**. firestore.rules beze změny. V betě Načíst novou verzi (cache `hokej-beta-v121`). 🔒 Vyžadovat verzi: ne. Test: kap. 24, krok 24.7.
 

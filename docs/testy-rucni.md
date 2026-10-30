@@ -238,3 +238,10 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.5 Nová štafeta (v22.19) → oprava pořadí → uložit; znovu otevřít a prohodit zpět → stav jako na začátku.
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
+
+## 25. v22.20 (beta) – Příprava na trénink pro hráčky
+- [ ] 25.1 V betě je v záhlaví **v22.20**.
+- [ ] 25.2 Trenér: starší plán (uložený před v22.20) → v kartě 👀 „Hráčky zatím nevidí…“ → **📤 Zpřístupnit hráčkám** → hláška, upozornění zmizí, plán beze změny.
+- [ ] 25.3 👁 Náhled role hráčka (nebo účet hráčky): 📋 Plán → klepnout na cvičení → kategorie, úroveň, délka, pomůcky, popis, ▶ video a 📄 PDF se zobrazí a přehrají.
+- [ ] 25.4 Změnit popis cvičení v 📚 bance → u plánu se znovu ukáže 👀 upozornění; 💾 Uložit plán nebo 📤 ho vyřeší.
+- [ ] 25.5 Hráčka dál nevidí 📚 banku cvičení ani ⭐ hodnocení trenérů.
