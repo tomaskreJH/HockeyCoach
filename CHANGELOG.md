@@ -2,6 +2,21 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.31 (1. 11. 2026) – 💸 Předvyplněný výdaj
+> **Nasazení – kanál 🧪 BETA:** commit „v22.31“ do větve **`beta`**. Pravidla databáze ani data se nemění (výdaj se ukládá se stejnými poli). V betě Načíst novou verzi (cache `hokej-beta-v133`). 🔒 Vyžadovat verzi: ne. Test: kap. 34.
+
+**⚠️ SAHÁ NA PLATBY – jen formulář** (`views/cashbook.js`, nová čistá funkce v `domain/cash.js`); výpočty a zápisy pokladny beze změny.
+
+**Změněno** (K2 bod 7 – schváleno 27. 10. 2026; tím je celý seznam K2 hotový)
+- Team → 🏦 Pokladna → ➖ Výdaj předvyplní **kategorii, příjemce a účet** posledního ručně zapsaného výdaje (`lastOutPrefill` v `domain/cash.js`: nejnovější datum, při shodě později zapsaný; výplaty platů `mid` a úhrady `cid` se nepočítají; kategorie jen pokud je stále v nastavení pokladny). Datum dnešní, částka a poznámka prázdné. Zvolený účet ve filtru pohybů má přednost. Ve formuláři krátká poznámka, že jde o údaje z posledního výdaje.
+- 🧾 Náklady → ➖ Zapsat platbu dál předvyplní údaje nákladu (příjemce z nákladu, ne z posledního výdaje).
+- Drobnost: storno pohybu má text „Storno? Klepni znovu“ (jednotné potvrzení z v22.30).
+- Nápověda: 🏦 Pokladna – předvyplněný výdaj.
+
+**Beze změny:** výpočty zůstatků, příjmů a výdajů, předpisy, úhrady, převody, platy, rozpočet, data a pravidla; živý zápis, střely, góly, časomíra.
+
+**Ověřeno:** `npm test` (509 testů, nově `tests/cash-prefill.test.js`; `tests/d1-baseline.test.js` beze změny zelený), `npm run smoke` bez chyb pro všechny role (nově kontrola předvyplněného výdaje: Pronájem ledu / Zimní stadion).
+
 ## v22.30 (1. 11. 2026) – 💬 Jednotné hlášky a potvrzení
 > **Nasazení – kanál 🧪 BETA:** commit „v22.30“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v132`). 🔒 Vyžadovat verzi: ne. Test: kap. 33.
 

@@ -454,6 +454,17 @@ export function chargesOfMonth(ch, ym) {
   return r;
 }
 
+// ===== Předvyplnění výdaje (v22.31) =====
+// Poslední ručně zapsaný výdaj (k: "out" bez výplaty platu mid a úhrady cid; nejnovější datum, při shodě později zapsaný) → {cat, payee, acc} pro nový ➖ výdaj.
+// Kategorie jen pokud je stále v nastavení pokladny (cats), účet jen hlavní / provozní; bez výdaje null. Částka ani datum se nepřebírají.
+export function lastOutPrefill(cs, cats) {
+  const L = (cs || []).map((x, i) => ({x, i})).filter(({x}) => x && x.k === "out" && !x.cid && !x.mid)
+    .sort((a, b) => String(b.x.d || "").localeCompare(String(a.x.d || "")) || b.i - a.i);
+  if (!L.length) return null;
+  const x = L[0].x, C = cats || [];
+  return {cat: C.includes(x.cat) ? x.cat : "", payee: String(x.payee || "").trim(), acc: x.acc === "op" ? "op" : "main"};
+}
+
 // ===== Částky pro CSV (text CSV: csv v core/utils.js) =====
 // Částka pro CSV s desetinnou čárkou (Excel v češtině)
 export const csvNum = n => String(r2(n)).replace(".", ",");

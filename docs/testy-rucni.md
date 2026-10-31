@@ -239,6 +239,14 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 34. v22.31 (beta) – 💸 Předvyplněný výdaj
+- [ ] 34.1 V betě je v záhlaví **v22.31**.
+- [ ] 34.2 Team → 🏦 Pokladna → ➖ Výdaj: kategorie, příjemce a účet jsou jako u posledního ručně zapsaného výdaje (nahoře poznámka „jako u posledního výdaje“); datum dnešní, částka prázdná.
+- [ ] 34.3 Po 💸 Vyplatit plat (📅 Měsíce) se ➖ Výdaj dál předvyplní podle posledního výdaje, ne podle platu.
+- [ ] 34.4 Se zvoleným účtem ve filtru pohybů (provozní) má přednost zvolený účet.
+- [ ] 34.5 🧾 Náklady → ➖ Zapsat platbu: předvyplní se údaje nákladu (ne poslední výdaj), jako dřív.
+- [ ] 34.6 Zůstatek, příjmy, výdaje a součty podle kategorií po uložení výdaje sedí jako dřív (výpočty beze změny).
+
 ## 33. v22.30 (beta) – 💬 Jednotné hlášky a potvrzení
 - [ ] 33.1 V betě je v záhlaví **v22.30**.
 - [ ] 33.2 Režim letadlo → přihlásit se na trénink (✅ Jdu) nebo uložit plán → dole „📶 Bez připojení – uloženo v zařízení, odešle se po připojení“ (nejvýš jednou za 20 s). Vypnout letadlo → změna je v databázi (druhé zařízení ji uvidí).

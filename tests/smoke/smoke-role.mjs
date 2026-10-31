@@ -233,7 +233,13 @@ async function money() {
         snap("cash-tr");
         if (await tap("#cbs", 200)) snap("cash-tr-saved");
       }
-      if (await tap('[data-cba="out"]', 150)) { snap("cash-out"); await tap("#cbc", 150); }
+      if (await tap('[data-cba="out"]', 150)) {
+        snap("cash-out");
+        // v22.31: ➖ výdaj předvyplní kategorii, příjemce a účet posledního výdaje (zkušební data: led, Zimní stadion, provozní účet)
+        const py = $('[data-cf="payee"]'), ct = $('[data-cf="cat"]');
+        if (!py || py.value !== "Zimní stadion" || !ct || ct.value !== "Pronájem ledu") throw new Error("➖ výdaj se nepředvyplnil z posledního výdaje: " + (py && py.value) + " / " + (ct && ct.value));
+        await tap("#cbc", 150);
+      }
     }
     if (await tap('[data-tm="cost"]', 250)) {
       snap("cost");
