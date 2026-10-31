@@ -2,7 +2,7 @@
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
 // Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
 // onSnapshot; batch() – set / merge / delete / commit; tx(cesty, fn) – transakce nad aktuálním stavem serveru (úhrady předpisů). 📉 Události a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
-// Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup.
+// Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup. 📉 Pokladna na vyžádání: HK.money (domain/money-load.js).
 
 // ===== Importy =====
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
@@ -19,6 +19,7 @@ import {wipePlan} from "../domain/event-cancel.js";
 import {EVPUB_COLL, LUPUB_COLL} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
 import {JOIN_COLL} from "../domain/join-requests.js";
+import {MONEY_LAZY_KEY, lazyMoney, moneyReady} from "../domain/money-load.js";
 import {PID_ROLE_KEYS, ROLE_LABELS, STAFF_ROLE_KEYS, actOf, permClean, permOf, roleLabel, roleOf} from "../domain/permissions.js";
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, withPlPay} from "../domain/private-data.js";
@@ -309,6 +310,8 @@ function canDelete(c, id) {
   const d = data[c][id] || {};
   const settled = !!(d.ss || (data.evcash[id] || {}).settle);   // ss = příznak vyúčtování v dokumentu události
   if (settled && !isCash()) { say("Vyúčtovanou událost smaže jen správce pokladny"); return false; }
+  // 📉 Předpisy ještě nejsou v zařízení: kontrola nezaplacených by byla prázdná – nejdřív načíst pokladnu
+  if ((settled || data.evcash[id]) && !monOk()) { moneyLoad(); say("⏳ Načítám pokladnu – smazání zkus za chvíli znovu"); return false; }
   const open = Object.values(data.charges).filter(x => x.eid === id && (+x.amt || 0) - (+x.paid || 0) > 0.0001).length;
   if (settled && open) { say("Událost má " + open + " nezaplacených předpisů. Nejdřív je uhraď, nebo vyúčtování znovu otevři."); return false; }
   return true;
@@ -343,6 +346,7 @@ function writeDebtors(plan) {
 async function rebuildDebtors(ch) {
   if (blocked()) return null;
   if (!isCash()) throw new Error("Přepočet dlužníků smí jen správce pokladny");
+  if (!ch) await moneyLoad();                                   // 📉 přepočet ze zařízení potřebuje všechny předpisy
   const plan = debtorRebuild(ch || chList(), Object.keys(data[DEBT_COLL]), isStaffId);
   await commitOps([...plan.set.map(x => ["set", DEBT_COLL, x.id, x.d]), ...plan.del.map(id => ["del", DEBT_COLL, id])]);
   return plan.set.length;
@@ -363,12 +367,37 @@ async function syncOps(ops) {
   if (!ops || !ops.length || ro() || outdated()) return false;
   try { await commitOps(ops); return true; } catch (e) { console.warn("Synchronizace se nepovedla:", errTxt(e)); return false; }
 }
+// ===== Data: 📉 pokladna na vyžádání =====
+// monSt: "" = běžný režim (načítá se hned), "wait" = čeká na otevření pokladny, "load" = načítá se, "ok" = načteno.
+// Loader (src/main.js) spustí poslech předpisů a pohybů pokladny a vrátí slib, který se splní po prvním snímku obou kolekcí.
+let monSt = "", monLoader = null, monP = null;
+const monPref = () => { try { return localStorage.getItem(MONEY_LAZY_KEY); } catch (e) { return null; } };
+const monOk = () => moneyReady(monSt);
+// Registrace loaderu po přihlášení: úsporný režim čeká na otevření pokladny, jinak se načte hned
+function moneyInit(loader) {
+  monLoader = loader;
+  if (lazyMoney(monPref(), can("sport"), can("money"))) { monSt = "wait"; return; }
+  monSt = ""; loader();
+}
+// Načíst pokladnu teď (opakované volání vrací stejný slib); bez loaderu nebo v běžném režimu hned splněno
+function moneyLoad() {
+  if (monOk() || !monLoader) return Promise.resolve();
+  if (!monP) { monSt = "load"; monP = Promise.resolve(monLoader()).then(() => { monSt = "ok"; }); }
+  return monP;
+}
+// Volba zařízení (⚙️ → 💾 Data): true = až při otevření, false = hned; platí od dalšího spuštění (vypnutí načte hned)
+function moneySetPref(lazy) {
+  try { localStorage.setItem(MONEY_LAZY_KEY, lazy ? "1" : "0"); } catch (e) {}
+  if (!lazy) moneyLoad();
+}
+
 // Úplné smazání události se vším souvisejícím (jen vývojář): docházka, důvody, předpisy, úhrady v pokladně, vyúčtování, cena,
 // žádosti a veřejné dokumenty; potom přepočet dlužníků. wipePreview = jen plán (počty pro potvrzení). Vrací plán, nebo null.
 const wipeSrc = () => ({attendance: data.attendance, attnote: data[NOTE_COLL], charges: data.charges, cash: data.cash, evcash: data.evcash, evprice: data[PRICE_COLL], requests: data[REQ_COLL], evpub: data[EVPUB_COLL], lineuppub: data[LUPUB_COLL]});
 const wipePreview = (c, id) => wipePlan(c, id, wipeSrc());
 async function wipeEvent(c, id) {
   if (c !== "events" && c !== "matches") throw new Error("Smazat jde jen událost nebo zápas");
+  await moneyLoad();                                            // 📉 plán smazání potřebuje všechny předpisy a pohyby pokladny
   const plan = wipePreview(c, id);
   if (!can("wipe")) { say("Úplné smazání smí jen vývojář"); return null; }
   if (blocked()) return null;
@@ -562,7 +591,7 @@ async function commitOps(ops) {
 // Kontext pro moduly okna ⚙️ a záloh: stav účtu se předává jako funkce (mění se při přihlášení a náhledu role)
 const C = {data, first, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, ROLES, PID_ROLES, STAFF, RO_MSG, OLD_MSG,
   user: () => user, role: () => role, pid: () => pid, tid: () => tid, cash: () => cash, stored: () => stored, pv: () => pv, real: () => real, fs: () => fs, auth: () => auth,
-  can, isStaff, isCash, blocked, ro, outdated, minVer, say, errTxt, stamp, pvLabel, pvWrite, startPreview, permRaw, perms, commitOps, plMerged, rebuildDebtors, isDev, betaRaw, tester};
+  can, isStaff, isCash, blocked, ro, outdated, minVer, say, errTxt, stamp, pvLabel, pvWrite, startPreview, permRaw, perms, commitOps, plMerged, rebuildDebtors, isDev, betaRaw, tester, moneyLoad};
 const CFG = cfgApi(C), {exportJSON, exportCSV, importData} = backupApi(C);
 
 // ===== Exporty a spuštění =====
@@ -577,6 +606,9 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   listMembers: async () => (await getDocs(fsCol(fs, "members"))).docs.map(d => ({email: d.id, ...d.data()})),
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview,
+  // 📉 Pokladna na vyžádání: init(loader) po přihlášení (main.js), ok() = předpisy a pohyby jsou v zařízení, load() = načíst teď,
+  // lazy() = úsporný režim tohoto zařízení, setLazy(b) = volba v ⚙️ → 💾 Data
+  money: {init: moneyInit, ok: monOk, load: moneyLoad, st: () => monSt, lazy: () => lazyMoney(monPref(), can("sport"), can("money")), setLazy: moneySetPref},
   // 🧪 Beta kanál: tester() = nabídka bety a přístup do ní, betaOk() = smí pracovat v betě (tester nebo manager)
   tester, betaOk,
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení

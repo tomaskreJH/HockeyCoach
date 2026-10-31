@@ -2,6 +2,27 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.24 (31. 10. 2026) – 📉 Pokladna na vyžádání
+> **Nasazení – kanál 🧪 BETA:** commit „v22.24“ do větve **`beta`**. firestore.rules beze změny, data beze změny (nová volba jen v `localStorage` zařízení `hk-money-lazy`). V betě Načíst novou verzi (cache `hokej-beta-v126`). 🔒 Vyžadovat verzi: ne. Test: kap. 28.
+
+**⚠️ SAHÁ NA PLATBY** (jen načítání a strážci, výpočty a zápisy pokladny beze změny)
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – manager, který je i trenér, nemusí při každém spuštění číst celou pokladnu, ale chce přehled)
+- `domain/money-load.js`: volba `lazyMoney` (výchozí: správce pokladny, který je i trenér = až při otevření; samotný pokladník hned), stav `moneyReady`, kolekce na vyžádání `LAZY_COLLS` = `charges` a `cash` (rostou s časem). Malé peněžní kolekce (`evcash`, `plpay`, `staffpay`, `requests`, `budget`) se čtou hned – úpravy hráčky / člena týmu tak nikdy nezapíší platební pole naslepo.
+- `data/storage.js`: `HK.money` (`init`, `ok`, `load`, `st`, `lazy`, `setLazy`); `src/main.js` `moneyFull` spustí poslech předpisů a pohybů a splní slib po prvním snímku obou.
+- Načtení: Team → 💰 režimy pokladny a Moje platby samy, detail události a 🏠 Domů tlačítkem **⬇ Načíst pokladnu**, 🕘 historie placení před otevřením.
+- 🏠 Domů v úsporném režimu: 💰 Pokladna týmu = dlužníci po splatnosti z veřejného souhrnu `debtors` (⛓ blokováno) a ✋ otevřené žádosti; částky a varování cashflow až po načtení. Karta události ukazuje jen stav vyúčtování (bez počtů placení).
+- ⚙️ → 💾 Data → **💰 Pokladna při spuštění** (zaškrtávátko pro toto zařízení, stav načtení).
+
+**Strážci (předpisy ještě nejsou v zařízení)**
+- Automatické vyúčtování při uzavření zápasu se přeskočí (jako u trenéra bez pokladny) – vyúčtuje se v detailu události; pokladna se začne načítat.
+- Smazání události s vyúčtováním: nejdřív se načte pokladna (hláška „zkus za chvíli znovu“).
+- Záloha JSON, obnova ze zálohy, ⛓ Přepočítat dlužníky a úplné smazání (vývojář) nejdřív počkají na načtení pokladny.
+
+**Beze změny:** výpočty a zápisy pokladny, QR, pravidla, živý zápis, střely, góly, časomíra, trénink. Samotný pokladník (bez trenérských práv) načítá vše hned jako dosud.
+
+**Ověřeno:** `npm test` (495 testů, nově `tests/money-load.test.js`), `npm run smoke` bez chyb pro všechny role (manager v úsporném režimu: Domů s odlehčenou kartou, po otevření Team → 💰 plná pokladna).
+
 ## v22.23 (31. 10. 2026) – Útokový test QR platby
 > **Nasazení – kanál 🧪 BETA:** commit „v22.23“ do větve **`beta`**. firestore.rules beze změny (v22.22 publikováno uživatelem 31. 10. 2026). Aplikace beze změny funkcí, jen nové číslo verze a cache `hokej-beta-v125`. 🔒 Vyžadovat verzi: ne.
 

@@ -86,6 +86,8 @@ export function forgetTrainStatus(eid) {
 // 💰 Stav vyúčtování a placení na kartě (správce pokladny); prázdné, pokud není co ukázat
 function cashLine(e) {
   if (!HK.can("money")) return "";
+  // 📉 Předpisy ještě nejsou v zařízení: jen stav vyúčtování z evcash (bez počtů placení)
+  if (!HK.money.ok()) { const c0 = cashState(e, [], td(), Date.now()); return !c0 ? "" : c0.st === "open" ? tag("⚠️ vyúčtování neuzavřeno", "var(--wa)") : tag("💰 vyúčtováno", "var(--ok)"); }
   const c = cashState(e, S.ch.filter(x => x.eid === e.id && pl(x.mid)), td(), Date.now());
   if (!c) return "";
   if (c.st === "open") return tag("⚠️ vyúčtování neuzavřeno", "var(--wa)");

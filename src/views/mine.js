@@ -14,6 +14,7 @@ import {GRP, accIban, accLabel, accName, accOf, cashCfg, chargeItem, chargeMsg, 
 import {myMonths} from "../domain/economy.js";
 import {REQ_COLL, REQ_ST, openReq, payReqDoc, payReqError, reqYms, reqsOf} from "../domain/requests.js";
 import qrcode from "../lib/qrcode.js";
+import {moneyWaitHtml} from "./payments.js";
 import {qrFileName, saveQrImage} from "./qr-image.js";
 import {bindReq, reqBanner, reqLine} from "./request-list.js";
 import {render} from "./shell.js";
@@ -198,6 +199,8 @@ function monthsHtml(items) {
 export function mineView(a) {
   const my = ids();
   if (!my.length) { a.innerHTML = '<div class="msg">Tvůj účet není propojen s hráčkou ani s členem týmu. Požádej trenéra (⚙️ → Členové týmu).</div>'; return; }
+  // 📉 Správce pokladny v úsporném režimu: Moje platby načtou pokladnu (po načtení se aplikace překreslí sama)
+  if (!HK.money.ok()) { HK.money.load(); a.innerHTML = moneyWaitHtml(false); return; }
   const cfg = cashCfg(S.cc), two = twoAcc(cfg);
   const d = debtOf(S.ch, my);
   const err = S.payErr ? `<div class="cd" style="color:var(--no)">Platby se nepodařilo načíst (${esc(S.payErr)}).</div>` : "";

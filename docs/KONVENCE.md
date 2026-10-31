@@ -77,6 +77,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `cost-check.js` | ⚠️ 🧾 kontrola nákladů událostí (očekávané náklady po kategorii a příjemci proti výdajům, měsíc výdaje `pym`) |
 | `data-window.js` | 📉 okno poslechu událostí a docházky (`WIN`, `winFrom`, `winTo` – hráčka 15 dní dopředu, `archNeed`, `mergeBand`, datum docházky `attDate` / `attDateFix`, `dayAdd`) |
 | `read-cost.js` | 📉 odhad čtení databáze na jedno spuštění (`readCost`, limit `READ_LIMIT`) |
+| `money-load.js` | 📉 pokladna na vyžádání (`lazyMoney`, `LAZY_COLLS` = `charges`, `cash`; stav `HK.money` ve `storage.js`, poslech `moneyFull` v `main.js`) |
 | `event-status.js` | stav události na kartě (💰 vyúčtování a placení, 🏒 plán / průběh / hodnocení tréninku) |
 | `budget.js`, `budget-track.js`, `budget-review.js` | rozpočet sezóny, plnění a cashflow, schválení a export |
 | `drills.js`, `drill-import.js` | 📚 banka cvičení, základní sada a import CSV |

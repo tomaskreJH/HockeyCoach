@@ -84,11 +84,17 @@ function readHtml() {
   return `<h3>📉 Čtení databáze</h3><div class="mu" style="margin-bottom:8px">Spuštění aplikace po pauze delší než 30 min přečte v tomto zařízení asi <b>${n(r.total)}</b> dokumentů${top ? ` (nejvíc ${top})` : ""}; u hráčky asi <b>${n(r.player)}</b>. Denní limit zdarma je ${n(READ_LIMIT)} čtení (obnova ráno) – do limitu se vejde asi ${n(r.starts)} takových spuštění tohoto zařízení. Každé obnovení stránky, nová verze a 👁 náhled role je nové spuštění.</div>`
     + (W ? `<div class="mu" style="margin-bottom:8px">${W}<div style="margin-top:4px">Starší události a docházka se ze serveru ověřují samy (události denně, docházka týdně – posledních 60 dní před oknem). Změnu starších dat z jiného zařízení načte hned ↻.</div></div><button class="s w" id="carf">↻ Obnovit starší data ze serveru</button>` : "");
 }
+// 📉 Pokladna na vyžádání (správce pokladny): volba tohoto zařízení a stav načtení předpisů a pohybů pokladny
+function moneyLazyHtml() {
+  if (!HK.can("money")) return "";
+  const st = HK.money.st(), s = st === "ok" || st === "" ? "načteno" : st === "load" ? "načítám…" : "zatím nenačteno (načte se při otevření pokladny)";
+  return `<h3>💰 Pokladna při spuštění</h3><label style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="checkbox" id="cml" style="width:auto;margin:0"${HK.money.lazy() ? " checked" : ""}>Předpisy a pohyby pokladny načítat až při otevření pokladny</label><div class="mu" style="margin-bottom:8px">Šetří čtení u trenéra, který pokladnu neotevírá při každém spuštění. Přehled v 🏠 Domů (dlužníci, žádosti) a stav vyúčtování na kartách událostí zůstávají. Platí od dalšího spuštění tohoto zařízení. Teď: ${esc(s)}.</div>`;
+}
 // 💾 Data: záloha a CSV (manager, trenér, asistent), obnova ze zálohy (manager), 📉 odhad čtení
 function dataHtml(coach) {
   let body = `<h3 style="margin-top:4px">Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>`;
   if (coach) body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>`;
-  body += readHtml();
+  body += readHtml() + moneyLazyHtml();
   return sec("data", "💾 Data", body);
 }
 // 🛠 Vývojář: 👁 náhled role (jen DEV_EMAILS); při běžícím náhledu popis a Ukončit
@@ -137,6 +143,7 @@ function openSettings() {
   bindCommon(el, q, close);
   if (cashier) bindTeam(el, q, close, coach);
   if (staff) bindData(q, close, coach);
+  if (staff && q("#cml")) q("#cml").onchange = () => { HK.money.setLazy(q("#cml").checked); toast(q("#cml").checked ? "Pokladna se načte až při otevření (od dalšího spuštění)" : "Pokladna se bude načítat hned při spuštění"); };
   if (staff && q("#carf")) q("#carf").onclick = () => arm2(q("#carf"), "arch", "Načte všechny starší dokumenty (stojí čtení) – klepni znovu", async () => { await C().archRefresh(); toast("Starší data obnovena ze serveru"); close(); });
   if (cashier) bindCash(q, close);
   if (coach && q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => C().raiseMinVer(close));

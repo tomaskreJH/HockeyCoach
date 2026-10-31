@@ -54,6 +54,8 @@ const fromDraft = () => { const c = {tpl: dr.tpl, cost: clone(dr.cost).filter(x 
 // Do raw (kopie zápasu, kterou si po návratu ukládá matches.js) se zapíše příznak ss.
 export function settleEvent(ev, raw, force, d) {
   if (!HK.can("money")) return null;
+  // 📉 Předpisy ještě nejsou v zařízení: automatické uzavření se přeskočí (jako u trenéra bez pokladny), vyúčtuje se v detailu události
+  if (!HK.money.ok()) { HK.money.load(); return null; }
   const cx0 = ev.cx || cxOf(ev.id, S.ec);
   if (cx0.settle) return null;
   const cfg = cashCfg(S.cc), c = d ? {tpl: d.tpl, cost: clone(d.cost).filter(x => +x.amt > 0), who: clone(d.who), due: d.due || "", acc: d.acc || "op"} : evCash({...ev, cx: cx0}, cfg);
@@ -342,14 +344,27 @@ ${twoAcc(cfg) ? `<h3>Platby na účet</h3><div class="chips">${Object.entries(AC
 }
 export function payHtml(ev) {
   if (!HK.can("money")) return "";
+  if (!HK.money.ok()) return moneyWaitHtml(true);
   const err = S.payErr ? `<div class="mu" style="color:var(--no);margin-bottom:6px">Pokladnu se nepodařilo načíst (${esc(S.payErr)}). Zkontroluj pravidla databáze (firestore.rules).</div>` : "";
   const st = (ev.cx || {}).settle;
   return st ? closedHtml(ev, st, err) : editHtml(ev, cashCfg(S.cc), err);
 }
 
+// 📉 Karta „pokladna se načte“: auto = načítá se hned (otevřený režim pokladny), jinak tlačítko (detail události – trenér pokladnu často nepotřebuje)
+export function moneyWaitHtml(btn) {
+  const st = HK.money.st();
+  if (!btn || st === "load") return '<div class="cd mu" data-mwait>⏳ Načítám pokladnu…</div>';
+  return '<div class="cd"><h2>💰 Pokladna</h2><div class="mu" style="margin-bottom:8px">Předpisy a platby se kvůli úspoře čtení načítají až na vyžádání (⚙️ → 💾 Data → 📉).</div><button class="s w" data-mload>⬇ Načíst pokladnu</button></div>';
+}
+// Tlačítko ⬇ Načíst pokladnu (po načtení se aplikace překreslí sama)
+export function bindMoneyWait(a) {
+  a.querySelectorAll("[data-mload]").forEach(b => { b.onclick = () => { b.disabled = true; b.textContent = "⏳ Načítám…"; HK.money.load(); }; });
+}
+
 // ===== Eventy =====
 export function bindPay(a, ev) {
   if (!HK.can("money")) return;
+  if (!HK.money.ok()) { bindMoneyWait(a); return; }
   const cfg = cashCfg(S.cc), q = s => a.querySelectorAll(s);
   // Přepsání polí formuláře do rozpracované úpravy
   const sync = () => {

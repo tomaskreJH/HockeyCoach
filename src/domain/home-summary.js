@@ -6,6 +6,7 @@
 // ===== Importy =====
 import {isG, score} from "../core/selectors.js";
 import {debtOf, r2, restOf} from "./cash.js";
+import {debtorState} from "./debtors.js";
 import {openReqs} from "./requests.js";
 
 // ===== Konstanty =====
@@ -90,6 +91,12 @@ export function teamPay(ch, rq, now) {
     if (x.due && new Date(x.due).getTime() < now) { over += r; who.add(x.mid); }
   });
   return {unpaid: r2(unpaid), over: r2(over), debtors: who.size, reqs: openReqs(rq).filter(r => r.kind !== "att").length};
+}
+// 📉 Přehled pokladny bez předpisů (pokladna ještě nenačtená): dlužníci po splatnosti z veřejného souhrnu debtors (bez částek)
+// a otevřené žádosti o změnu placení → {debtors, blocked, reqs}
+export function teamPayLite(dt, rq, now) {
+  const st = (dt || []).map(d => debtorState(d, now)).filter(Boolean);
+  return {debtors: st.length, blocked: st.filter(x => x.blocked).length, reqs: openReqs(rq).filter(r => r.kind !== "att").length};
 }
 // Varování cashflow z výsledku cashflow() (domain/budget-track.js): první měsíc pod rezervou / pod nulou, jinak null
 export function flowWarn(flow) {
