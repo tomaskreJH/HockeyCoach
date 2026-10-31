@@ -131,7 +131,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `join-view.js` | ✋ žádost o přijetí do týmu |
 | `auto-sync.js` | tichý zápis odvozených dat (`HK.syncOps`) |
 | **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
-| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `archiv/` (jen starší CHANGELOG; pravidla pro Claude: kap. 0 a pokyny projektu) |
+| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `navrhy-v22.32.md` (návrhy změn databáze a pravidel čekající na souhlas), `archiv/` (jen starší CHANGELOG; pravidla pro Claude: kap. 0 a pokyny projektu) |
 
 **⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `views/block-exc-view.js`, `domain/block-exc.js`, `domain/cost-check.js`, `views/cost-view.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 

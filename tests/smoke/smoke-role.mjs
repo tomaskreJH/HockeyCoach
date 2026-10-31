@@ -98,7 +98,11 @@ async function events() {
   // ✅ Potvrdit dresy (trenér): hráčky pak dresy uvidí
   if (await tap("#lsok", 250)) snap("ev-e1-lok");
   // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
-  if (await tap("#evatt summary", 300)) snap("ev-e1-att");
+  if (await tap("#evatt summary", 300)) {
+    snap("ev-e1-att");
+    // v22.32: 🚫 i u realizačního týmu (trénink e1 už začal, trenéři odpověděli „Jdu“)
+    if (["manager", "trener"].includes(role) && !$('[data-nos="t1"]')) throw new Error("🚫 chybí u realizačního týmu");
+  }
   if (await tap("[data-alg]", 300)) {
     snap("att-log");
     if (await tap('[data-alf="other"]', 150)) snap("att-log-other");
@@ -188,6 +192,8 @@ async function matchShare() {
   S.mid = null; S.step = 1; render(); await wait(150);
 }
 async function money() {
+  // v22.32: manager přidá člena realizačního týmu rovnou s e-mailem a rolí
+  if (role === "manager" && await tap('#nav button[data-t="fo"]', 250) && !$("#stm")) throw new Error("👥 realizační tým: chybí e-mail a role u přidání (manager)");
   if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
     if (await tap('[data-fv="tf"]', 250)) {
       snap("pay-tariff");

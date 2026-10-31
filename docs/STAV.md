@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální v betě:** v22.31 (1. 11. 2026) – 💸 ➖ výdaj předvyplní kategorii, příjemce a účet posledního výdaje. Cache `hokej-beta-v133`. Předtím v22.30 – 💬 hlášky, v22.29 – 🏒 zápas, v22.28 – ⏱ živý trénink, v22.27 – 📋 plán tréninku. Pravidla ani data beze změny.
+- **Aktuální v betě:** v22.32 (1. 11. 2026) – 🧹 úklid drobností: 🚫 i u realizačního týmu, nový člen týmu rovnou s e-mailem a rolí, 📊 pokrytí bez hostujících. Cache `hokej-beta-v134`. Noční série v22.27 – v22.32 (plán tréninku, živý trénink, zápas, hlášky, pokladna, úklid). Pravidla ani data beze změny.
 - **Stabilní (`main`):** v22.25 (PR #4 – podle uživatele 31. 10. 2026). v22.26 a novější jen v betě.
-- **Další číslo:** v22.32 (cache `hokej-v134`), opravy v22.31.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Další číslo:** v22.33 (cache `hokej-v135`), opravy v22.32.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
 - **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Po každém vydání (PR) upravit řádek Stabilní.
 - **Pravidla databáze:** v22.25 (blok `seen`) – **ověřit**, zda jsou publikovaná (Firebase Console → Firestore → Rules; v ⚙️ → 👥 Členové týmu manager vidí 🟢 aktivitu, jinak „Aktivitu se nepodařilo načíst“). Od v22.26 se pravidla nemění.
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a novější nevyžadují. V betě se nenastavuje.
@@ -40,10 +40,12 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - **v22.29 (beta) – 🏒 zápas: ⧉ Jako minule, 📤 souhrn (kap. 32)**.
 - **v22.30 (beta) – 💬 jednotné hlášky a potvrzení (kap. 33)**.
 - **v22.31 (beta) – 💸 předvyplněný výdaj (kap. 34)**.
+- **v22.32 (beta) – 🧹 úklid drobností (kap. 35)**.
+- **Návrhy čekající na souhlas:** `docs/navrhy-v22.32.md` – A ✏️ úprava proběhlého tréninku (kolekce `tract`), B pravidla z kontroly v22.18.1 (`settings/beta`, `budgetKeep`, `treval`), C 🚫 člena týmu a plat.
 - Kontrola kódu v22.18.1 – otevřené body k rozhodnutí: pravidla `settings/beta` (čtení jen manager / vývojář), `budgetKeep` (neměnné starší revize rozpočtu), `treval` u hráček vynutit pravidly; ověřit nasazená pravidla v konzoli a zvážit App Check.
 
 ## Další krok
-1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), 4 hotovo v22.17 (živý trénink na ledě) + ⚡ improvizace v22.18, **přehlednější ⏱ živý trénink hotovo v22.28 (beta)**, **5 Zápas hotovo v22.29**, **6 hlášky v22.30**, **7 pokladna v22.31 – K2 celý hotový**, **další: ✏️ úprava proběhlého tréninku (skutečné časy cvičení do statistik – čeká na souhlas s novou kolekcí `tract` a pravidly), pak 5 Zápas** (v22.19 – v22.20 mimořádně: oprava štafety, ⏹ Konec, příprava pro hráčky) (sestava „Jako minule“, souhrn ke sdílení) – nejdřív nálezy z ostrého testu tréninku (v22.17.x).
+1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), 4 hotovo v22.17 (živý trénink na ledě) + ⚡ improvizace v22.18, **přehlednější ⏱ živý trénink hotovo v22.28 (beta)**, **5 Zápas hotovo v22.29**, **6 hlášky v22.30**, **7 pokladna v22.31 – K2 celý hotový**, **další: ✏️ úprava proběhlého tréninku (návrh `docs/navrhy-v22.32.md`, A) (skutečné časy cvičení do statistik – čeká na souhlas s novou kolekcí `tract` a pravidly), pak 5 Zápas** (v22.19 – v22.20 mimořádně: oprava štafety, ⏹ Konec, příprava pro hráčky) (sestava „Jako minule“, souhrn ke sdílení) – nejdřív nálezy z ostrého testu tréninku (v22.17.x).
 2. **D3** jen podle čísel z 📉 (zabalení uzavřených měsíců docházky).
 3. Pak N, P2, G (odloženo), M poslední.
 

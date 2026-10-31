@@ -5,7 +5,7 @@
 // ===== Importy =====
 import {SKILLS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";
-import {nm} from "../core/selectors.js";
+import {nm, pl} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -66,12 +66,14 @@ export function loadPrep(eid) {
   Promise.all([cp, tp]).then(() => { if (S.tpr !== R) return; R.st = "ok"; render(); });
   render();
 }
+// 🎟 Hostující hráčky se do pokrytí dovedností nepočítají (trénují hlavně jinde) – jen hráčky týmu
+const own = ids => (ids || []).filter(id => !(pl(id) || {}).guest);
 // 📊 Pokrytí: tréninky v období → jejich plány (po jednom dokumentu) → výpočet nad docházkou a bankou cvičení
 function loadCover(eid, days, X, D) {
   const R = S.tcv = {eid, days, st: "load"}, T = coverWindow(S.ev, eid, days);
   Promise.all(T.map(e => planOf(e.id).then(p => [e.id, p]))).then(L => {
     if (S.tcv !== R) return;
-    R.res = skillCoverage({pids: [...X.cnt.sk, ...X.cnt.gk], goalies: new Set(X.cnt.gk), trainings: T.map(e => ({id: e.id, lines: e.lines || {}})),
+    R.res = skillCoverage({pids: own([...X.cnt.sk, ...X.cnt.gk]), goalies: new Set(X.cnt.gk), trainings: T.map(e => ({id: e.id, lines: e.lines || {}})),
       plans: Object.fromEntries(L), att: S.at, drills: D, pos: X.pos});
     R.cnt = T.length; R.st = "ok"; render();
   }).catch(e => { if (S.tcv !== R) return; R.st = "err"; R.err = errTxt(e); render(); });
@@ -127,12 +129,12 @@ function coverRowsHtml(res) {
 function coverBodyHtml(R, X) {
   if (R.st === "load") return '<div class="mu">Počítám z plánů a docházky…</div>';
   if (R.st === "err") return `<div class="msg">Pokrytí se nepodařilo spočítat (${esc(R.err)}).</div>`;
-  const res = R.res, pop = X.cnt.sk.length + X.cnt.gk.length;
+  const res = R.res, pop = own([...X.cnt.sk, ...X.cnt.gk]).length, gst = X.cnt.sk.length + X.cnt.gk.length - pop;
   if (!pop) return '<div class="mu">Na trénink zatím není nikdo přihlášený.</div>';
   if (!res.n) return `<div class="mu">Za posledních ${R.days} dní ${R.cnt ? "nemá žádný z " + R.cnt + " tréninků plán" : "nebyl žádný trénink"} – není z čeho počítat.</div>`;
   const low = res.rows.filter(r => r.pct < COVER_LOW).length;
   return `<div class="mu" style="font-size:13px;margin-bottom:4px">${pop} přihlášených · ${res.n} ${res.n === 1 ? "trénink" : res.n < 5 ? "tréninky" : "tréninků"} s plánem za ${R.days} dní${low ? ` · <b style="color:var(--wa)">${low} ${low === 1 ? "dovednost" : low < 5 ? "dovednosti" : "dovedností"} pod ${COVER_LOW} %</b>` : ""}. Klepni na dovednost pro jména.</div>
-${coverRowsHtml(res)}${res.none.length ? `<div class="mu" style="font-size:12px;margin-top:6px">Bez tréninku s plánem v období: ${names(res.none)}</div>` : ""}
+${coverRowsHtml(res)}${gst ? `<div class="mu" style="font-size:12px;margin-top:6px">🎟 Hostující (${gst}) se nepočítají.</div>` : ""}${res.none.length ? `<div class="mu" style="font-size:12px;margin-top:6px">Bez tréninku s plánem v období: ${names(res.none)}</div>` : ""}
 ${(S.dr || []).length ? "" : '<div class="mu" style="font-size:12px">Banka cvičení se nenačetla – dovednosti cvičení nejsou známé.</div>'}`;
 }
 function coverSectionHtml(eid, X) {

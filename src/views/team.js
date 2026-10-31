@@ -11,6 +11,7 @@ import {S} from "../core/state.js";
 import {$, clone, esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {benchOrder} from "../domain/lineup.js";
+import {ROLE_LABELS} from "../domain/permissions.js";
 import {GRP,exOf,fxOf,fxPct,grpOf,pctToFx} from "../domain/cash.js";
 import {NOTE_COLL,PPAY_COLL,SPAY_COLL,plPayDoc} from "../domain/private-data.js";
 import {luEditor} from "./lineup-editor.js";
@@ -47,6 +48,7 @@ ${l.length?l.map((p,i)=>(S.pq==="all"&&(i===0||pri(l[i-1])!==pri(p))?`<h3>${PG[p
 <div class="cd"><h2>Realizační tým (${T.length})</h2><div class="mu" style="margin-bottom:8px">Trenéři a další členové týmu se zapisují do docházky na události. Neplatí a nenominují se do zápasu. Přidává a maže manager nebo trenér, funkce má stejné názvy jako role (Manager, Trenér, Asistent).</div>
 ${T.length?T.map(t=>`<div class="it"><div><b>${esc(t.name)}</b><div class="mu">${esc(kindOf(t))}</div></div><div class="row" style="flex:none;flex-wrap:nowrap">${coach||cashier?`<button class="s ib" data-te="${t.id}" title="Upravit">✏️</button>`:""}${coach?`<button class="d ib" data-td="${t.id}" title="Smazat" style="${S.cf==="t"+t.id?"background:var(--no);color:#fff":""}">${S.cf==="t"+t.id?"🗑 Smazat?":"🗑"}</button>`:""}</div></div>`).join(""):'<div class="msg">Zatím nikdo.</div>'}
 ${coach?`<div class="row" style="margin-top:10px"><div style="flex:3"><label>Jméno</label><input id="stn"></div><div><label>Funkce</label><select id="stk">${KIND.map(k=>`<option>${k}</option>`).join("")}</select></div></div>
+${HK.can("admin")?`<div class="row"><div style="flex:3"><label>E-mail účtu (nepovinné – rovnou přístup do aplikace)</label><input id="stm" type="email" inputmode="email" autocomplete="off" placeholder="jmeno@gmail.com"></div><div><label>Role</label><select id="str">${["trener","asistent","manager"].map(r=>`<option value="${r}">${esc(ROLE_LABELS[r])}</option>`).join("")}</select></div></div>`:""}
 <button class="p w" id="stadd">Přidat do realizačního týmu</button>`:""}</div>`;
 $("#ft").onclick=()=>{S.fo=!S.fo;render()};
 a.querySelectorAll("[data-pq]").forEach(b=>b.onclick=()=>{S.pq=b.dataset.pq;render()});
@@ -59,7 +61,11 @@ a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e)
 // Smazání hráčky (jen trenér): s ní i její platební pole v plpay
 a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast(failMsg("Smazání")));S.db.doc(PPAY_COLL+"/"+id).delete()})});
 // Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka, důvody a plat ve staffpay)
-Q2("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast(failMsg("Uložení")))};
+// Manager může rovnou zadat e-mail a roli: po založení člena týmu se zapíše members/{e-mail} s propojením tid (stejně jako v ⚙️ → 👥 Členové)
+Q2("#stadd").onclick=async()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");const em=(($("#stm")||{}).value||"").trim().toLowerCase(),rl=($("#str")||{}).value||"trener";
+if(em&&!/^\S+@\S+\.\S+$/.test(em))return toast("Zadej platný e-mail (nebo pole nech prázdné)");
+const r=await S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>{toast(failMsg("Uložení"));return null});
+if(r&&em&&HK.cfg&&await HK.cfg.saveMember(em,rl,"",r.id,false))toast("✅ "+n+" přidán(a) – přístup "+em+" ("+ROLE_LABELS[rl]+")")};
 a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:kindOf(t)||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
 a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>{S.db.doc("attendance/"+x.id).delete();if(S.an[x.id])S.db.doc(NOTE_COLL+"/"+x.id).delete()});S.db.doc(SPAY_COLL+"/"+id).delete();S.db.doc("staff/"+id).delete().catch(()=>toast(failMsg("Smazání")))})})}
 

@@ -75,10 +75,10 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 
 ## Otevřené drobnosti
 1. Smazání hráčky ponechá její žádosti v `requests` a nepřítomnosti v `absence` (osiřelé).
-2. 🚫 u realizačního týmu se nezapisuje.
-3. Realizační tým: zvážit přidání člena rovnou s e-mailem a rolí.
+2. ~~🚫 u realizačního týmu se nezapisuje.~~ **hotovo v22.32** (plat za událost dál podle „Jdu“ – k rozhodnutí v `docs/navrhy-v22.32.md`, bod C).
+3. ~~Realizační tým: zvážit přidání člena rovnou s e-mailem a rolí.~~ **hotovo v22.32** (manager: Team → Realizační tým → e-mail a role).
 4. Smazání tréninku ponechá `trplan`, `trlive`, `trms`, `treval` (osiřelé, nevadí).
-5. Pokrytí dovedností počítá i hostující hráčku – zvážit vynechání.
+5. ~~Pokrytí dovedností počítá i hostující hráčku – zvážit vynechání.~~ **hotovo v22.32** (🎟 hostující se nepočítají).
 6. ⭐ Výkonnost: smazaná hráčka zůstane v `plevel/team.lv` (nevadí).
 7. Upozornění živého tréninku jen při otevřené obrazovce ⏱ (bez serveru – proto ☀ obrazovka svítí a 🔒 zámek dotyku); stopky běží jen v zařízení. Úsporný režim telefonu může zámek obrazovky zakázat (⚠ v záhlaví).
 8. Poslech `events` / `attendance` jen aktuální sezóny – řeší fáze **D2** (zeptat se před změnou: mění statistiky a docházku za starší období).
@@ -87,4 +87,4 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 11. 🏦 Výpis z banky: import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje. Přeplatek a nespárovaná platba se od v22.5 zapisují jako příjem; odchozí platby z výpisu (led, rozhodčí) se zatím nepárují – výdaje se zapisují ručně (🧾 Náklady → ➖ Zapsat platbu).
 12. 🕘 Po zpětné změně placení se uzavřená vyúčtování znovu otevírají ručně (záměrně – předpisy ostatních se tím přepočítají); případně později hromadně.
 13. 🧾 Náklady páruje výdaj s náklady podle kategorie a měsíce (příjemce zpřesní párování); náklady událostí musí mít v šabloně kategorii a příjemce. Zrušená nevyúčtovaná událost se nepočítá.
-14. Kontrola kódu v22.18.1 (28. 10. 2026) – A, B, C, D opraveny ve v22.18.2. **Pravidla čekají na souhlas** (nelze vrátit přes Git): `settings/beta` číst jen manager / vývojář; `budgetKeep` – starší revize rozpočtu neměnné (ne jen počet); `treval` u hráček vynutit pravidly. Mimo kód: ověřit nasazená pravidla v konzoli proti `firestore.rules`, zvážit App Check. Uzavřený zápas z doby před v22.18.2 s běžícími hodinami: Znovu otevřít → přerušit hodiny → uzavřít.
+14. Kontrola kódu v22.18.1 (28. 10. 2026) – A, B, C, D opraveny ve v22.18.2. **Pravidla čekají na souhlas – připravený návrh `docs/navrhy-v22.32.md`, kap. B** (nelze vrátit přes Git): `settings/beta` číst jen manager / vývojář; `budgetKeep` – starší revize rozpočtu neměnné (ne jen počet); `treval` u hráček vynutit pravidly. Mimo kód: ověřit nasazená pravidla v konzoli proti `firestore.rules`, zvážit App Check. Uzavřený zápas z doby před v22.18.2 s běžícími hodinami: Znovu otevřít → přerušit hodiny → uzavřít.

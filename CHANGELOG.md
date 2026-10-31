@@ -2,6 +2,21 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.32 (1. 11. 2026) – 🧹 Úklid drobností
+> **Nasazení – kanál 🧪 BETA:** commit „v22.32“ do větve **`beta`**. Pravidla databáze ani struktura dat se nemění (🚫 u člena týmu používá stávající pole docházky `nos`, nový člen stávající `members/{e-mail}` – pravidla obojí už dovolují). V betě Načíst novou verzi (cache `hokej-beta-v134`). 🔒 Vyžadovat verzi: ne. Test: kap. 35.
+
+**Opraveno / doplněno** (otevřené drobnosti z `docs/plan.md`, které nepotřebují změnu databáze ani pravidel)
+- **2. 🚫 u realizačního týmu** (`views/event-detail.js`): v docházce události po jejím začátku má člen týmu s „Jdu“ tlačítko 🚫 a štítek „🚫 Nedorazil(a)“ – stejná funkce `toggleNos` jako u hráček (i 🕘 historie). **Plat za událost se počítá dál podle „Jdu“** – změna výpočtu pokladny čeká na rozhodnutí (`docs/navrhy-v22.32.md`, C).
+- **3. Nový člen realizačního týmu s e-mailem a rolí** (`views/team.js`, jen manager): ve formuláři Přidat do realizačního týmu volitelně e-mail účtu a role (Trenér / Asistent / Manager) – po založení člena se zapíše přístup `members/{e-mail}` s propojením na člena týmu přes stávající `saveMember` (stejné kontroly jako v ⚙️ → 👥 Členové týmu).
+- **5. 📊 Pokrytí dovedností bez hostujících** (`views/trplan-reuse.js`): 🎟 hostující hráčky se do pokrytí nepočítají, pod přehledem je jejich počet.
+- Zbytek otevřených drobností zůstává v seznamu (1, 4, 6 – osiřelá data, mazání vyžaduje rozhodnutí o datech; 7 – omezení prohlížeče; 8 – D2; 9 – živý zápis; 10–13 rozhodnutí; 14 – pravidla, návrh připraven).
+
+**Připraveno k rozhodnutí (bez zásahu do kódu):** `docs/navrhy-v22.32.md` – ✏️ úprava proběhlého tréninku (kolekce `tract`, pravidla, dopad na čtení), pravidla `settings/beta`, `budgetKeep`, `treval` (z kontroly v22.18.1), 🚫 člena týmu a plat.
+
+**Beze změny:** výpočty pokladny a platů, živý zápis, střely, góly, časomíra, pravidla a struktura dat.
+
+**Ověřeno:** `npm test` (509 testů), `npm run smoke` bez chyb pro všechny role (nově: 🚫 u realizačního týmu v docházce tréninku, e-mail a role u přidání člena týmu – manager).
+
 ## v22.31 (1. 11. 2026) – 💸 Předvyplněný výdaj
 > **Nasazení – kanál 🧪 BETA:** commit „v22.31“ do větve **`beta`**. Pravidla databáze ani data se nemění (výdaj se ukládá se stejnými poli). V betě Načíst novou verzi (cache `hokej-beta-v133`). 🔒 Vyžadovat verzi: ne. Test: kap. 34.
 
