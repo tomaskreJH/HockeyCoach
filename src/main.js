@@ -188,6 +188,8 @@ function moneyData(db) {
   try {
     const db = await HK.ready();
     S.db = db;
+    // 🟢 Aktivita účtu pro přehled managera (⚙️ → 👥 Členové týmu)
+    HK.seenStart();
     if (HK.can("guest")) { guestData(db); return; }
     const ok = readyGate(["p", "m", "s", "o", "e", "a"]);
     teamData(db, ok);

@@ -457,6 +457,16 @@ service cloud.firestore {
       allow read: if isCash();
       allow create: if isCash();
     }
+    // ===== 🟢 Aktivita účtu: seen/{e-mail} = {at, v, ch} =====
+    // Zapisuje jen vlastník (dokument podle e-mailu účtu, člen týmu i hostující), čas = čas serveru, verze a kanál; čte a maže jen manager.
+    function seenOk(email, d) {
+      return email == mail() && d.keys().hasOnly(['at', 'v', 'ch']) && d.at == request.time
+        && d.v is string && d.v.size() <= 12 && d.ch in ['s', 'b'];
+    }
+    match /seen/{email} {
+      allow read, delete: if isMgr();
+      allow create, update: if isMember() && seenOk(email, request.resource.data);
+    }
     // Ostatní kolekce (i neznámé) pravidla nepovolují – kdo je nemá výslovně uvedené výše, nečte ani nezapisuje.
   }
 }

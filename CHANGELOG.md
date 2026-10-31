@@ -2,6 +2,21 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.25 (31. 10. 2026) – 🟢 Kdo je online
+> **Nasazení – kanál 🧪 BETA:** commit „v22.25“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – nový blok `seen` (schváleno uživatelem 31. 10. 2026); do publikace se aktivita nezapisuje (jen varování v konzoli) a manager uvidí „Aktivitu se nepodařilo načíst“. Pravidla jen přidávají novou kolekci – stabilní verze je nepotřebuje a nic jí neberou. V betě Načíst novou verzi (cache `hokej-beta-v127`). 🔒 Vyžadovat verzi: ne. Test: kap. 29.
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – přehled, kdo je online a kdy se kdo naposledy přihlásil, vidí jen manager)
+- Nová kolekce `seen/{e-mail}` = `{at: čas serveru, v: verze, ch: s | b}` (`domain/presence.js`). Každý účet zapisuje jen svůj dokument – při spuštění a pak nejvýš jednou za 10 min, když je aplikace na obrazovce (`HK.seenStart` v `storage.js`). V 👁 náhledu role se nezapisuje; starší verze zapisuje, aby manager viděl, kdo ji ještě má.
+- `firestore.rules`: `seen` zapisuje jen vlastník (člen i hostující), jen pole `at`, `v`, `ch`, `at` = čas serveru, `v` nejvýš 12 znaků, `ch` jen `s` / `b`; číst a mazat smí jen manager.
+- ⚙️ → 👥 Členové týmu (jen manager): 🟢 Teď online: N s ↻, u každého účtu online / poslední aktivita a verze aplikace (🧪 beta, starší verze oranžově); seznam seřazen podle poslední aktivity. Pokladník vidí seznam beze změny.
+- Nápověda: 🟢 Kdo je online.
+
+**📉 Čtení a zápisy:** aktivita se čte jen při otevření seznamu členů (1 čtení na člena), žádný trvalý poslech. Zápisy: asi 6 za hodinu otevřené aplikace na zařízení (limit zdarma 20 000 denně).
+
+**Beze změny:** data ostatních kolekcí, záloha (aktivita v ní není), živý zápis, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (501 testů, nově `tests/presence.test.js` včetně kontroly textu pravidel), `npm run smoke` bez chyb pro všechny role (manager vidí 🟢 u sebe, pokladník bez aktivity).
+
 ## v22.24 (31. 10. 2026) – 📉 Pokladna na vyžádání
 > **Nasazení – kanál 🧪 BETA:** commit „v22.24“ do větve **`beta`**. firestore.rules beze změny, data beze změny (nová volba jen v `localStorage` zařízení `hk-money-lazy`). V betě Načíst novou verzi (cache `hokej-beta-v126`). 🔒 Vyžadovat verzi: ne. Test: kap. 28.
 

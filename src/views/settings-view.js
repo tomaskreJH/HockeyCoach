@@ -4,11 +4,12 @@
 // Jen vykreslení a obsluha – údaje a zápisy přes HK.cfg, oprávnění HK.can. 🔐 Práva rolí: views/perm-view.js.
 
 // ===== Importy =====
-import {APP_VERSION} from "../core/app-version.js";
+import {APP_VERSION, cmpVer} from "../core/app-version.js";
 import {IS_BETA} from "../core/channel.js";
 import {armed, confirm2} from "../core/actions.js";
 import {LS, esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
+import {onlineCount, seenState} from "../domain/presence.js";
 import {READ_LIMIT, collLabel, readCost} from "../domain/read-cost.js";
 import {betaAcctHtml, betaSecHtml, bindBetaAcct, renderBetaTesters} from "./beta-view.js";
 import {permStatus, renderPerm, resetPermWork} from "./perm-view.js";
@@ -107,18 +108,32 @@ function devHtml() {
 }
 
 // ===== Hlavní logika =====
-// Seznam členů (manager a pokladník): e-mail, role, propojení, Odebrat podle oprávnění
+// 🟢 Řádek aktivity člena (jen manager): online / poslední aktivita, verze aplikace (🧪 beta), starší verze oranžově
+function seenLine(doc, now) {
+  const s = seenState(doc, now);
+  if (!s) return '<div class="mu">⚪ zatím bez záznamu aktivity</div>';
+  const old = s.v && cmpVer(s.v, APP_VERSION) < 0;
+  return `<div class="mu"><b style="color:${s.on ? "var(--ok)" : "inherit"}">${esc(s.text)}</b>${s.v ? ` · <span style="color:${old ? "var(--wa)" : "inherit"}">v${esc(s.v)}${s.beta ? " 🧪" : ""}</span>` : ""}</div>`;
+}
+// Seznam členů (manager a pokladník): e-mail, role, propojení, Odebrat podle oprávnění; manager navíc 🟢 aktivitu (online / naposledy, verze)
 async function renderMembers(el) {
   const box = el.querySelector("#cmb");
   if (!box) return;
   box.textContent = "Načítám…";
   try {
-    const rows = await C().memberRows();
-    box.innerHTML = rows.map(r => {
+    const [rows, seen] = await Promise.all([C().memberRows(), C().seenMap()]), now = Date.now(), mgr = HK.can("admin");
+    // Seřazení pro managera: online nahoře, pak podle poslední aktivity (bez záznamu na konci)
+    const ms = r => { const s = seen ? seenState(seen[r.email], now) : null; return s ? s.ms : 0; };
+    const list = mgr && seen ? [...rows].sort((a, b) => ms(b) - ms(a) || a.email.localeCompare(b.email)) : rows;
+    const head = !mgr ? "" : seen === null ? '<div class="mu" style="margin-bottom:6px">🟢 Aktivitu se nepodařilo načíst (pravidla databáze ještě nejsou publikovaná?).</div>'
+      : `<div class="row" style="align-items:center;margin-bottom:6px"><b>🟢 Teď online: ${onlineCount(seen, now)}</b><button class="s" id="cmbr" style="padding:6px 12px">↻</button></div>`;
+    box.innerHTML = head + (list.map(r => {
       const i = C().memberInfo(r);
       const who = (i.player !== undefined ? (i.player ? " · " + esc(i.player) : " · ⚠️ bez hráčky") : "") + (i.staff !== undefined ? (i.staff !== null ? " · 🎓 " + esc(i.staff) : " · ⚠️ člen týmu neexistuje") : "") + (r.cash ? " · 💰 pokladník" : "");
-      return `<div class="it" style="cursor:default"><div><b>${esc(r.email)}</b><div class="mu">${esc(i.label)}${who}</div></div>${C().canRemove(r) ? `<button class="d" data-md="${esc(r.email)}" style="padding:8px 12px">Odebrat</button>` : ""}</div>`;
-    }).join("") || "–";
+      return `<div class="it" style="cursor:default"><div><b>${esc(r.email)}</b><div class="mu">${esc(i.label)}${who}</div>${mgr && seen ? seenLine(seen[r.email], now) : ""}</div>${C().canRemove(r) ? `<button class="d" data-md="${esc(r.email)}" style="padding:8px 12px">Odebrat</button>` : ""}</div>`;
+    }).join("") || "–");
+    const rb = box.querySelector("#cmbr");
+    if (rb) rb.onclick = () => renderMembers(el);
     box.querySelectorAll("[data-md]").forEach(b => { b.onclick = async () => {
       if (HK.blocked() || !confirm("Odebrat přístup: " + b.dataset.md + "?")) return;
       if (await C().removeMember(b.dataset.md)) renderMembers(el);

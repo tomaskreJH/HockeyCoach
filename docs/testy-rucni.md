@@ -239,6 +239,13 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 29. v22.25 (beta) – 🟢 Kdo je online (po publikaci pravidel)
+- [ ] 29.1 Pravidla publikovaná; v betě je v záhlaví **v22.25**.
+- [ ] 29.2 Manager: ⚙️ → 👥 Tým a členové → nahoře „🟢 Teď online: 1“ a u vlastního účtu 🟢 online · v22.25 🧪.
+- [ ] 29.3 Druhý účet (hráčka) spustí aplikaci → ↻ → u ní 🟢 online a její verze (stabilní bez 🧪, starší oranžově).
+- [ ] 29.4 Po 20 min bez aplikace u ní „před 20 min“, druhý den „včera …“.
+- [ ] 29.5 Pokladník (bez managera) vidí seznam členů bez aktivity; 👁 náhled role nezapisuje aktivitu.
+
 ## 28. v22.24 (beta) – 📉 Pokladna na vyžádání
 - [ ] 28.1 V betě je v záhlaví **v22.24**; ⚙️ → 💾 Data → 💰 Pokladna při spuštění je u managera zaškrtnuté, stav „zatím nenačteno“.
 - [ ] 28.2 🏠 Domů: 💰 Pokladna týmu ukazuje počet dlužníků a žádostí bez částek a ⬇ Načíst pokladnu; po klepnutí plný přehled (nezaplaceno, po splatnosti, cashflow).

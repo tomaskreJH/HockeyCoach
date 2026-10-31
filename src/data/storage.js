@@ -2,7 +2,7 @@
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
 // Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
 // onSnapshot; batch() – set / merge / delete / commit; tx(cesty, fn) – transakce nad aktuálním stavem serveru (úhrady předpisů). 📉 Události a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
-// Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup. 📉 Pokladna na vyžádání: HK.money (domain/money-load.js).
+// Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup. 📉 Pokladna na vyžádání: HK.money (domain/money-load.js). 🟢 Aktivita účtu: HK.seenPing (domain/presence.js).
 
 // ===== Importy =====
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
@@ -20,6 +20,7 @@ import {EVPUB_COLL, LUPUB_COLL} from "../domain/guests.js";
 import {PRICE_COLL, pricePlan} from "../domain/economy.js";
 import {JOIN_COLL} from "../domain/join-requests.js";
 import {MONEY_LAZY_KEY, lazyMoney, moneyReady} from "../domain/money-load.js";
+import {PING_MS, SEEN_COLL, pingDue} from "../domain/presence.js";
 import {PID_ROLE_KEYS, ROLE_LABELS, STAFF_ROLE_KEYS, actOf, permClean, permOf, roleLabel, roleOf} from "../domain/permissions.js";
 import {REQ_COLL} from "../domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, withPlPay} from "../domain/private-data.js";
@@ -391,6 +392,27 @@ function moneySetPref(lazy) {
   if (!lazy) moneyLoad();
 }
 
+// ===== Data: 🟢 aktivita účtu (seen) =====
+// Tichý zápis vlastního dokumentu seen/{e-mail} = {at: čas serveru, v: verze, ch: kanál} – při spuštění a pak nejvýš jednou za PING_MS,
+// jen když je aplikace na obrazovce. V 👁 náhledu role se nezapisuje; starší verze zapisuje (manager tak vidí, kdo ji ještě má).
+// Chyba (např. nepublikovaná pravidla) jen do konzole – zápis nespustil uživatel.
+let seenAt = 0;
+function seenPing(force) {
+  if (!isReady || !user || pv) return;
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+  const now = Date.now();
+  if (!pingDue(seenAt, now, force)) return;
+  seenAt = now;
+  setDoc(fsDoc(fs, SEEN_COLL, user.email.toLowerCase()), {at: serverTimestamp(), v: APP_VERSION, ch: IS_BETA ? "b" : "s"})
+    .catch(e => console.warn("Aktivita účtu se nezapsala:", errTxt(e)));
+}
+// Spuštění zápisu aktivity: hned, každou minutu kontrola intervalu a po návratu do aplikace
+function seenStart() {
+  seenPing(true);
+  setInterval(() => seenPing(false), 60 * 1000);
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange", () => seenPing(false));
+}
+
 // Úplné smazání události se vším souvisejícím (jen vývojář): docházka, důvody, předpisy, úhrady v pokladně, vyúčtování, cena,
 // žádosti a veřejné dokumenty; potom přepočet dlužníků. wipePreview = jen plán (počty pro potvrzení). Vrací plán, nebo null.
 const wipeSrc = () => ({attendance: data.attendance, attnote: data[NOTE_COLL], charges: data.charges, cash: data.cash, evcash: data.evcash, evprice: data[PRICE_COLL], requests: data[REQ_COLL], evpub: data[EVPUB_COLL], lineuppub: data[LUPUB_COLL]});
@@ -608,6 +630,8 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   preview: () => pv ? {label: pvLabel(), write: pv.write} : null, ro, blocked, endPreview,
   // 📉 Pokladna na vyžádání: init(loader) po přihlášení (main.js), ok() = předpisy a pohyby jsou v zařízení, load() = načíst teď,
   // lazy() = úsporný režim tohoto zařízení, setLazy(b) = volba v ⚙️ → 💾 Data
+  // 🟢 Aktivita účtu: seenStart() po spuštění (main.js)
+  seenStart,
   money: {init: moneyInit, ok: monOk, load: moneyLoad, st: () => monSt, lazy: () => lazyMoney(monPref(), can("sport"), can("money")), setLazy: moneySetPref},
   // 🧪 Beta kanál: tester() = nabídka bety a přístup do ní, betaOk() = smí pracovat v betě (tester nebo manager)
   tester, betaOk,
