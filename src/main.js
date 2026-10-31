@@ -2,7 +2,7 @@
 // Připraveno (S.ready) po základních kolekcích; chyba events / attendance / staff jen hláška v Událostech, chyba citlivé kolekce jen do konzole.
 // Citlivá data se připojí k záznamům v paměti (S.pl + plpay, S.tr + staffpay, S.at + attnote) – domain/private-data.js.
 // Kdo co poslouchá: hostující jen sebe a evpub / lineuppub, členové týmové kolekce a své doklady, sport navíc docházku a žádosti,
-// správce pokladny peníze a rozpočty, banka cvičení podle HK.perm("drills", "r") – viz sekce Hlavní logika.
+// správce pokladny peníze a rozpočty (📉 předpisy a pohyby pokladny případně až při otevření pokladny – HK.money), banka cvičení podle HK.perm("drills", "r").
 // ===== Importy =====
 import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
@@ -19,6 +19,7 @@ import {EVPUB_COLL, LUPUB_COLL, fromPub} from "./domain/guests.js";
 import {JOIN_COLL} from "./domain/join-requests.js";
 import {REQ_COLL} from "./domain/requests.js";
 import {NOTE_COLL, PPAY_COLL, SPAY_COLL, joinAttNotes, joinPlPay, joinStaffPay} from "./domain/private-data.js";
+import {moneyLeft} from "./domain/money-load.js";
 import {SERIES_COLL} from "./domain/recurrence.js";
 import {autoSync} from "./views/auto-sync.js";
 import {openCashSettings, refreshCashSettings} from "./views/cash-settings.js";
@@ -144,12 +145,23 @@ function staffData(db) {
   if (HK.perm("drills", "r")) db.collection(DRILL_COLL).onSnapshot(s => { S.dr = rows(s); S.drErr = null; render(); }, e => { S.drErr = e.code || e.message; erP(DRILL_COLL)(e); render(); });
 }
 
+// ===== Hlavní logika: 📉 předpisy a pohyby pokladny (správce pokladny) =====
+// Spustí poslech obou kolekcí; slib se splní po prvním snímku (nebo chybě) každé z nich. Volá HK.money – hned, nebo až při otevření pokladny.
+function moneyFull(db) {
+  const ec = e => { S.payErr = e.code || e.message; render(); };
+  return new Promise(res => {
+    const done = new Set(), got = c => { done.add(c); if (!moneyLeft([...done]).length) { res(); render(); } };
+    db.collection("charges").onSnapshot(s => { S.ch = rows(s); S.payErr = null; got("charges"); render(); }, e => { ec(e); got("charges"); });
+    db.collection("cash").onSnapshot(s => { S.cs = rows(s); got("cash"); render(); }, e => { ec(e); got("cash"); });
+  });
+}
+
 // ===== Hlavní logika: peníze (správce pokladny) a vlastní předpisy a žádosti =====
 function moneyData(db) {
   const ec = e => { S.payErr = e.code || e.message; render(); };
   if (HK.can("money")) {
-    db.collection("charges").onSnapshot(s => { S.ch = rows(s); S.payErr = null; render(); }, ec);
-    db.collection("cash").onSnapshot(s => { S.cs = rows(s); render(); }, ec);
+    // Předpisy a pohyby pokladny: hned, nebo v úsporném režimu až při otevření pokladny (⚙️ → 💾 Data → 📉)
+    HK.money.init(() => moneyFull(db));
     // Audit se celý neposlouchá (📉 úspora čtení): záznamy jedné události a změny účtů na vyžádání (views/audit-feed.js)
     db.collection("evcash").onSnapshot(s => { S.ec = rows(s); render(); }, ec);
     // Platební pole hráček a platy realizačního týmu; připojí se k S.pl a S.tr
@@ -176,6 +188,8 @@ function moneyData(db) {
   try {
     const db = await HK.ready();
     S.db = db;
+    // 🟢 Aktivita účtu pro přehled managera (⚙️ → 👥 Členové týmu)
+    HK.seenStart();
     if (HK.can("guest")) { guestData(db); return; }
     const ok = readyGate(["p", "m", "s", "o", "e", "a"]);
     teamData(db, ok);

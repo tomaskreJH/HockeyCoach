@@ -21,6 +21,7 @@ import {bindFinance, financeHtml} from "./finance.js";
 import {bindBanner, mineBanner} from "./mine.js";
 import {modal} from "./modal.js";
 import {bindMoney, moneyHtml} from "./money.js";
+import {moneyWaitHtml} from "./payments.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -104,6 +105,8 @@ ${mode === "att" ? attHtml() : shown.length ? shown.map(e => cardHtml(e, AT, P))
 // Vrací false, pokud se režim pokladny nevykresluje (pak Team vykreslí formaci a soupisku).
 export function cashPanel(a, head) {
   if (!cashMgr() || !CASH_MODES.some(([k]) => k === S.tm)) return false;
+  // 📉 Pokladna na vyžádání: otevřený režim pokladny ji načte (po načtení se aplikace překreslí sama)
+  if (!HK.money.ok()) { HK.money.load(); a.innerHTML = CSS + `<div id="evw">${head}${moneyWaitHtml(false)}</div>`; return true; }
   const errH = S.evErr ? `<div class="cd" style="color:var(--no)">Události nebo docházku se nepodařilo načíst (${esc(S.evErr)}).</div>` : "";
   const body = S.tm === "pay" ? financeHtml(allEvents(), atMap()) : S.tm === "cash" ? cashbookHtml() : S.tm === "cost" ? costHtml() : S.tm === "bud" ? budgetHtml() : moneyHtml();
   a.innerHTML = CSS + `<div id="evw">${errH}${head}${body}</div>`;

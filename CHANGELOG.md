@@ -2,6 +2,93 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.25 (31. 10. 2026) – 🟢 Kdo je online
+> **Nasazení – kanál 🧪 BETA:** commit „v22.25“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – nový blok `seen` (schváleno uživatelem 31. 10. 2026); do publikace se aktivita nezapisuje (jen varování v konzoli) a manager uvidí „Aktivitu se nepodařilo načíst“. Pravidla jen přidávají novou kolekci – stabilní verze je nepotřebuje a nic jí neberou. V betě Načíst novou verzi (cache `hokej-beta-v127`). 🔒 Vyžadovat verzi: ne. Test: kap. 29.
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – přehled, kdo je online a kdy se kdo naposledy přihlásil, vidí jen manager)
+- Nová kolekce `seen/{e-mail}` = `{at: čas serveru, v: verze, ch: s | b}` (`domain/presence.js`). Každý účet zapisuje jen svůj dokument – při spuštění a pak nejvýš jednou za 10 min, když je aplikace na obrazovce (`HK.seenStart` v `storage.js`). V 👁 náhledu role se nezapisuje; starší verze zapisuje, aby manager viděl, kdo ji ještě má.
+- `firestore.rules`: `seen` zapisuje jen vlastník (člen i hostující), jen pole `at`, `v`, `ch`, `at` = čas serveru, `v` nejvýš 12 znaků, `ch` jen `s` / `b`; číst a mazat smí jen manager.
+- ⚙️ → 👥 Členové týmu (jen manager): 🟢 Teď online: N s ↻, u každého účtu online / poslední aktivita a verze aplikace (🧪 beta, starší verze oranžově); seznam seřazen podle poslední aktivity. Pokladník vidí seznam beze změny.
+- Nápověda: 🟢 Kdo je online.
+
+**📉 Čtení a zápisy:** aktivita se čte jen při otevření seznamu členů (1 čtení na člena), žádný trvalý poslech. Zápisy: asi 6 za hodinu otevřené aplikace na zařízení (limit zdarma 20 000 denně).
+
+**Beze změny:** data ostatních kolekcí, záloha (aktivita v ní není), živý zápis, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (501 testů, nově `tests/presence.test.js` včetně kontroly textu pravidel), `npm run smoke` bez chyb pro všechny role (manager vidí 🟢 u sebe, pokladník bez aktivity).
+
+## v22.24 (31. 10. 2026) – 📉 Pokladna na vyžádání
+> **Nasazení – kanál 🧪 BETA:** commit „v22.24“ do větve **`beta`**. firestore.rules beze změny, data beze změny (nová volba jen v `localStorage` zařízení `hk-money-lazy`). V betě Načíst novou verzi (cache `hokej-beta-v126`). 🔒 Vyžadovat verzi: ne. Test: kap. 28.
+
+**⚠️ SAHÁ NA PLATBY** (jen načítání a strážci, výpočty a zápisy pokladny beze změny)
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – manager, který je i trenér, nemusí při každém spuštění číst celou pokladnu, ale chce přehled)
+- `domain/money-load.js`: volba `lazyMoney` (výchozí: správce pokladny, který je i trenér = až při otevření; samotný pokladník hned), stav `moneyReady`, kolekce na vyžádání `LAZY_COLLS` = `charges` a `cash` (rostou s časem). Malé peněžní kolekce (`evcash`, `plpay`, `staffpay`, `requests`, `budget`) se čtou hned – úpravy hráčky / člena týmu tak nikdy nezapíší platební pole naslepo.
+- `data/storage.js`: `HK.money` (`init`, `ok`, `load`, `st`, `lazy`, `setLazy`); `src/main.js` `moneyFull` spustí poslech předpisů a pohybů a splní slib po prvním snímku obou.
+- Načtení: Team → 💰 režimy pokladny a Moje platby samy, detail události a 🏠 Domů tlačítkem **⬇ Načíst pokladnu**, 🕘 historie placení před otevřením.
+- 🏠 Domů v úsporném režimu: 💰 Pokladna týmu = dlužníci po splatnosti z veřejného souhrnu `debtors` (⛓ blokováno) a ✋ otevřené žádosti; částky a varování cashflow až po načtení. Karta události ukazuje jen stav vyúčtování (bez počtů placení).
+- ⚙️ → 💾 Data → **💰 Pokladna při spuštění** (zaškrtávátko pro toto zařízení, stav načtení).
+
+**Strážci (předpisy ještě nejsou v zařízení)**
+- Automatické vyúčtování při uzavření zápasu se přeskočí (jako u trenéra bez pokladny) – vyúčtuje se v detailu události; pokladna se začne načítat.
+- Smazání události s vyúčtováním: nejdřív se načte pokladna (hláška „zkus za chvíli znovu“).
+- Záloha JSON, obnova ze zálohy, ⛓ Přepočítat dlužníky a úplné smazání (vývojář) nejdřív počkají na načtení pokladny.
+
+**Beze změny:** výpočty a zápisy pokladny, QR, pravidla, živý zápis, střely, góly, časomíra, trénink. Samotný pokladník (bez trenérských práv) načítá vše hned jako dosud.
+
+**Ověřeno:** `npm test` (495 testů, nově `tests/money-load.test.js`), `npm run smoke` bez chyb pro všechny role (manager v úsporném režimu: Domů s odlehčenou kartou, po otevření Team → 💰 plná pokladna).
+
+## v22.23 (31. 10. 2026) – Útokový test QR platby
+> **Nasazení – kanál 🧪 BETA:** commit „v22.23“ do větve **`beta`**. firestore.rules beze změny (v22.22 publikováno uživatelem 31. 10. 2026). Aplikace beze změny funkcí, jen nové číslo verze a cache `hokej-beta-v125`. 🔒 Vyžadovat verzi: ne.
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – ověřit, zda hráčky mohou v rámci aplikace obejít QR kód)
+- `tests/qr-attack.test.js`: model pravidel `settings/cash`, `members` a `charges` (stejné výrazy jako `firestore.rules`, synchronizační kontrola textu pravidel) a útoky rolí hráčka, hostující, trenér, hráčka-pokladník, manager; útoky na obsah QR (SPD): vložení `*ACC:` / `*AM:` přes zprávu a VS, cizí IBAN v poli `acc` předpisu nebo šablony, pozměněná číslice účtu.
+
+**Výsledek testu**
+- Hráčka i hostující: účet, návrh ani potvrzení nezmění, nedá si roli ani příznak pokladníka, předpis (částka, VS, účet) nezmění. ✅
+- Hráčka-pokladník: návrh účtu nepodá (jen manager), účet ani kód přímo nezmění, čekající návrh nepřepíše, potvrdí jen přesně návrh managera (jiný účet, starý kód, cizí autor = zamítnuto); druhého pokladníka smí přidat jen s rolí hracka a ten také nenavrhne. ✅
+- Obsah QR: zpráva i VS se čistí (hvězdička pryč, VS jen číslice), účet vždy z nastavení pokladny, neplatný účet do QR neprojde. ✅
+- **Známá mez (ne hráčky):** manager může přidat druhý vlastní Google účet s příznakem pokladníka a změnu potvrdit sám. Pravidla to neodliší – ochranou je audit, varování hráčkám po změně účtu a kód účtu.
+- Mimo aplikaci: hráčka si může upravit jen svůj vlastní prohlížeč (vlastní QR na vlastním zařízení), databázi ani ostatní tím neovlivní.
+
+**Beze změny:** aplikace, pravidla, QR, živý zápis, střely, góly, časomíra.
+
+**Ověřeno:** `npm test` (všechny testy zelené). Firestore emulátor v prostředí vývoje nejde stáhnout – test pravidel je modelový (hlídá shodu s textem pravidel).
+
+## v22.22 (31. 10. 2026) – Pravidla databáze: účet pokladny jen s kódem návrhu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.22“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – až po schválení; do té doby platí dosud publikovaná pravidla (kód účtu kontroluje jen aplikace, databáze ho zatím nevynucuje). 🔒 Vyžadovat verzi: ne. Test: kap. 27.
+
+**Změněno** (schváleno uživatelem 31. 10. 2026 – „pokud potřebujeme změnit pravidla pro větší bezpečnost, tak sem s tím“)
+- `firestore.rules`: návrh změny účtu musí nést **kód** ve tvaru `XXXX-XXXX` (nebo dvojice). Potvrzení změny účtu jiným správcem vyžaduje, aby byl návrh s kódem, a zapíše `ibanCode` shodný s kódem návrhu. Změna `iban` / `iban2` mimo potvrzený návrh je zamítnuta (jako dosud), `ibanCode` nejde změnit samostatně. Nový dokument nastavení pokladny začíná bez kódu.
+- Zápis potvrzení v aplikaci posílá `ibanCode` z návrhu. Návrh bez kódu (starší verze) se potvrdit nedá – aplikace to ohlásí a návrh je třeba zamítnout a poslat znovu.
+- `ACC_META` (domain/cash.js) a `ACC_KEYS` (data/backup.js) znají `ibanCode`, takže se při „Uložit nastavení“ i při obnově ze zálohy nezahodí.
+- Test `tests/account-code.test.js` hlídá, že regex kódu v pravidlech odpovídá tvaru z aplikace; `tests/rules-narrow.test.js` aktualizován na novou `pendByMe`.
+
+**Nasazení a mez pravidel:** pravidla sdílí stabilní i beta verze (stejná databáze). Stabilní `main` (v22.18.1) návrh změny účtu bez kódu neumí – do vydání v22.22 do `main` se změna účtu nedá navrhnout. Doporučený postup: vydat v22.22 PR `beta → main`, teprve pak publikovat pravidla; případně 🔒 Vyžadovat verzi nastavit na 22.22.
+
+**Beze změny:** samotný QR (SPD), částky, VS, zpráva, kontrola čísla účtu, varování po změně účtu, živý zápis, střely, góly, časomíra.
+
+**Známé meze:** pravidla ověří formát a shodu uložených hodnot, nikoli, zda kód odpovídá účtu (to umí jen výpočet na zařízení). Stále platí porovnání kódu z druhého zařízení nebo u trenéra.
+
+**Ověřeno:** `npm test` (všechny testy zelené po aktualizaci verzí), `npm run smoke` pro všechny role.
+
+## v22.21 (31. 10. 2026) – Kontrolní kód účtu pro QR platby
+> **Nasazení – kanál 🧪 BETA:** commit „v22.21“ do větve **`beta`**. firestore.rules beze změny (pole `code` v `settings/cash.ibanPend` pravidla nekontrolují). V betě Načíst novou verzi (cache `hokej-beta-v123`). 🔒 Vyžadovat verzi: ne. Test: kap. 26.
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – nikdo nesmí v aplikaci podsunout jiný účet, a přitom zachovat pohodlí pro hráčky)
+- `domain/bank-account.js`: **kód účtu** `accCode` (8 hex číslic XXXX-XXXX z dvojí hashe FNV-1a nad IBAN), `pairCode` (hlavní + provozní) a `codeMatch` (porovnání přepsaného kódu, ignoruje mezery a pomlčky).
+- ⚙️ Pokladna → 🏦 Účty: u každého účtu je kód; návrh změny ukáže **Kód návrhu** a navrhovatel ho uloží spolu s účty (`ibanPend.code`).
+- **Potvrzení změny účtu** (4 oči + kód): potvrzující přepíše kód, který mu navrhovatel přečetl z jeho obrazovky. Aplikace ho porovná s účty uloženými v návrhu i s kódem navrhovatele; nesouhlas = změna se nepotvrdí. Pokud kód v návrhu nesedí s účty, karta návrhu to ukáže červeně a návrh se musí zamítnout.
+- 📱 Zaplatit (QR): u účtu je řádek **Kód účtu** (shodný s kódem u trenéra – porovnání z jiného zařízení). Varování po změně účtu ukáže nový účet i kód.
+- ⬇️ Uložit QR: PNG má řádek **Kód účtu** pod účtem (starý obrázek po změně účtu se pozná podle kódu).
+- Nápověda: u bezpečnosti platby doplněno porovnání kódu.
+
+**Beze změny:** samotný QR (SPD), částky, VS, zpráva, kontrola čísla účtu (mod 11 a 97), varování po změně účtu, pravidla databáze, živý zápis, střely, góly, časomíra.
+
+**Známé meze:** kód nechrání proti úplně upravené aplikaci (ta může ukázat i správný kód pro jiný účet); proto kód porovnávej z druhého zařízení nebo u trenéra. Kontrolu v databázi (rozhodnout, že `iban` smí změnit jen potvrzený návrh se shodným kódem) lze zpřísnit jen změnou `firestore.rules` – po schválení.
+
+**Ověřeno:** `npm test` (474 testů, nově `tests/account-code.test.js`), `npm run smoke` bez chyb pro všechny role.
+
 ## v22.20 (30. 10. 2026) – Příprava na trénink pro hráčky (popis, video, PDF)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.20“ do větve **`beta`**. firestore.rules beze změny (kopie `dx` je uvnitř linek plánu `trplan`, pravidla kontrolují jen horní pole). V betě Načíst novou verzi (cache `hokej-beta-v122`). 🔒 Vyžadovat verzi: ne. Test: kap. 25.
 

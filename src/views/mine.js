@@ -8,12 +8,13 @@ import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, fd, td, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {accCheck, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
+import {accCheck, accCode, ibanFmt, ibanToCz, markSeen, recentChange, seenAccs} from "../domain/bank-account.js";
 import {attByMonth, attEvents, attSummary, pastEvents, seasonOf} from "../domain/attendance.js";
 import {GRP, accIban, accLabel, accName, accOf, cashCfg, chargeItem, chargeMsg, debtOf, fmtDue, grpAt, kc, multiMsg, overdue, payerName, personVs, qrMsg, r2, restOf, spdPay, twoAcc, vsHash, ymLabel, ymNow} from "../domain/cash.js";
 import {myMonths} from "../domain/economy.js";
 import {REQ_COLL, REQ_ST, openReq, payReqDoc, payReqError, reqYms, reqsOf} from "../domain/requests.js";
 import qrcode from "../lib/qrcode.js";
+import {moneyWaitHtml} from "./payments.js";
 import {qrFileName, saveQrImage} from "./qr-image.js";
 import {bindReq, reqBanner, reqLine} from "./request-list.js";
 import {render} from "./shell.js";
@@ -84,7 +85,9 @@ function qrHtml() {
   let body;
   // Údaje pro ruční platbu: číslo účtu v českém tvaru i IBAN, zpráva přesně jako v QR
   const msg = qrMsg(p.msg), cz = ibanToCz(p.iban);
-  const facts = `<div style="text-align:center;margin-top:6px">${accLine}Účet: <b style="font-size:18px">${esc(cz || p.iban)}</b><br><span class="mu">IBAN ${esc(ibanFmt(p.iban))}</span><br>Částka: <b>${kc(p.amt)}</b><br>Variabilní symbol: <b>${esc(p.vs)}</b><br>Zpráva pro příjemce: <b>${esc(msg)}</b>${cfg.inst ? "<br><span class=\"mu\">Okamžitá platba (pokud ji tvoje banka podporuje)</span>" : ""}</div>`;
+  // Kontrolní kód účtu (v22.21): stejný kód je v nastavení pokladny – porovnáním z jiného zařízení se ověří, že QR ukazuje na správný účet
+  const code = accCode(p.iban);
+  const facts = `<div style="text-align:center;margin-top:6px">${accLine}Účet: <b style="font-size:18px">${esc(cz || p.iban)}</b><br><span class="mu">IBAN ${esc(ibanFmt(p.iban))}</span><br>Kód účtu: <b>${esc(code)}</b> <span class="mu">(shodný s kódem u trenéra)</span><br>Částka: <b>${kc(p.amt)}</b><br>Variabilní symbol: <b>${esc(p.vs)}</b><br>Zpráva pro příjemce: <b>${esc(msg)}</b>${cfg.inst ? "<br><span class=\"mu\">Okamžitá platba (pokud ji tvoje banka podporuje)</span>" : ""}</div>`;
   const since = cfg.ibanAt ? `<div class="mu" style="text-align:center;margin-top:6px">Účet platí od ${esc(fDay(cfg.ibanAt))} (navrhl ${esc(cfg.ibanBy || "?")}, potvrdil ${esc(cfg.ibanOk || "?")}).</div>` : "";
   const warn = `<div class="cd" style="border-color:var(--wa);margin-top:10px;padding:10px;font-size:13px">⚠️ ${WARN_TXT}</div>`;
   const seen = seenAccs(), fresh = recentChange(cfg.ibanAt), gate = !seen.includes(p.iban) && (seen.length > 0 || fresh);
@@ -92,7 +95,7 @@ function qrHtml() {
   else if (!accCheck(p.iban)) body = '<div class="cd" style="border-color:var(--no);color:var(--no)"><b>⛔ Účet týmu neprošel kontrolou čísla účtu.</b><div>QR se z bezpečnostních důvodů nevytvoří. Neplať a ozvi se trenérovi.</div></div>';
   else if (gate) {
     // Nový nebo nedávno změněný účet: nejdřív varování, QR až po potvrzení hráčky (zapamatuje se v zařízení)
-    body = `<div class="cd" style="border-color:var(--no)"><b style="color:var(--no)">⚠️ ${seen.length ? "Účet týmu se od tvé minulé platby změnil." : "Účet týmu byl nedávno změněn."}</b><div style="margin-top:6px">Nový účet: <b style="font-size:18px">${esc(cz)}</b></div><div class="mu" style="margin-top:6px">${cfg.ibanAt ? "Změna platí od " + esc(fDay(cfg.ibanAt)) + " (navrhl " + esc(cfg.ibanBy || "?") + ", potvrdil " + esc(cfg.ibanOk || "?") + "). " : ""}Než zaplatíš, ověř si číslo účtu přímo u trenéra (osobně nebo telefonem).</div><button class="p w" data-mkok style="margin-top:10px;min-height:48px">Ověřila jsem účet – zobrazit QR</button></div>${warn}`;
+    body = `<div class="cd" style="border-color:var(--no)"><b style="color:var(--no)">⚠️ ${seen.length ? "Účet týmu se od tvé minulé platby změnil." : "Účet týmu byl nedávno změněn."}</b><div style="margin-top:6px">Nový účet: <b style="font-size:18px">${esc(cz)}</b> · kód <b>${esc(code)}</b></div><div class="mu" style="margin-top:6px">${cfg.ibanAt ? "Změna platí od " + esc(fDay(cfg.ibanAt)) + " (navrhl " + esc(cfg.ibanBy || "?") + ", potvrdil " + esc(cfg.ibanOk || "?") + "). " : ""}Než zaplatíš, ověř si číslo účtu přímo u trenéra (osobně nebo telefonem).</div><button class="p w" data-mkok style="margin-top:10px;min-height:48px">Ověřila jsem účet – zobrazit QR</button></div>${warn}`;
   } else {
     try {
       markSeen(p.iban);
@@ -101,7 +104,7 @@ function qrHtml() {
       q.addData(spdPay(p.iban, p.amt, p.vs, p.msg, cfg.inst), "Alphanumeric");
       q.make();
       // Údaje pro obrázek – stejné hodnoty jako v okně, zpráva přesně jako v QR
-      shown = {q, name: qrFileName(p.vs, cz), info: {title: p.title, accName: accLabel(cfg, p.acc), cz, iban: p.iban, ibanFmt: ibanFmt(p.iban), amtTxt: kc(p.amt), vs: p.vs, msg, inst: !!cfg.inst, created: new Date().toLocaleDateString("cs-CZ")}};
+      shown = {q, name: qrFileName(p.vs, cz), info: {title: p.title, accName: accLabel(cfg, p.acc), cz, iban: p.iban, ibanFmt: ibanFmt(p.iban), code, amtTxt: kc(p.amt), vs: p.vs, msg, inst: !!cfg.inst, created: new Date().toLocaleDateString("cs-CZ")}};
       body = `<div style="background:#fff;padding:12px;border-radius:12px;width:min(300px,100%);margin:0 auto">${q.createSvgTag({cellSize: 4, margin: 4, scalable: true})}</div>
 <button class="s w" id="mksave" style="margin-top:10px;min-height:48px">⬇️ Uložit QR</button>
 <div class="mu" style="margin-top:4px;text-align:center">Platíš z tohoto telefonu? Ulož QR do Galerie a v bankovní aplikaci ho načti z obrázku.</div>
@@ -196,6 +199,8 @@ function monthsHtml(items) {
 export function mineView(a) {
   const my = ids();
   if (!my.length) { a.innerHTML = '<div class="msg">Tvůj účet není propojen s hráčkou ani s členem týmu. Požádej trenéra (⚙️ → Členové týmu).</div>'; return; }
+  // 📉 Správce pokladny v úsporném režimu: Moje platby načtou pokladnu (po načtení se aplikace překreslí sama)
+  if (!HK.money.ok()) { HK.money.load(); a.innerHTML = moneyWaitHtml(false); return; }
   const cfg = cashCfg(S.cc), two = twoAcc(cfg);
   const d = debtOf(S.ch, my);
   const err = S.payErr ? `<div class="cd" style="color:var(--no)">Platby se nepodařilo načíst (${esc(S.payErr)}).</div>` : "";

@@ -112,6 +112,8 @@ function close() {
 // Otevření okna pro hráčku pid (jen správce pokladny); výchozí rozsah = minulý měsíc, způsob = opak toho, co tehdy platil
 export function openPayHist(pid) {
   if (!HK.can("money") || !pl(pid)) return;
+  // 📉 Historie placení počítá s předpisy: nejdřív načíst pokladnu, pak okno otevřít
+  if (!HK.money.ok()) { toast("⏳ Načítám pokladnu…"); HK.money.load().then(() => openPayHist(pid)); return; }
   const prev = ymAdd(ymNow(), -1);
   H = {pid, from: prev, to: prev, grp: grpAt(pl(pid), prev) === "single" ? "monthly" : "single", err: "", done: null, h: null, gone: new Set()};
   let e = el();

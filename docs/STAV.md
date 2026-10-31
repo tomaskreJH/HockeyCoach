@@ -3,10 +3,10 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální:** v22.20 (30. 10. 2026, **jen v betě**) – hráčky vidí u cvičení v plánu popis, pomůcky, video a PDF; trenér 📤 Zpřístupnit hráčkám u starších plánů (cache `hokej-v122` / `hokej-beta-v122`). v22.19.1 – oprava: ⏹ Konec tréninku i po doběhnutí plánu (cache `hokej-v121` / `hokej-beta-v121`). v22.19: 🏃 ✏️ Opravit pořadí uložené štafety (i zpětně; jména se prohodí, časy úseků zůstanou na místě). Cache `hokej-v120` / `hokej-beta-v120`. Předtím v22.18.2 – opravy z kontroly kódu v22.18.1: úhrady předpisů transakcí (žádná dvojí úhrada ze dvou zařízení, úhrady jen online), zápas nejde uzavřít s běžícími hodinami, testy v CI před nasazením. Cache `hokej-v119` / `hokej-beta-v119`.
-- **Další číslo:** v22.21 (cache `hokej-v123`), opravy v22.20.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
-- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.18.1** (PR #2, 28. 10. 2026). V betě: **v22.20**. Po každém vydání (PR) upravit tento řádek.
-- **Pravidla databáze:** v22.11 publikovat (blok `settings/beta`).
+- **Aktuální:** v22.25 (31. 10. 2026, **jen v betě**) – 🟢 kdo je online a poslední aktivita (kolekce `seen`, jen manager; **firestore.rules publikovat ručně**). Cache `hokej-v127` / `hokej-beta-v127`. Předtím v22.24 – 📉 pokladna na vyžádání (manager-trenér čte `charges` a `cash` až při otevření pokladny; volba v ⚙️ → 💾 Data). Cache `hokej-v126` / `hokej-beta-v126`. Předtím v22.23 – útokový test QR platby `tests/qr-attack.test.js` (model pravidel + obsah SPD), bez změny aplikace a pravidel. Cache `hokej-v125` / `hokej-beta-v125`. Předtím v22.22 – pravidla databáze pro účty: potvrzení změny účtu jen s kódem návrhu (`ibanCode`); `firestore.rules` publikováno 31. 10. 2026. Cache `hokej-v124` / `hokej-beta-v124`. Předtím v22.21 – kontrolní kód účtu (QR, PNG, nastavení pokladny; potvrzení návrhu přepsáním kódu). Cache `hokej-v123` / `hokej-beta-v123`. Předtím v22.20 (30. 10. 2026) – hráčky vidí u cvičení v plánu popis, pomůcky, video a PDF; trenér 📤 Zpřístupnit hráčkám u starších plánů (cache `hokej-v122` / `hokej-beta-v122`). v22.19.1 – oprava: ⏹ Konec tréninku i po doběhnutí plánu (cache `hokej-v121` / `hokej-beta-v121`). v22.19: 🏃 ✏️ Opravit pořadí uložené štafety (i zpětně; jména se prohodí, časy úseků zůstanou na místě). Cache `hokej-v120` / `hokej-beta-v120`. Předtím v22.18.2 – opravy z kontroly kódu v22.18.1: úhrady předpisů transakcí (žádná dvojí úhrada ze dvou zařízení, úhrady jen online), zápas nejde uzavřít s běžícími hodinami, testy v CI před nasazením. Cache `hokej-v119` / `hokej-beta-v119`.
+- **Další číslo:** v22.26 (cache `hokej-v128`), opravy v22.25.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Ve stabilní: **v22.18.1** (PR #2, 28. 10. 2026). V betě: **v22.25**. Po každém vydání (PR) upravit tento řádek.
+- **Pravidla databáze:** v22.25 publikovat (blok `seen`).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a v22.11 nevyžadují. V betě se nenastavuje.
 
 ## K testu
@@ -32,6 +32,8 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - **v22.18.2 (beta) – opravy z kontroly kódu (kap. 23)**: úhrada ze dvou zařízení, úhrada bez připojení, uzavření zápasu s běžícími hodinami, běh testů v Actions.
 - **v22.19 (beta) – 🏃 oprava pořadí štafety (kap. 24)**: starší uložený běh (před v22.19) i nový.
 - **v22.20 (beta) – příprava na trénink pro hráčky (kap. 25)**.
+- **v22.24 (beta) – 📉 pokladna na vyžádání (kap. 28)**.
+- **v22.25 (beta) – 🟢 kdo je online (kap. 29)** – po publikaci pravidel.
 - Kontrola kódu v22.18.1 – otevřené body k rozhodnutí: pravidla `settings/beta` (čtení jen manager / vývojář), `budgetKeep` (neměnné starší revize rozpočtu), `treval` u hráček vynutit pravidly; ověřit nasazená pravidla v konzoli a zvážit App Check.
 
 ## Další krok

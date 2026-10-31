@@ -50,6 +50,7 @@ export function drawQrCanvas(q, info) {
   const rows = [
     ["", info.title, true],
     ["Účet: ", info.cz || info.iban, true],
+    ["Kód účtu: ", info.code || "–", true],   // kontrolní kód (v22.21) – porovnat s nastavením pokladny
     ["Příjemce: ", info.accName, false],
     ["IBAN: ", info.ibanFmt || info.iban, false],
     ["Částka: ", info.amtTxt, true],

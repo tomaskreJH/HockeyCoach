@@ -11,6 +11,7 @@ import {betaDocOf, testersOf} from "../domain/beta.js";
 import {ATT_D_VER, attDateFix} from "../domain/data-window.js";
 import {isGuest} from "../domain/guests.js";
 import {JOIN_COLL, openJoins} from "../domain/join-requests.js";
+import {SEEN_COLL} from "../domain/presence.js";
 import {ROLE_KEYS, ROLE_VER, keepsManager, permDoc, roleLabel} from "../domain/permissions.js";
 import {signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {collection as fsCol, deleteDoc, doc as fsDoc, getDocs, setDoc} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -48,6 +49,12 @@ export function cfgApi(C) {
   const joinCount = () => openJoins(Object.entries(data[JOIN_COLL]).map(([id, d]) => ({id, ...d}))).length;
   // Účty members seřazené podle e-mailu {email, role, rv, pid, tid, cash}; poslední seznam se pamatuje (ochrana posledního managera)
   async function memberRows() { return rowsOf(await memberDocs()); }
+  // 🟢 Aktivita členů {e-mail: {at, v, ch}} – jen manager (pravidla jinak čtení odmítnou); chyba = prázdné (nepublikovaná pravidla)
+  async function seenMap() {
+    if (!can("admin")) return {};
+    try { const s = await getDocs(fsCol(C.fs(), SEEN_COLL)); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
+    catch (e) { console.warn("Aktivita členů se nenačetla:", (e && (e.code || e.message)) || e); return null; }
+  }
   // Všechny dokumenty members jako {e-mail: data}
   async function memberDocs() { const s = await getDocs(fsCol(C.fs(), "members")); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
   function rowsOf(docs) {
@@ -142,5 +149,5 @@ export function cfgApi(C) {
     catch (e) { say("Nepovedlo se: " + errTxt(e) + " – je publikováno firestore.rules?"); return false; }
   }
   return {acct, pvInfo, runPreview, logout, PV_ROLES, memberRoles, needsPid, cashOk, staffOk, pidRoleOf, pidRoleErr, playerList, staffList,
-    joinCount, memberRows, memberInfo, canRemove, removeMember, saveMember, backupCounts, gateInfo, raiseMinVer, permState, savePerms, betaInfo, saveTesters};
+    joinCount, memberRows, seenMap, memberInfo, canRemove, removeMember, saveMember, backupCounts, gateInfo, raiseMinVer, permState, savePerms, betaInfo, saveTesters};
 }

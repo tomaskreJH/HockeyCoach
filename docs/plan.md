@@ -13,7 +13,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
 | ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | ~~v22.11~~ | hotovo | 🧪 beta kanál: větev `beta` → `…/beta/` pro vybrané testery, vydání pro všechny PR `beta → main` |
-| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); další přehlednější živý trénink, úprava proběhlého tréninku, 5 Zápas |
+| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); v22.21 kód účtu u QR platby; další přehlednější živý trénink, úprava proběhlého tréninku, 5 Zápas |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
@@ -26,6 +26,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 - **D2 (v22.9, hotovo – původní návrh):** docházka a události se poslouchají jen v okně (např. 60 dní zpět + budoucí); starší se načtou jednorázově až v 📊 Docházce, Minulých, Statistikách a pokladně. Docházka dostane pole `d` (datum události) – zápis v `attDoc`, převod starých dat tlačítkem v ⚙️ → 💾 Data, pravidla rozšířit (`d` v `hasOnly`). ⚠️ Výpočty pokladny, ⚖️ Tarify a Moje platby čtou docházku starších událostí – musí dostat starší data před výpočtem. Řeší i otevřenou drobnost 8.
 - **D2 výsledek:** okno realizační tým 45 dní, hráčka 14 dní; archiv z paměti zařízení, pás 60 dní ověřován (události denně, docházka týdně), ↻ ručně v ⚙️. Docházka v okně až po 🔒 Vyžadovat verzi 22.9.
 - **v22.13:** okno hráčky 8 dní zpět a 15 dopředu, vzdálenější budoucnost až ⬇ Načíst další (`farListen`); 🕘 historie přihlášek se čte až po klepnutí na tlačítko.
+- **v22.24:** 📉 pokladna na vyžádání – správce pokladny, který je i trenér, čte `charges` a `cash` až při otevření pokladny (volba zařízení v ⚙️ → 💾 Data); přehled v Domů z `debtors` a `requests`. v22.25: 🟢 přehled online / poslední aktivita pro managera (kolekce `seen`, čte se jen při otevření seznamu členů).
 - **D3 (později, podle 📉):** uzavřené měsíce docházky zabalit do jednoho dokumentu `attm/{RRRR-MM}` (1 čtení místo stovek); totéž pro `charges` a `cash` uzavřených sezón; okno i pro `attnote`, `absence`, `matches`.
 - **Pojistka:** tarif Blaze má stejný limit zdarma a platí se jen čtení nad něj (řádově haléře za tisíce čtení); hlídání rozpočtu v Google Cloud upozorní, ale neomezí. Bez Blaze po překročení limitu databáze do rána (~8–9 h) nečte.
 

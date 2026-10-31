@@ -239,6 +239,35 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 29. v22.25 (beta) – 🟢 Kdo je online (po publikaci pravidel)
+- [ ] 29.1 Pravidla publikovaná; v betě je v záhlaví **v22.25**.
+- [ ] 29.2 Manager: ⚙️ → 👥 Tým a členové → nahoře „🟢 Teď online: 1“ a u vlastního účtu 🟢 online · v22.25 🧪.
+- [ ] 29.3 Druhý účet (hráčka) spustí aplikaci → ↻ → u ní 🟢 online a její verze (stabilní bez 🧪, starší oranžově).
+- [ ] 29.4 Po 20 min bez aplikace u ní „před 20 min“, druhý den „včera …“.
+- [ ] 29.5 Pokladník (bez managera) vidí seznam členů bez aktivity; 👁 náhled role nezapisuje aktivitu.
+
+## 28. v22.24 (beta) – 📉 Pokladna na vyžádání
+- [ ] 28.1 V betě je v záhlaví **v22.24**; ⚙️ → 💾 Data → 💰 Pokladna při spuštění je u managera zaškrtnuté, stav „zatím nenačteno“.
+- [ ] 28.2 🏠 Domů: 💰 Pokladna týmu ukazuje počet dlužníků a žádostí bez částek a ⬇ Načíst pokladnu; po klepnutí plný přehled (nezaplaceno, po splatnosti, cashflow).
+- [ ] 28.3 Nové spuštění → Team → 💰 Platby: krátce „⏳ Načítám pokladnu…“, pak běžné Platby; ostatní režimy pokladny fungují.
+- [ ] 28.4 Nové spuštění → detail vyúčtované události: blok 💰 Pokladna s ⬇ Načíst pokladnu; karta události ukazuje „💰 vyúčtováno“.
+- [ ] 28.5 ⚙️ → 📉 Čtení databáze před a po načtení pokladny: před načtením chybí předpisy a pohyby pokladny (menší číslo).
+- [ ] 28.6 Odškrtnout volbu → pokladna se načte hned a při dalším spuštění také. Účet pokladníka (bez trenéra) načítá pokladnu hned jako dosud.
+- [ ] 28.7 Stáhnout zálohu bez otevřené pokladny → záloha obsahuje předpisy (charges) a pohyby (cash).
+
+## 27. v22.22 (beta) – Pravidla účtů s kódem (po publikaci pravidel)
+- [ ] 27.1 V betě je v záhlaví **v22.22**; pravidla publikovaná ručně v Firebase Console (Rules → Publish).
+- [ ] 27.2 Trenér navrhne změnu účtu → potvrzující přepíše kód → účet se změní, v nastavení je u účtu kód z potvrzení.
+- [ ] 27.3 Starý návrh (bez kódu, z doby před v22.21) → potvrzení hlásí „vznikl ve starší verzi“, lze ho zamítnout a navrhnout znovu.
+- [ ] 27.4 Pokus o přímou změnu účtu mimo návrh (např. ve staré verzi) → databáze odmítne zápis (chyba oprávnění).
+
+## 26. v22.21 (beta) – Kontrolní kód účtu
+- [ ] 26.1 V betě je v záhlaví **v22.21**.
+- [ ] 26.2 ⚙️ Pokladna → 🏦 Účty pro QR platby: u hlavního účtu je vedle čísla „kód XXXX-XXXX“; kód je stejný po každém otevření.
+- [ ] 26.3 Trenér navrhne změnu účtu → u návrhu se ukáže „Kód návrhu“ (oba účty). Druhý správce potvrdí: prompt chce přepsat kód; špatný kód = „Kód nesouhlasí“, účet se nezmění.
+- [ ] 26.4 Hráčka: 📱 Zaplatit (QR) → řádek „Kód účtu“ shodný s kódem v nastavení pokladny; ⬇️ Uložit QR → PNG má řádek „Kód účtu“.
+- [ ] 26.5 Hráčka po změně účtu → varování ukáže nový účet i kód; po „Ověřila jsem účet“ QR s kódem.
+
 ## 25. v22.20 (beta) – Příprava na trénink pro hráčky
 - [ ] 25.1 V betě je v záhlaví **v22.20**.
 - [ ] 25.2 Trenér: starší plán (uložený před v22.20) → v kartě 👀 „Hráčky zatím nevidí…“ → **📤 Zpřístupnit hráčkám** → hláška, upozornění zmizí, plán beze změny.

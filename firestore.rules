@@ -60,14 +60,20 @@ service cloud.firestore {
     function keepOut(ks) { return !request.resource.data.diff(resource.data).addedKeys().hasAny(ks) && !request.resource.data.diff(resource.data).changedKeys().hasAny(ks); }
 
     // ===== Účty týmu pro QR platby: princip čtyř očí =====
-    // iban / iban2 = platné účty, ibanBy = kdo změnu navrhl, ibanOk = kdo ji potvrdil, ibanAt = kdy, ibanPend = čekající návrh {iban, iban2, by, at}.
+    // iban / iban2 = platné účty, ibanBy = kdo změnu navrhl, ibanOk = kdo ji potvrdil, ibanAt = kdy, ibanCode = kód potvrzených účtů,
+    // ibanPend = čekající návrh {iban, iban2, code, by, at}.
     // Návrh smí podat jen manager (isMgr, pod svým e-mailem), potvrdit jen JINÝ správce pokladny a jen přesně navržené účty.
     function sNew(k) { return request.resource.data.get(k, ''); }
     function sOld(k) { return resource.data.get(k, ''); }
     function pendNew() { return request.resource.data.get('ibanPend', null); }
     function pendOld() { return resource.data.get('ibanPend', null); }
-    function accSame() { return sNew('iban') == sOld('iban') && sNew('iban2') == sOld('iban2') && sNew('ibanBy') == sOld('ibanBy') && sNew('ibanOk') == sOld('ibanOk') && sNew('ibanAt') == sOld('ibanAt'); }
-    function pendByMe() { return pendNew() != null && isMgr() && pendNew().by == mail(); }
+    // Kód účtu (v22.22): XXXX-XXXX nebo dvojice oddělená mezerou (hex). Navrhovatel ho spočítá z účtu na svém zařízení,
+    // potvrzující ho přepíše a aplikace ho porovná s účty z návrhu; pravidla hlídají jen formát a shodu uložených hodnot.
+    function codeOk(c) { return c is string && c.matches('^[0-9A-F]{4}-[0-9A-F]{4}( [0-9A-F]{4}-[0-9A-F]{4})?$'); }
+    // ibanCode = kód potvrzených účtů (zapsaný při potvrzení z kódu návrhu); mění se jen spolu s účty
+    function accSame() { return sNew('iban') == sOld('iban') && sNew('iban2') == sOld('iban2') && sNew('ibanBy') == sOld('ibanBy') && sNew('ibanOk') == sOld('ibanOk') && sNew('ibanAt') == sOld('ibanAt') && sNew('ibanCode') == sOld('ibanCode'); }
+    // Návrh smí podat jen manager a musí nést kód účtů ve tvaru kódu
+    function pendByMe() { return pendNew() != null && isMgr() && pendNew().by == mail() && codeOk(pendNew().get('code', '')); }
     function cashSettingsUpdate() {
       return isCash() && (
         (accSame() && pendNew() == pendOld())                     // běžná změna nastavení (účty beze změny)
@@ -75,12 +81,14 @@ service cloud.firestore {
         || (accSame() && pendByMe())                              // nový návrh – jen manager
         || (pendOld() != null && pendNew() == null                // potvrzení jiným správcem přesně podle návrhu
             && pendOld().by != mail()
+            && codeOk(pendOld().get('code', ''))                  // návrh musí nést kód (starý návrh bez kódu se jen zamítne)
             && sNew('iban') == pendOld().get('iban', '') && sNew('iban2') == pendOld().get('iban2', '')
-            && sNew('ibanBy') == pendOld().by && sNew('ibanOk') == mail()));
+            && sNew('ibanBy') == pendOld().by && sNew('ibanOk') == mail()
+            && sNew('ibanCode') == pendOld().get('code', '')));
     }
     // Nový dokument nastavení pokladny: bez účtů, nejvýš s návrhem managera
     function cashSettingsCreate() {
-      return isCash() && sNew('iban') == '' && sNew('iban2') == '' && sNew('ibanBy') == '' && sNew('ibanOk') == '' && sNew('ibanAt') == ''
+      return isCash() && sNew('iban') == '' && sNew('iban2') == '' && sNew('ibanBy') == '' && sNew('ibanOk') == '' && sNew('ibanAt') == '' && sNew('ibanCode') == ''
         && (pendNew() == null || pendByMe());
     }
 
@@ -448,6 +456,16 @@ service cloud.firestore {
     match /audit/{id} {
       allow read: if isCash();
       allow create: if isCash();
+    }
+    // ===== 🟢 Aktivita účtu: seen/{e-mail} = {at, v, ch} =====
+    // Zapisuje jen vlastník (dokument podle e-mailu účtu, člen týmu i hostující), čas = čas serveru, verze a kanál; čte a maže jen manager.
+    function seenOk(email, d) {
+      return email == mail() && d.keys().hasOnly(['at', 'v', 'ch']) && d.at == request.time
+        && d.v is string && d.v.size() <= 12 && d.ch in ['s', 'b'];
+    }
+    match /seen/{email} {
+      allow read, delete: if isMgr();
+      allow create, update: if isMember() && seenOk(email, request.resource.data);
     }
     // Ostatní kolekce (i neznámé) pravidla nepovolují – kdo je nemá výslovně uvedené výše, nečte ani nezapisuje.
   }

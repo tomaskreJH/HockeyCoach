@@ -13,10 +13,12 @@ import {collection as fsCol, getDocs} from "https://www.gstatic.com/firebasejs/1
 // ===== Hlavní logika =====
 // C = kontext ze storage.js (data, first, kolekce, strážci zápisu, commitOps, přepočet dlužníků). Vrací funkce pro HK.
 export function backupApi(C) {
-  const {data, first, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, OLD_MSG, RO_MSG, can, isCash, ro, outdated, say, errTxt, stamp, commitOps, plMerged, rebuildDebtors} = C;
+  const {data, first, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, OLD_MSG, RO_MSG, can, isCash, ro, outdated, say, errTxt, stamp, commitOps, plMerged, rebuildDebtors, moneyLoad} = C;
   // Záloha obsahuje jen kolekce, které se v tomto zařízení načetly (asistent tak nezálohuje prázdné předpisy, které by „Nahradit vším“ smazalo);
   // soukromé kolekce attnote, staffpay a plpay jsou v ní, pokud je role smí číst (manager všechny)
   async function exportJSON() {
+    // 📉 Pokladna na vyžádání: záloha musí mít všechny předpisy a pohyby pokladny
+    if (can("money")) await moneyLoad();
     const out = {};
     // Audit se v zařízení čte jen po částech (záznamy otevřené události) – do zálohy se níže načte celý
     COLL.forEach(c => { if (first[c] && c !== "audit") out[c] = data[c]; });
@@ -42,7 +44,7 @@ export function backupApi(C) {
   // 🧪 Beta testeři settings/beta stejně (mění je jen manager nebo vývojář v ⚙️ → 🧪 Beta testování).
   // Účty týmu v settings/cash (iban, iban2 a záznam o jejich změně) se ze zálohy neobnovují – zůstávají aktuální; měnit je jde jen
   // návrhem a potvrzením (vynucují pravidla databáze), jinak by obnova staré zálohy shodila celou dávku nebo podvrhla účet.
-  const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanPend"];
+  const ACC_KEYS = ["iban", "iban2", "ibanBy", "ibanOk", "ibanAt", "ibanCode", "ibanPend"];
   function keepAcc(d) { const o = clone(d), cur = data.settings.cash || {}; ACC_KEYS.forEach(k => { if (cur[k] != null) o[k] = clone(cur[k]); else delete o[k]; }); return o; }
   // Schválený rozpočet (budget/{sezóna}.approved) a úpravy po schválení (rev) zůstávají z databáze: pravidla nedovolí schválenou verzi
   // změnit ani smazat a úpravy zkrátit; obnova přepíše jen pole plánu. Schválený rozpočet se při „Nahradit vším“ nemaže.
@@ -55,6 +57,8 @@ export function backupApi(C) {
     if (!obj || obj.app !== "hokej-zapasy" || !obj.data) throw new Error("Soubor není záloha aplikace " + APP_NAME + ".");
     if (outdated()) throw new Error(OLD_MSG);
     if (ro()) throw new Error(RO_MSG);
+    // 📉 Pokladna na vyžádání: sloučení i nahrazení porovnává se všemi předpisy a pohyby pokladny v zařízení
+    if (can("money")) await moneyLoad();
     const {data: bk, dropped} = splitLegacy(obj.data);
     const ops = [];
     COLL.forEach(c => {

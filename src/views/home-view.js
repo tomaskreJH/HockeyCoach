@@ -15,12 +15,12 @@ import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {selfMember} from "../domain/event-helpers.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
 import {dayShort, missingAnswers, nearestOpen, reminderText} from "../domain/home-remind.js";
-import {DAYS_AHEAD, flowWarn, homeItems, liveMatch, myPay, nextMatch, teamPay, unanswered, upcomingEvents} from "../domain/home-summary.js";
+import {DAYS_AHEAD, flowWarn, homeItems, liveMatch, myPay, nextMatch, teamPay, teamPayLite, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
 import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, CSS as EV_CSS, isPl, sheetHtml} from "./event-core.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
-import {econData} from "./payments.js";
+import {bindMoneyWait, econData} from "./payments.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -58,7 +58,7 @@ async function shareText(text) {
 // Varování cashflow z uloženého rozpočtu běžící sezóny (jen správce pokladny); chyba výpočtu přehled nezastaví
 function flowOf() {
   const k = seasonKeyOf(td()), sv = (S.bd || []).find(x => x.id === k);
-  if (!sv) return null;
+  if (!sv || !HK.money.ok()) return null;                     // 📉 bez načtených předpisů a pohybů by odhad zůstatku nebyl pravdivý
   try { const b = normBudget(sv, k), cfg = cashCfg(S.cc); return flowWarn(cashflow(b, budgetPlan(b, cfg, S.ev), econData(), td(), cfg)); }
   catch (e) { console.warn("Cashflow pro přehled se nespočítal:", e); return null; }
 }
@@ -103,6 +103,15 @@ function teamHtml(t, f) {
 <div class="hmr" data-hpay><div>✋ Otevřené žádosti</div><b style="color:${t.reqs ? "var(--wa)" : "inherit"}">${t.reqs}</b></div>${w}</div>`;
 }
 
+// 📉 Pokladna ještě nenačtená: dlužníci z veřejného souhrnu (bez částek), otevřené žádosti a ⬇ Načíst pokladnu
+function teamLiteHtml(t) {
+  const n = t.debtors, w = n === 1 ? "dlužník" : n < 5 ? "dlužníci" : "dlužníků";
+  return `<div class="cd"><h2>💰 Pokladna týmu</h2>
+<div class="hmr" data-hpay><div>Po splatnosti${t.blocked ? ` <span class="mu">(⛓ ${t.blocked} blokováno)</span>` : ""}</div><b style="color:${n ? "var(--no)" : "var(--ok)"}">${n} ${w}</b></div>
+<div class="hmr" data-hpay><div>✋ Otevřené žádosti</div><b style="color:${t.reqs ? "var(--wa)" : "inherit"}">${t.reqs}</b></div>
+<div class="mu" style="margin:6px 0">Částky a cashflow po načtení pokladny (📉 úspora čtení).</div><button class="s w" data-mload>⬇ Načíst pokladnu</button></div>`;
+}
+
 // ===== Eventy =====
 // Odkazy z přehledu: detail události (Zpět vrátí do Domů), rychlé odpovědi, živý zápis, Moje platby, Team → Platby / Rozpočet
 function bind(a, L, M) {
@@ -140,10 +149,11 @@ export function homeView(a) {
   const card = e => { const x = byId.get(e.id); return x ? cardHtml(x, AT, P) : ""; };
   const tw = week.filter(e => e.type !== "match"), cards = tw.map(card).join(""), nextCard = nm ? card(nm) : "";
   const ids = [HK.pid(), HK.tid()].filter(Boolean), mp = ids.length ? myPay(S.ch, ids, now) : null;
-  const team = HK.can("money") ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : "";
+  const team = !HK.can("money") ? "" : HK.money.ok() ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : teamLiteHtml(teamPayLite(S.dt, S.rq, now));
   // ❔ Chybí odpověď jen pro sport (manager, trenér, asistent) – nejbližší událost s otevřeným přihlašováním
   const ne = HK.can("sport") ? nearestOpen(week) : null, M = ne ? {e: ne, miss: missingAnswers(S.pl, S.at, ne.id)} : null;
   a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextHtml(nextCard)}${weekHtml(cards, S.evp ? unanswered(tw) : 0)}${absCardHtml()}${team}</div></div>${sheetHtml()}${absModal()}`;
   bind(a, L, M);
   bindAbs(a);
+  bindMoneyWait(a);
 }

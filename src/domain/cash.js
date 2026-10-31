@@ -235,7 +235,7 @@ export function uniqVs(id, taken) {
   return String(n);
 }
 // Pole zabezpečení účtů z dokumentu settings/cash (jen existující)
-export const ACC_META = ["ibanBy", "ibanOk", "ibanAt", "ibanPend"];
+export const ACC_META = ["ibanBy", "ibanOk", "ibanAt", "ibanCode", "ibanPend"];
 export function accMeta(r) { const o = {}; ACC_META.forEach(k => { if (r && r[k] != null && r[k] !== "") o[k] = cl(r[k]); }); return o; }
 // QR platba v českém formátu SPD (zpráva jen ASCII bez znaku *)
 const asciiFull = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 .,\-]/g, "");
