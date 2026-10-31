@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.23 (31. 10. 2026) – Útokový test QR platby
+> **Nasazení – kanál 🧪 BETA:** commit „v22.23“ do větve **`beta`**. firestore.rules beze změny (v22.22 publikováno uživatelem 31. 10. 2026). Aplikace beze změny funkcí, jen nové číslo verze a cache `hokej-beta-v125`. 🔒 Vyžadovat verzi: ne.
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – ověřit, zda hráčky mohou v rámci aplikace obejít QR kód)
+- `tests/qr-attack.test.js`: model pravidel `settings/cash`, `members` a `charges` (stejné výrazy jako `firestore.rules`, synchronizační kontrola textu pravidel) a útoky rolí hráčka, hostující, trenér, hráčka-pokladník, manager; útoky na obsah QR (SPD): vložení `*ACC:` / `*AM:` přes zprávu a VS, cizí IBAN v poli `acc` předpisu nebo šablony, pozměněná číslice účtu.
+
+**Výsledek testu**
+- Hráčka i hostující: účet, návrh ani potvrzení nezmění, nedá si roli ani příznak pokladníka, předpis (částka, VS, účet) nezmění. ✅
+- Hráčka-pokladník: návrh účtu nepodá (jen manager), účet ani kód přímo nezmění, čekající návrh nepřepíše, potvrdí jen přesně návrh managera (jiný účet, starý kód, cizí autor = zamítnuto); druhého pokladníka smí přidat jen s rolí hracka a ten také nenavrhne. ✅
+- Obsah QR: zpráva i VS se čistí (hvězdička pryč, VS jen číslice), účet vždy z nastavení pokladny, neplatný účet do QR neprojde. ✅
+- **Známá mez (ne hráčky):** manager může přidat druhý vlastní Google účet s příznakem pokladníka a změnu potvrdit sám. Pravidla to neodliší – ochranou je audit, varování hráčkám po změně účtu a kód účtu.
+- Mimo aplikaci: hráčka si může upravit jen svůj vlastní prohlížeč (vlastní QR na vlastním zařízení), databázi ani ostatní tím neovlivní.
+
+**Beze změny:** aplikace, pravidla, QR, živý zápis, střely, góly, časomíra.
+
+**Ověřeno:** `npm test` (všechny testy zelené). Firestore emulátor v prostředí vývoje nejde stáhnout – test pravidel je modelový (hlídá shodu s textem pravidel).
+
 ## v22.22 (31. 10. 2026) – Pravidla databáze: účet pokladny jen s kódem návrhu
 > **Nasazení – kanál 🧪 BETA:** commit „v22.22“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – až po schválení; do té doby platí dosud publikovaná pravidla (kód účtu kontroluje jen aplikace, databáze ho zatím nevynucuje). 🔒 Vyžadovat verzi: ne. Test: kap. 27.
 
