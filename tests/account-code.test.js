@@ -32,3 +32,17 @@ test("codeMatch: shoda ignoruje mezery a pomlčky, přepis jiným kódem nebo pr
   assert.equal(codeMatch(want, ""), false);
   assert.equal(codeMatch("", ""), false);
 });
+
+// ===== Pravidla databáze (v22.22): formát kódu v firestore.rules musí odpovídat accCode / pairCode =====
+import {readFileSync} from "node:fs";
+const RULES = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
+test("firestore.rules: regex kódu odpovídá tvaru z aplikace a potvrzení vyžaduje shodu ibanCode s kódem návrhu", () => {
+  const m = RULES.match(/\.matches\('(\^\[0-9A-F\]\{4\}-\[0-9A-F\]\{4\}\( \[0-9A-F\]\{4\}-\[0-9A-F\]\{4\}\)\?\$)'\)/);
+  assert.ok(m, "regex kódu v pravidlech chybí");
+  const re = new RegExp(m[1].replace(/\\\\/g, "\\"));
+  assert.match(pairCode(A, B), re);
+  assert.match(pairCode(A, ""), re);
+  assert.doesNotMatch("1A2B3C4D", re);
+  assert.match(RULES, /sNew\('ibanCode'\) == pendOld\(\)\.get\('code', ''\)/);
+  assert.match(RULES, /codeOk\(pendOld\(\)\.get\('code', ''\)\)/);
+});

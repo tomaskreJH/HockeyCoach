@@ -65,7 +65,7 @@ test("pravidla: členové, žádosti o přijetí, brána verze, účty a mazán�
   assert.match(m, /allow create: if isMgr\(\) \|\| cashierMember/);
   assert.match(block("match /joinreq/{email}"), /allow update: if isMgr\(\) \|\|/);
   assert.match(RULES, /function appSettingsOk\(\) \{\s+return isMgr\(\)/);
-  assert.match(RULES, /function pendByMe\(\) \{ return pendNew\(\) != null && isMgr\(\) && pendNew\(\)\.by == mail\(\); \}/);
+  assert.match(RULES, /function pendByMe\(\) \{ return pendNew\(\) != null && isMgr\(\) && pendNew\(\)\.by == mail\(\) && codeOk\(pendNew\(\)\.get\('code', ''\)\); \}/);
   assert.match(block("match /budget/{id}"), /allow delete: if isMgr\(\) && !\('approved' in resource\.data\);/);
   const p = block("match /players/{id}"), t = block("match /staff/{id}");
   assert.match(p, /allow delete: if isRoster\(\);/);

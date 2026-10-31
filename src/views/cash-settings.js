@@ -83,11 +83,14 @@ function approve() {
   if (!accCheck(p.iban) || (p.iban2 && !accCheck(p.iban2))) return toast("Navržený účet neprošel kontrolou – zamítni ho");
   // Kontrola kódem: potvrzující přepíše kód, který mu navrhovatel přečetl z jeho obrazovky. Musí sedět na účty uložené v návrhu
   // (odhalí podvržený nebo přepsaný návrh) i na kód navrhovatele uložený v návrhu.
+  // Návrh bez kódu (vzniklý před v22.21) pravidla nepotvrdí – musí se zamítnout a navrhnout znovu
+  if (!p.code) return toast("Návrh nemá kód (vznikl ve starší verzi) – zamítni ho a navrhni znovu.");
   const want = pairCode(p.iban, p.iban2);
   const typed = prompt("Potvrzuješ nové účty týmu?\n\n" + pairTxt(p.iban, p.iban2) + "\n\nNavrhl: " + p.by + "\n\nPřečti si od navrhovatele kód návrhu a napiš ho sem (oba účty, např. 1A2B-3C4D 5E6F-7A8B):");
   if (typed === null) return;
-  if (!codeMatch(want, typed) || (p.code && !codeMatch(p.code, typed))) return toast("Kód nesouhlasí – návrh nepotvrzen. Zamítni ho a navrhni znovu.");
-  S.db.batch().merge("settings/cash", {iban: p.iban, iban2: p.iban2 || "", ibanBy: p.by, ibanOk: me(), ibanAt: new Date().toISOString(), ibanPend: "__del"})
+  if (!codeMatch(want, typed) || !codeMatch(p.code, typed)) return toast("Kód nesouhlasí – návrh nepotvrzen. Zamítni ho a navrhni znovu.");
+  // ibanCode = kód potvrzený z návrhu (pravidla vyžadují shodu s kódem v návrhu)
+  S.db.batch().merge("settings/cash", {iban: p.iban, iban2: p.iban2 || "", ibanBy: p.by, ibanOk: me(), ibanAt: new Date().toISOString(), ibanCode: p.code, ibanPend: "__del"})
     .set("audit/" + uid(), auditDoc("acc-ok", pairTxt(p.iban, p.iban2) + " (navrhl " + p.by + ")")).commit();
   toast("Změna účtů potvrzena");
 }

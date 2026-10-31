@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.22 (31. 10. 2026) – Pravidla databáze: účet pokladny jen s kódem návrhu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.22“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – až po schválení; do té doby platí dosud publikovaná pravidla (kód účtu kontroluje jen aplikace, databáze ho zatím nevynucuje). 🔒 Vyžadovat verzi: ne. Test: kap. 27.
+
+**Změněno** (schváleno uživatelem 31. 10. 2026 – „pokud potřebujeme změnit pravidla pro větší bezpečnost, tak sem s tím“)
+- `firestore.rules`: návrh změny účtu musí nést **kód** ve tvaru `XXXX-XXXX` (nebo dvojice). Potvrzení změny účtu jiným správcem vyžaduje, aby byl návrh s kódem, a zapíše `ibanCode` shodný s kódem návrhu. Změna `iban` / `iban2` mimo potvrzený návrh je zamítnuta (jako dosud), `ibanCode` nejde změnit samostatně. Nový dokument nastavení pokladny začíná bez kódu.
+- Zápis potvrzení v aplikaci posílá `ibanCode` z návrhu. Návrh bez kódu (starší verze) se potvrdit nedá – aplikace to ohlásí a návrh je třeba zamítnout a poslat znovu.
+- `ACC_META` (domain/cash.js) a `ACC_KEYS` (data/backup.js) znají `ibanCode`, takže se při „Uložit nastavení“ i při obnově ze zálohy nezahodí.
+- Test `tests/account-code.test.js` hlídá, že regex kódu v pravidlech odpovídá tvaru z aplikace; `tests/rules-narrow.test.js` aktualizován na novou `pendByMe`.
+
+**Nasazení a mez pravidel:** pravidla sdílí stabilní i beta verze (stejná databáze). Stabilní `main` (v22.18.1) návrh změny účtu bez kódu neumí – do vydání v22.22 do `main` se změna účtu nedá navrhnout. Doporučený postup: vydat v22.22 PR `beta → main`, teprve pak publikovat pravidla; případně 🔒 Vyžadovat verzi nastavit na 22.22.
+
+**Beze změny:** samotný QR (SPD), částky, VS, zpráva, kontrola čísla účtu, varování po změně účtu, živý zápis, střely, góly, časomíra.
+
+**Známé meze:** pravidla ověří formát a shodu uložených hodnot, nikoli, zda kód odpovídá účtu (to umí jen výpočet na zařízení). Stále platí porovnání kódu z druhého zařízení nebo u trenéra.
+
+**Ověřeno:** `npm test` (všechny testy zelené po aktualizaci verzí), `npm run smoke` pro všechny role.
+
 ## v22.21 (31. 10. 2026) – Kontrolní kód účtu pro QR platby
 > **Nasazení – kanál 🧪 BETA:** commit „v22.21“ do větve **`beta`**. firestore.rules beze změny (pole `code` v `settings/cash.ibanPend` pravidla nekontrolují). V betě Načíst novou verzi (cache `hokej-beta-v123`). 🔒 Vyžadovat verzi: ne. Test: kap. 26.
 

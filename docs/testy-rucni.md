@@ -239,6 +239,12 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 27. v22.22 (beta) – Pravidla účtů s kódem (po publikaci pravidel)
+- [ ] 27.1 V betě je v záhlaví **v22.22**; pravidla publikovaná ručně v Firebase Console (Rules → Publish).
+- [ ] 27.2 Trenér navrhne změnu účtu → potvrzující přepíše kód → účet se změní, v nastavení je u účtu kód z potvrzení.
+- [ ] 27.3 Starý návrh (bez kódu, z doby před v22.21) → potvrzení hlásí „vznikl ve starší verzi“, lze ho zamítnout a navrhnout znovu.
+- [ ] 27.4 Pokus o přímou změnu účtu mimo návrh (např. ve staré verzi) → databáze odmítne zápis (chyba oprávnění).
+
 ## 26. v22.21 (beta) – Kontrolní kód účtu
 - [ ] 26.1 V betě je v záhlaví **v22.21**.
 - [ ] 26.2 ⚙️ Pokladna → 🏦 Účty pro QR platby: u hlavního účtu je vedle čísla „kód XXXX-XXXX“; kód je stejný po každém otevření.
