@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.28 (1. 11. 2026) – ⏱ Přehlednější živý trénink
+> **Nasazení – kanál 🧪 BETA:** commit „v22.28“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v130`). 🔒 Vyžadovat verzi: ne. Test: kap. 31 (nejlépe na ledě).
+
+**Změněno** (K2 – dlouho odkládané; na ledě minimum ovládání, na první pohled co běží, kolik zbývá, co bude dál a kdo je ve které skupině)
+- Obrazovka ⏱ (`views/trlive-view.js`) má nové pořadí: přilepené záhlaví (zbývá plán / do konce tréninku), blok a kolo, velký odpočet, **▶ Teď** (moje linka), **⏭ Potom**, ⭐ hodnocení, ⚡ improvizace, **🎛 ovládání sbalené**, 📋 Zbytek plánu. Dřív byla nad linkami tlačítka ovládání a lišta ⚡, takže „co se teď cvičí“ bylo až pod ohybem obrazovky.
+- **Kdo kde:** linky, které trenér nevede, jsou jedním řádkem – označení stanoviště, cvičení (u řady současné), barva skupiny v tomto kole a 🎓 trenér; plné karty pod „Podrobnosti ostatních linek“.
+- **🎛 Ovládání sbalené:** řídící má ⏸ / ⏭ / +1 min dál v pevné spodní liště, ⏮ Zpět, ✂ −1 min, +5 min a ⏹ Konec pod „🎛“; ostatní trenéři mají celé ovládání pod „🎛 Ovládání hodin · řídí X“. Rozbalení se pamatuje do zavření obrazovky, rozpracované potvrzení (⏹, převzetí řízení) ho drží otevřené. Před spuštěním a po doběhnutí plánu zůstávají ▶ Spustit / ⏹ Konec tréninku hned vidět – trénink se dál nikdy neukončí sám.
+- **⌚ Garmin / oznámení** (`domain/training-live.js` – `liveNote`, `remoteNote`): kratší texty pro malý displej – titulek = co se děje (cvičení napřed, „St. B“ místo „Stanoviště B“), text = co bude („Pak: …“). Např. „⏱ 1:00 · Střelba“ / „Pak: Přihrávky · St. C · Modrá“, „↪ Teď: Střelba · St. B“, „⏸ Pauza – Střelba“ / „zbývá 1:35“, po konci plánu „✅ Konec plánu“ / „Trénink ukončí trenér ⏹“.
+- Nápověda: pořadí obrazovky a krátká oznámení.
+
+**Zachováno beze změny chování:** lišta řídícího, 🔒 zámek dotyku, ☀, ⚡ improvizace, ▶ Teď ve Zbytku plánu, štafeta, ⏲ stopky, ⭐ hodnocení, převzetí řízení, upozornění 60 / 10 s a točení, akce ⏸ / ⏭ z oznámení, ⏹ Konec jen ručně.
+
+**Beze změny:** data a pravidla, plán tréninku, živý zápis zápasu, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (501 testů; texty oznámení v `tests/stopwatch.test.js` a `tests/training-live-sync.test.js` upraveny na nové krátké znění), `npm run smoke` bez chyb pro všechny role (nově kontrola, že ▶ Teď je pod odpočtem a 🎛 ovládání až za ním).
+
 ## v22.27 (1. 11. 2026) – 📋 Plán tréninku pohodlněji
 > **Nasazení – kanál 🧪 BETA:** commit „v22.27“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v129`). 🔒 Vyžadovat verzi: ne. Test: kap. 30.
 

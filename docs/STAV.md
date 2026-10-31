@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální v betě:** v22.27 (1. 11. 2026) – 📋 plán tréninku pohodlněji: 🎓 trenéři přímo u linky, ➕ nové cvičení přímo z výběru cvičení (uloží do 📚 banky a vloží do linky), nový blok rovnou otevře výběr, návrat na kartu plánu, ⭐ Výkonnost bez skoku. Cache `hokej-beta-v129`. Pravidla ani data beze změny.
+- **Aktuální v betě:** v22.28 (1. 11. 2026) – ⏱ přehlednější živý trénink (▶ Teď hned pod odpočtem, „kdo kde“ jedním řádkem, ovládání sbalené pod 🎛, krátká ⌚ oznámení). Cache `hokej-beta-v130`. Předtím v22.27 – 📋 plán tréninku pohodlněji (🎓 trenéři u linky, ➕ nové cvičení z výběru). Pravidla ani data beze změny.
 - **Stabilní (`main`):** v22.25 (PR #4 – podle uživatele 31. 10. 2026). v22.26 a novější jen v betě.
-- **Další číslo:** v22.28 (cache `hokej-v130`), opravy v22.27.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Další číslo:** v22.29 (cache `hokej-v131`), opravy v22.28.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
 - **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Po každém vydání (PR) upravit řádek Stabilní.
 - **Pravidla databáze:** v22.25 (blok `seen`) – **ověřit**, zda jsou publikovaná (Firebase Console → Firestore → Rules; v ⚙️ → 👥 Členové týmu manager vidí 🟢 aktivitu, jinak „Aktivitu se nepodařilo načíst“). Od v22.26 se pravidla nemění.
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a novější nevyžadují. V betě se nenastavuje.
@@ -36,10 +36,11 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - **v22.24 (beta) – 📉 pokladna na vyžádání (kap. 28)**.
 - **v22.25 (beta) – 🟢 kdo je online (kap. 29)** – po publikaci pravidel.
 - **v22.27 (beta) – 📋 plán tréninku pohodlněji (kap. 30)**: 🎓 trenéři u linky, ➕ nové cvičení z výběru, nový blok s výběrem, ⭐ Výkonnost bez skoku.
+- **v22.28 (beta) – ⏱ přehlednější živý trénink (kap. 31)**: pořadí obrazovky, kdo kde, 🎛 sbalené ovládání, ⌚ krátká oznámení – ideálně na ledě.
 - Kontrola kódu v22.18.1 – otevřené body k rozhodnutí: pravidla `settings/beta` (čtení jen manager / vývojář), `budgetKeep` (neměnné starší revize rozpočtu), `treval` u hráček vynutit pravidly; ověřit nasazená pravidla v konzoli a zvážit App Check.
 
 ## Další krok
-1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), 4 hotovo v22.17 (živý trénink na ledě) + ⚡ improvizace v22.18, **další (v příštím vlákně): přehlednější ⏱ živý trénink, pak ✏️ úprava proběhlého tréninku (skutečné časy cvičení do statistik – čeká na souhlas s novou kolekcí `tract` a pravidly), pak 5 Zápas** (v22.19 – v22.20 mimořádně: oprava štafety, ⏹ Konec, příprava pro hráčky) (sestava „Jako minule“, souhrn ke sdílení) – nejdřív nálezy z ostrého testu tréninku (v22.17.x).
+1. **K2** – schválen celý seznam v pořadí 1–7 (27. 10. 2026); 1 hotovo v22.10, 2 hotovo v22.12 (beta), 3 hotovo v22.15 (se 🎽 dresy a kratším detailem), v22.16 potvrzení dresů a včasné odpovědi (schváleno 27. 10. 2026: a + b + d; pozdní odhlášení s důvodem neplatí, platí 🚫 bez omluvy – už tak počítá pokladna), 4 hotovo v22.17 (živý trénink na ledě) + ⚡ improvizace v22.18, **přehlednější ⏱ živý trénink hotovo v22.28 (beta)**, **další: ✏️ úprava proběhlého tréninku (skutečné časy cvičení do statistik – čeká na souhlas s novou kolekcí `tract` a pravidly), pak 5 Zápas** (v22.19 – v22.20 mimořádně: oprava štafety, ⏹ Konec, příprava pro hráčky) (sestava „Jako minule“, souhrn ke sdílení) – nejdřív nálezy z ostrého testu tréninku (v22.17.x).
 2. **D3** jen podle čísel z 📉 (zabalení uzavřených měsíců docházky).
 3. Pak N, P2, G (odloženo), M poslední.
 

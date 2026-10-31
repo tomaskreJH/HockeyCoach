@@ -239,6 +239,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 31. v22.28 (beta) – ⏱ Přehlednější živý trénink (nejlépe na ledě)
+- [ ] 31.1 V betě je v záhlaví **v22.28**.
+- [ ] 31.2 ⏱ Živý trénink (řídící): shora odpočet → **▶ Teď** (moje linka: cvičení, skupiny, jména) → **⏭ Za m:ss → …** → ⚡ ➕ / ☕ / 👥 → sbalené **🎛 ⏮ Zpět · ✂ −1 min · +5 min · ⏹ Konec**; dole pevná lišta ⏸ / ⏭ / +1 min.
+- [ ] 31.3 Trenér, který vede jen jedno stanoviště: vidí své stanoviště celé, ostatní linky jedním řádkem (A / B / 🥅, cvičení, barva skupiny v tomto kole, 🎓 trenér); po otočení kola se barvy změní. „Podrobnosti ostatních linek“ rozbalí plné karty.
+- [ ] 31.4 Druhý trenér (neřídí): 🎛 Ovládání hodin · řídí X je sbalené; po rozbalení ⏸ / ⏭ … a převzetí řízení druhým klepnutím jako dřív. Rozbalené 🎛 zůstane rozbalené i po změně kola.
+- [ ] 31.5 ⏹ Konec: první klepnutí se zeptá (🎛 zůstane otevřené), druhé ukončí. Po doběhnutí plánu se trénink sám neukončí – ⏹ Konec tréninku je vidět.
+- [ ] 31.6 ⌚ Oznámení na hodinkách: 60 s „⏱ 1:00 · cvičení“ + „Pak: …“; 10 s „⏱ 0:10 → další cvičení · St. X“; točení „▶ cvičení · St. X“ s barvou, „do 18:42“ a „Pak: …“; změna od řídícího „↪ Teď: …“, „⏸ Pauza – cvičení“. Texty se vejdou na displej hodinek.
+- [ ] 31.7 Zachováno: 🔒 zámek dotyku (dvojité klepnutí), ☀ stav obrazovky, ⚡ improvizace, 📋 Zbytek plánu s ▶ Teď, štafeta a ⏲ stopky u měřeného cvičení.
+
 ## 30. v22.27 (beta) – 📋 Plán tréninku pohodlněji
 - [ ] 30.1 V betě je v záhlaví **v22.27**.
 - [ ] 30.2 Trénink → 📋 ✏️ Upravit → rozbalený blok: u každé linky pod skupinami řádek 🎓 se jmény přihlášeného realizačního týmu; klepnutí trenéra přidá (zvýrazní), další klepnutí odebere. V „⚙ Další volby“ trenéři nejsou a sekce se kvůli trenérovi sama neotevírá.

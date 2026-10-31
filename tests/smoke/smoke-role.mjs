@@ -136,6 +136,10 @@ async function events() {
     // v22.17: přilepené záhlaví se zbývajícím časem vždy; řídící má pevnou spodní lištu ⏸ / ⏭ / +1 min
     if (!$("#tlv .tltop #tlr")) throw new Error("⏱ chybí zbývající čas v záhlaví");
     if ($("#tlv .tlbot")) snap("trlive-bar");
+    // v22.28: ▶ Teď (linky) hned pod odpočtem, méně časté ovládání sbalené pod 🎛 až za ním
+    const sec = $("#tlv .tlsec"), cd = $("#tlv #tlcd");
+    if (!sec) throw new Error("⏱ chybí ▶ Teď pod odpočtem");
+    if (cd && !(sec.compareDocumentPosition(cd) & 4)) throw new Error("⏱ 🎛 ovládání je nad ▶ Teď");
     // 🔒 Zámek dotyku: zapnout, odemknout dvojitým klepnutím
     if (await tap("#tlk", 200)) {
       snap("trlive-lock");

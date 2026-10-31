@@ -176,17 +176,21 @@ export function alertsDue(prevLeft, left, marks = ALERT_AT, win = 3) {
   const due = marks.filter(m => prevLeft > m && left <= m && left > m - win);
   return due.length > 1 ? [due[due.length - 1]] : due;
 }
-// Text systémového oznámení (i na hodinkách – krátký titulek, podrobnosti v těle). kind = 60 | 10 | "switch" | "end";
+// Text systémového oznámení (i na hodinkách – krátký titulek = co se děje, tělo = co bude). kind = 60 | 10 | "switch" | "end";
 // cur / nxt = {where ("Stanoviště B", "Blok 2"), what (cvičení), who (skupiny)} | null; left = zbývající s v kole; till = konec kola „18:42“
 export function liveNote(kind, cur, nxt, left, till) {
-  const line = x => (x ? [x.where, x.what].filter(Boolean).join(" · ") + (x.who ? " (" + x.who + ")" : "") : "");
-  const next = nxt ? "Potom: " + line(nxt) : "Potom: konec plánu";
-  if (kind === "end") return {title: "✅ Plán tréninku skončil", body: cur ? "Poslední: " + line(cur) : ""};
-  if (kind === "switch") return {title: "▶ Teď: " + (cur ? [cur.where, cur.what].filter(Boolean).join(" · ") : "další kolo"),
-    body: [cur && cur.who ? cur.who : "", till ? "do " + till : "", next].filter(Boolean).join(" · ")};
+  const pak = nxt ? "Pak: " + spotTxt(nxt, true) : "Pak: konec plánu";
+  if (kind === "end") return {title: "✅ Konec plánu", body: "Trénink ukončí trenér ⏹"};
+  if (kind === "switch") return {title: "▶ " + (cur ? spotTxt(cur) : "další kolo"), body: [cur && cur.who, till ? "do " + till : "", pak].filter(Boolean).join(" · ")};
   const t = mmss(left);
-  if (kind === 10) return {title: "⏱ " + t + " → " + (nxt ? [nxt.where, nxt.what].filter(Boolean).join(" · ") : "konec"), body: (cur ? "Teď: " + line(cur) + " · " : "") + next};
-  return {title: "⏱ Ještě " + t + (cur && cur.what ? " · " + cur.what : ""), body: (cur ? "Teď: " + line(cur) + " · " : "") + next};
+  if (kind === 10) return {title: "⏱ " + t + " → " + (nxt ? spotTxt(nxt) : "konec"), body: nxt && nxt.who ? nxt.who : ""};
+  return {title: "⏱ " + t + (cur && cur.what ? " · " + cur.what : ""), body: pak};
+}
+// Krátký popis místa pro oznámení: cvičení napřed, pak místo („St. B“); who = i se skupinami
+function spotTxt(x, who) {
+  if (!x) return "";
+  const w = String(x.where || "").replace(/^Stanoviště /, "St. ");
+  return [x.what, w].filter(Boolean).join(" · ") + (who && x.who ? " · " + x.who : "");
 }
 // Změna hodin od jiného zařízení (řídící trenér) pro upozornění ostatních: "start" | "pause" | "resume" | "end" | "jump" (posun,
 // ⏭ / ⏮ / ±min / ▶ Teď) | "adj" (úprava dalších bloků) | null (beze změny, vlastní zápis, první načtení, potvrzení serveru téhož zápisu)
@@ -203,14 +207,13 @@ export function remoteKind(old, nw, me) {
   if (nw.st === "pause" && old.e0 === nw.e0) return same ? null : "adj";
   return "jump";
 }
-// Text oznámení o změně od řídícího (kind z remoteKind); cur / nxt / left / till jako liveNote
+// Text oznámení o změně od řídícího (kind z remoteKind); cur / nxt / left / till jako liveNote – titulek co se stalo a co běží, tělo kolik zbývá a co bude
 export function remoteNote(kind, cur, nxt, left, till) {
-  const now = x => (x ? [x.where, x.what].filter(Boolean).join(" · ") : "");
-  const next = nxt ? "Potom: " + now(nxt) : "Potom: konec plánu";
-  if (kind === "pause") return {title: "⏸ Trénink pozastaven", body: cur ? "Teď: " + now(cur) + " · ještě " + mmss(left) : ""};
-  if (kind === "end") return {title: "⏹ Trénink ukončen", body: ""};
-  const head = kind === "start" ? "▶ Trénink začal" : kind === "resume" ? "▶ Pokračujeme" : kind === "adj" ? "📋 Plán upraven" : "↪ Změna";
-  return {title: head + (cur ? ": " + now(cur) : ""), body: ["ještě " + mmss(left) + (till ? " (do " + till + ")" : ""), cur && cur.who ? cur.who : "", next].filter(Boolean).join(" · ")};
+  const pak = nxt ? "pak " + spotTxt(nxt) : "pak konec plánu";
+  if (kind === "pause") return {title: "⏸ Pauza" + (cur && cur.what ? " – " + cur.what : ""), body: cur ? "zbývá " + mmss(left) : ""};
+  if (kind === "end") return {title: "⏹ Trénink skončil", body: ""};
+  const head = kind === "start" ? "▶ Začátek" : kind === "resume" ? "▶ Pokračujeme" : kind === "adj" ? "📋 Plán upraven" : "↪ Teď";
+  return {title: head + (cur ? ": " + spotTxt(cur) : ""), body: [mmss(left) + (till ? " (do " + till + ")" : ""), cur && cur.who ? cur.who : "", pak].filter(Boolean).join(" · ")};
 }
 // Mm:ss pro odpočet (záporné = 0:00)
 export function mmss(sec) {

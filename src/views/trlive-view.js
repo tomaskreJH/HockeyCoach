@@ -1,10 +1,8 @@
 // ⏱ Živý trénink (jen HK.can("sport")): stav a tlačítko v kartě plánu, obrazovka #tlv (✕ / Zpět zavře, hodiny běží dál; tik 250 ms mění jen čísla).
-// Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e): ▶ ⏸ ⏮ ⏭ ✂ −1 / +1 / +5 min ⏹, převzetí řízení druhým klepnutím,
-// 📋 Zbytek plánu (▶ Teď = skok na další blok, vypustit / zkrátit další bloky jen pro průběh – adj / skip). Trenér vidí své linky a cvičení řady (laneSub), hráčky, co následuje;
-// ⏲ stopky (stopwatch-view.js) a ⭐ výzva k hodnocení (treval-view.js). Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js.
-// v22.17: zbývající čas plánu a tréninku nahoře (přilepené záhlaví), řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku
-// (černá obrazovka s odpočtem do kapsy, odemknutí dvojitým klepnutím), ☀ stav zámku obrazovky, změnu od řídícího ohlásí ostatním.
-// v22.18: ⚡ improvizace (trlive-quick.js) – ➕ cvičení / ☕ pauza do plánu za běhu, trénink bez plánu, 👥 kdo je na ledě.
+// Pořadí obrazovky: přilepené záhlaví (zbývá plán / do konce), velký odpočet, ▶ Teď (moje linka, přehled kdo kde), ⏭ Potom, ⭐ hodnocení, ⚡ improvizace
+// (trlive-quick.js), 🎛 další ovládání sbalené, 📋 Zbytek plánu; řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku.
+// Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e), převzetí řízení druhým klepnutím; ⏲ stopky, ⭐ hodnocení (treval-view.js).
+// Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js.
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -34,8 +32,9 @@ const UNLOCK_MS = 600;                                   // 🔒 zámek dotyku: 
 // sess (odhad posunu hodin z tohoto poslechu), getX (údaje tréninku z trplan-view), el (obrazovka), timer, wake, ac (zvuk), shown, prev
 // rest = 📋 Zbytek plánu rozbalený (null = podle toho, zda plán přetahuje); wakeP = žádost o zámek obrazovky běží, wakeT = poslední pokus;
 // lock = 🔒 zámek dotyku zapnutý, tap = čas posledního klepnutí na zamčenou obrazovku;
-// q = ⚡ rozpracované vložení cvičení (undefined = bez plánu se okno otevře samo, null = zavřené), ice = 👥 Na ledě otevřené
-let L = {eid: null, un: null, live: undefined, t0: 0, sess: null, getX: null, el: null, timer: null, wake: null, wakeP: false, wakeT: 0, ac: null, shown: "", prev: null, rest: null, lock: false, tap: 0, q: undefined, ice: false};
+// q = ⚡ rozpracované vložení cvičení (undefined = bez plánu se okno otevře samo, null = zavřené), ice = 👥 Na ledě otevřené,
+// cd = 🎛 další ovládání rozbalené
+let L = {eid: null, un: null, live: undefined, t0: 0, sess: null, getX: null, el: null, timer: null, wake: null, wakeP: false, wakeT: 0, ac: null, shown: "", prev: null, rest: null, lock: false, tap: 0, q: undefined, ice: false, cd: false};
 const CSS = `<style>
 #tlv{position:fixed;inset:0;z-index:40;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
 #tlv .tltop{position:sticky;top:-12px;z-index:3;background:var(--bg);margin:-12px 0 0;padding:12px 0 6px;border-bottom:1px solid var(--bd)}
@@ -70,6 +69,10 @@ const CSS = `<style>
 #tlv .tlrr button{flex:none;min-height:44px;min-width:44px;padding:4px 8px}
 #tlv .tlrr.sk>div{text-decoration:line-through;opacity:.55}
 #tlv .tlbrk{font-size:28px;font-weight:800;text-align:center;padding:18px 10px}
+#tlv .tlsec{margin:12px 0 6px;font-size:16px}
+#tlv .tlov{display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--bd);font-size:14px}
+#tlv .tlov>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#tlv .tlov .evl{margin:0}
 #tlv .evl{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px;margin:0 2px 4px 0;border:1px solid var(--bd)}
 #tlv .LG{background:#7b4fb3;color:#fff} #tlv .LF{background:#c0392b;color:#fff} #tlv .LD{background:#34495e;color:#fff}
 #tlv .L1{background:#2f6fd6;color:#fff} #tlv .L2{background:#f1c40f;color:#222} #tlv .L3{background:#27ae60;color:#fff} #tlv .L4{background:#e84393;color:#fff}
@@ -182,22 +185,29 @@ function mine(b, round, X) {
 function lanesHtml(b, at, X) {
   if (isBreak(b)) return `<div class="tlln tlbrk">☕ ${esc(b.brk || "Pauza")}</div>`;
   const T = laneTags(b), M = mine(b, at.round, X), list = (b.lanes || []).map((l, i) => ({l, t: T[i], m: M && M.includes(l.id)}));
-  const show = M && M.length ? list.filter(x => x.m) : list;
-  const head = M == null ? "Linky" : M.length ? "📍 Moje stanoviště" : X.tid ? "Teď nevedeš žádnou linku – všechny linky" : "Tvoje skupina teď nemá linku";
-  return `<h3 style="margin:10px 0 6px">${head}</h3>${(M && !M.length ? list : show).map(x => laneHtml(b, x.l, x.t, at.round, X, x.m, at)).join("")}
-${M && M.length && list.length > show.length ? `<details><summary class="mu">Ostatní linky (${list.length - show.length})</summary>${list.filter(x => !x.m).map(x => laneHtml(b, x.l, x.t, at.round, X, false, at)).join("")}</details>` : ""}`;
+  const show = M && M.length ? list.filter(x => x.m) : list, rest = M && M.length ? list.filter(x => !x.m) : [];
+  const head = M == null ? "▶ Teď" : M.length ? "▶ Teď · 📍 moje" : X.tid ? "▶ Teď · nevedeš žádnou linku" : "▶ Teď · tvoje skupina nemá linku";
+  return `<h3 class="tlsec">${head}</h3>${(M && !M.length ? list : show).map(x => laneHtml(b, x.l, x.t, at.round, X, x.m, at)).join("")}
+${rest.length ? `<div class="mu" style="font-size:13px;margin-top:6px">Ostatní linky – kdo kde</div>${rest.map(x => overHtml(b, x.l, x.t, at, X)).join("")}<details><summary class="mu">Podrobnosti ostatních linek</summary>${rest.map(x => laneHtml(b, x.l, x.t, at.round, X, false, at)).join("")}</details>` : ""}`;
+}
+// Jeden řádek „kdo kde“ pro linku, kterou nevedu: označení, cvičení (u řady současné), skupiny v tomto kole, trenér
+function overHtml(b, l, tag, at, X) {
+  const s = laneSeq(b, l) ? laneSub(b, [l.id], at) : null, src = s && s.it ? vLane(b, l.id, s.it) || l : l, d = X.D[src.drill];
+  const name = s && !s.it ? "☕ volno" : d ? d.name : src.dn || "—", grp = (at.round && at.round.lanes[l.id]) || l.grp || [];
+  const co = (l.co || []).map(id => staffName(X, id)).join(", ");
+  return `<div class="tlov">${tag ? `<span class="tlk">${tag}</span>` : ""}<b>${esc(name)}</b>${grp.map(chip).join("") || (b.mode === "all" ? '<span class="mu">všichni</span>' : "")}${co ? `<span class="mu">🎓 ${esc(co)}</span>` : ""}</div>`;
 }
 // Co následuje: další kolo / blok a moje linka v něm
 function nextHtml(B, at, X) {
   if (!at || at.done) return "";
   // Řada cvičení: další cvičení řady v tomtéž bloku
   const s = subAt(B, at, X);
-  if (s && s.nx) { const dx = X.D[s.nx.drill]; return `<div class="tlln" style="margin-top:8px"><div class="mu">Za ${mmss(s.left)} → 🔁 cvičení ${s.i + 2}/${s.n}</div><div><b>${esc(dx ? dx.name : s.nx.dn || "?")}</b> · ${Math.round((s.nx.b - s.nx.a) / 6) / 10} min</div></div>`; }
+  if (s && s.nx) { const dx = X.D[s.nx.drill]; return `<div class="tlln" style="margin-top:8px"><div class="mu">⏭ Za ${mmss(s.left)} → 🔁 cvičení ${s.i + 2}/${s.n}</div><div><b>${esc(dx ? dx.name : s.nx.dn || "?")}</b> · ${Math.round((s.nx.b - s.nx.a) / 6) / 10} min</div></div>`; }
   const n = liveAt(B, at.b);
-  if (!n || n.done) return `<div class="mu" style="margin-top:8px">Potom: konec plánu.</div>`;
+  if (!n || n.done) return `<div class="mu" style="margin-top:8px">⏭ Potom: konec plánu (trénink ukončí ⏹ Konec).</div>`;
   const b = B[n.bi], M = mine(b, n.round, X), l = M && M.length ? (b.lanes || []).find(x => x.id === M[0]) : null, d = l && X.D[l.drill];
   const what = n.bi !== at.bi ? `blok ${n.bi + 1} · ${isBreak(b) ? "☕ " + esc(b.brk || "Pauza") : MODES[b.mode]}` : `kolo ${n.ri + 1}/${n.nr} (točení)`;
-  return `<div class="tlln" style="margin-top:8px"><div class="mu">Za ${mmss(at.left)} → ${what}</div>${l ? `<div><b>${esc(d ? d.name : l.dn || "?")}</b> · ${((n.round.lanes[l.id]) || l.grp || []).map(chip).join("") || "všichni"}</div>` : ""}</div>`;
+  return `<div class="tlln" style="margin-top:8px"><div class="mu">⏭ Za ${mmss(at.left)} → ${what}</div>${l ? `<div><b>${esc(d ? d.name : l.dn || "?")}</b> · ${((n.round.lanes[l.id]) || l.grp || []).map(chip).join("") || "všichni"}</div>` : ""}</div>`;
 }
 // ⭐ Výzva k hodnocení hráček skončeného kola (realizační tým s právem hodnotit): hráčky mých linek předchozího kola, po konci plánu poslední kolo
 function rateHtml(B, at, X) {
@@ -224,14 +234,16 @@ function controlsHtml(v, at) {
     const endDone = st && st !== "end" ? `<button class="d tlend" data-tl="end" style="min-height:52px;${armed("tlend" + L.eid) ? "background:var(--no);color:#fff" : ""}">${armed("tlend" + L.eid) ? "Ukončit trénink? Klepni znovu" : "⏹ Konec tréninku"}</button>` : "";
     return `<div class="tlctl" style="grid-template-columns:1fr">${endDone}<button class="${endDone ? "s" : "p"}" data-tl="${st ? "restart" : "start"}" style="${armed(kr) ? "background:var(--wa)" : ""}">${st ? (armed(kr) ? "Spustit znovu od začátku? Klepni znovu" : "↺ Spustit znovu od začátku") : "▶ Spustit trénink"}</button></div>${take}`;
   }
+  // Běžící trénink: méně časté ovládání sbalené pod 🎛 (na ledě se hlavně dívá); potvrzení druhým klepnutím ho nechá otevřené
+  const endArm = armed("tlend" + L.eid), open = L.cd || endArm || arm;
+  const endB = `<button class="d tlend" data-tl="end" style="${endArm ? "background:var(--no);color:#fff" : ""}">${endArm ? "Ukončit trénink? Klepni znovu" : "⏹ Konec"}</button>`;
   // Řídím já: ⏸ / ⏭ / +1 min jsou v pevné spodní liště (botHtml), tady jen méně časté akce
-  const endB = `<button class="d tlend" data-tl="end" style="${armed("tlend" + L.eid) ? "background:var(--no);color:#fff" : ""}">${armed("tlend" + L.eid) ? "Ukončit trénink? Klepni znovu" : "⏹ Konec"}</button>`;
-  if (iCtl(v)) return `<div class="tlctl"><button class="s" data-tl="prev">⏮ Zpět</button><button class="s" data-tl="cut" title="Zkrátit toto kolo o minutu">✂ −1 min</button><button class="s" data-tl="ext5">+5 min</button>
-${endB}</div>`;
-  return `<div class="tlctl">${st === "run" ? '<button class="p" data-tl="pause">⏸ Pauza</button>' : '<button class="p" data-tl="resume">▶ Pokračovat</button>'}
+  if (iCtl(v)) return `<details class="tlrs" id="tlcd" ${open ? "open" : ""}><summary>🎛 ⏮ Zpět · ✂ −1 min · +5 min · ⏹ Konec</summary><div class="tlctl"><button class="s" data-tl="prev">⏮ Zpět</button><button class="s" data-tl="cut" title="Zkrátit toto kolo o minutu">✂ −1 min</button><button class="s" data-tl="ext5">+5 min</button>
+${endB}</div></details>`;
+  return `<details class="tlrs" id="tlcd" ${open ? "open" : ""}><summary>🎛 Ovládání hodin${v.ctl ? " · řídí " + ctlName(v.ctl) : ""}</summary><div class="tlctl">${st === "run" ? '<button class="p" data-tl="pause">⏸ Pauza</button>' : '<button class="p" data-tl="resume">▶ Pokračovat</button>'}
 <button class="s" data-tl="prev">⏮ Zpět</button><button class="s" data-tl="next">⏭ Další</button>
 <button class="s" data-tl="cut" title="Zkrátit toto kolo o minutu">✂ −1 min</button><button class="s" data-tl="ext">+1 min</button><button class="s" data-tl="ext5">+5 min</button>
-<button class="d tlend" data-tl="end" style="${armed("tlend" + L.eid) ? "background:var(--no);color:#fff" : ""}">${armed("tlend" + L.eid) ? "Ukončit trénink? Klepni znovu" : "⏹ Konec"}</button></div>${take}`;
+${endB}</div>${take}</details>`;
 }
 // Pevná spodní lišta řídícího (vždy na stejném místě): ⏸ / ▶, ⏭ Další, +1 min
 function botHtml(v, at) {
@@ -286,7 +298,7 @@ function screenHtml() {
   return CSS + top + `<div style="text-align:center;margin-top:8px;font-weight:700">${sub}</div>
 ${(() => { const c = clk(B, at, X); return `${c.s ? `<div class="mu" style="text-align:center">🔁 ${c.s.it ? "moje cvičení " + (c.s.i + 1) + "/" + c.s.n : "řada skončila – volno"}</div>` : ""}<div class="tlbig" id="tlc">${mmss(c.left)}</div>${at.nr > 1 || c.s ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}`; })()}
 <div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>
-${controlsHtml(v, at)}${quickHtml(X)}${rateHtml(B, at, X)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
+${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${rateHtml(B, at, X)}${!st || st === "end" ? controlsHtml(v, at) + quickHtml(X) : quickHtml(X) + controlsHtml(v, at)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
 }
 // Celé překreslení obrazovky (změna stavu, kola nebo bloku); tik mění jen čísla
 function paint() {
@@ -400,6 +412,9 @@ function bind() {
   // 📋 Zbytek plánu: úprava dalšího bloku jen pro tento průběh (zápis spolu se stavem hodin – pravidla chtějí řídícího)
   const rs = el.querySelector("#tlrs");
   if (rs) rs.ontoggle = () => { L.rest = rs.open; };
+  // 🎛 Další ovládání: rozbalení se pamatuje do zavření obrazovky
+  const cd = el.querySelector("#tlcd");
+  if (cd) cd.ontoggle = () => { L.cd = cd.open; };
   el.querySelectorAll("[data-tla]").forEach(b => b.onclick = () => {
     const [bid, op] = b.dataset.tla.split("|");
     guarded(() => {
@@ -424,7 +439,7 @@ function bind() {
 function open(eid, getX) {
   if (L.el) close();
   ensureLive(eid);
-  L.getX = getX; L.prev = null; L.rest = null; L.q = undefined; L.ice = false;
+  L.getX = getX; L.prev = null; L.rest = null; L.q = undefined; L.ice = false; L.cd = false;
   S.tl = {eid};
   const el = document.createElement("div");
   el.id = "tlv";
