@@ -2,6 +2,14 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.26 (31. 10. 2026) – 🎨 Čitelnost karet událostí
+> **Nasazení – kanál 🧪 BETA:** commit „v22.26“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v128`). 🔒 Vyžadovat verzi: ne.
+
+**Opraveno / upraveno** (požadavek uživatele 31. 10. 2026)
+- Karta události (Události, 🏠 Domů): nadpis (ikona, název, datum) je podbarvený stejně jako ostatní bloky (`#evw .evi>.evh`, barva `--a2`).
+- Rychlá tlačítka ✅ / ❌ / ❓ na kartě: počet odpovědí u aktivní volby je v bílé pilulce s tmavým textem (dřív světlý na zelené špatně čitelný).
+- Nápověda „Počty v tlačítkách“ a verze v README a CHANGELOGu.
+
 ## v22.25 (31. 10. 2026) – 🟢 Kdo je online
 > **Nasazení – kanál 🧪 BETA:** commit „v22.25“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – nový blok `seen` (schváleno uživatelem 31. 10. 2026); do publikace se aktivita nezapisuje (jen varování v konzoli) a manager uvidí „Aktivitu se nepodařilo načíst“. Pravidla jen přidávají novou kolekci – stabilní verze je nepotřebuje a nic jí neberou. V betě Načíst novou verzi (cache `hokej-beta-v127`). 🔒 Vyžadovat verzi: ne. Test: kap. 29.
 
