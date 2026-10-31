@@ -7,7 +7,7 @@ import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {clone, esc, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {accCheck, ibanFmt, ibanToCz, parseAcc} from "../domain/bank-account.js";
+import {accCheck, codeMatch, ibanFmt, ibanToCz, pairCode, parseAcc} from "../domain/bank-account.js";
 import {ACC, ACC_META, WHO, accMeta, cashCfg} from "../domain/cash.js";
 import {watchAudit} from "./audit-feed.js";
 
@@ -36,12 +36,13 @@ const chip = (on, attr, label) => `<button class="chip ${on ? "on" : ""}" ${attr
 const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCase(); };
 const fDt = iso => { const d = new Date(iso); return isNaN(d) ? "?" : d.toLocaleString("cs-CZ", {day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"}); };
 // Účet pro zobrazení: české číslo + IBAN po čtveřicích (prázdný = „nenastaven“)
-const accTxt = ib => ib ? `<b>${esc(ibanToCz(ib) || ib)}</b> <span class="mu">(${esc(ibanFmt(ib))})</span>${accCheck(ib) ? "" : ' <b style="color:var(--no)">⚠️ neplatný – QR se nevytvoří</b>'}` : '<span class="mu">nenastaven</span>';
-// Výsledek kontroly vstupu pod polem
+// Kód účtu (v22.21) se ukazuje u každého účtu, aby ho šlo porovnat s obrazovkou hráčky
+const accTxt = ib => ib ? `<b>${esc(ibanToCz(ib) || ib)}</b> <span class="mu">(${esc(ibanFmt(ib))})</span> <span class="mu">kód <b>${esc(pairCode(ib))}</b></span>${accCheck(ib) ? "" : ' <b style="color:var(--no)">⚠️ neplatný – QR se nevytvoří</b>'}` : '<span class="mu">nenastaven</span>';
+// Výsledek kontroly vstupu pod polem (u platného účtu i jeho kód)
 function chkTxt(v) {
   const r = parseAcc(v);
   if (!String(v || "").trim()) return {r, h: '<div class="mu" style="margin:-6px 0 10px">Prázdné = bez účtu</div>'};
-  return {r, h: r.err ? `<div style="margin:-6px 0 10px;color:var(--no);font-weight:600">✗ ${esc(r.err)}</div>` : `<div style="margin:-6px 0 10px;color:var(--ok);font-weight:600">✓ Kontrolní součty v pořádku · IBAN ${esc(ibanFmt(r.iban))}</div>`};
+  return {r, h: r.err ? `<div style="margin:-6px 0 10px;color:var(--no);font-weight:600">✗ ${esc(r.err)}</div>` : `<div style="margin:-6px 0 10px;color:var(--ok);font-weight:600">✓ Kontrolní součty v pořádku · IBAN ${esc(ibanFmt(r.iban))} · kód <span style="font-size:17px">${esc(pairCode(r.iban))}</span></div>`};
 }
 // Záznam do auditu (jen přidání; pravidla databáze ho nedovolí změnit ani smazat)
 const auditDoc = (act, note) => ({ts: new Date().toISOString(), by: me(), eid: "", act, note});
@@ -51,8 +52,12 @@ const pairTxt = (a, b) => "hlavní " + (ibanToCz(a) || a || "–") + ", provozn�
 function accHtml() {
   const c = S.cc || {}, pend = c.ibanPend, coach = HK.can("accounts"), mine = pend && pend.by === me();
   const last = c.ibanAt ? `Platí od ${esc(fDt(c.ibanAt))} · navrhl ${esc(c.ibanBy || "?")} · potvrdil ${esc(c.ibanOk || "?")}` : "Změna účtu zatím nebyla zaznamenána (účet zadaný před v18.6.1).";
+  // Kód návrhu: navrhovatel ho vidí a přečte; potvrzující ho přepíše a aplikace ho porovná s účty z návrhu (v approve)
+  const pendCode = pend ? pairCode(pend.iban, pend.iban2) : "";
+  const pendBad = pend && pend.code && !codeMatch(pendCode, pend.code);
   const pendH = pend ? `<div class="cd" style="border-color:var(--wa);padding:10px"><b style="color:var(--wa)">⏳ Čeká na potvrzení změny účtů</b><div style="margin:6px 0">Hlavní: ${accTxt(pend.iban)}<br>Provozní: ${accTxt(pend.iban2)}</div><div class="mu">Navrhl ${esc(pend.by)} · ${esc(fDt(pend.at))}</div>
-${mine ? '<div class="mu" style="margin:6px 0">Potvrdit musí jiný správce pokladny.</div><button class="s w" data-apx>Zrušit návrh</button>' : '<div class="mu" style="margin:6px 0">Před potvrzením ověř číslo účtu s navrhovatelem jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
+${pendBad ? '<div style="margin:6px 0;color:var(--no);font-weight:600">⛔ Kód se neshoduje s účty v návrhu – návrh mohl být změněn. Zamítni ho a navrhni znovu.</div>' : ""}
+${mine ? `<div class="mu" style="margin:6px 0">Kód návrhu: <b style="font-size:17px">${esc(pendCode)}</b> – řekni ho potvrzujícímu (osobně nebo telefonem). Potvrdit musí jiný správce pokladny.</div><button class="s w" data-apx>Zrušit návrh</button>` : '<div class="mu" style="margin:6px 0">Před potvrzením si nech od navrhovatele přečíst kód návrhu a ověř ho jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
   const v1 = accIn ? accIn.a1 : ibanToCz(c.iban) || c.iban || "", v2 = accIn ? accIn.a2 : ibanToCz(c.iban2) || c.iban2 || "";
   const form = coach ? `<h3>Navrhnout změnu účtů</h3><label>Hlavní účet – číslo účtu (např. 19-2000145399/0800) nebo IBAN</label><input id="acc1" value="${esc(v1)}" inputmode="text" autocomplete="off"><div id="ack1">${chkTxt(v1).h}</div><label>Provozní účet (nepovinné; prázdné = vše na hlavní účet)</label><input id="acc2" value="${esc(v2)}" inputmode="text" autocomplete="off"><div id="ack2">${chkTxt(v2).h}</div><div class="mu" style="margin-bottom:6px">Změna se projeví až po potvrzení jiným trenérem nebo pokladníkem. Návrh i potvrzení se zapíší do auditu a hráčkám se nový účet zobrazí s varováním.</div><button class="s w" data-apr>📝 Navrhnout změnu účtů</button>` : '<div class="mu" style="margin-top:6px">Čísla účtů navrhuje jen trenér; pokladník změnu potvrzuje.</div>';
   watchAudit("", refreshCashSettings);   // 📉 obecné záznamy auditu (změny účtů) až při otevření nastavení
@@ -66,7 +71,8 @@ function propose(e) {
   if (a.err || b.err) return toast("Oprav číslo účtu – neprošlo kontrolou");
   if (!a.iban) return toast("Hlavní účet je povinný");
   if (a.iban === (c.iban || "") && b.iban === (c.iban2 || "")) return toast("Účty jsou stejné jako současné");
-  const p = {iban: a.iban, iban2: b.iban, by: me(), at: new Date().toISOString()};
+  // code = kód účtů spočítaný na zařízení navrhovatele z toho, co zadal; potvrzující ho porovná s účty uloženými v návrhu
+  const p = {iban: a.iban, iban2: b.iban, code: pairCode(a.iban, b.iban), by: me(), at: new Date().toISOString()};
   S.db.batch().merge("settings/cash", {ibanPend: p}).set("audit/" + uid(), auditDoc("acc-prop", pairTxt(p.iban, p.iban2))).commit();
   accIn = null;
   toast("Návrh odeslán – potvrdí ho jiný správce pokladny");
@@ -75,7 +81,12 @@ function approve() {
   const p = (S.cc || {}).ibanPend;
   if (!p || p.by === me()) return;
   if (!accCheck(p.iban) || (p.iban2 && !accCheck(p.iban2))) return toast("Navržený účet neprošel kontrolou – zamítni ho");
-  if (!confirm("Potvrzuješ nové účty týmu?\n\n" + pairTxt(p.iban, p.iban2) + "\n\nNavrhl: " + p.by + "\nOvěřils číslo účtu s navrhovatelem jinou cestou?")) return;
+  // Kontrola kódem: potvrzující přepíše kód, který mu navrhovatel přečetl z jeho obrazovky. Musí sedět na účty uložené v návrhu
+  // (odhalí podvržený nebo přepsaný návrh) i na kód navrhovatele uložený v návrhu.
+  const want = pairCode(p.iban, p.iban2);
+  const typed = prompt("Potvrzuješ nové účty týmu?\n\n" + pairTxt(p.iban, p.iban2) + "\n\nNavrhl: " + p.by + "\n\nPřečti si od navrhovatele kód návrhu a napiš ho sem (oba účty, např. 1A2B-3C4D 5E6F-7A8B):");
+  if (typed === null) return;
+  if (!codeMatch(want, typed) || (p.code && !codeMatch(p.code, typed))) return toast("Kód nesouhlasí – návrh nepotvrzen. Zamítni ho a navrhni znovu.");
   S.db.batch().merge("settings/cash", {iban: p.iban, iban2: p.iban2 || "", ibanBy: p.by, ibanOk: me(), ibanAt: new Date().toISOString(), ibanPend: "__del"})
     .set("audit/" + uid(), auditDoc("acc-ok", pairTxt(p.iban, p.iban2) + " (navrhl " + p.by + ")")).commit();
   toast("Změna účtů potvrzena");

@@ -239,6 +239,13 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 26. v22.21 (beta) – Kontrolní kód účtu
+- [ ] 26.1 V betě je v záhlaví **v22.21**.
+- [ ] 26.2 ⚙️ Pokladna → 🏦 Účty pro QR platby: u hlavního účtu je vedle čísla „kód XXXX-XXXX“; kód je stejný po každém otevření.
+- [ ] 26.3 Trenér navrhne změnu účtu → u návrhu se ukáže „Kód návrhu“ (oba účty). Druhý správce potvrdí: prompt chce přepsat kód; špatný kód = „Kód nesouhlasí“, účet se nezmění.
+- [ ] 26.4 Hráčka: 📱 Zaplatit (QR) → řádek „Kód účtu“ shodný s kódem v nastavení pokladny; ⬇️ Uložit QR → PNG má řádek „Kód účtu“.
+- [ ] 26.5 Hráčka po změně účtu → varování ukáže nový účet i kód; po „Ověřila jsem účet“ QR s kódem.
+
 ## 25. v22.20 (beta) – Příprava na trénink pro hráčky
 - [ ] 25.1 V betě je v záhlaví **v22.20**.
 - [ ] 25.2 Trenér: starší plán (uložený před v22.20) → v kartě 👀 „Hráčky zatím nevidí…“ → **📤 Zpřístupnit hráčkám** → hláška, upozornění zmizí, plán beze změny.

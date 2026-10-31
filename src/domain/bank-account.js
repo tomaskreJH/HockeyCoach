@@ -45,6 +45,22 @@ export function ibanToCz(iban) {
 // IBAN po čtveřicích pro čtení
 export const ibanFmt = s => clean(s).replace(/(.{4})/g, "$1 ").trim();
 
+// ===== Kontrolní kód účtu (v22.21) =====
+// Krátký otisk účtu pro lidi: dvě 32bitové hashe FNV-1a s různými výchozími hodnotami nad očištěným IBAN → 8 hex číslic XXXX-XXXX.
+// Slouží k porovnání dvou obrazovek (navrhovatel × potvrzující, hráčka × nastavení pokladny). Není to kryptografický podpis.
+const fnv = (s, seed) => { let h = seed >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; };
+export function accCode(iban) {
+  const s = clean(iban);
+  if (!s) return "";
+  const a = fnv(s, 2166136261).toString(16).padStart(8, "0").toUpperCase(), b = fnv(s, 0x9e3779b9).toString(16).padStart(8, "0").toUpperCase();
+  return a.slice(0, 4) + "-" + b.slice(0, 4);
+}
+// Kód dvojice účtů (hlavní + nepovinný provozní), např. „1A2B-3C4D 5E6F-7A8B“
+export const pairCode = (a, b) => [accCode(a), b ? accCode(b) : ""].filter(Boolean).join(" ");
+// Shoda přepsaného kódu s kódem z textu: porovnají se jen hex číslice (mezery a pomlčky se ignorují), prázdný kód nikdy nesouhlasí
+const hexOnly = s => String(s || "").replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+export const codeMatch = (text, typed) => hexOnly(text) !== "" && hexOnly(text) === hexOnly(typed);
+
 // ===== Zpracování vstupu =====
 // Vstup z nastavení (české číslo účtu, nebo IBAN) -> {iban, cz, err}; prázdný vstup = {iban: ""}
 export function parseAcc(input) {

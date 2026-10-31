@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.21 (31. 10. 2026) – Kontrolní kód účtu pro QR platby
+> **Nasazení – kanál 🧪 BETA:** commit „v22.21“ do větve **`beta`**. firestore.rules beze změny (pole `code` v `settings/cash.ibanPend` pravidla nekontrolují). V betě Načíst novou verzi (cache `hokej-beta-v123`). 🔒 Vyžadovat verzi: ne. Test: kap. 26.
+
+**Přidáno** (požadavek uživatele 31. 10. 2026 – nikdo nesmí v aplikaci podsunout jiný účet, a přitom zachovat pohodlí pro hráčky)
+- `domain/bank-account.js`: **kód účtu** `accCode` (8 hex číslic XXXX-XXXX z dvojí hashe FNV-1a nad IBAN), `pairCode` (hlavní + provozní) a `codeMatch` (porovnání přepsaného kódu, ignoruje mezery a pomlčky).
+- ⚙️ Pokladna → 🏦 Účty: u každého účtu je kód; návrh změny ukáže **Kód návrhu** a navrhovatel ho uloží spolu s účty (`ibanPend.code`).
+- **Potvrzení změny účtu** (4 oči + kód): potvrzující přepíše kód, který mu navrhovatel přečetl z jeho obrazovky. Aplikace ho porovná s účty uloženými v návrhu i s kódem navrhovatele; nesouhlas = změna se nepotvrdí. Pokud kód v návrhu nesedí s účty, karta návrhu to ukáže červeně a návrh se musí zamítnout.
+- 📱 Zaplatit (QR): u účtu je řádek **Kód účtu** (shodný s kódem u trenéra – porovnání z jiného zařízení). Varování po změně účtu ukáže nový účet i kód.
+- ⬇️ Uložit QR: PNG má řádek **Kód účtu** pod účtem (starý obrázek po změně účtu se pozná podle kódu).
+- Nápověda: u bezpečnosti platby doplněno porovnání kódu.
+
+**Beze změny:** samotný QR (SPD), částky, VS, zpráva, kontrola čísla účtu (mod 11 a 97), varování po změně účtu, pravidla databáze, živý zápis, střely, góly, časomíra.
+
+**Známé meze:** kód nechrání proti úplně upravené aplikaci (ta může ukázat i správný kód pro jiný účet); proto kód porovnávej z druhého zařízení nebo u trenéra. Kontrolu v databázi (rozhodnout, že `iban` smí změnit jen potvrzený návrh se shodným kódem) lze zpřísnit jen změnou `firestore.rules` – po schválení.
+
+**Ověřeno:** `npm test` (474 testů, nově `tests/account-code.test.js`), `npm run smoke` bez chyb pro všechny role.
+
 ## v22.20 (30. 10. 2026) – Příprava na trénink pro hráčky (popis, video, PDF)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.20“ do větve **`beta`**. firestore.rules beze změny (kopie `dx` je uvnitř linek plánu `trplan`, pravidla kontrolují jen horní pole). V betě Načíst novou verzi (cache `hokej-beta-v122`). 🔒 Vyžadovat verzi: ne. Test: kap. 25.
 
