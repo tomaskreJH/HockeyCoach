@@ -109,7 +109,23 @@ async function events() {
     snap("plan-edit");
     await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
-    if (await tap('[data-tpadd="all"]', 250)) snap("plan-edit-add");
+    // v22.27: 🎓 trenéři přímo u linky (ne v ⚙ Další volby); nový blok rovnou otevře výběr cvičení, ➕ nové cvičení uloží do banky a vybere
+    if ($("details.tpmo [data-tpco]")) throw new Error("📋 trenéři linky jsou pořád v ⚙ Další volby");
+    if (await tap('[data-tpadd="all"]', 250)) {
+      snap("plan-edit-add");
+      if (!$("#dpk")) throw new Error("📋 nový blok neotevřel výběr cvičení");
+      if (await tap("#dpk [data-dpnew]", 200)) {
+        snap("plan-edit-newdrill");
+        const n = $("#dpnn"), w0 = globalThis.__fb.writes.length;
+        n.value = "Smoke nové cvičení";
+        await tap('[data-dpnm="8"]', 150);
+        await tap("#dpnok", 250);
+        if ($("#dpk")) throw new Error("➕ nové cvičení: výběr se nezavřel");
+        if (!globalThis.__fb.writes.slice(w0).some(w => /^drills\//.test(w.path))) throw new Error("➕ nové cvičení se nezapsalo do banky");
+        if (!/Smoke nové cvičení/.test(document.body.textContent)) throw new Error("➕ nové cvičení se nevložilo do bloku");
+        snap("plan-edit-newdrill-done");
+      } else await tap("#dpx", 150);
+    }
     if (await tap("#tponly", 250)) snap("plan-edit-only");
     // v22.18.1: 💾 Uložit plán musí zapsat trplan (chyběl podpis stamp – uložení tiše padalo)
     const n0 = globalThis.__fb.writes.length;

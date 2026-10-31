@@ -239,6 +239,17 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 30. v22.27 (beta) – 📋 Plán tréninku pohodlněji
+- [ ] 30.1 V betě je v záhlaví **v22.27**.
+- [ ] 30.2 Trénink → 📋 ✏️ Upravit → rozbalený blok: u každé linky pod skupinami řádek 🎓 se jmény přihlášeného realizačního týmu; klepnutí trenéra přidá (zvýrazní), další klepnutí odebere. V „⚙ Další volby“ trenéři nejsou a sekce se kvůli trenérovi sama neotevírá.
+- [ ] 30.3 Sbalený blok ▸ ukazuje u linky „· 🎓 jméno“.
+- [ ] 30.4 + 👥 Společně → blok se přidá, posune na obrazovku a rovnou se otevře výběr cvičení; výběr vloží cvičení a délku z banky. ✕ ve výběru = blok zůstane prázdný.
+- [ ] 30.5 Ve výběru napiš hledání (např. „Zatáčky“) → ➕ Nové cvičení → název předvyplněný, zvol část tréninku, délku klepnutím (8), popis; ▸ 📷 / ▶ / 📄 → přidej fotku → 💾 Uložit do banky a vybrat → výběr se zavře, cvičení je v lince, plán zůstal na stejném místě (nic se neuložilo do plánu, dokud nedáš 💾 Uložit plán).
+- [ ] 30.6 Team → 📚 Cvičení: nové cvičení je v bance (výchozí dovednost podle části tréninku, fotka, popis).
+- [ ] 30.7 💾 Uložit plán i ← Zpět k tréninku vrátí obrazovku rovnou na kartu 📋 Plán (ne na začátek detailu).
+- [ ] 30.8 🎽 → ⭐ Výkonnost: posuň seznam dolů, klepni hvězdy u několika hráček → seznam neskočí nahoru, čísla se hned označí; po Zavřít souhrn pod tlačítky odpovídá.
+- [ ] 30.9 Role bez práva upravovat 📚 banku (🔐 Práva rolí → Banka cvičení bez „e“) nevidí ➕ Nové cvičení ve výběru; asistent ho ve výchozím nastavení vidí.
+
 ## 29. v22.25 (beta) – 🟢 Kdo je online (po publikaci pravidel)
 - [ ] 29.1 Pravidla publikovaná; v betě je v záhlaví **v22.25**.
 - [ ] 29.2 Manager: ⚙️ → 👥 Tým a členové → nahoře „🟢 Teď online: 1“ a u vlastního účtu 🟢 online · v22.25 🧪.

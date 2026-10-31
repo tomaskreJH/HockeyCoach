@@ -1,6 +1,7 @@
 // 📋 Úprava plánu tréninku na celé stránce místo detailu (S.tpe; jen HK.perm("trplan", "e")): bloky 👥 Společně / 🔄 Stanoviště / ☕ pauza (sbalené ▸ s časem a obsahem),
-// ⏱ čas bloku (převzetí délky z banky, dokud ho trenér nezmění), skupiny, „⚙ Další volby“ (režim, posty, točení, trenéři, souběžná linka),
-// 🔁 řada cvičení s vlastním časem, ⭐ Jen moje linky, ⧉ / 📑 / 📊 z trplan-reuse.js. Uložení sloučí změny jiného trenéra (mergePlan).
+// ⏱ čas bloku (převzetí délky z banky, dokud ho trenér nezmění), skupiny a 🎓 trenéři přímo u linky, „⚙ Další volby“ (režim, posty, točení,
+// souběžná linka), 🔁 řada cvičení, ⭐ Jen moje linky, ⧉ / 📑 / 📊 z trplan-reuse.js; nový blok rovnou otevře výběr cvičení (i ➕ nové do banky).
+// Uložení sloučí změny jiného trenéra (mergePlan).
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -23,12 +24,13 @@ const QUICK_BRK = [2, 3, 5, 10];                          // rychlá volba délk
 const grpVal = g => (GRP_ICON[g] ? g : +g);
 // Sbalené bloky: S.tpe.op = id rozbalených bloků (nový blok se rozbalí sám); plán s jediným blokem je rozbalený vždy
 const isOpen = (b, p) => p.blocks.length === 1 || ((S.tpe && S.tpe.op) || []).includes(b.id);
-// Krátký obsah bloku pro sbalené záhlaví: cvičení linek (i řady) a skupiny
-function blockSum(b, D) {
+// Krátký obsah bloku pro sbalené záhlaví: cvičení linek (i řady), skupiny a 🎓 trenéři linky
+function blockSum(b, D, X) {
   const nm = x => { const d = D[x.drill]; return d ? d.name : x.dn || ""; };
   return (b.lanes || []).map(l => {
     const seq = laneSeq(b, l), names = (seq ? seq.map(nm) : [nm(l)]).filter(Boolean).join(" → ") || "bez cvičení";
-    return `<div class="mu" style="font-size:13px">${esc(names)} ${grpChips(l.grp, true)}</div>`;
+    const co = (l.co || []).map(id => staffName(X, id)).filter(Boolean).join(", ");
+    return `<div class="mu" style="font-size:13px">${esc(names)} ${grpChips(l.grp, true)}${co ? " · 🎓 " + esc(co) : ""}</div>`;
   }).join("");
 }
 // Vede přihlášený člen týmu některou linku plánu? (přepínač ⭐ Jen moje linky)
@@ -39,12 +41,12 @@ function laneEditHtml(b, bi, l, li, X, D, tag) {
   // Cvičení se vybírá v okně s hledáním a filtrem (views/drill-picker.js); vyřazené / smazané z banky se jen označí
   const d = D[l.drill], dn = d ? d.name + " · " + (+d.dur || "?") + " min" + (d.arch ? " (vyřazené)" : "") : l.drill ? (l.dn || "?") + " (není v bance)" : "";
   const gc = [...new Set([...groupsFor(b, X.groups, X.pgFull), ...(l.grp || [])])], seq = laneSeq(b, l), me = myLane(l, X);
-  const co = (l.co || []).map(id => "🎓 " + esc(staffName(X, id))).join(", ");
   const pick = seq ? seqEditHtml(b, bi, l, li, seq, X, D)
     : `<button class="s w" data-tpdl="${bi}|${li}" style="text-align:left;min-height:46px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dn ? "📚 " + esc(dn) : "📚 Vybrat cvičení z banky…"}</button>${seqOk(b, l) ? `<button class="s" data-tpsq="${bi}|${li}" style="margin-bottom:6px;font-size:13px">🔁 Víc cvičení s vlastním časem</button>` : ""}`;
-  return `<div style="border-top:1px dashed var(--bd);padding-top:6px;margin-top:6px"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${me ? "⭐ " : ""}${tag ? (tag === "🥅" ? "🥅 Linka brankářek" : "Stanoviště " + tag) : b.lanes.length > 1 ? "Linka " + (li + 1) : "Cvičení"}${co ? ` <span class="mu" style="font-weight:400;font-size:12px">${co}</span>` : ""}</b>${b.lanes.length > 1 ? `<button class="d" data-tplr="${bi}|${li}" style="flex:none;padding:4px 10px;min-height:0">🗑</button>` : ""}</div>
+  return `<div style="border-top:1px dashed var(--bd);padding-top:6px;margin-top:6px"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${me ? "⭐ " : ""}${tag ? (tag === "🥅" ? "🥅 Linka brankářek" : "Stanoviště " + tag) : b.lanes.length > 1 ? "Linka " + (li + 1) : "Cvičení"}</b>${b.lanes.length > 1 ? `<button class="d" data-tplr="${bi}|${li}" style="flex:none;padding:4px 10px;min-height:0">🗑</button>` : ""}</div>
 ${pick}
-<div class="mu" style="font-size:12px">Skupiny${b.mode === "all" ? " (bez výběru = všichni)" : " (na začátku bloku; 🥅 = linka se netočí)"}</div><div class="chips">${gc.map(g => `<button class="chip ${(l.grp || []).includes(g) ? "on" : ""}" data-tpgr="${bi}|${li}|${g}">${GRP_ICON[g] ? GRP_ICON[g][0] + (g === GK ? "" : GRP_ICON[g][1]) : esc(grpLabel(g))}</button>`).join("")}${gc.length ? "" : '<span class="mu">Nikdo zatím nemá dres.</span>'}</div></div>`;
+<div class="mu" style="font-size:12px">Skupiny${b.mode === "all" ? " (bez výběru = všichni)" : " (na začátku bloku; 🥅 = linka se netočí)"}</div><div class="chips">${gc.map(g => `<button class="chip ${(l.grp || []).includes(g) ? "on" : ""}" data-tpgr="${bi}|${li}|${g}">${GRP_ICON[g] ? GRP_ICON[g][0] + (g === GK ? "" : GRP_ICON[g][1]) : esc(grpLabel(g))}</button>`).join("")}${gc.length ? "" : '<span class="mu">Nikdo zatím nemá dres.</span>'}</div>
+${laneCoachHtml(l, bi, li, X)}</div>`;
 }
 // 🔁 Řada cvičení linky: cvičení pod sebou s vlastním časem (−/+, číslo), ↑ pořadí, 🗑; součet proti času bloku (ten určuje hlavní trenér)
 function seqEditHtml(b, bi, l, li, seq, X, D) {
@@ -59,20 +61,19 @@ function seqEditHtml(b, bi, l, li, seq, X, D) {
   return `<div class="mu" style="font-size:12px;margin-bottom:4px">🔁 Řada cvičení v čase bloku (od začátku bloku)</div>${rows}${sum}
 <div class="row" style="margin-bottom:6px">${seq.length < PLAN_MAX.seq ? `<button class="s" data-tpsa="${k}">+ Cvičení</button>` : ""}${seq.length === 1 ? `<button class="s" data-tpso="${k}">Jedno cvičení na celý blok</button>` : ""}</div>`;
 }
-// Trenéři linky (v „Další volby“): přihlášený realizační tým, navíc už vybraný nepřihlášený
-function laneCoachHtml(b, bi, l, li, X, tag) {
+// 🎓 Trenéři linky přímo u linky (jedno klepnutí = přidat / odebrat): přihlášený realizační tým, navíc už vybraný nepřihlášený
+function laneCoachHtml(l, bi, li, X) {
   const cands = [...X.coaches, ...X.staff.filter(t => (l.co || []).includes(t.id) && !X.coaches.includes(t))];
-  const nm = tag ? (tag === "🥅" ? "🥅 Brankářky" : "Stanoviště " + tag) : b.lanes.length > 1 ? "Linka " + (li + 1) : "Cvičení";
-  return `<div class="mu" style="font-size:12px">🎓 Trenér – ${nm}${cands.length ? "" : " (nikdo z realizačního týmu není přihlášený)"}</div><div class="chips" style="margin-bottom:6px">${cands.map(t => `<button class="chip ${(l.co || []).includes(t.id) ? "on" : ""}" data-tpco="${bi}|${li}|${esc(t.id)}">🎓 ${esc(t.name)}</button>`).join("")}</div>`;
+  if (!cands.length) return '<div class="mu" style="font-size:12px;margin-top:4px">🎓 Trenér: nikdo z realizačního týmu není přihlášený.</div>';
+  return `<div class="chips" style="margin-top:4px"><span class="mu" style="font-size:12px">🎓</span>${cands.map(t => `<button class="chip ${(l.co || []).includes(t.id) ? "on" : ""}" data-tpco="${bi}|${li}|${esc(t.id)}">${esc(t.name)}</button>`).join("")}</div>`;
 }
-// ⚙ Další volby bloku: režim, skupiny podle pětek / postů, točení, trenéři, souběžná linka (u Společně)
-function moreHtml(b, bi, X, tags, rl, auto) {
+// ⚙ Další volby bloku (řídké): režim, skupiny podle pětek / postů, točení, souběžná linka (u Společně)
+function moreHtml(b, bi, rl, auto) {
   const open = blockExtras(b) || ((S.tpe && S.tpe.mo) || []).includes(b.id);
   return `<details class="tpmo" data-tpmo="${esc(b.id)}" ${open ? "open" : ""}><summary>⚙ Další volby${blockExtras(b) ? " (použité)" : ""}</summary>
 <div class="chips" style="margin:6px 0">${Object.entries(MODES).map(([k, x]) => `<button class="chip ${b.mode === k ? "on" : ""}" data-tpm="${bi}|${k}">${x}</button>`).join("")}</div>
 <div class="chips" style="margin:0 0 6px"><span class="mu" style="font-size:12px">Skupiny</span>${Object.entries(BY).map(([k, x]) => `<button class="chip ${(k === "pos") === isPosBlock(b) ? "on" : ""}" data-tpby="${bi}|${k}">${x}</button>`).join("")}</div>
 ${b.mode === "st" ? `<div class="mu" style="font-size:12px;margin-top:6px">Točení skupin</div><select data-tprot="${bi}"><option value="">Automaticky – ${rl} ${rl === 1 ? "kolo" : rl < 5 ? "kola" : "kol"} po ${auto} min</option>${Array.from({length: b.dur}, (_, i) => i + 1).map(m => `<option value="${m}" ${b.rot === m ? "selected" : ""}>po ${m} min</option>`).join("")}</select>` : ""}
-${b.lanes.map((l, li) => laneCoachHtml(b, bi, l, li, X, tags[li])).join("")}
 ${b.mode !== "st" && b.lanes.length < PLAN_MAX.lanes ? `<button class="s w" data-tpla="${bi}" style="margin-top:4px">+ Souběžná linka (např. brankářky)</button>` : ""}</details>`;
 }
 // Délka bloku podle banky: Společně = délka cvičení první linky (bez brankářské), Stanoviště = délka cvičení × počet kol (točících se linek);
@@ -91,16 +92,16 @@ function blockEditHtml(b, bi, t, X, D, n) {
   if (isBreak(b)) return `<div class="tpe brk"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${bi + 1}. ☕ Pauza · ${clock(X.start, t.a)}–${clock(X.start, t.b)}</b>${mv}</div>
 <input data-tpbn="${bi}" maxlength="${BRK_MAX}" value="${esc(b.brk || "")}" placeholder="Pití, odpočinek…" style="margin:6px 0">${durRow(QUICK_BRK)}</div></div>`;
   // Sbalený blok: záhlaví s časem a délkou, obsah jedním řádkem na linku; klepnutí rozbalí
-  if (!isOpen(b, S.tpe.p)) return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;min-width:0;text-align:left;border:0;background:none;padding:2px 0"><b>▸ Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b><div class="mu" style="font-size:12px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}</div>${blockSum(b, D)}</button>${mv}</div></div>`;
+  if (!isOpen(b, S.tpe.p)) return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;min-width:0;text-align:left;border:0;background:none;padding:2px 0"><b>▸ Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b><div class="mu" style="font-size:12px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}</div>${blockSum(b, D, X)}</button>${mv}</div></div>`;
   const tags = laneTags(b), rl = b.lanes.filter(l => !isFixedLane(l)).length, auto = rl > 1 ? Math.round(b.dur / rl * 10) / 10 : b.dur;
-  return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;text-align:left;border:0;background:none;padding:2px 0"${S.tpe.p.blocks.length === 1 ? " disabled" : ""}><b>${S.tpe.p.blocks.length === 1 ? "" : "▾ "}Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b></button>
+  return `<div class="tpe" data-tpb="${bi}"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;text-align:left;border:0;background:none;padding:2px 0"${S.tpe.p.blocks.length === 1 ? " disabled" : ""}><b>${S.tpe.p.blocks.length === 1 ? "" : "▾ "}Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b></button>
 ${mv}</div>
 <div class="mu" style="font-size:12px;margin:2px 0 6px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${b.mode === "st" && b.rot ? " · točení po " + b.rot + " min" : ""}</div>
 ${durRow(QUICK_DUR)}${bankDur(b, D) && bankDur(b, D) !== b.dur ? `<button class="s" data-tpdq="${bi}|${bankDur(b, D)}">↺ z banky ${bankDur(b, D)}</button>` : ""}</div>
 ${b.lanes.map((l, li) => laneEditHtml(b, bi, l, li, X, D, tags[li])).join("")}
 ${b.mode === "st" && b.lanes.length < PLAN_MAX.lanes ? `<button class="s w" data-tpla="${bi}" style="margin-top:8px">+ Stanoviště / linka</button>` : ""}
 ${b.mode === "st" ? `<div class="mu" style="font-size:12px;margin-top:8px">Rozpis točení</div>${roundsHtml(b, t.a, {...X, mine: null, tid: null}) || '<div class="mu">Pro točení přidej aspoň 2 stanoviště se skupinami.</div>'}` : ""}
-${moreHtml(b, bi, X, tags, rl, auto)}</div>`;
+${moreHtml(b, bi, rl, auto)}</div>`;
 }
 function editorHtml(ctx) {
   const E = S.tpe, p = E.p, X = derive(ctx), D = drillMap(), T = planTimes(p.blocks), used = planMinutes(p.blocks), ev = ctx.ev, k = "tpx" + ev.id, kd = "tpdel" + ev.id, had = !!S.tp[ev.id];
@@ -129,13 +130,29 @@ function editSeq(lid, fn) { const E = S.tpe; if (!E) return; const g = document.
 // Sloučení při uložení se změnou jiného trenéra: domain/training-plan.js (mergePlan)
 const mergeSave = (E, fresh) => mergePlan(E.p, fresh, E.base, E.struct, E.sqd);
 const parts = (el, attr) => el.getAttribute(attr).split("|");
+// Návrat do detailu tréninku rovnou na kartu 📋 Plán (ne na začátek stránky – bez dalšího posouvání)
+const backToCard = () => { const c = document.querySelector("#tpc"); if (c && c.scrollIntoView) c.scrollIntoView({block: "start"}); else window.scrollTo(0, 0); };
 function bindEditor(a, ctx) {
   const E = S.tpe, eid = ctx.ev.id, X = derive(ctx), D = drillMap();
   const on = (attr, fn, ev = "onclick") => a.querySelectorAll("[" + attr + "]").forEach(el => { el[ev] = () => fn(parts(el, attr), el); });
   const lane = (bi, li) => E.p.blocks[+bi].lanes[+li];
   const flip = (arr, v) => (arr || []).includes(v) ? arr.filter(x => x !== v) : [...(arr || []), v];
   a.querySelector("#tpg").oninput = e => { E.p.goal = e.target.value; E.dirty = true; E.struct = true; };
-  on("data-tpadd", ([m]) => edit(p => { const b = m === "brk" ? breakBlank() : blockBlank(m, X.groups); p.blocks.push(b); E.op = [...(E.op || []), b.id]; }));
+  // 📚 Výběr cvičení linky: okno s hledáním, filtrem a ➕ novým cvičením; výběr převezme délku z banky, dokud ji trenér ručně nezměnil.
+  // doc = cvičení právě založené ve výběru (ještě nemusí být v S.dr)
+  const pickLane = (bi, li) => openDrillPicker(lane(bi, li).drill, (id, doc) => edit(p => {
+    const b = p.blocks[+bi], l = lane(bi, li), d = D[id] || (doc ? {id, ...doc} : null), DD = d ? {...D, [id]: d} : D;
+    l.drill = id; l.dn = d ? d.name : ""; l.di = d ? d.img || [] : [];
+    const bd = bankDur(b, DD);
+    if (bd && !(E.man || []).includes(b.id)) { b.dur = bd; if (b.rot && b.rot > b.dur) b.rot = null; }
+  }));
+  // Nový blok: rozbalí se, posune na obrazovku a u cvičení rovnou otevře výběr pro první linku (✕ = blok zůstane prázdný)
+  on("data-tpadd", ([m]) => {
+    edit(p => { const b = m === "brk" ? breakBlank() : blockBlank(m, X.groups); p.blocks.push(b); E.op = [...(E.op || []), b.id]; });
+    const bi = E.p.blocks.length - 1, el = document.querySelector('[data-tpb="' + bi + '"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({block: "start"});
+    if (m !== "brk") pickLane(bi, 0);
+  });
   // ▸ / ▾ Sbalení bloku a Rozbalit / Sbalit vše (jen zobrazení – plán se nemění, dirty zůstává)
   on("data-tpop", ([bi]) => { const id = E.p.blocks[+bi].id, o = E.op || []; E.op = o.includes(id) ? o.filter(x => x !== id) : [...o, id]; render(); });
   on("data-tpopa", ([v]) => { E.op = v === "1" ? E.p.blocks.map(b => b.id) : []; render(); });
@@ -152,21 +169,14 @@ function bindEditor(a, ctx) {
   on("data-tprot", ([bi], el) => edit(p => { p.blocks[+bi].rot = el.value ? +el.value : null; }), "onchange");
   on("data-tpla", ([bi]) => edit(p => { p.blocks[+bi].lanes.push(laneBlank()); }));
   on("data-tplr", ([bi, li]) => edit(p => { p.blocks[+bi].lanes.splice(+li, 1); }));
-  // Výběr cvičení: kopie názvu a obrázků; délku bloku převezme z banky, dokud ji trenér v této úpravě ručně nezměnil
-  // 📚 Výběr cvičení: okno s hledáním a filtrem; výběr převezme délku z banky, dokud ji trenér ručně nezměnil
-  on("data-tpdl", ([bi, li]) => openDrillPicker(lane(bi, li).drill, id => edit(p => {
-    const b = p.blocks[+bi], l = lane(bi, li), d = D[id];
-    l.drill = id; l.dn = d ? d.name : ""; l.di = d ? d.img || [] : [];
-    const bd = bankDur(b, D);
-    if (bd && !(E.man || []).includes(b.id)) { b.dur = bd; if (b.rot && b.rot > b.dur) b.rot = null; }
-  })));
+  on("data-tpdl", ([bi, li]) => pickLane(bi, li));
   on("data-tpco", ([bi, li, id]) => edit(() => { const l = lane(bi, li); l.co = flip(l.co, id); }));
   // 🔁 Řada cvičení: převod linky, výběr cvičení (čas z banky, dokud ho trenér nezměnil), čas −/+ / číslo, ↑ pořadí, 🗑, + cvičení, zpět na jedno
   const sq = (bi, li) => lane(bi, li).seq;
   const sdur = (x, v) => { if (v >= BLK_DUR_MIN && v <= BLK_DUR_MAX) x.dur = v; E.sman = [...new Set([...(E.sman || []), x.id])]; };
   on("data-tpsq", ([bi, li]) => editSeq(lane(bi, li).id, p => { const b = p.blocks[+bi]; lane(bi, li).seq = seqStart(b, lane(bi, li)); }));
-  on("data-tpsd", ([bi, li, i]) => openDrillPicker(sq(bi, li)[+i].drill, id => editSeq(lane(bi, li).id, () => {
-    const x = sq(bi, li)[+i], d = D[id];
+  on("data-tpsd", ([bi, li, i]) => openDrillPicker(sq(bi, li)[+i].drill, (id, doc) => editSeq(lane(bi, li).id, () => {
+    const x = sq(bi, li)[+i], d = D[id] || (doc ? {id, ...doc} : null);
     x.drill = id; x.dn = d ? d.name : ""; x.di = d ? d.img || [] : [];
     if (d && +d.dur > 0 && !(E.sman || []).includes(x.id)) x.dur = Math.max(BLK_DUR_MIN, Math.min(BLK_DUR_MAX, Math.round(+d.dur)));
   })));
@@ -196,7 +206,7 @@ function bindEditor(a, ctx) {
     if (add) l.grp = [...l.grp, v];
   }));
   // Zpět: bez změn hned, s neuloženými změnami druhým klepnutím
-  a.querySelector("#tpx").onclick = () => { const close = () => { S.tpe = null; render(); window.scrollTo(0, 0); }; if (!E.dirty) close(); else confirm2("tpx" + eid, close); };
+  a.querySelector("#tpx").onclick = () => { const close = () => { S.tpe = null; render(); backToCard(); }; if (!E.dirty) close(); else confirm2("tpx" + eid, close); };
   a.querySelector("#tpok").onclick = () => {
     const g = a.querySelector("#tpg");
     if (g) E.p.goal = g.value;
@@ -208,7 +218,7 @@ function bindEditor(a, ctx) {
     const err = planIssues(doc, {total: X.total, groups: X.groups, pgroups: X.pgroups}).filter(x => x.lvl === "err").length, who = fresh && fresh.by ? String(fresh.by).split("@")[0] : "jiný trenér";
     const mt = !m.merged ? "" : m.lost ? " – " + who + " mezitím plán změnil; cvičení jeho linek zůstala, bloky jsou podle tebe" : " – sloučeno se změnami, které mezitím uložil " + who;
     toast((err ? "Plán uložen – pozor, má " + err + " " + (err === 1 ? "chybu" : "chyby") + " (⛔)" : "Plán tréninku uložen") + mt);
-    S.tpe = null; render(); window.scrollTo(0, 0);
+    S.tpe = null; render(); backToCard();
   };
   // ⧉ / 📑 převzetí plánu (nahradí rozpracovaný) a 📊 pokrytí
   bindReuse(a, eid, X, D, p => { const g = a.querySelector("#tpg"); E.p = {...p, goal: p.goal || (g ? g.value : "")}; E.man = setMan(E.p); E.dirty = true; E.struct = true; render(); window.scrollTo(0, 0); }, () => E.p);

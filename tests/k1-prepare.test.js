@@ -14,10 +14,10 @@ test("blockExtras: základní blok Společně i Stanoviště bez voleb = sbaleno
   assert.equal(blockExtras({mode: "st", dur: 24, lanes: [lane([1]), lane([2]), lane([GK])]}), false);
   assert.equal(blockExtras(null), false);
 });
-test("blockExtras: posty, vlastní točení, trenér nebo souběžná linka = otevřeno", () => {
+test("blockExtras: posty, vlastní točení nebo souběžná linka = otevřeno; trenér linky ne (v22.27 je přímo u linky)", () => {
   assert.equal(blockExtras({mode: "st", by: "pos", lanes: [lane(), lane()]}), true);
   assert.equal(blockExtras({mode: "st", rot: 6, lanes: [lane(), lane()]}), true);
-  assert.equal(blockExtras({mode: "all", lanes: [lane([], ["s1"])]}), true);
+  assert.equal(blockExtras({mode: "all", lanes: [lane([], ["s1"])]}), false);
   assert.equal(blockExtras({mode: "all", lanes: [lane(), lane([GK])]}), true);
 });
 

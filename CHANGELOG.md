@@ -2,6 +2,26 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.27 (1. 11. 2026) – 📋 Plán tréninku pohodlněji
+> **Nasazení – kanál 🧪 BETA:** commit „v22.27“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v129`). 🔒 Vyžadovat verzi: ne. Test: kap. 30.
+
+**Změněno** (požadavek uživatele 31. 10. 2026 – trenér chystá trénink na telefonu s co nejméně klepnutími)
+- 🎓 **Trenéři linky přímo u linky** (`views/trplan-edit.js`): řádek se jmény přihlášeného realizačního týmu pod skupinami, jedno klepnutí přidá / odebere. Z „⚙ Další volby“ trenéři zmizeli (zůstal režim, ⚔ podle postů, točení a souběžná linka); `blockExtras` (`domain/training-plan.js`) kvůli trenérovi sekci neotevírá. Sbalený blok ukazuje trenéry v souhrnu („· 🎓 Petr“).
+- ➕ **Nové cvičení přímo z plánování** (`views/drill-picker.js`): ve výběru cvičení tlačítko ➕ Nové cvičení (i u prázdného výsledku hledání) – název předvyplněný z hledání, část tréninku (z filtru), délka klepnutím, popis, volitelně 📷 obrázek, ▶ video, 📄 PDF. 💾 Uloží do 📚 banky a hned vloží do linky / řady, odkud se vybíralo; plán zůstane otevřený na stejném místě. Bez práva upravovat banku se tlačítko neukáže.
+  - Žádná kopie logiky: zápis cvičení i s obrázky je jedna funkce `writeDrill` (`views/drills-view.js`, používá ji i formulář banky), výchozí dovednost podle kategorie `quickDrill` z ⚡ improvizace (`domain/training-impro.js`), zmenšení fotky `shrinkImage`. Nové cvičení se hned přidá do `S.dr`, aby linka měla název a délku ještě před odpovědí databáze.
+- **Další zkrácení toku „připravit trénink“ (bod 3):**
+  - Nový blok 👥 / 🔄 se posune na obrazovku a rovnou otevře výběr cvičení první linky (dřív: přidat → najít blok dole → klepnout na 📚 Vybrat).
+  - 💾 Uložit plán a ← Zpět k tréninku vrátí obrazovku na kartu 📋 Plán v detailu (dřív na začátek detailu a posouvat dolů).
+  - 🎓 trenéři bez rozklikávání „⚙ Další volby“ (viz výše).
+
+**Opraveno**
+- ⭐ Výkonnost (`views/line-split-view.js`): klepnutí na hvězdy už okno nepřekresluje – čísla se označí přímo v řádku a seznam zůstane na místě; poslech `plevel` při otevřeném okně nepřekresluje (souhrn se obnoví po zavření). Dřív obrazovka mohla skočit nahoru.
+- `docs/STAV.md`: stabilní = v22.25 (PR #4), publikace pravidel v22.25 k ověření.
+
+**Beze změny:** data a pravidla, živý trénink, ⚡ improvizace, živý zápis, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (501 testů; `tests/k1-prepare.test.js` – trenér linky už neotevírá „Další volby“), `npm run smoke` bez chyb pro všechny role (nově: trenéři nejsou v ⚙ Další volby, nový blok otevře výběr, ➕ nové cvičení zapíše `drills` a vloží se do bloku).
+
 ## v22.26 (31. 10. 2026) – 🎨 Čitelnost karet událostí
 > **Nasazení – kanál 🧪 BETA:** commit „v22.26“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v128`). 🔒 Vyžadovat verzi: ne.
 
