@@ -118,7 +118,7 @@ ${reuseHtml(ev.id)}${coverHtml(ev.id, X)}</div>
 ${p.blocks.map((b, bi) => E.only && anyMine(p, X) && !(b.lanes || []).some(l => myLane(l, X)) ? `<div class="tpe" style="opacity:.75">${blockHtml(b, bi, T[bi], {...X, mine: null}, D)}</div>` : blockEditHtml(b, bi, T[bi], X, D, p.blocks.length)).join("")}
 ${p.blocks.length > 1 ? `<div class="chips" style="margin:0 0 8px"><button class="chip" data-tpopa="1">▾ Rozbalit vše</button><button class="chip" data-tpopa="0">▸ Sbalit vše</button></div>` : ""}
 ${p.blocks.length < PLAN_MAX.blocks ? `<div class="row" style="margin-bottom:12px"><button class="s" data-tpadd="all">+ 👥 Společně</button><button class="s" data-tpadd="st">+ 🔄 Stanoviště</button><button class="s" data-tpadd="brk">+ ☕ Pauza</button></div>` : ""}
-<div class="tpsv"><div class="row"><button class="p" id="tpok" style="flex:2;min-height:52px">💾 Uložit plán</button>${had ? `<button class="d" id="tpdel" style="flex:1;${armed(kd) ? "background:var(--no);color:#fff" : ""}">${armed(kd) ? "Opravdu smazat?" : "🗑 Smazat plán"}</button>` : ""}</div></div></div>`;
+<div class="tpsv"><div class="row"><button class="p" id="tpok" style="flex:2;min-height:52px">💾 Uložit plán</button>${had ? `<button class="d" id="tpdel" style="flex:1;${armed(kd) ? "background:var(--no);color:#fff" : ""}">${armed(kd) ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat plán"}</button>` : ""}</div></div></div>`;
 }
 
 // ===== Eventy =====
@@ -217,7 +217,7 @@ function bindEditor(a, ctx) {
     S.tp[eid] = doc;
     const err = planIssues(doc, {total: X.total, groups: X.groups, pgroups: X.pgroups}).filter(x => x.lvl === "err").length, who = fresh && fresh.by ? String(fresh.by).split("@")[0] : "jiný trenér";
     const mt = !m.merged ? "" : m.lost ? " – " + who + " mezitím plán změnil; cvičení jeho linek zůstala, bloky jsou podle tebe" : " – sloučeno se změnami, které mezitím uložil " + who;
-    toast((err ? "Plán uložen – pozor, má " + err + " " + (err === 1 ? "chybu" : "chyby") + " (⛔)" : "Plán tréninku uložen") + mt);
+    toast((err ? "Plán uložen – pozor, má " + err + " " + (err === 1 ? "chybu" : "chyby") + " (⛔)" : "✅ Plán tréninku uložen") + mt);
     S.tpe = null; render(); backToCard();
   };
   // ⧉ / 📑 převzetí plánu (nahradí rozpracovaný) a 📊 pokrytí

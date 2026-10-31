@@ -149,6 +149,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `pn(id, {staff, fb})`, `nm(...)` | `core/selectors.js` | jméno osoby s HTML / čistý text |
 | `csv(rows)`, `downloadFile` | `core/utils.js` | jediné CSV pro Excel; částky `csvNum` (`domain/cash.js`) |
 | `shareText(text, hláška)` | `core/utils.js` | 📤 sdílení textu (sdílení telefonu → schránka → `"fail"` = ukázat text) |
+| `toast`, `MSG`, `failMsg(děj, chyba)`, `TOAST_MS` | `core/utils.js` | jednotné hlášky: ✅ uloženo, ⚠️ „… se nepovedlo: důvod“, 📶 offline (hlásí sám `storage.js` při zápisu bez signálu), délka 3,5 s; potvrzení vždy `confirm2` s textem „… Klepni znovu“ (hlídá `tests/messages.test.js`) |
 | `makeDrag(root, items, {...})` | `core/drag.js` | přetahování |
 | `matchesVs` / `vsHash` | `core/selectors.js` / `domain/cash.js` | zápasy proti soupeři / variabilní symbol (nezaměňovat) |
 | `HK.can(akce)` | `data/storage.js` | zkratky: `sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`; neznámá akce = výjimka |

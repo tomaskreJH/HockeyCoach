@@ -5,7 +5,13 @@ export const oidOf=t=>{let h=5381;const n=norm(t);for(let i=0;i<n.length;i++)h=(
 export const Q=x=>document.querySelector(x)||{};
 export const $=s=>document.querySelector(s);
 // Hláška je nad všemi okny (z-index 80), aby byla vidět i nad nastavením pokladny a oknem úhrady
-export const toast=t=>{let e=$("#toast");if(!e){e=document.createElement("div");e.id="toast";e.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14202e;color:#fff;padding:12px 18px;border-radius:10px;z-index:80;max-width:90%;font-size:15px";document.body.appendChild(e)}e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",3500)};
+// ===== Jednotné hlášky (v22.30) =====
+// Délka zobrazení každé hlášky (ms) a společné texty: uloženo / nepovedlo se (+ důvod) / bez připojení
+export const TOAST_MS=3500;
+export const MSG={saved:"✅ Uloženo",offline:"📶 Bez připojení – uloženo v zařízení, odešle se po připojení",armed:"Klepni znovu"};
+// „⚠️ Uložení se nepovedlo: důvod“ – what = podstatné jméno děje (Uložení, Smazání, Odeslání …), e = chyba (kód nebo text)
+export const failMsg=(what,e)=>"⚠️ "+(what||"Uložení")+" se nepovedlo"+(e?": "+((e&&(e.code||e.message))||e):"");
+export const toast=t=>{let e=$("#toast");if(!e){e=document.createElement("div");e.id="toast";e.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#14202e;color:#fff;padding:12px 18px;border-radius:10px;z-index:80;max-width:90%;font-size:15px";document.body.appendChild(e)}e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",TOAST_MS)};
 export const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 export const td=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 export const fd=s=>{const[a,b,c]=s.split("-");return+c+". "+ +b+". "+a};

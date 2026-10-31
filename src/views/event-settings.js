@@ -58,7 +58,7 @@ function bind(e) {
       dlT: clampMin(D.dlT, DL_MAX, DL_DEF.dlT), dlM: clampMin(D.dlM, DL_MAX, DL_DEF.dlM), dlH: okTime(D.dlH) ? D.dlH : DL_DEF.dlH};
     if (!d.len) return toast("Délka tréninku musí být aspoň 1 minuta");
     S.db.doc(EVSET_DOC).merge({...d, by: (HK.user() || {}).email || "", at: new Date().toISOString()});
-    toast("Nastavení událostí uloženo");
+    toast("✅ Nastavení událostí uloženo");
     close();
   };
 }

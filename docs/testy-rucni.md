@@ -239,6 +239,14 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 33. v22.30 (beta) – 💬 Jednotné hlášky a potvrzení
+- [ ] 33.1 V betě je v záhlaví **v22.30**.
+- [ ] 33.2 Režim letadlo → přihlásit se na trénink (✅ Jdu) nebo uložit plán → dole „📶 Bez připojení – uloženo v zařízení, odešle se po připojení“ (nejvýš jednou za 20 s). Vypnout letadlo → změna je v databázi (druhé zařízení ji uvidí).
+- [ ] 33.3 Uložení s chybou (např. 👁 náhled role hráčky není chyba – jen „V náhledu se nezapisuje“; chybu vyvolá třeba nepublikované pravidlo) → „⚠️ Uložení se nepovedlo: důvod“. Úspěch: „✅ … uloženo“ (plán tréninku, nastavení, poznámka, nepřítomnost).
+- [ ] 33.4 ⚙️ → 👥 Členové týmu → Odebrat: tlačítko zčervená „Odebrat přístup? Klepni znovu“ (žádné okno prohlížeče), po 4 s se vrátí; druhé klepnutí odebere.
+- [ ] 33.5 ⚙️ → Pokladna → návrh změny účtů (druhý správce) → ✕ Zamítnout: „Opravdu zamítnout? Klepni znovu“, druhé klepnutí návrh zamítne.
+- [ ] 33.6 Namátkou: 🗑 Smazat plán, 🗑 Smazat cvičení (vyřazené), ✋ žádosti Schválit / Zamítnout – všude „… Klepni znovu“ a stejná doba 4 s.
+
 ## 32. v22.29 (beta) – 🏒 Zápas: Jako minule a souhrn
 - [ ] 32.1 V betě je v záhlaví **v22.29**.
 - [ ] 32.2 Nový zápas → nominace → 2 Sestava: vedle ↻ Podle základní formace je **⧉ Jako minule** a pod ním „ze zápasu X d. m. rrrr“ (poslední zápas se sestavou, i proti jinému soupeři).

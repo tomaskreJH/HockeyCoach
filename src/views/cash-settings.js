@@ -5,7 +5,7 @@
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
-import {clone, esc, toast, uid} from "../core/utils.js";
+import {clone, esc, failMsg, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {accCheck, codeMatch, ibanFmt, ibanToCz, pairCode, parseAcc} from "../domain/bank-account.js";
 import {ACC, ACC_META, WHO, accMeta, cashCfg} from "../domain/cash.js";
@@ -29,6 +29,7 @@ function setP(i) {
 }
 const sync = e => e.querySelectorAll("[data-f]").forEach(setP);
 // Zrušení rozpracovaného potvrzení smazání šablony
+const APN_KEY = "cs-apn";                                 // potvrzení ✕ Zamítnout návrh změny účtů
 const disarm = () => { if (armed(TD_KEY)) S.cf = null; };
 const chip = (on, attr, label) => `<button class="chip ${on ? "on" : ""}" ${attr}>${label}</button>`;
 
@@ -57,7 +58,7 @@ function accHtml() {
   const pendBad = pend && pend.code && !codeMatch(pendCode, pend.code);
   const pendH = pend ? `<div class="cd" style="border-color:var(--wa);padding:10px"><b style="color:var(--wa)">⏳ Čeká na potvrzení změny účtů</b><div style="margin:6px 0">Hlavní: ${accTxt(pend.iban)}<br>Provozní: ${accTxt(pend.iban2)}</div><div class="mu">Navrhl ${esc(pend.by)} · ${esc(fDt(pend.at))}</div>
 ${pendBad ? '<div style="margin:6px 0;color:var(--no);font-weight:600">⛔ Kód se neshoduje s účty v návrhu – návrh mohl být změněn. Zamítni ho a navrhni znovu.</div>' : ""}
-${mine ? `<div class="mu" style="margin:6px 0">Kód návrhu: <b style="font-size:17px">${esc(pendCode)}</b> – řekni ho potvrzujícímu (osobně nebo telefonem). Potvrdit musí jiný správce pokladny.</div><button class="s w" data-apx>Zrušit návrh</button>` : '<div class="mu" style="margin:6px 0">Před potvrzením si nech od navrhovatele přečíst kód návrhu a ověř ho jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn>✕ Zamítnout</button></div>'}</div>` : "";
+${mine ? `<div class="mu" style="margin:6px 0">Kód návrhu: <b style="font-size:17px">${esc(pendCode)}</b> – řekni ho potvrzujícímu (osobně nebo telefonem). Potvrdit musí jiný správce pokladny.</div><button class="s w" data-apx>Zrušit návrh</button>` : '<div class="mu" style="margin:6px 0">Před potvrzením si nech od navrhovatele přečíst kód návrhu a ověř ho jinou cestou (telefonem nebo osobně), ne jen zprávou.</div><div class="row"><button class="p" data-apo>✓ Potvrdit změnu</button><button class="d" data-apn style="${armed(APN_KEY) ? "background:var(--no);color:#fff" : ""}">${armed(APN_KEY) ? "Opravdu zamítnout? Klepni znovu" : "✕ Zamítnout"}</button></div>'}</div>` : "";
   const v1 = accIn ? accIn.a1 : ibanToCz(c.iban) || c.iban || "", v2 = accIn ? accIn.a2 : ibanToCz(c.iban2) || c.iban2 || "";
   const form = coach ? `<h3>Navrhnout změnu účtů</h3><label>Hlavní účet – číslo účtu (např. 19-2000145399/0800) nebo IBAN</label><input id="acc1" value="${esc(v1)}" inputmode="text" autocomplete="off"><div id="ack1">${chkTxt(v1).h}</div><label>Provozní účet (nepovinné; prázdné = vše na hlavní účet)</label><input id="acc2" value="${esc(v2)}" inputmode="text" autocomplete="off"><div id="ack2">${chkTxt(v2).h}</div><div class="mu" style="margin-bottom:6px">Změna se projeví až po potvrzení jiným trenérem nebo pokladníkem. Návrh i potvrzení se zapíší do auditu a hráčkám se nový účet zobrazí s varováním.</div><button class="s w" data-apr>📝 Navrhnout změnu účtů</button>` : '<div class="mu" style="margin-top:6px">Čísla účtů navrhuje jen trenér; pokladník změnu potvrzuje.</div>';
   watchAudit("", refreshCashSettings);   // 📉 obecné záznamy auditu (změny účtů) až při otevření nastavení
@@ -144,7 +145,8 @@ function bind(e) {
   if (a1) { a1.oninput = () => { keep(); e.querySelector("#ack1").innerHTML = chkTxt(a1.value).h; }; a2.oninput = () => { keep(); e.querySelector("#ack2").innerHTML = chkTxt(a2.value).h; }; }
   act("[data-apr]", () => propose(e));
   act("[data-apo]", () => approve());
-  act("[data-apn]", () => { if (confirm("Zamítnout návrh změny účtů?")) dropPend("acc-no"); });
+  // ✕ Zamítnout návrh účtů: potvrzení druhým klepnutím jako všude (dřív okno prohlížeče)
+  q("[data-apn]").forEach(b => { b.onclick = () => { sync(e); confirm2(APN_KEY, () => dropPend("acc-no"), refreshCashSettings); }; });
   act("[data-apx]", () => dropPend("acc-off"));
   act("[data-ta]", b => { D.tpls[sel].acc = b.dataset.ta; });
   act("[data-ra]", b => { const k = b.dataset.ra, v = (document.getElementById("nc" + k).value || "").trim(); if (v && !D.cats[k].includes(v)) D.cats[k].push(v); });
@@ -166,7 +168,7 @@ function bind(e) {
     const c = S.cc || {};
     ACC_META.forEach(k => { delete D[k]; });
     Object.assign(D, {iban: c.iban || "", iban2: c.iban2 || ""}, accMeta(c));
-    S.db.doc("settings/cash").merge(D).then(() => toast("Nastavení pokladny uloženo")).catch(() => toast("Uložení se nepovedlo"));
+    S.db.doc("settings/cash").merge(D).then(() => toast("✅ Nastavení pokladny uloženo")).catch(() => toast(failMsg("Uložení")));
     disarm(); close();
   };
 }

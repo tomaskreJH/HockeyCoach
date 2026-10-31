@@ -8,7 +8,7 @@
 import {APP_NAME, DEV_EMAILS} from "../config/team-config.js";
 import {APP_LABEL, APP_VERSION, cmpVer, isOutdated} from "../core/app-version.js";
 import {CHANNEL, IS_BETA, cachePrefix} from "../core/channel.js";
-import {clone, esc, td, toast} from "../core/utils.js";
+import {MSG, clone, esc, failMsg, td, toast} from "../core/utils.js";
 import {BUDGET_COLL} from "../domain/budget.js";
 import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom, winTo} from "../domain/data-window.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
@@ -84,6 +84,14 @@ const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL, T
 // ===== Pomocné funkce =====
 const stamp = () => new Date().toISOString().slice(0, 10);
 const say = m => toast(m);
+// 📶 Zápis bez připojení: jednotná hláška (nejvýš jednou za OFF_MS, po hlášce pohledu – je důležitější); zápis se odešle po připojení
+const OFF_MS = 20000;
+let offAt = 0;
+function offNote() {
+  if (typeof navigator === "undefined" || navigator.onLine !== false || Date.now() - offAt < OFF_MS) return;
+  offAt = Date.now();
+  setTimeout(() => say(MSG.offline), 0);
+}
 const errTxt = e => (e && (e.code || e.message)) || String(e);
 const isStaff = () => STAFF.includes(role);
 const isCash = () => actOf(role, cash, "money");               // správce pokladny: manager nebo pokladník (příznak cash)
@@ -291,7 +299,7 @@ function subscribe(c, cb, er) {
   if (first[c]) setTimeout(() => cb(view(c)), 0);
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
-function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(withD(c, d))).catch(e => say("Uložení se nepovedlo: " + errTxt(e))); moveAtt(c, id, d); }
+function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(withD(c, d))).catch(e => say(failMsg("Uložení", errTxt(e)))); moveAtt(c, id, d); offNote(); }
 // Hodnoty pro částečný zápis: "__del" smaže pole, "__now" = čas serveru (serverTimestamp), ostatní se zkopírují;
 // undefDel = i undefined smaže pole (jinak se vynechá)
 const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k, v]) => { if (v === undefined && !undefDel) return; o[k] = v === "__now" ? serverTimestamp() : v === "__del" || v === undefined ? deleteField() : clone({v}).v; }); return o; };
@@ -300,8 +308,9 @@ const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k
 function mergeDoc(c, id, d) {
   if (blocked()) return;
   const o = mergeVals(d, true);
-  setDoc(fsDoc(fs, c, id), o, {mergeFields: Object.keys(o)}).catch(e => say("Uložení se nepovedlo: " + errTxt(e)));
+  setDoc(fsDoc(fs, c, id), o, {mergeFields: Object.keys(o)}).catch(e => say(failMsg("Uložení", errTxt(e))));
   moveAtt(c, id, d);
+  offNote();
 }
 // Kontrola mazání události / zápasu s vyúčtováním:
 //  - vyúčtovanou událost smaže jen správce pokladny,
@@ -330,7 +339,8 @@ function removeDoc(c, id) {
   if ((c === "matches" || c === "events") && isCash() && data.evcash[id]) deleteDoc(fsDoc(fs, "evcash", id)).catch(() => {});
   // Cena události na hlavu pro hráčky (evprice) také
   if ((c === "matches" || c === "events") && isCash() && data[PRICE_COLL][id]) deleteDoc(fsDoc(fs, PRICE_COLL, id)).catch(() => {});
-  deleteDoc(fsDoc(fs, c, id)).catch(e => say("Smazání se nepovedlo: " + errTxt(e)));
+  deleteDoc(fsDoc(fs, c, id)).catch(e => say(failMsg("Smazání", errTxt(e))));
+  offNote();
 }
 // Předpisy jako seznam {id, ...data} a test člena realizačního týmu (pro souhrn dlužníků)
 const chList = () => Object.entries(data.charges).map(([id, d]) => ({id, ...d}));
@@ -435,7 +445,7 @@ function makeBatch() {
     merge: (p, d) => { const [c, id] = splitPath(p); b.set(fsDoc(fs, c, id), mergeVals(d), {merge: true}); attMoves(c, id, d).forEach(([aid, v]) => b.set(fsDoc(fs, "attendance", aid), {d: v}, {merge: true})); return api; },
     delete: p => { const [c, id] = splitPath(p); b.delete(fsDoc(fs, c, id)); return api; },
     // V náhledu jen ke čtení se dávka nepotvrdí (nic neodejde)
-    commit: () => blocked() ? Promise.resolve() : b.commit().catch(e => say("Uložení se nepovedlo: " + errTxt(e)))
+    commit: () => { if (blocked()) return Promise.resolve(); offNote(); return b.commit().catch(e => say(failMsg("Uložení", errTxt(e)))); }
   };
   return api;
 }
@@ -513,7 +523,7 @@ async function doLogin() {
   catch (e) {
     // Prohlížeč zablokoval okno: přihlášení přesměrováním (stránka se po návratu načte znovu)
     if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") { await signInWithRedirect(auth, prov); return new Promise(() => {}); }
-    if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") say("Přihlášení se nepovedlo: " + errTxt(e));
+    if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") say(failMsg("Přihlášení", errTxt(e)));
     return null;
   }
 }
@@ -539,7 +549,7 @@ async function joinFlow() {
 async function boot() {
   if (!configOk()) { await screen("Chybí nastavení Firebase", "Vyplň hodnoty v souboru <code>src/data/firebase-config.js</code>.", []); return new Promise(() => {}); }
   initFirebase();
-  try { await getRedirectResult(auth); } catch (e) { say("Přihlášení se nepovedlo: " + errTxt(e)); }
+  try { await getRedirectResult(auth); } catch (e) { say(failMsg("Přihlášení", errTxt(e))); }
   user = await authUser();
   for (;;) {
     if (!user) {

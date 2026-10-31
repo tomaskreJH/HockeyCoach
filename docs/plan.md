@@ -13,7 +13,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
 | ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | ~~v22.11~~ | hotovo | 🧪 beta kanál: větev `beta` → `…/beta/` pro vybrané testery, vydání pro všechny PR `beta → main` |
-| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); v22.21 kód účtu u QR platby; v22.27 📋 plán tréninku pohodlněji (🎓 trenéři u linky, ➕ nové cvičení z výběru); v22.28 přehlednější ⏱ živý trénink; 5 hotovo v22.29; další úprava proběhlého tréninku (čeká na souhlas), 6 hlášky, 7 pokladna |
+| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); v22.21 kód účtu u QR platby; v22.27 📋 plán tréninku pohodlněji (🎓 trenéři u linky, ➕ nové cvičení z výběru); v22.28 přehlednější ⏱ živý trénink; 5 hotovo v22.29, 6 v22.30; další úprava proběhlého tréninku (čeká na souhlas), 7 pokladna |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
@@ -37,7 +37,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 3. ~~**Plán tréninku:**~~ **hotovo v22.15** – ⧉ „Jako minule“ jedním klepnutím (kopie posledního plánu stejného dne v týdnu), sbalené bloky s celkovým časem v záhlaví.
 4. ~~**Živý trénink:**~~ **hotovo v22.17 (beta)** – pevná spodní lišta řídícího ⏸ / ⏭ / +1 min, zbývá plán a do konce tréninku v přilepeném záhlaví; navíc po kontrole před ostrým testem: ohlášení změny od řídícího ostatním trenérům, 🔒 zámek dotyku, obnova Wake Lock se stavem ☀, hodiny správně po zápisu bez signálu. **v22.18 ⚡ improvizace** (zadáno 28. 10. 2026): ➕ cvičení / ☕ pauza do plánu za běhu (z banky i nové názvem, 💾 do banky), trénink bez plánu, 👥 Na ledě s 🚫.
 5. ~~**Zápas:**~~ **hotovo v22.29 (beta)** – sestava „Jako minule“ (poslední sestava proti komukoli), po uzavření zápasu rovnou souhrn ke sdílení.
-6. **Jednotné hlášky:** stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.
+6. ~~**Jednotné hlášky:**~~ **hotovo v22.30 (beta)** – stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.
 7. **Pokladna:** ➖ výdaj předvyplní poslední použitou kategorii, příjemce a účet.
 Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.
 

@@ -54,7 +54,7 @@ export function attReqModal() {
   return `<div class="md" id="aqbg"><div class="mb"><h2>✋ Žádost o změnu účasti</h2><div><b>${whoH(r.mid)}</b></div><div style="margin-top:4px">${evLine(e)}</div>
 <div style="margin-top:6px">Teď: <b>${esc(cur ? WANT[cur] : "bez odpovědi")}</b> → chce: <b>${esc(WANT[r.want] || r.want)}</b></div>
 ${r.reason ? `<div style="margin-top:6px">„${esc(r.reason)}“</div>` : ""}<div class="mu">Podáno ${esc(fd(String(r.at || "").slice(0, 10)))}${r.by ? " · " + esc(r.by) : ""}${r.abs ? " · z nepřítomnosti 🏖" : ""}</div>${warn}
-<input id="aqrep" placeholder="Odpověď (nepovinné)" maxlength="300" value="${esc(reply)}" style="margin-top:10px"><div class="row" style="margin-top:8px"><button class="p" id="aqok">${armed("aqok" + r.id) ? "Opravdu schválit?" : "✓ Schválit"}</button><button class="d" id="aqno">${armed("aqno" + r.id) ? "Opravdu zamítnout?" : "✕ Zamítnout"}</button></div>
+<input id="aqrep" placeholder="Odpověď (nepovinné)" maxlength="300" value="${esc(reply)}" style="margin-top:10px"><div class="row" style="margin-top:8px"><button class="p" id="aqok">${armed("aqok" + r.id) ? "Opravdu schválit? Klepni znovu" : "✓ Schválit"}</button><button class="d" id="aqno">${armed("aqno" + r.id) ? "Opravdu zamítnout? Klepni znovu" : "✕ Zamítnout"}</button></div>
 <button class="s w" id="aqx" style="margin-top:12px;min-height:48px">Zavřít</button></div></div>`;
 }
 

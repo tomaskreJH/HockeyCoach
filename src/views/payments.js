@@ -398,7 +398,7 @@ export function bindPay(a, ev) {
   if (es) es.onclick = () => {
     sync();
     S.db.doc("evcash/" + ev.id).set({...fromDraft()});
-    toast("Nastavení uloženo");
+    toast("✅ Nastavení uloženo");
   };
   // Uzavření vyúčtování (jedna atomická dávka v settleEvent)
   const ec = a.querySelector("#cec");

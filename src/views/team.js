@@ -8,7 +8,7 @@ import {confirm2,saveDef} from "../core/actions.js";
 import {PG,isG,kindOf,pl,pn,pri,stOf} from "../core/selectors.js";
 import {makeDrag} from "../core/drag.js";
 import {S} from "../core/state.js";
-import {$,clone,esc,toast} from "../core/utils.js";
+import {$, clone, esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {benchOrder} from "../domain/lineup.js";
 import {GRP,exOf,fxOf,fxPct,grpOf,pctToFx} from "../domain/cash.js";
@@ -57,11 +57,11 @@ const id=S.db.collection("players").newId();
 S.db.batch().set("players/"+id,{name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act",...($("#pgs").checked?{guest:true}:{})}).set(PPAY_COLL+"/"+id,plPayDoc({grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()})).commit()};
 a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),guest:p.guest===true,grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
 // Smazání hráčky (jen trenér): s ní i její platební pole v plpay
-a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast("Smazání se nepovedlo"));S.db.doc(PPAY_COLL+"/"+id).delete()})});
+a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast(failMsg("Smazání")));S.db.doc(PPAY_COLL+"/"+id).delete()})});
 // Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka, důvody a plat ve staffpay)
-Q2("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast("Uložení se nepovedlo"))};
+Q2("#stadd").onclick=()=>{const n=$("#stn").value.trim();if(!n)return toast("Zadej jméno");S.db.collection("staff").add({name:n,kind:$("#stk").value}).catch(()=>toast(failMsg("Uložení")))};
 a.querySelectorAll("[data-te]").forEach(b=>b.onclick=()=>{const t=S.tr.find(x=>x.id===b.dataset.te);if(!t)return;S.M={k:"ES",id:t.id,name:t.name||"",kind:kindOf(t)||KIND[0],pay:t.pay||{m:"none",amt:0}};modal()});
-a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>{S.db.doc("attendance/"+x.id).delete();if(S.an[x.id])S.db.doc(NOTE_COLL+"/"+x.id).delete()});S.db.doc(SPAY_COLL+"/"+id).delete();S.db.doc("staff/"+id).delete().catch(()=>toast("Smazání se nepovedlo"))})})}
+a.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{const id=b.dataset.td;confirm2("t"+id,()=>{S.at.filter(x=>x.pid===id).forEach(x=>{S.db.doc("attendance/"+x.id).delete();if(S.an[x.id])S.db.doc(NOTE_COLL+"/"+x.id).delete()});S.db.doc(SPAY_COLL+"/"+id).delete();S.db.doc("staff/"+id).delete().catch(()=>toast(failMsg("Smazání")))})})}
 
 // ===== Přepínač režimů, základní formace a náhradnice =====
 export function formV(a){

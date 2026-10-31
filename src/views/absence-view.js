@@ -109,7 +109,7 @@ function save() {
   b.commit();
   flushLog();
   S.abf = null;
-  toast("Nepřítomnost uložena" + (p.write.length ? " · omluveno " + p.write.length : "") + (p.req.length && !staff() ? " · žádosti " + p.req.length : ""));
+  toast("✅ Nepřítomnost uložena" + (p.write.length ? " · omluveno " + p.write.length : "") + (p.req.length && !staff() ? " · žádosti " + p.req.length : ""));
   render();
 }
 // Zrušení nepřítomnosti s vrácením jejích omluv

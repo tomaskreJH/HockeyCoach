@@ -6,7 +6,7 @@
 import {confirm2, strip} from "../core/actions.js";
 import {pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, fd, td, toast, uid} from "../core/utils.js";
+import {esc, failMsg, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {ACC, TR, accLabel, accName, cashAcc, cashCfg, catSums, chargeMsg, isDay, kc, r2, sumCash, trCheck, trFrom, trTo, twoAcc, ymOk, ymShort} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
@@ -175,7 +175,7 @@ export function bindCashbook(a) {
     if (f.k === TR) {
       const r = trCheck(f, twoAcc(cfg));
       if (r.err) return toast(r.err);
-      S.db.doc("cash/" + uid()).set({d: f.d, k: TR, amt: r.amt, from: f.from, to: f.to, note: (f.note || "").trim(), by: email()}).catch(() => toast("Uložení se nepovedlo"));
+      S.db.doc("cash/" + uid()).set({d: f.d, k: TR, amt: r.amt, from: f.from, to: f.to, note: (f.note || "").trim(), by: email()}).catch(() => toast(failMsg("Uložení")));
       toast("Převod zapsán");
       f = null;
       render();
@@ -189,7 +189,7 @@ export function bindCashbook(a) {
     // Výdaj: příjemce a měsíc, za který se platí, jen když jsou vyplněné (data se jen přidávají)
     if (f.k === "out" && String(f.payee || "").trim()) d.payee = String(f.payee).trim().slice(0, 80);
     if (f.k === "out" && ymOk(f.pym)) d.pym = f.pym;
-    S.db.doc("cash/" + uid()).set(d).catch(() => toast("Uložení se nepovedlo"));
+    S.db.doc("cash/" + uid()).set(d).catch(() => toast(failMsg("Uložení")));
     toast(f.k === "in" ? "Vklad zapsán" : "Výdaj zapsán");
     f = null;
     render();

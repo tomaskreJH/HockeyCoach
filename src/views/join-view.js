@@ -7,7 +7,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {kindOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, reqWord, toast, uid} from "../core/utils.js";
+import {esc, failMsg, reqWord, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {JOIN_KINDS, JOIN_ROLES, NICK_MAX, NOTE_MAX, approvePlan, canResend, defaultRole, freePlayers, freeStaff, joinCheck, joinDoc, numTaken, openJoins, rejectPlan} from "../domain/join-requests.js";
 
@@ -61,14 +61,14 @@ export function joinScreen(app, api) {
     async function act(g) {
       if (g === "out") return finish("out");
       if (g === "retry") { err = null; req = undefined; first = true; start(); return; }
-      if (g === "cancel") return confirm2(key, () => api.cancel().catch(e => toast("Zrušení se nepovedlo: " + errTxt(e))), draw);
+      if (g === "cancel") return confirm2(key, () => api.cancel().catch(e => toast(failMsg("Zrušení", errTxt(e)))), draw);
       if (g === "send") {
         keep();
         const c = joinCheck(draft);
         if (!c.ok) return toast(c.err);
         sending = true; draw();
         try { await api.send(joinDoc(api.email, c.d, new Date().toISOString())); toast("Žádost odeslána trenérovi"); }
-        catch (e) { toast("Odeslání se nepovedlo: " + errTxt(e)); }
+        catch (e) { toast(failMsg("Odeslání", errTxt(e))); }
         sending = false; draw();
       }
     }

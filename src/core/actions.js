@@ -4,7 +4,7 @@
 import {HK} from "../data/storage.js";
 import {compactRot} from "./selectors.js";
 import {S} from "./state.js";
-import {clone, norm, oidOf, toast} from "./utils.js";
+import {clone, failMsg, norm, oidOf, toast} from "./utils.js";
 import {render} from "../views/shell.js";
 
 // ===== Soupeři =====
@@ -12,7 +12,7 @@ export const ensureOp=n=>{n=(n||"").trim();if(n&&!S.op.some(o=>norm(o.name)===no
 export const syncOps=()=>{const have=new Set(S.op.map(o=>norm(o.name)));S.ma.forEach(m=>{const k=norm(m.opp);if(k&&!have.has(k)){have.add(k);S.db.doc("opponents/"+oidOf(m.opp)).set({name:m.opp.trim()})}})};
 
 // ===== Ukládání =====
-export const save=m=>HK.blocked()?Promise.resolve():S.db.doc("matches/"+m.id).set(strip(m)).catch(e=>toast("Uložení se nepovedlo: "+(e.message||e.code)));
+export const save=m=>HK.blocked()?Promise.resolve():S.db.doc("matches/"+m.id).set(strip(m)).catch(e=>toast(failMsg("Uložení", (e.message||e.code))));
 // Kopie bez id pro zápis. Uzavřený zápas nesmí mít běžící hodiny (statistiky by dál rostly), proto se při zápisu hodiny zastaví.
 export const strip=m=>{const o={...m};delete o.id;
 if(o.closed&&o.live&&o.live.running){const L=o.live;o.live={...L,acc:L.acc+(L.t0?Date.now()-L.t0:0),running:false,t0:0}}

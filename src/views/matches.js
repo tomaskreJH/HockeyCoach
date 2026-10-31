@@ -8,7 +8,7 @@ import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, save, upd} from "../core/actions.js";
 import {PG, compactRot, goingOf, nm, nomOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {$, Q, clone, dlText, esc, fd, shareText, td, toast, uid} from "../core/utils.js";
+import {$, clone, dlText, esc, failMsg, fd, Q, shareText, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {isEmptyEvent, wipeText} from "../domain/event-cancel.js";
 import {benchM, fillDef, readiness, signupState} from "../domain/lineup.js";
@@ -102,7 +102,7 @@ a.querySelectorAll("[data-luop]").forEach(b=>b.onclick=()=>{const n=clone(m);del
 Q("#gu").onclick=()=>{S.M={k:"G",team:"us",per:S.per,time:"",sit:"E",scorer:null,a1:null,a2:null,on:[]};modal()};
 Q("#go").onclick=()=>{S.M={k:"G",team:"opp",per:S.per,time:"",sit:"E",on:[gk].filter(Boolean)};modal()};
 Q("#pe").onclick=()=>{S.M={k:"P",team:"us",per:S.per,time:"",min:2,reason:REA[0],pid:null};modal()};
-Q("#dm").onclick=()=>confirm2(m.id,()=>{if(!dmE){HK.wipeEvent("matches",m.id).then(r=>{if(r){toast("Smazáno úplně: "+wipeText(r));S.mid=null;render()}}).catch(e=>toast("Smazání se nepovedlo: "+(e&&(e.code||e.message)||e)));return}if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()});
+Q("#dm").onclick=()=>confirm2(m.id,()=>{if(!dmE){HK.wipeEvent("matches",m.id).then(r=>{if(r){toast("Smazáno úplně: "+wipeText(r));S.mid=null;render()}}).catch(e=>toast(failMsg("Smazání", (e&&(e.code||e.message)||e))));return}if(!HK.canDelete("matches",m.id)){render();return}S.at.filter(x=>x.eid===m.id).forEach(x=>S.db.doc("attendance/"+x.id).delete());S.db.doc("matches/"+m.id).delete();S.mid=null;render()});
 const add=o=>{const n=clone(m);n.events=[...(n.events||[]),{id:uid(),k:"S",per:S.per,...o}];save(n)};
 const del=f=>{const n=clone(m);const i=n.events.map((e,j)=>e.k==="S"&&f(e)?j:-1).filter(j=>j>=0).pop();if(i===undefined)return;n.events.splice(i,1);save(n)};
 a.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{S.per=+b.dataset.per;render()});

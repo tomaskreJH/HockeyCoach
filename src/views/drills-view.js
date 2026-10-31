@@ -6,7 +6,7 @@
 import {CATS, GROUPS, LEVELS, SKILLS, UNITS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
-import {$, esc, toast} from "../core/utils.js";
+import {$, esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {DRILLIMG_COLL, DRILL_COLL, DRILL_MAX, DUR_MAX, DUR_MIN, IMG_MAX, drillBlank, drillCanDelete, drillCopy, drillCounts, drillDoc, drillError, drillFilter, imgChanges, imgDoc} from "../domain/drills.js";
 import {TRTPL_COLL} from "../domain/plan-reuse.js";
@@ -60,7 +60,7 @@ function deleteHtml(d) {
   if (U.st === "err") return `<div class="mu" style="font-size:12px;color:var(--wa)">Použití v plánech nejde ověřit (${esc(U.err)}) – smazat teď nejde.</div>`;
   const used = U.m[d.id] || 0;
   if (!drillCanDelete(d, used)) return `<div class="mu" style="font-size:12px">Používá ho ${used} ${used === 1 ? "plán tréninku nebo šablona" : used < 5 ? "plány tréninků nebo šablony" : "plánů tréninků nebo šablon"} – smazat nejde, zůstává vyřazené.</div>`;
-  return `<button class="d" data-ddl="${esc(d.id)}" style="flex:none;${armed(k) ? "background:var(--no);color:#fff" : ""}">${armed(k) ? "Opravdu smazat?" : "🗑 Smazat"}</button>`;
+  return `<button class="d" data-ddl="${esc(d.id)}" style="flex:none;${armed(k) ? "background:var(--no);color:#fff" : ""}">${armed(k) ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`;
 }
 
 // ===== Vykreslení: seznam =====
@@ -192,7 +192,7 @@ function archToggle(id) {
   const d = byId(id);
   if (!d) return;
   S.dru = null;                                    // po vyřazení se použití v plánech ověří znovu
-  S.db.doc(DRILL_COLL + "/" + id).merge({arch: !d.arch, ...stamp()}).catch(() => toast("Uložení se nepovedlo"));
+  S.db.doc(DRILL_COLL + "/" + id).merge({arch: !d.arch, ...stamp()}).catch(() => toast(failMsg("Uložení")));
   toast(d.arch ? "Cvičení je zpět v bance" : "Cvičení je vyřazené (najdeš ho ve filtru 🗄 Vyřazená)");
 }
 

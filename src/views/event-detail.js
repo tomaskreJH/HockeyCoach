@@ -7,7 +7,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {isG, kindOf, PG, pl, pn, pri, score} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, toast} from "../core/utils.js";
+import {esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {canNos, isNos, nosCount, startMs, strict} from "../domain/attendance.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
@@ -192,7 +192,7 @@ ${cancelHtml(ev, mt)}</div>` + sheetHtml() + attReqModal() + (ownP || g ? "" : l
   const wp = a.querySelector("#evwp");
   if (wp) wp.onclick = () => confirm2(kw, async () => {
     try { const r = await HK.wipeEvent(mt ? "matches" : "events", ev.id); if (r) { toast("Smazáno úplně: " + wipeText(r)); S.evid = null; S.mid = null; render(); } }
-    catch (e) { toast("Smazání se nepovedlo: " + ((e && (e.code || e.message)) || e)); }
+    catch (e) { toast(failMsg("Smazání", ((e && (e.code || e.message)) || e))); }
   });
   // Smazání „tato a další budoucí“ u tréninku ze série (views/event-series.js)
   bindSerDel(a, ev);

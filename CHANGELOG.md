@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.30 (1. 11. 2026) – 💬 Jednotné hlášky a potvrzení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.30“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v132`). 🔒 Vyžadovat verzi: ne. Test: kap. 33.
+
+**⚠️ SAHÁ NA PLATBY – jen texty hlášek a potvrzení** (`cash-settings.js`, `cashbook.js`, `bank-pair.js`, `mine.js`, `money.js`, `request-list.js`); výpočty, zápisy a pravidla pokladny beze změny.
+
+**Změněno** (K2 bod 6 – schváleno 27. 10. 2026)
+- `core/utils.js`: společné hlášky – `MSG.saved` („✅ Uloženo“), `MSG.offline` („📶 Bez připojení – uloženo v zařízení, odešle se po připojení“), `failMsg(děj, chyba)` („⚠️ Uložení se nepovedlo: důvod“), jedna délka zobrazení `TOAST_MS` = 3,5 s.
+- `data/storage.js`: chyby zápisu, mazání a přihlášení přes `failMsg`; **📶 offline hláška** při zápisu bez signálu (`set`, `merge`, `delete`, dávka) – nejvýš jednou za 20 s, zobrazí se po hlášce pohledu.
+- Všech 18 vlastních textů chyb v pohledech („Uložení se nepovedlo“, „Smazání se nepovedlo: …“, „Úprava se nepovedla“ …) nahrazeno `failMsg` – stejný tvar s ⚠️ a důvodem. Úspěšná uložení s ✅ (plán tréninku, nastavení, nastavení událostí a pokladny, poznámka, nepřítomnost, práva rolí, sloupce výpisu, historie placení, QR).
+- **Potvrzení druhým klepnutím všude stejně:** okna prohlížeče `confirm()` nahrazena – ⚙️ → Odebrat přístup člena (`settings-view.js`) a ✕ Zamítnout návrh změny účtů (`cash-settings.js`). Všechny texty „Opravdu …“ končí „Klepni znovu“ (dřív např. „Opravdu smazat?“, „Opravdu schválit?“), doba 4 s (`CONFIRM_MS`).
+- Nápověda: „Hlášky a potvrzení (stejné všude)“.
+
+**Beze změny:** co a kdy se ukládá, živý zápis, střely, góly, časomíra, výpočty pokladny, data a pravidla.
+
+**Ověřeno:** `npm test` (507 testů, nově `tests/messages.test.js` – tvar hlášek a kontrola zdrojů: žádné `confirm()`, každé „Opravdu …“ s „Klepni znovu“, žádný vlastní text chyby), `npm run smoke` bez chyb pro všechny role.
+
 ## v22.29 (1. 11. 2026) – 🏒 Zápas: sestava „Jako minule“ a souhrn ke sdílení
 > **Nasazení – kanál 🧪 BETA:** commit „v22.29“ do větve **`beta`**. Pravidla databáze ani data se nemění (zápas se ukládá stejně jako při ruční úpravě sestavy). V betě Načíst novou verzi (cache `hokej-beta-v131`). 🔒 Vyžadovat verzi: ne. Test: kap. 32.
 
