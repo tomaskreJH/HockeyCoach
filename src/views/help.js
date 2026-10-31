@@ -87,7 +87,7 @@ const SECTIONS = [
 <li><b>Postup:</b> 1) vytvořit zápas (= zveřejněná událost), 2) hráčky se přihlásí (✅ Jdu), 3) nominace z přihlášených, 4) sestava, 5) ✔ Uzavřít sestavu, 6) Zahájit zápas. Dokud přihlášky nestačí na nominaci (1 brankářka + 5 bruslařek), karta zápasu ukazuje ⏳ Přihlášky, uzávěrku a tlačítko 📅 Přihlášky – detail události.</li>
 <li><b>Krok 1 – Zápas:</b> soupeř, datum, čas a místo (mění se v Událostech → ✏️ Upravit), doma/venku, délka třetiny (standardně 20 min), prodloužení Ano (5 min) / Ne, vzájemné uzavřené zápasy se soupeřem.</li>
 <li><b>Krok 2A – Nominace:</b> nominovat jde jen hráčky přihlášené na událost (✅ Jdu). Minimum 1 brankářka a 5 bruslařek. Tlačítka Všechny přihlášené / Zrušit vše.</li>
-<li><b>Krok 2B – Sestava:</b> naplní se podle základní formace (jen z nominovaných). Uprav řady, náhradnice a jednotky přesilovek a oslabení (<b>Zkopírovat z posledního zápasu</b>). <b>✔ Uzavřít sestavu</b> umožní spustit živý zápis. Jakákoli změna sestavy uzavření zruší.</li>
+<li><b>Krok 2B – Sestava:</b> naplní se podle základní formace (jen z nominovaných). Uprav řady, náhradnice a jednotky přesilovek a oslabení (<b>Zkopírovat z posledního zápasu</b>). <b>⧉ Jako minule</b> vedle ↻ Podle základní formace převezme sestavu i přesilovky a oslabení z posledního zápasu se sestavou (proti komukoli – pod tlačítkem je napsané, ze kterého); hráčky, které teď nejsou nominované, se vynechají a jejich místa zůstanou volná. Vyplněnou sestavu přepíše až druhým klepnutím. <b>✔ Uzavřít sestavu</b> umožní spustit živý zápis. Jakákoli změna sestavy uzavření zruší.</li>
 <li><b>Pravidlo jednotek:</b> hráčka smí být jen v jedné přesilovce (PP1/PP2) a jen v jednom oslabení téhož druhu (4 hráčky: SH1/SH2, 3 hráčky: SH3/SH4); v běžné řadě být může.</li>
 <li><b>Krok 3 – Zápas živě:</b> průběh (u každého gólu <b>stav skóre</b> po gólu, naše : soupeř, a situace 5 na 5 / přesilovka / oslabení), jmenné statistiky, zápis utkání, opravy a uzavření zápasu (u správce pokladny vznikne vyúčtování plateb).</li>
 <li>Živý zápis jde spustit až po uzavření sestavy a splnění nominace. Po zahájení je zamčená nominace, soupeř, datum a doma/venku.</li>
@@ -145,7 +145,7 @@ const SECTIONS = [
  <li><b>Střídání:</b> úprava časů, výměna hráčky, předání od zadaného času, přidání zapomenutého střídání, smazání a 🧹 Vyčistit prázdná a duplicitní. Nahoře se hlásí nesrovnalosti.</li>
  <li><b>Základ:</b> soupeř, datum, doma/venku, délka třetiny, prodloužení.</li>
  </ul></li>
-<li data-v="sport"><b>Uzavření zápasu:</b> po uzavření je zápas zamčený (do statistik se počítají jen uzavřené). Opravy po <b>Znovu otevřít</b>.</li>
+<li data-v="sport"><b>Uzavření zápasu:</b> po uzavření je zápas zamčený (do statistik se počítají jen uzavřené). Opravy po <b>Znovu otevřít</b>. Po uzavření se obrazovka posune na kartu <b>📤 Souhrn zápasu</b>: <b>📤 Sdílet souhrn</b> otevře sdílení telefonu (WhatsApp skupina, SMS) s textem – výsledek a třetiny, góly se stavem, střelkyní a asistencemi, střely, trestné minuty a nejvíc bodů; bez sdílení se text zkopíruje (případně ukáže k ručnímu zkopírování). Karta zůstává u každého uzavřeného zápasu.</li>
 <li data-v="sport"><b>Smazání zápasu</b> smaže i jeho docházku. Vyúčtovaný zápas smaže jen správce pokladny a jen bez nezaplacených předpisů.</li>
 </ul>`},
   {t: "Statistiky, soupeři a řazení tabulek", v: "stats opp", h: `
@@ -244,7 +244,7 @@ ${defTable()}`},
 <tr data-v="sport"><td>Spustit živý zápis</td><td>Zahájit zápas (krok 1 nebo 3)</td></tr>
 <tr data-v="sport"><td>Střídání / střela</td><td>Klepnout na hráčku ve frontě / na ledě</td></tr>
 <tr data-v="sport"><td>Gól / trest</td><td>Přerušit hru → 🥅 / 🚫</td></tr>
-<tr data-v="sport"><td>Opravit událost / střídání</td><td>Krok 3 → ✏️ Opravit zápis</td></tr>
+<tr data-v="sport"><td>Sestava jako minule / souhrn zápasu</td><td>Zápas → 2 Sestava → ⧉ Jako minule · uzavřený zápas → 3 → 📤 Sdílet souhrn</td></tr><tr data-v="sport"><td>Opravit událost / střídání</td><td>Krok 3 → ✏️ Opravit zápis</td></tr>
 <tr data-v="stats"><td>Statistiky sezóny</td><td>Statistiky</td></tr>
 <tr data-v="mine"><td>Zaplatit dluh</td><td>Moje platby → 📱 Zaplatit (QR)</td></tr>
 <tr data-v="money"><td>Zapsat úhradu</td><td>Team → 💰 Platby → 💳</td></tr>

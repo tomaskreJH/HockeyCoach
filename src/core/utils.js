@@ -29,3 +29,6 @@ export const mmss=ms=>{const t=Math.floor(Math.max(0,ms)/1000);return String(Mat
 export const csv=rows=>"\ufeff"+rows.map(r=>r.map(v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"').join(";")).join("\r\n");
 // Stažení textového souboru (záloha, zápis, CSV)
 export function downloadFile(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+// 📤 Sdílení textu (jediná implementace): nabídka sdílení telefonu (WhatsApp, SMS …), jinak zkopírovat do schránky s hláškou copied;
+// vrací "share" | "copy" | "cancel" (zavřené sdílení) | "fail" (ani schránka – volající ukáže text k ručnímu zkopírování)
+export async function shareText(text,copied){if(navigator.share){try{await navigator.share({text});return"share"}catch(e){if(e&&e.name==="AbortError")return"cancel"}}try{await navigator.clipboard.writeText(text);toast(copied||"Text zkopírován");return"copy"}catch(e){return"fail"}}

@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.29 (1. 11. 2026) – 🏒 Zápas: sestava „Jako minule“ a souhrn ke sdílení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.29“ do větve **`beta`**. Pravidla databáze ani data se nemění (zápas se ukládá stejně jako při ruční úpravě sestavy). V betě Načíst novou verzi (cache `hokej-beta-v131`). 🔒 Vyžadovat verzi: ne. Test: kap. 32.
+
+**Přidáno** (K2 bod 5 – schváleno 27. 10. 2026)
+- **⧉ Jako minule** (krok 2 Sestava, `views/matches.js`): sestava i jednotky přesilovek a oslabení z posledního zápasu se sestavou proti komukoli (`domain/match-share.js` – `lastLineupMatch`, nejdřív zápasy do data tohoto zápasu). Jen nominované a neukončené hráčky (`lineupLike`, `unitsLike`), rotace se setřesou; nominované navíc zůstanou v Náhradnicích. Prázdná sestava se vyplní hned, vyplněná se přepíše druhým klepnutím; pod tlačítkem je napsané, ze kterého zápasu se bere. Sestava se pak uzavírá jako dosud (✔ Uzavřít sestavu).
+- **📤 Souhrn zápasu ke sdílení**: po uzavření zápasu se obrazovka přepne na krok 3 a posune na kartu 📤 Souhrn zápasu; karta zůstává u každého uzavřeného zápasu. Text (`matchSummary`): zápas se skóre a třetinami (venku domácí soupeř první), datum, čas, místo, góly se stavem, střelkyní, asistencemi a časem, střely, trestné minuty a nejvíc bodů. Sdílení přes nabídku telefonu, jinak schránka, jinak text k ručnímu zkopírování.
+- `core/utils.js` – `shareText` (jediné sdílení textu); 📲 připomínka v 🏠 Domů ho používá taky (chování beze změny).
+- Nápověda: ⧉ Jako minule, 📤 Souhrn zápasu, tabulka „Kde co najdu“.
+
+**Beze změny:** živý zápis (`live-engine.js` nedotčen), střely, góly, časomíra, opravy zápisu, vyúčtování při uzavření, „Zkopírovat z posledního zápasu“ u jednotek, pravidla a data.
+
+**Ověřeno:** `npm test` (505 testů, nově `tests/match-share.test.js` – výběr posledního zápasu, filtr nominovaných, souhrn doma i venku), `npm run smoke` bez chyb pro všechny role (nově uzavřený zápas „Lvice“ ve zkušebních datech: karta 📤 a text souhrnu „Lvice – … 1:2 (0:1, 1:0, 0:1)“).
+
 ## v22.28 (1. 11. 2026) – ⏱ Přehlednější živý trénink
 > **Nasazení – kanál 🧪 BETA:** commit „v22.28“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v130`). 🔒 Vyžadovat verzi: ne. Test: kap. 31 (nejlépe na ledě).
 

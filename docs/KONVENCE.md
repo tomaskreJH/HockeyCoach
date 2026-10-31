@@ -59,6 +59,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `live-engine.js` | jádro živého zápisu (čas, střídání, tresty IIHF, jednotky) |
 | `lineup.js`, `corrections.js`, `shift-edit.js`, `timeline.js` | sestava zápasu, opravy zápisu, editace střídání, časová osa a skóre po gólech |
 | `player-stats.js` | statistiky hráček `playerStats` (zápas i souhrn) |
+| `match-share.js` | ⧉ sestava „Jako minule“ (`lastLineupMatch`, `lineupLike`, `unitsLike`), 📤 souhrn zápasu ke sdílení (`matchSummary`) |
 | `watch-feed.js` | 👁 náhled živého zápasu pro členy |
 | `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
 | `event-prefill.js` | 🖐 předvyplnění nového tréninku / zápasu z posledního stejného druhu, poslední důvody omluv |
@@ -147,6 +148,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | potvrzení druhým klepnutím do 4 s; v ⚙️ přes `arm2` |
 | `pn(id, {staff, fb})`, `nm(...)` | `core/selectors.js` | jméno osoby s HTML / čistý text |
 | `csv(rows)`, `downloadFile` | `core/utils.js` | jediné CSV pro Excel; částky `csvNum` (`domain/cash.js`) |
+| `shareText(text, hláška)` | `core/utils.js` | 📤 sdílení textu (sdílení telefonu → schránka → `"fail"` = ukázat text) |
 | `makeDrag(root, items, {...})` | `core/drag.js` | přetahování |
 | `matchesVs` / `vsHash` | `core/selectors.js` / `domain/cash.js` | zápasy proti soupeři / variabilní symbol (nezaměňovat) |
 | `HK.can(akce)` | `data/storage.js` | zkratky: `sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`; neznámá akce = výjimka |

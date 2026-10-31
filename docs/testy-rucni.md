@@ -239,6 +239,14 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 32. v22.29 (beta) – 🏒 Zápas: Jako minule a souhrn
+- [ ] 32.1 V betě je v záhlaví **v22.29**.
+- [ ] 32.2 Nový zápas → nominace → 2 Sestava: vedle ↻ Podle základní formace je **⧉ Jako minule** a pod ním „ze zápasu X d. m. rrrr“ (poslední zápas se sestavou, i proti jinému soupeři).
+- [ ] 32.3 ⧉ Jako minule u vyplněné sestavy → „Opravdu přepsat? Klepni znovu“ → sestava i přesilovky / oslabení jako minule; hráčky, které teď nejsou nominované, chybí (místa volná, rotace setřesené), nominované navíc jsou v Náhradnicích.
+- [ ] 32.4 Uzavřít a potvrdit zápas (druhým klepnutím) → přepne se na krok 3 a posune na kartu **📤 Souhrn zápasu**; vyúčtování plateb vzniklo jako dřív.
+- [ ] 32.5 📤 Sdílet souhrn → nabídka sdílení telefonu (WhatsApp) s textem: zápas a skóre s třetinami, datum a místo, góly se stavem (střelkyně, asistence, třetina a čas), střely, tresty, nejvíc bodů. Venku je domácí soupeř první a skóre z jeho pohledu.
+- [ ] 32.6 Starší uzavřený zápas: karta 📤 je u něj také. Živý zápis, střely, góly a časomíra fungují beze změny (krátký zkušební zápas).
+
 ## 31. v22.28 (beta) – ⏱ Přehlednější živý trénink (nejlépe na ledě)
 - [ ] 31.1 V betě je v záhlaví **v22.28**.
 - [ ] 31.2 ⏱ Živý trénink (řídící): shora odpočet → **▶ Teď** (moje linka: cvičení, skupiny, jména) → **⏭ Za m:ss → …** → ⚡ ➕ / ☕ / 👥 → sbalené **🎛 ⏮ Zpět · ✂ −1 min · +5 min · ⏹ Konec**; dole pevná lišta ⏸ / ⏭ / +1 min.

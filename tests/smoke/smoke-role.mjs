@@ -173,6 +173,20 @@ async function events() {
   await tap("#evb", 200);
 }
 // Peníze: Team → 💰 Platby → ⚖️ Tarify (detail), 🔓 Výjimky a ☑ Hromadně (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
+// v22.29 Zápas: uzavřený zápas → krok 3 s 📤 Souhrn zápasu (bez sdílení i schránky ukáže text k ručnímu zkopírování)
+async function matchShare() {
+  if (!(await tap('#nav button[data-t="ev"]', 250))) return;
+  const {S} = await import("../../src/core/state.js"), {render} = await import("../../src/views/shell.js"), {HK} = await import("../../src/data/storage.js");
+  if (!HK.can("sport") || !(S.ma || []).some(m => m.id === "m0")) return;   // detail zápasu jen realizační tým
+  S.mid = "m0"; S.step = 3; render(); await wait(200);
+  snap("match-closed");
+  if (!$("#mshc")) throw new Error("📤 uzavřený zápas bez karty Souhrn zápasu");
+  await tap("[data-msh]", 250);
+  const t = $("#mshc textarea");
+  if (!t || !/Lvice – .* 1:2 \(0:1, 1:0, 0:1\)/.test(t.value)) throw new Error("📤 souhrn zápasu chybí nebo je špatně: " + (t ? t.value.split("\n")[0] : "bez textu"));
+  snap("match-share");
+  S.mid = null; S.step = 1; render(); await wait(150);
+}
 async function money() {
   if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
     if (await tap('[data-fv="tf"]', 250)) {
@@ -252,6 +266,7 @@ try {
   await settings();
   await help();
   await events();
+  await matchShare();
   await money();
   await tap('#nav button[data-t="home"]', 250);
   snap("end");
