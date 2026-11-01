@@ -131,13 +131,13 @@ function bindRows(root, lanes, redraw) {
     const [key, pid] = i.dataset.tevpt.split("|"), l = laneOf(key);
     if (!l) return;
     put(l, playerPatch(l, pid, {n: i.value}), {pl: {[pid]: {...plOf(key, pid), n: noteOf(i.value)}}});
-    toast("Poznámka uložena");
+    toast("✅ Poznámka uložena");
   });
   root.querySelectorAll("[data-tevln]").forEach(i => i.onchange = () => {
     const l = laneOf(i.dataset.tevln);
     if (!l) return;
     put(l, evalPatch(l, {n: i.value}), {n: noteOf(i.value)});
-    toast("Poznámka uložena");
+    toast("✅ Poznámka uložena");
   });
 }
 

@@ -7,7 +7,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {isG, kindOf, PG, pl, pn, pri, score} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, toast} from "../core/utils.js";
+import {esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {canNos, isNos, nosCount, startMs, strict} from "../domain/attendance.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
@@ -102,10 +102,12 @@ function detail(a, ev) {
   const rows = P.map((p, i) => (i === 0 || pri(P[i - 1]) !== pri(p) ? `<div class="lnl">${PG[pri(p)]}</div>` : "") + pRow(p)).join("");
   const myP = me ? P.find(p => p.id === me) : null;                   // vlastní řádek hráčky (i člena týmu, který je zároveň hráčka)
   // Realizační tým: odpovědi mění jen manager, trenér a asistent, hráčka je vidí jen ke čtení (bez důvodů)
+  // 🚫 i u realizačního týmu (v22.32): nedorazil(a) bez omluvy – stejně jako u hráček (plat za událost se počítá dál podle „Jdu“)
   const trRows = T.map((t, i) => {
-    const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP;
+    const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP, nos = isNos(x);
+    const nb = !ownP && !cn && canNos(x, st0, now) ? `<button class="evns ${nos ? "on" : ""}" data-nos="${t.id}" title="Nedorazil(a) bez omluvy">🚫</button>` : "";
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
-      `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(kindOf(t))}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}</div></div>`;
+      `<div class="pr"><div>${t.id === S.evp ? "<b>" : ""}🎓 ${esc(t.name)}${t.id === S.evp ? "</b>" : ""} <span class="mu">${esc(kindOf(t))}</span>${x && ANS[x.st] ? ` <span class="tag ${ANS[x.st].cls}">${ANS[x.st].t}</span>` : ""}${nos ? ' <span class="tag red">🚫 Nedorazil(a)</span>' : ""}${showReason ? `<div class="mu">${esc(x.reason)}</div>` : ""}</div><div class="evq">${ORD.map(k => `<button class="${x && x.st === k ? "on-" + k : ""}" data-pa="${t.id}|${k}" ${ok ? "" : "disabled"}>${ANS[k].ic}</button>`).join("")}${nb}</div></div>`;
   }).join("");
   // Tlačítka managera / trenéra / asistenta: otevřít zápas, úprava, zrušit / obnovit, smazat prázdnou, série; vývojář smazat úplně
   // Matice práv (⚙️ → 🔐): úprava, zrušení a smazání podle modulu Události / Zápasy
@@ -192,7 +194,7 @@ ${cancelHtml(ev, mt)}</div>` + sheetHtml() + attReqModal() + (ownP || g ? "" : l
   const wp = a.querySelector("#evwp");
   if (wp) wp.onclick = () => confirm2(kw, async () => {
     try { const r = await HK.wipeEvent(mt ? "matches" : "events", ev.id); if (r) { toast("Smazáno úplně: " + wipeText(r)); S.evid = null; S.mid = null; render(); } }
-    catch (e) { toast("Smazání se nepovedlo: " + ((e && (e.code || e.message)) || e)); }
+    catch (e) { toast(failMsg("Smazání", ((e && (e.code || e.message)) || e))); }
   });
   // Smazání „tato a další budoucí“ u tréninku ze série (views/event-series.js)
   bindSerDel(a, ev);

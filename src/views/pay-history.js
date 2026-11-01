@@ -74,7 +74,7 @@ function save() {
   S.db.batch().merge(PPAY_COLL + "/" + H.pid, {grpH: h, grp: grpAt({grpH: h}, ymNow())})
     .set("audit/" + uid(), {ts: new Date().toISOString(), by: me(), eid: "", act: "grp-hist", note}).commit();
   H.h = h; H.err = ""; H.done = {ym: H.from, until: H.to || ""};
-  toast("Historie placení uložena");
+  toast("✅ Historie placení uložena");
   paint();
 }
 

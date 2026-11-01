@@ -7,7 +7,7 @@
 import {armed, confirm2} from "../core/actions.js";
 import {pl, pn, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, fd, td, toast, uid} from "../core/utils.js";
+import {esc, failMsg, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {ACC, accIban, accName, accOf, cashCfg, isDay, chargeMsg, contribEvent, contribYm, fmtDue, kc, overdue, personVs, r2, restOf, twoAcc} from "../domain/cash.js";
 import {colKey, mapDoc, matchStatement, readStatement} from "../domain/bank-match.js";
@@ -202,7 +202,7 @@ export function bindBulk(a) {
   a.querySelectorAll("[data-hms]").forEach(b => b.onclick = () => {
     const d = mapDoc(stm.res.map);
     if (!d) return;
-    S.db.doc("settings/cash").merge({bank: {...((S.cc && S.cc.bank) || {}), [acc]: d}}).then(() => toast("Sloupce výpisu uloženy"));
+    S.db.doc("settings/cash").merge({bank: {...((S.cc && S.cc.bank) || {}), [acc]: d}}).then(() => toast("✅ Sloupce výpisu uloženy"));
     stm.map = null; stm.open = false;
     render();
   });
@@ -224,7 +224,7 @@ export function bindBulk(a) {
   a.querySelectorAll("[data-hbl]").forEach(b => b.onclick = () => confirm2("hbl" + b.dataset.hbl, () => {
     const t = stm && stm.m && stm.m.loose[+b.dataset.hbl];
     if (!t) return;
-    S.db.doc("cash/" + uid()).set(incomeOf(t, t.amt, "výpis", t.ref, cashCfg(S.cc))).catch(() => toast("Uložení se nepovedlo"));
+    S.db.doc("cash/" + uid()).set(incomeOf(t, t.amt, "výpis", t.ref, cashCfg(S.cc))).catch(() => toast(failMsg("Uložení")));
     local.add(t.ref);
     stm.m.loose = stm.m.loose.filter(x => x !== t); stm.m.seen.push(t);   // výběr párů zůstane beze změny
     toast("Příjem zapsán");

@@ -59,6 +59,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `live-engine.js` | jádro živého zápisu (čas, střídání, tresty IIHF, jednotky) |
 | `lineup.js`, `corrections.js`, `shift-edit.js`, `timeline.js` | sestava zápasu, opravy zápisu, editace střídání, časová osa a skóre po gólech |
 | `player-stats.js` | statistiky hráček `playerStats` (zápas i souhrn) |
+| `match-share.js` | ⧉ sestava „Jako minule“ (`lastLineupMatch`, `lineupLike`, `unitsLike`), 📤 souhrn zápasu ke sdílení (`matchSummary`) |
 | `watch-feed.js` | 👁 náhled živého zápasu pro členy |
 | `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
 | `event-prefill.js` | 🖐 předvyplnění nového tréninku / zápasu z posledního stejného druhu, poslední důvody omluv |
@@ -130,7 +131,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `join-view.js` | ✋ žádost o přijetí do týmu |
 | `auto-sync.js` | tichý zápis odvozených dat (`HK.syncOps`) |
 | **tests/** | `npm test`; `support/` = zástupci prohlížeče a Firebase; `smoke/` = kouřový test (`npm run smoke`) |
-| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `archiv/` (jen starší CHANGELOG; pravidla pro Claude: kap. 0 a pokyny projektu) |
+| **docs/** | `STAV.md`, `plan.md`, `testy-rucni.md`, `navrhy-v22.32.md` (návrhy změn databáze a pravidel čekající na souhlas), `archiv/` (jen starší CHANGELOG; pravidla pro Claude: kap. 0 a pokyny projektu) |
 
 **⚠️ Peníze a zabezpečení** – každá změna se v CHANGELOG označí „⚠️ SAHÁ NA PLATBY“: `domain/cash.js`, `domain/bank-account.js`, `domain/bank-match.js`, `views/bank-pair.js`, `views/pay-history.js`, `views/block-exc-view.js`, `domain/block-exc.js`, `domain/cost-check.js`, `views/cost-view.js`, `domain/requests.js`, `views/mine.js`, `qr-image.js`, `cash-settings.js`, `payments.js`, `money.js`, `cashbook.js`, `request-list.js`, `firestore.rules`.
 
@@ -147,6 +148,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `confirm2(key, fn, redraw?)`, `armed(key)` | `core/actions.js` | potvrzení druhým klepnutím do 4 s; v ⚙️ přes `arm2` |
 | `pn(id, {staff, fb})`, `nm(...)` | `core/selectors.js` | jméno osoby s HTML / čistý text |
 | `csv(rows)`, `downloadFile` | `core/utils.js` | jediné CSV pro Excel; částky `csvNum` (`domain/cash.js`) |
+| `shareText(text, hláška)` | `core/utils.js` | 📤 sdílení textu (sdílení telefonu → schránka → `"fail"` = ukázat text) |
+| `toast`, `MSG`, `failMsg(děj, chyba)`, `TOAST_MS` | `core/utils.js` | jednotné hlášky: ✅ uloženo, ⚠️ „… se nepovedlo: důvod“, 📶 offline (hlásí sám `storage.js` při zápisu bez signálu), délka 3,5 s; potvrzení vždy `confirm2` s textem „… Klepni znovu“ (hlídá `tests/messages.test.js`) |
 | `makeDrag(root, items, {...})` | `core/drag.js` | přetahování |
 | `matchesVs` / `vsHash` | `core/selectors.js` / `domain/cash.js` | zápasy proti soupeři / variabilní symbol (nezaměňovat) |
 | `HK.can(akce)` | `data/storage.js` | zkratky: `sport`, `money`, `members`, `roster`, `accounts`, `admin`, `onlyOwn`, `guest`, `wipe`; neznámá akce = výjimka |

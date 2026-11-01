@@ -2,6 +2,118 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.32.1 (1. 11. 2026) – Oprava kouřového testu (nasazení v22.32 neproběhlo)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.32.1“ do větve **`beta`**. Aplikace beze změny funkcí proti v22.32, jen číslo verze a cache `hokej-beta-v135`. Pravidla ani data se nemění. 🔒 Vyžadovat verzi: ne. Ruční test: kap. 35 (platí pro v22.32.1).
+
+**Opraveno**
+- GitHub Actions nasazení v22.32 selhalo v kouřovém testu („🚫 chybí u realizačního týmu“, role manager a trenér) – **beta zůstala na v22.31**. Příčina: nová kontrola v `tests/smoke/smoke-role.mjs` předpokládala časové pásmo Prahy; GitHub běží v UTC, kde je zmrazený čas testu 16:10 a trénink v 17:00 ještě nezačal, takže 🚫 se správně nenabízí nikomu. Aplikace se chovala správně.
+- Kontrola teď ověřuje, že se 🚫 u realizačního týmu nabízí přesně tehdy jako u hráček – nezávisle na časovém pásmu.
+
+**Ověřeno:** `npm test` (509 testů), `npm run smoke` bez chyb v časovém pásmu Praha i UTC (`TZ=UTC npm run smoke`).
+
+## v22.32 (1. 11. 2026) – 🧹 Úklid drobností
+> **Nasazení – kanál 🧪 BETA:** commit „v22.32“ do větve **`beta`**. Pravidla databáze ani struktura dat se nemění (🚫 u člena týmu používá stávající pole docházky `nos`, nový člen stávající `members/{e-mail}` – pravidla obojí už dovolují). V betě Načíst novou verzi (cache `hokej-beta-v134`). 🔒 Vyžadovat verzi: ne. Test: kap. 35.
+
+**Opraveno / doplněno** (otevřené drobnosti z `docs/plan.md`, které nepotřebují změnu databáze ani pravidel)
+- **2. 🚫 u realizačního týmu** (`views/event-detail.js`): v docházce události po jejím začátku má člen týmu s „Jdu“ tlačítko 🚫 a štítek „🚫 Nedorazil(a)“ – stejná funkce `toggleNos` jako u hráček (i 🕘 historie). **Plat za událost se počítá dál podle „Jdu“** – změna výpočtu pokladny čeká na rozhodnutí (`docs/navrhy-v22.32.md`, C).
+- **3. Nový člen realizačního týmu s e-mailem a rolí** (`views/team.js`, jen manager): ve formuláři Přidat do realizačního týmu volitelně e-mail účtu a role (Trenér / Asistent / Manager) – po založení člena se zapíše přístup `members/{e-mail}` s propojením na člena týmu přes stávající `saveMember` (stejné kontroly jako v ⚙️ → 👥 Členové týmu).
+- **5. 📊 Pokrytí dovedností bez hostujících** (`views/trplan-reuse.js`): 🎟 hostující hráčky se do pokrytí nepočítají, pod přehledem je jejich počet.
+- Zbytek otevřených drobností zůstává v seznamu (1, 4, 6 – osiřelá data, mazání vyžaduje rozhodnutí o datech; 7 – omezení prohlížeče; 8 – D2; 9 – živý zápis; 10–13 rozhodnutí; 14 – pravidla, návrh připraven).
+
+**Připraveno k rozhodnutí (bez zásahu do kódu):** `docs/navrhy-v22.32.md` – ✏️ úprava proběhlého tréninku (kolekce `tract`, pravidla, dopad na čtení), pravidla `settings/beta`, `budgetKeep`, `treval` (z kontroly v22.18.1), 🚫 člena týmu a plat.
+
+**Beze změny:** výpočty pokladny a platů, živý zápis, střely, góly, časomíra, pravidla a struktura dat.
+
+**Ověřeno:** `npm test` (509 testů), `npm run smoke` bez chyb pro všechny role (nově: 🚫 u realizačního týmu v docházce tréninku, e-mail a role u přidání člena týmu – manager).
+
+## v22.31 (1. 11. 2026) – 💸 Předvyplněný výdaj
+> **Nasazení – kanál 🧪 BETA:** commit „v22.31“ do větve **`beta`**. Pravidla databáze ani data se nemění (výdaj se ukládá se stejnými poli). V betě Načíst novou verzi (cache `hokej-beta-v133`). 🔒 Vyžadovat verzi: ne. Test: kap. 34.
+
+**⚠️ SAHÁ NA PLATBY – jen formulář** (`views/cashbook.js`, nová čistá funkce v `domain/cash.js`); výpočty a zápisy pokladny beze změny.
+
+**Změněno** (K2 bod 7 – schváleno 27. 10. 2026; tím je celý seznam K2 hotový)
+- Team → 🏦 Pokladna → ➖ Výdaj předvyplní **kategorii, příjemce a účet** posledního ručně zapsaného výdaje (`lastOutPrefill` v `domain/cash.js`: nejnovější datum, při shodě později zapsaný; výplaty platů `mid` a úhrady `cid` se nepočítají; kategorie jen pokud je stále v nastavení pokladny). Datum dnešní, částka a poznámka prázdné. Zvolený účet ve filtru pohybů má přednost. Ve formuláři krátká poznámka, že jde o údaje z posledního výdaje.
+- 🧾 Náklady → ➖ Zapsat platbu dál předvyplní údaje nákladu (příjemce z nákladu, ne z posledního výdaje).
+- Drobnost: storno pohybu má text „Storno? Klepni znovu“ (jednotné potvrzení z v22.30).
+- Nápověda: 🏦 Pokladna – předvyplněný výdaj.
+
+**Beze změny:** výpočty zůstatků, příjmů a výdajů, předpisy, úhrady, převody, platy, rozpočet, data a pravidla; živý zápis, střely, góly, časomíra.
+
+**Ověřeno:** `npm test` (509 testů, nově `tests/cash-prefill.test.js`; `tests/d1-baseline.test.js` beze změny zelený), `npm run smoke` bez chyb pro všechny role (nově kontrola předvyplněného výdaje: Pronájem ledu / Zimní stadion).
+
+## v22.30 (1. 11. 2026) – 💬 Jednotné hlášky a potvrzení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.30“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v132`). 🔒 Vyžadovat verzi: ne. Test: kap. 33.
+
+**⚠️ SAHÁ NA PLATBY – jen texty hlášek a potvrzení** (`cash-settings.js`, `cashbook.js`, `bank-pair.js`, `mine.js`, `money.js`, `request-list.js`); výpočty, zápisy a pravidla pokladny beze změny.
+
+**Změněno** (K2 bod 6 – schváleno 27. 10. 2026)
+- `core/utils.js`: společné hlášky – `MSG.saved` („✅ Uloženo“), `MSG.offline` („📶 Bez připojení – uloženo v zařízení, odešle se po připojení“), `failMsg(děj, chyba)` („⚠️ Uložení se nepovedlo: důvod“), jedna délka zobrazení `TOAST_MS` = 3,5 s.
+- `data/storage.js`: chyby zápisu, mazání a přihlášení přes `failMsg`; **📶 offline hláška** při zápisu bez signálu (`set`, `merge`, `delete`, dávka) – nejvýš jednou za 20 s, zobrazí se po hlášce pohledu.
+- Všech 18 vlastních textů chyb v pohledech („Uložení se nepovedlo“, „Smazání se nepovedlo: …“, „Úprava se nepovedla“ …) nahrazeno `failMsg` – stejný tvar s ⚠️ a důvodem. Úspěšná uložení s ✅ (plán tréninku, nastavení, nastavení událostí a pokladny, poznámka, nepřítomnost, práva rolí, sloupce výpisu, historie placení, QR).
+- **Potvrzení druhým klepnutím všude stejně:** okna prohlížeče `confirm()` nahrazena – ⚙️ → Odebrat přístup člena (`settings-view.js`) a ✕ Zamítnout návrh změny účtů (`cash-settings.js`). Všechny texty „Opravdu …“ končí „Klepni znovu“ (dřív např. „Opravdu smazat?“, „Opravdu schválit?“), doba 4 s (`CONFIRM_MS`).
+- Nápověda: „Hlášky a potvrzení (stejné všude)“.
+
+**Beze změny:** co a kdy se ukládá, živý zápis, střely, góly, časomíra, výpočty pokladny, data a pravidla.
+
+**Ověřeno:** `npm test` (507 testů, nově `tests/messages.test.js` – tvar hlášek a kontrola zdrojů: žádné `confirm()`, každé „Opravdu …“ s „Klepni znovu“, žádný vlastní text chyby), `npm run smoke` bez chyb pro všechny role.
+
+## v22.29 (1. 11. 2026) – 🏒 Zápas: sestava „Jako minule“ a souhrn ke sdílení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.29“ do větve **`beta`**. Pravidla databáze ani data se nemění (zápas se ukládá stejně jako při ruční úpravě sestavy). V betě Načíst novou verzi (cache `hokej-beta-v131`). 🔒 Vyžadovat verzi: ne. Test: kap. 32.
+
+**Přidáno** (K2 bod 5 – schváleno 27. 10. 2026)
+- **⧉ Jako minule** (krok 2 Sestava, `views/matches.js`): sestava i jednotky přesilovek a oslabení z posledního zápasu se sestavou proti komukoli (`domain/match-share.js` – `lastLineupMatch`, nejdřív zápasy do data tohoto zápasu). Jen nominované a neukončené hráčky (`lineupLike`, `unitsLike`), rotace se setřesou; nominované navíc zůstanou v Náhradnicích. Prázdná sestava se vyplní hned, vyplněná se přepíše druhým klepnutím; pod tlačítkem je napsané, ze kterého zápasu se bere. Sestava se pak uzavírá jako dosud (✔ Uzavřít sestavu).
+- **📤 Souhrn zápasu ke sdílení**: po uzavření zápasu se obrazovka přepne na krok 3 a posune na kartu 📤 Souhrn zápasu; karta zůstává u každého uzavřeného zápasu. Text (`matchSummary`): zápas se skóre a třetinami (venku domácí soupeř první), datum, čas, místo, góly se stavem, střelkyní, asistencemi a časem, střely, trestné minuty a nejvíc bodů. Sdílení přes nabídku telefonu, jinak schránka, jinak text k ručnímu zkopírování.
+- `core/utils.js` – `shareText` (jediné sdílení textu); 📲 připomínka v 🏠 Domů ho používá taky (chování beze změny).
+- Nápověda: ⧉ Jako minule, 📤 Souhrn zápasu, tabulka „Kde co najdu“.
+
+**Beze změny:** živý zápis (`live-engine.js` nedotčen), střely, góly, časomíra, opravy zápisu, vyúčtování při uzavření, „Zkopírovat z posledního zápasu“ u jednotek, pravidla a data.
+
+**Ověřeno:** `npm test` (505 testů, nově `tests/match-share.test.js` – výběr posledního zápasu, filtr nominovaných, souhrn doma i venku), `npm run smoke` bez chyb pro všechny role (nově uzavřený zápas „Lvice“ ve zkušebních datech: karta 📤 a text souhrnu „Lvice – … 1:2 (0:1, 1:0, 0:1)“).
+
+## v22.28 (1. 11. 2026) – ⏱ Přehlednější živý trénink
+> **Nasazení – kanál 🧪 BETA:** commit „v22.28“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v130`). 🔒 Vyžadovat verzi: ne. Test: kap. 31 (nejlépe na ledě).
+
+**Změněno** (K2 – dlouho odkládané; na ledě minimum ovládání, na první pohled co běží, kolik zbývá, co bude dál a kdo je ve které skupině)
+- Obrazovka ⏱ (`views/trlive-view.js`) má nové pořadí: přilepené záhlaví (zbývá plán / do konce tréninku), blok a kolo, velký odpočet, **▶ Teď** (moje linka), **⏭ Potom**, ⭐ hodnocení, ⚡ improvizace, **🎛 ovládání sbalené**, 📋 Zbytek plánu. Dřív byla nad linkami tlačítka ovládání a lišta ⚡, takže „co se teď cvičí“ bylo až pod ohybem obrazovky.
+- **Kdo kde:** linky, které trenér nevede, jsou jedním řádkem – označení stanoviště, cvičení (u řady současné), barva skupiny v tomto kole a 🎓 trenér; plné karty pod „Podrobnosti ostatních linek“.
+- **🎛 Ovládání sbalené:** řídící má ⏸ / ⏭ / +1 min dál v pevné spodní liště, ⏮ Zpět, ✂ −1 min, +5 min a ⏹ Konec pod „🎛“; ostatní trenéři mají celé ovládání pod „🎛 Ovládání hodin · řídí X“. Rozbalení se pamatuje do zavření obrazovky, rozpracované potvrzení (⏹, převzetí řízení) ho drží otevřené. Před spuštěním a po doběhnutí plánu zůstávají ▶ Spustit / ⏹ Konec tréninku hned vidět – trénink se dál nikdy neukončí sám.
+- **⌚ Garmin / oznámení** (`domain/training-live.js` – `liveNote`, `remoteNote`): kratší texty pro malý displej – titulek = co se děje (cvičení napřed, „St. B“ místo „Stanoviště B“), text = co bude („Pak: …“). Např. „⏱ 1:00 · Střelba“ / „Pak: Přihrávky · St. C · Modrá“, „↪ Teď: Střelba · St. B“, „⏸ Pauza – Střelba“ / „zbývá 1:35“, po konci plánu „✅ Konec plánu“ / „Trénink ukončí trenér ⏹“.
+- Nápověda: pořadí obrazovky a krátká oznámení.
+
+**Zachováno beze změny chování:** lišta řídícího, 🔒 zámek dotyku, ☀, ⚡ improvizace, ▶ Teď ve Zbytku plánu, štafeta, ⏲ stopky, ⭐ hodnocení, převzetí řízení, upozornění 60 / 10 s a točení, akce ⏸ / ⏭ z oznámení, ⏹ Konec jen ručně.
+
+**Beze změny:** data a pravidla, plán tréninku, živý zápis zápasu, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (501 testů; texty oznámení v `tests/stopwatch.test.js` a `tests/training-live-sync.test.js` upraveny na nové krátké znění), `npm run smoke` bez chyb pro všechny role (nově kontrola, že ▶ Teď je pod odpočtem a 🎛 ovládání až za ním).
+
+## v22.27 (1. 11. 2026) – 📋 Plán tréninku pohodlněji
+> **Nasazení – kanál 🧪 BETA:** commit „v22.27“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v129`). 🔒 Vyžadovat verzi: ne. Test: kap. 30.
+
+**Změněno** (požadavek uživatele 31. 10. 2026 – trenér chystá trénink na telefonu s co nejméně klepnutími)
+- 🎓 **Trenéři linky přímo u linky** (`views/trplan-edit.js`): řádek se jmény přihlášeného realizačního týmu pod skupinami, jedno klepnutí přidá / odebere. Z „⚙ Další volby“ trenéři zmizeli (zůstal režim, ⚔ podle postů, točení a souběžná linka); `blockExtras` (`domain/training-plan.js`) kvůli trenérovi sekci neotevírá. Sbalený blok ukazuje trenéry v souhrnu („· 🎓 Petr“).
+- ➕ **Nové cvičení přímo z plánování** (`views/drill-picker.js`): ve výběru cvičení tlačítko ➕ Nové cvičení (i u prázdného výsledku hledání) – název předvyplněný z hledání, část tréninku (z filtru), délka klepnutím, popis, volitelně 📷 obrázek, ▶ video, 📄 PDF. 💾 Uloží do 📚 banky a hned vloží do linky / řady, odkud se vybíralo; plán zůstane otevřený na stejném místě. Bez práva upravovat banku se tlačítko neukáže.
+  - Žádná kopie logiky: zápis cvičení i s obrázky je jedna funkce `writeDrill` (`views/drills-view.js`, používá ji i formulář banky), výchozí dovednost podle kategorie `quickDrill` z ⚡ improvizace (`domain/training-impro.js`), zmenšení fotky `shrinkImage`. Nové cvičení se hned přidá do `S.dr`, aby linka měla název a délku ještě před odpovědí databáze.
+- **Další zkrácení toku „připravit trénink“ (bod 3):**
+  - Nový blok 👥 / 🔄 se posune na obrazovku a rovnou otevře výběr cvičení první linky (dřív: přidat → najít blok dole → klepnout na 📚 Vybrat).
+  - 💾 Uložit plán a ← Zpět k tréninku vrátí obrazovku na kartu 📋 Plán v detailu (dřív na začátek detailu a posouvat dolů).
+  - 🎓 trenéři bez rozklikávání „⚙ Další volby“ (viz výše).
+
+**Opraveno**
+- ⭐ Výkonnost (`views/line-split-view.js`): klepnutí na hvězdy už okno nepřekresluje – čísla se označí přímo v řádku a seznam zůstane na místě; poslech `plevel` při otevřeném okně nepřekresluje (souhrn se obnoví po zavření). Dřív obrazovka mohla skočit nahoru.
+- `docs/STAV.md`: stabilní = v22.25 (PR #4), publikace pravidel v22.25 k ověření.
+
+**Beze změny:** data a pravidla, živý trénink, ⚡ improvizace, živý zápis, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (501 testů; `tests/k1-prepare.test.js` – trenér linky už neotevírá „Další volby“), `npm run smoke` bez chyb pro všechny role (nově: trenéři nejsou v ⚙ Další volby, nový blok otevře výběr, ➕ nové cvičení zapíše `drills` a vloží se do bloku).
+
+## v22.26 (31. 10. 2026) – 🎨 Čitelnost karet událostí
+> **Nasazení – kanál 🧪 BETA:** commit „v22.26“ do větve **`beta`**. Pravidla databáze ani data se nemění. V betě Načíst novou verzi (cache `hokej-beta-v128`). 🔒 Vyžadovat verzi: ne.
+
+**Opraveno / upraveno** (požadavek uživatele 31. 10. 2026)
+- Karta události (Události, 🏠 Domů): nadpis (ikona, název, datum) je podbarvený stejně jako ostatní bloky (`#evw .evi>.evh`, barva `--a2`).
+- Rychlá tlačítka ✅ / ❌ / ❓ na kartě: počet odpovědí u aktivní volby je v bílé pilulce s tmavým textem (dřív světlý na zelené špatně čitelný).
+- Nápověda „Počty v tlačítkách“ a verze v README a CHANGELOGu.
+
 ## v22.25 (31. 10. 2026) – 🟢 Kdo je online
 > **Nasazení – kanál 🧪 BETA:** commit „v22.25“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish) – nový blok `seen` (schváleno uživatelem 31. 10. 2026); do publikace se aktivita nezapisuje (jen varování v konzoli) a manager uvidí „Aktivitu se nepodařilo načíst“. Pravidla jen přidávají novou kolekci – stabilní verze je nepotřebuje a nic jí neberou. V betě Načíst novou verzi (cache `hokej-beta-v127`). 🔒 Vyžadovat verzi: ne. Test: kap. 29.
 

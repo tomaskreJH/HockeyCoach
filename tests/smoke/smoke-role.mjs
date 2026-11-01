@@ -98,7 +98,11 @@ async function events() {
   // ✅ Potvrdit dresy (trenér): hráčky pak dresy uvidí
   if (await tap("#lsok", 250)) snap("ev-e1-lok");
   // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
-  if (await tap("#evatt summary", 300)) snap("ev-e1-att");
+  if (await tap("#evatt summary", 300)) {
+    snap("ev-e1-att");
+    // v22.32: 🚫 i u realizačního týmu – nabízí se stejně jako u hráček (jen po začátku tréninku; nezávisí na časovém pásmu běhu testu)
+    if (["manager", "trener"].includes(role) && !!$('[data-nos="p1"]') !== !!$('[data-nos="t1"]')) throw new Error("🚫 u realizačního týmu se nenabízí stejně jako u hráček");
+  }
   if (await tap("[data-alg]", 300)) {
     snap("att-log");
     if (await tap('[data-alf="other"]', 150)) snap("att-log-other");
@@ -109,7 +113,23 @@ async function events() {
     snap("plan-edit");
     await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
-    if (await tap('[data-tpadd="all"]', 250)) snap("plan-edit-add");
+    // v22.27: 🎓 trenéři přímo u linky (ne v ⚙ Další volby); nový blok rovnou otevře výběr cvičení, ➕ nové cvičení uloží do banky a vybere
+    if ($("details.tpmo [data-tpco]")) throw new Error("📋 trenéři linky jsou pořád v ⚙ Další volby");
+    if (await tap('[data-tpadd="all"]', 250)) {
+      snap("plan-edit-add");
+      if (!$("#dpk")) throw new Error("📋 nový blok neotevřel výběr cvičení");
+      if (await tap("#dpk [data-dpnew]", 200)) {
+        snap("plan-edit-newdrill");
+        const n = $("#dpnn"), w0 = globalThis.__fb.writes.length;
+        n.value = "Smoke nové cvičení";
+        await tap('[data-dpnm="8"]', 150);
+        await tap("#dpnok", 250);
+        if ($("#dpk")) throw new Error("➕ nové cvičení: výběr se nezavřel");
+        if (!globalThis.__fb.writes.slice(w0).some(w => /^drills\//.test(w.path))) throw new Error("➕ nové cvičení se nezapsalo do banky");
+        if (!/Smoke nové cvičení/.test(document.body.textContent)) throw new Error("➕ nové cvičení se nevložilo do bloku");
+        snap("plan-edit-newdrill-done");
+      } else await tap("#dpx", 150);
+    }
     if (await tap("#tponly", 250)) snap("plan-edit-only");
     // v22.18.1: 💾 Uložit plán musí zapsat trplan (chyběl podpis stamp – uložení tiše padalo)
     const n0 = globalThis.__fb.writes.length;
@@ -120,6 +140,10 @@ async function events() {
     // v22.17: přilepené záhlaví se zbývajícím časem vždy; řídící má pevnou spodní lištu ⏸ / ⏭ / +1 min
     if (!$("#tlv .tltop #tlr")) throw new Error("⏱ chybí zbývající čas v záhlaví");
     if ($("#tlv .tlbot")) snap("trlive-bar");
+    // v22.28: ▶ Teď (linky) hned pod odpočtem, méně časté ovládání sbalené pod 🎛 až za ním
+    const sec = $("#tlv .tlsec"), cd = $("#tlv #tlcd");
+    if (!sec) throw new Error("⏱ chybí ▶ Teď pod odpočtem");
+    if (cd && !(sec.compareDocumentPosition(cd) & 4)) throw new Error("⏱ 🎛 ovládání je nad ▶ Teď");
     // 🔒 Zámek dotyku: zapnout, odemknout dvojitým klepnutím
     if (await tap("#tlk", 200)) {
       snap("trlive-lock");
@@ -153,7 +177,23 @@ async function events() {
   await tap("#evb", 200);
 }
 // Peníze: Team → 💰 Platby → ⚖️ Tarify (detail), 🔓 Výjimky a ☑ Hromadně (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
+// v22.29 Zápas: uzavřený zápas → krok 3 s 📤 Souhrn zápasu (bez sdílení i schránky ukáže text k ručnímu zkopírování)
+async function matchShare() {
+  if (!(await tap('#nav button[data-t="ev"]', 250))) return;
+  const {S} = await import("../../src/core/state.js"), {render} = await import("../../src/views/shell.js"), {HK} = await import("../../src/data/storage.js");
+  if (!HK.can("sport") || !(S.ma || []).some(m => m.id === "m0")) return;   // detail zápasu jen realizační tým
+  S.mid = "m0"; S.step = 3; render(); await wait(200);
+  snap("match-closed");
+  if (!$("#mshc")) throw new Error("📤 uzavřený zápas bez karty Souhrn zápasu");
+  await tap("[data-msh]", 250);
+  const t = $("#mshc textarea");
+  if (!t || !/Lvice – .* 1:2 \(0:1, 1:0, 0:1\)/.test(t.value)) throw new Error("📤 souhrn zápasu chybí nebo je špatně: " + (t ? t.value.split("\n")[0] : "bez textu"));
+  snap("match-share");
+  S.mid = null; S.step = 1; render(); await wait(150);
+}
 async function money() {
+  // v22.32: manager přidá člena realizačního týmu rovnou s e-mailem a rolí
+  if (role === "manager" && await tap('#nav button[data-t="fo"]', 250) && !$("#stm")) throw new Error("👥 realizační tým: chybí e-mail a role u přidání (manager)");
   if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
     if (await tap('[data-fv="tf"]', 250)) {
       snap("pay-tariff");
@@ -199,7 +239,13 @@ async function money() {
         snap("cash-tr");
         if (await tap("#cbs", 200)) snap("cash-tr-saved");
       }
-      if (await tap('[data-cba="out"]', 150)) { snap("cash-out"); await tap("#cbc", 150); }
+      if (await tap('[data-cba="out"]', 150)) {
+        snap("cash-out");
+        // v22.31: ➖ výdaj předvyplní kategorii, příjemce a účet posledního výdaje (zkušební data: led, Zimní stadion, provozní účet)
+        const py = $('[data-cf="payee"]'), ct = $('[data-cf="cat"]');
+        if (!py || py.value !== "Zimní stadion" || !ct || ct.value !== "Pronájem ledu") throw new Error("➖ výdaj se nepředvyplnil z posledního výdaje: " + (py && py.value) + " / " + (ct && ct.value));
+        await tap("#cbc", 150);
+      }
     }
     if (await tap('[data-tm="cost"]', 250)) {
       snap("cost");
@@ -232,6 +278,7 @@ try {
   await settings();
   await help();
   await events();
+  await matchShare();
   await money();
   await tap('#nav button[data-t="home"]', 250);
   snap("end");

@@ -1,12 +1,12 @@
 // 📚 Banka cvičení (Team → 📚 Cvičení): seznam s hledáním a filtrem, detail, formulář, ⧉ kopie, 🗄 vyřazení, 🗑 smazání vyřazeného.
 // Práva podle modulu drills (HK.perm); ⭐ oblíbená v zařízení (localStorage). Výpočty domain/drills.js.
 // 📷 Obrázky (nejvýš 3) v jedné dávce do drillimg/{id}, 📄 PDF jen odkazem; smazat jen cvičení nepoužité v trplan ani trtpl (i s obrázky).
-// 📥 Základní sada a 📄 import: drill-import-view.js.
+// 📥 Základní sada a 📄 import: drill-import-view.js. Zápis cvičení writeDrill sdílí i ➕ nové cvičení ve výběru plánu (drill-picker.js).
 // ===== Importy =====
 import {CATS, GROUPS, LEVELS, SKILLS, UNITS} from "../config/skills.js";
 import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
-import {$, esc, toast} from "../core/utils.js";
+import {$, esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {DRILLIMG_COLL, DRILL_COLL, DRILL_MAX, DUR_MAX, DUR_MIN, IMG_MAX, drillBlank, drillCanDelete, drillCopy, drillCounts, drillDoc, drillError, drillFilter, imgChanges, imgDoc} from "../domain/drills.js";
 import {TRTPL_COLL} from "../domain/plan-reuse.js";
@@ -60,7 +60,7 @@ function deleteHtml(d) {
   if (U.st === "err") return `<div class="mu" style="font-size:12px;color:var(--wa)">Použití v plánech nejde ověřit (${esc(U.err)}) – smazat teď nejde.</div>`;
   const used = U.m[d.id] || 0;
   if (!drillCanDelete(d, used)) return `<div class="mu" style="font-size:12px">Používá ho ${used} ${used === 1 ? "plán tréninku nebo šablona" : used < 5 ? "plány tréninků nebo šablony" : "plánů tréninků nebo šablon"} – smazat nejde, zůstává vyřazené.</div>`;
-  return `<button class="d" data-ddl="${esc(d.id)}" style="flex:none;${armed(k) ? "background:var(--no);color:#fff" : ""}">${armed(k) ? "Opravdu smazat?" : "🗑 Smazat"}</button>`;
+  return `<button class="d" data-ddl="${esc(d.id)}" style="flex:none;${armed(k) ? "background:var(--no);color:#fff" : ""}">${armed(k) ? "Opravdu smazat? Klepni znovu" : "🗑 Smazat"}</button>`;
 }
 
 // ===== Vykreslení: seznam =====
@@ -145,19 +145,28 @@ function readForm() {
 }
 
 // ===== Hlavní logika: uložení a změny =====
-// Uložení v jedné dávce: nové obrázky (drillimg), smazání odebraných obrázků a cvičení (nové = set s arch: false, úprava = merge)
-function save() {
-  readForm();
-  const E = S.dre, st = stamp(), id = E.id || S.db.collection(DRILL_COLL).newId();
-  const nw = E.nw.map(x => ({id: x.id, doc: imgDoc(x.d, id, x.w, x.h, st.by, st.at)})).filter(x => x.doc);
+// Zápis cvičení v jedné dávce (banka i ➕ nové cvičení ve výběru plánu): nové obrázky (drillimg), smazání odebraných obrázků
+// a cvičení (nové = set s arch: false, úprava = merge). E = {id | null, d (pole formuláře), orig (id obrázků před úpravou), nw (nové obrázky)}.
+// Vrací {id, doc} nebo {err} (text chyby formuláře). Nové cvičení se hned přidá i do S.dr (poslech banky ho pak nahradí).
+export function writeDrill(E) {
+  const st = stamp(), id = E.id || S.db.collection(DRILL_COLL).newId();
+  const nw = (E.nw || []).map(x => ({id: x.id, doc: imgDoc(x.d, id, x.w, x.h, st.by, st.at)})).filter(x => x.doc);
   const img = [...(E.d.img || []), ...nw.map(x => x.id)];
   const err = drillError({...E.d, img});
-  if (err) return toast(err);
+  if (err) return {err};
   const doc = {...drillDoc({...E.d, img}), ...st}, b = S.db.batch();
   nw.forEach(x => { b.set(DRILLIMG_COLL + "/" + x.id, x.doc); imgRemember(x.id, x.doc.d); });
-  imgChanges(E.orig, img).del.forEach(x => { b.delete(DRILLIMG_COLL + "/" + x); imgForget(x); });
+  imgChanges(E.orig || [], img).del.forEach(x => { b.delete(DRILLIMG_COLL + "/" + x); imgForget(x); });
   if (E.id) b.merge(DRILL_COLL + "/" + id, doc); else b.set(DRILL_COLL + "/" + id, {...doc, arch: false});
   b.commit();
+  if (!E.id && !(S.dr || []).some(x => x.id === id)) S.dr = [...(S.dr || []), {id, ...doc, arch: false}];
+  return {id, doc: {...doc, arch: false}};
+}
+// 💾 Uložit ve formuláři banky
+function save() {
+  readForm();
+  const r = writeDrill(S.dre);
+  if (r.err) return toast(r.err);
   S.dre = null; render();
 }
 // Přidání fotky: zmenšení v zařízení, uložení až s cvičením
@@ -183,7 +192,7 @@ function archToggle(id) {
   const d = byId(id);
   if (!d) return;
   S.dru = null;                                    // po vyřazení se použití v plánech ověří znovu
-  S.db.doc(DRILL_COLL + "/" + id).merge({arch: !d.arch, ...stamp()}).catch(() => toast("Uložení se nepovedlo"));
+  S.db.doc(DRILL_COLL + "/" + id).merge({arch: !d.arch, ...stamp()}).catch(() => toast(failMsg("Uložení")));
   toast(d.arch ? "Cvičení je zpět v bance" : "Cvičení je vyřazené (najdeš ho ve filtru 🗄 Vyřazená)");
 }
 

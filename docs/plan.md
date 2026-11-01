@@ -13,7 +13,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 | ~~v22.8~~ | hotovo | **D1** 📉 úspora čtení: audit a stav tréninků na kartách na vyžádání, 📉 odhad čtení v ⚙️ → 💾 Data |
 | ~~v22.9~~ | hotovo | **D2** 📉 události a docházka v okně (živě 45 / 14 dní, starší z paměti zařízení) |
 | ~~v22.11~~ | hotovo | 🧪 beta kanál: větev `beta` → `…/beta/` pro vybrané testery, vydání pro všechny PR `beta → main` |
-| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); v22.21 kód účtu u QR platby; další přehlednější živý trénink, úprava proběhlého tréninku, 5 Zápas |
+| v22.10 → | **K2** | 🖐 komfort celé aplikace – seznam schválen 27. 10. 2026 (pořadí 1–7); **1 hotovo v22.10, 2 v22.12 (beta)**, v22.13 – v22.15 připomínky (docházka, Domů, karta, nápověda podle role, 🎽 dresy, kratší detail), 3 hotovo v22.15, 4 hotovo v22.17 + ⚡ improvizace v22.18, v22.19 mimo pořadí 🏃 oprava pořadí štafety (zpětně), v22.20 příprava na trénink pro hráčky (popis, video, PDF); v22.21 kód účtu u QR platby; v22.27 📋 plán tréninku pohodlněji (🎓 trenéři u linky, ➕ nové cvičení z výběru); v22.28 přehlednější ⏱ živý trénink; 5 hotovo v22.29, 6 v22.30, 7 v22.31 – seznam K2 hotový; čeká ✏️ úprava proběhlého tréninku (návrh `docs/navrhy-v22.32.md`, čeká na souhlas) |
 | v22.x | **N** | 🔔 notifikace (i se zamčeným telefonem) |
 | potom | **P2** | ⭐ jistota plateb pro hráčky |
 | odloženo | **G** | ⌚ aplikace pro hodinky Garmin |
@@ -36,9 +36,9 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 2. ~~**🏠 Domů:**~~ **hotovo v22.12 (beta)** – pruh ❔ Chybí odpověď u nejbližší otevřené události nahoře v Domů (manager, trenér, asistent), jména po klepnutí, 📲 Připomenout = sdílení textu s odkazem na stabilní verzi. u nejbližší události pruh „Chybí odpověď: N“ s jedním klepnutím na seznam bez odpovědi (trenér) a 📲 připomenutí přes sdílení zprávy (WhatsApp / SMS) bez serveru.
 3. ~~**Plán tréninku:**~~ **hotovo v22.15** – ⧉ „Jako minule“ jedním klepnutím (kopie posledního plánu stejného dne v týdnu), sbalené bloky s celkovým časem v záhlaví.
 4. ~~**Živý trénink:**~~ **hotovo v22.17 (beta)** – pevná spodní lišta řídícího ⏸ / ⏭ / +1 min, zbývá plán a do konce tréninku v přilepeném záhlaví; navíc po kontrole před ostrým testem: ohlášení změny od řídícího ostatním trenérům, 🔒 zámek dotyku, obnova Wake Lock se stavem ☀, hodiny správně po zápisu bez signálu. **v22.18 ⚡ improvizace** (zadáno 28. 10. 2026): ➕ cvičení / ☕ pauza do plánu za běhu (z banky i nové názvem, 💾 do banky), trénink bez plánu, 👥 Na ledě s 🚫.
-5. **Zápas:** sestava „Jako minule“ (poslední sestava proti komukoli), po uzavření zápasu rovnou souhrn ke sdílení.
-6. **Jednotné hlášky:** stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.
-7. **Pokladna:** ➖ výdaj předvyplní poslední použitou kategorii, příjemce a účet.
+5. ~~**Zápas:**~~ **hotovo v22.29 (beta)** – sestava „Jako minule“ (poslední sestava proti komukoli), po uzavření zápasu rovnou souhrn ke sdílení.
+6. ~~**Jednotné hlášky:**~~ **hotovo v22.30 (beta)** – stejné texty a délka zobrazení (uloženo / nepovedlo se / offline – odešle se po připojení), potvrzení druhým klepnutím všude stejně.
+7. ~~**Pokladna:**~~ **hotovo v22.31 (beta)** – ➖ výdaj předvyplní poslední použitou kategorii, příjemce a účet.
 Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.
 
 Původní zadání: průchod hlavních toků na Androidu (události a docházka, plán tréninku, živý trénink, zápas): méně klepnutí, výchozí hodnoty, poslední volby, rychlé akce, velká tlačítka na pevných místech, přehledy na jedné obrazovce, jednotné hlášky. Drobné připomínky uživatele se přidávají sem nebo k nejbližší větší verzi.
@@ -75,10 +75,10 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 
 ## Otevřené drobnosti
 1. Smazání hráčky ponechá její žádosti v `requests` a nepřítomnosti v `absence` (osiřelé).
-2. 🚫 u realizačního týmu se nezapisuje.
-3. Realizační tým: zvážit přidání člena rovnou s e-mailem a rolí.
+2. ~~🚫 u realizačního týmu se nezapisuje.~~ **hotovo v22.32** (plat za událost dál podle „Jdu“ – k rozhodnutí v `docs/navrhy-v22.32.md`, bod C).
+3. ~~Realizační tým: zvážit přidání člena rovnou s e-mailem a rolí.~~ **hotovo v22.32** (manager: Team → Realizační tým → e-mail a role).
 4. Smazání tréninku ponechá `trplan`, `trlive`, `trms`, `treval` (osiřelé, nevadí).
-5. Pokrytí dovedností počítá i hostující hráčku – zvážit vynechání.
+5. ~~Pokrytí dovedností počítá i hostující hráčku – zvážit vynechání.~~ **hotovo v22.32** (🎟 hostující se nepočítají).
 6. ⭐ Výkonnost: smazaná hráčka zůstane v `plevel/team.lv` (nevadí).
 7. Upozornění živého tréninku jen při otevřené obrazovce ⏱ (bez serveru – proto ☀ obrazovka svítí a 🔒 zámek dotyku); stopky běží jen v zařízení. Úsporný režim telefonu může zámek obrazovky zakázat (⚠ v záhlaví).
 8. Poslech `events` / `attendance` jen aktuální sezóny – řeší fáze **D2** (zeptat se před změnou: mění statistiky a docházku za starší období).
@@ -87,4 +87,4 @@ Samostatná kopie: vlastní GitHub a vlastní projekt Firebase (možnost A). Tý
 11. 🏦 Výpis z banky: import zůstává univerzální přes CSV (banky se mohou měnit) – přímé napojení konkrétní banky se neplánuje. Přeplatek a nespárovaná platba se od v22.5 zapisují jako příjem; odchozí platby z výpisu (led, rozhodčí) se zatím nepárují – výdaje se zapisují ručně (🧾 Náklady → ➖ Zapsat platbu).
 12. 🕘 Po zpětné změně placení se uzavřená vyúčtování znovu otevírají ručně (záměrně – předpisy ostatních se tím přepočítají); případně později hromadně.
 13. 🧾 Náklady páruje výdaj s náklady podle kategorie a měsíce (příjemce zpřesní párování); náklady událostí musí mít v šabloně kategorii a příjemce. Zrušená nevyúčtovaná událost se nepočítá.
-14. Kontrola kódu v22.18.1 (28. 10. 2026) – A, B, C, D opraveny ve v22.18.2. **Pravidla čekají na souhlas** (nelze vrátit přes Git): `settings/beta` číst jen manager / vývojář; `budgetKeep` – starší revize rozpočtu neměnné (ne jen počet); `treval` u hráček vynutit pravidly. Mimo kód: ověřit nasazená pravidla v konzoli proti `firestore.rules`, zvážit App Check. Uzavřený zápas z doby před v22.18.2 s běžícími hodinami: Znovu otevřít → přerušit hodiny → uzavřít.
+14. Kontrola kódu v22.18.1 (28. 10. 2026) – A, B, C, D opraveny ve v22.18.2. **Pravidla čekají na souhlas – připravený návrh `docs/navrhy-v22.32.md`, kap. B** (nelze vrátit přes Git): `settings/beta` číst jen manager / vývojář; `budgetKeep` – starší revize rozpočtu neměnné (ne jen počet); `treval` u hráček vynutit pravidly. Mimo kód: ověřit nasazená pravidla v konzoli proti `firestore.rules`, zvážit App Check. Uzavřený zápas z doby před v22.18.2 s běžícími hodinami: Znovu otevřít → přerušit hodiny → uzavřít.

@@ -74,7 +74,7 @@ function bindEditor(el, box, st, arm2) {
   if (sv && !sv.disabled) sv.onclick = () => arm2(sv, "perm", "Opravdu uložit práva? Klepni znovu", async () => {
     const n = permDiff(st.perms, work).length;
     if (!(await C().savePerms(work))) return;
-    toast("Práva rolí uložena (" + n + " změn)");
+    toast("✅ Práva rolí uložena (" + n + " změn)");
     work = null;
     setTimeout(() => renderPerm(el, arm2), 300);   // počká na snapshot settings/perm
   });

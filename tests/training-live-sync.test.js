@@ -46,13 +46,14 @@ test("remoteKind: pauza, pokračování, start, konec, posun a úprava dalších
   // ▶ Teď: skok i úprava – ohlásí se jako změna polohy
   assert.equal(remoteKind(o, {...liveCtl("jump", o, {now, me: A, sec: cur + 900}), sAt: now + 200, by: A, skip: ["b"]}, B), "jump");
 });
-test("remoteNote: co je teď, kolik zbývá a co potom", () => {
+test("remoteNote (v22.28 krátce): co se stalo a co běží, kolik zbývá a co bude", () => {
   const cur = {where: "Stanoviště B", what: "Střelba", who: "🔵 Modrá"}, nxt = {where: "Blok 3", what: "Hra"};
-  assert.deepEqual(remoteNote("pause", cur, nxt, 95, "18:40"), {title: "⏸ Trénink pozastaven", body: "Teď: Stanoviště B · Střelba · ještě 1:35"});
+  assert.deepEqual(remoteNote("pause", cur, nxt, 95, "18:40"), {title: "⏸ Pauza – Střelba", body: "zbývá 1:35"});
   const j = remoteNote("jump", cur, nxt, 300, "18:45");
-  assert.equal(j.title, "↪ Změna: Stanoviště B · Střelba");
-  assert.equal(j.body, "ještě 5:00 (do 18:45) · 🔵 Modrá · Potom: Blok 3 · Hra");
-  assert.match(remoteNote("resume", cur, null, 60, "").body, /Potom: konec plánu/);
-  assert.equal(remoteNote("adj", cur, nxt, 60, "").title, "📋 Plán upraven: Stanoviště B · Střelba");
-  assert.equal(remoteNote("end", null, null, 0, "").title, "⏹ Trénink ukončen");
+  assert.equal(j.title, "↪ Teď: Střelba · St. B");
+  assert.equal(j.body, "5:00 (do 18:45) · 🔵 Modrá · pak Hra · Blok 3");
+  assert.match(remoteNote("resume", cur, null, 60, "").body, /pak konec plánu/);
+  assert.equal(remoteNote("adj", cur, nxt, 60, "").title, "📋 Plán upraven: Střelba · St. B");
+  assert.equal(remoteNote("start", cur, nxt, 60, "").title, "▶ Začátek: Střelba · St. B");
+  assert.equal(remoteNote("end", null, null, 0, "").title, "⏹ Trénink skončil");
 });

@@ -4,7 +4,7 @@ import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, ensureOp, upd} from "../core/actions.js";
 import {curM, isG, nm, nomOf, pl, pri} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {$, clone, esc, fd, mmss, toast, uid} from "../core/utils.js";
+import {$, MSG, clone, esc, failMsg, fd, mmss, toast, uid} from "../core/utils.js";
 import {clearEnd, lastPer, moveBoundary, parseClock, periodEnd, removeOvertime, setEnd} from "../domain/corrections.js";
 import {eventText, perLabel, periodStart} from "../domain/timeline.js";
 import {bindShifts, shiftFormHtml, shiftsHtml} from "./shift-editor.js";
@@ -70,7 +70,7 @@ export function renderEditor() {
 
 function bind(e, m) {
   const ed = S.ed, q = s => e.querySelectorAll(s), run = () => m.live && m.live.running;
-  const apply = fn => { if (run()) return toast("Nejdřív přeruš hodiny v živém zápisu"); const n = clone(m); if (fn(n) === false) return toast("Úprava se nepovedla"); upd(n); };
+  const apply = fn => { if (run()) return toast("Nejdřív přeruš hodiny v živém zápisu"); const n = clone(m); if (fn(n) === false) return toast(failMsg("Uložení úpravy")); upd(n); };
   $("#edx").onclick = () => { S.ed = null; renderEditor(); };
   q("[data-etab]").forEach(b => b.onclick = () => { ed.tab = b.dataset.etab; renderEditor(); });
   // události
@@ -118,7 +118,7 @@ function bind(e, m) {
     if (!opp) return toast("Zadej soupeře");
     if (!ed.b.ot && ((m.live && m.live.per >= 4) || (m.events || []).some(x => x.per === 4))) return toast("Zápas už má prodloužení – zruš ho v části Třetiny a konec");
     const n = clone(m); Object.assign(n, {opp, date: $("#bd").value || m.date, home: ed.b.home, perLen: len, ot: ed.b.ot});
-    ensureOp(opp); ed.o = ed.d = ed.l = null; ed.b = null; toast("Uloženo"); upd(n);
+    ensureOp(opp); ed.o = ed.d = ed.l = null; ed.b = null; toast(MSG.saved); upd(n);
   });
   // střídání (obsluhu řeší views/shift-editor.js)
   bindShifts(e, m, renderEditor);

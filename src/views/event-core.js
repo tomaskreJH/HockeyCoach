@@ -33,6 +33,8 @@ const MONTHS = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Če
 const CSS = `<style>
 #evw .evi{cursor:pointer}
 #evw .evh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* Nadpis karty události podbarvený jako ostatní bloky (stejný styl jako .cd > h2 v styles/main.css) */
+#evw .evi>.evh{margin:-14px -14px 10px;padding:9px 14px;background:var(--a2);border-bottom:1px solid var(--bd);border-radius:11px 11px 0 0}
 #evw .evq{display:flex;gap:6px;margin-top:10px}
 #evw .evq button{flex:1;min-height:48px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-weight:700}
 #evw .evq button.on-yes{background:var(--ok);color:#fff;border-color:var(--ok)}
@@ -42,7 +44,8 @@ const CSS = `<style>
 #evw .evq button.evns.on{background:var(--no);color:#fff;border-color:var(--no);border-style:solid}
 #evw .evq button[disabled]{opacity:.4}
 #evw .evq .evqn{display:inline-block;min-width:20px;padding:0 6px;margin-left:2px;border-radius:9px;background:var(--bd);font-size:12px;line-height:18px}
-#evw .evq button[class^="on-"] .evqn{background:rgba(255,255,255,.3)}
+/* Počet odpovědí v tlačítku: u aktivní volby (zelená, červená, oranžová) bílá pilulka s tmavým textem – čitelné na všech barvách */
+#evw .evq button[class^="on-"] .evqn{background:#fff;color:#14202e}
 #evw .pr{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
 #evw .pr .evq{margin:0}
 #evw .pr .evq button{flex:none;min-height:40px;min-width:44px}

@@ -98,18 +98,19 @@ test("msPatch: částečný zápis jedné linky, kopie názvu a jednotky, nejvý
 });
 
 // ===== Oznámení živého tréninku =====
-test("liveNote: titulek = co se děje, tělo = co následuje; alertsDue s větším oknem pro skrytou aplikaci", () => {
+test("liveNote (v22.28 krátce pro hodinky): titulek = co se děje, tělo = co bude; alertsDue s větším oknem pro skrytou aplikaci", () => {
   const cur = {where: "Stanoviště B", what: "Střelba", who: "2. pětka"}, nxt = {where: "Stanoviště C", what: "Přihrávky", who: "2. pětka"};
   const a = liveNote(60, cur, nxt, 60, "18:42");
-  assert.equal(a.title, "⏱ Ještě 1:00 · Střelba");
-  assert.match(a.body, /Teď: Stanoviště B · Střelba \(2\. pětka\)/);
-  assert.match(a.body, /Potom: Stanoviště C · Přihrávky/);
-  assert.equal(liveNote(10, cur, nxt, 10).title, "⏱ 0:10 → Stanoviště C · Přihrávky");
+  assert.equal(a.title, "⏱ 1:00 · Střelba");
+  assert.equal(a.body, "Pak: Přihrávky · St. C · 2. pětka");
+  assert.equal(liveNote(10, cur, nxt, 10).title, "⏱ 0:10 → Přihrávky · St. C");
+  assert.equal(liveNote(10, cur, nxt, 10).body, "2. pětka");
   assert.equal(liveNote(10, cur, null, 10).title, "⏱ 0:10 → konec");
   const s = liveNote("switch", cur, nxt, 300, "18:42");
-  assert.equal(s.title, "▶ Teď: Stanoviště B · Střelba");
-  assert.match(s.body, /2\. pětka · do 18:42 · Potom: Stanoviště C/);
-  assert.equal(liveNote("end", null, null, 0).title, "✅ Plán tréninku skončil");
+  assert.equal(s.title, "▶ Střelba · St. B");
+  assert.equal(s.body, "2. pětka · do 18:42 · Pak: Přihrávky · St. C · 2. pětka");
+  assert.equal(liveNote("end", null, null, 0).title, "✅ Konec plánu");
+  assert.match(liveNote("end", null, null, 0).body, /ukončí trenér/);
   assert.deepEqual(alertsDue(70, 5), [], "viditelná aplikace: skok neupozorní");
   assert.deepEqual(alertsDue(70, 5, undefined, 70), [10], "skrytá aplikace: jen poslední překročená hranice");
   assert.deepEqual(alertsDue(75, 40, undefined, 70), [60]);

@@ -7,7 +7,7 @@
 import {APP_VERSION, cmpVer} from "../core/app-version.js";
 import {IS_BETA} from "../core/channel.js";
 import {armed, confirm2} from "../core/actions.js";
-import {LS, esc, toast} from "../core/utils.js";
+import {esc, failMsg, LS, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {onlineCount, seenState} from "../domain/presence.js";
 import {READ_LIMIT, collLabel, readCost} from "../domain/read-cost.js";
@@ -134,9 +134,10 @@ async function renderMembers(el) {
     }).join("") || "–");
     const rb = box.querySelector("#cmbr");
     if (rb) rb.onclick = () => renderMembers(el);
-    box.querySelectorAll("[data-md]").forEach(b => { b.onclick = async () => {
-      if (HK.blocked() || !confirm("Odebrat přístup: " + b.dataset.md + "?")) return;
-      if (await C().removeMember(b.dataset.md)) renderMembers(el);
+    // Odebrat přístup: potvrzení druhým klepnutím jako všude (dřív okno prohlížeče)
+    box.querySelectorAll("[data-md]").forEach(b => { b.onclick = () => {
+      if (HK.blocked()) return;
+      arm2(b, "md:" + b.dataset.md, "Odebrat přístup? Klepni znovu", async () => { if (await C().removeMember(b.dataset.md)) renderMembers(el); });
     }; });
   } catch (e) { box.textContent = "Nelze načíst: " + ((e && (e.code || e.message)) || e); }
 }
@@ -209,11 +210,11 @@ function bindCash(q, close) {
   q("#ccs").onclick = () => { close(); if (HK.openCash) HK.openCash(); };
   q("#cdb").onclick = async () => {
     try { const n = await C().rebuildDebtors(); if (n != null) toast("Dlužníci přepočítáni (" + n + " s nezaplaceným předpisem)"); }
-    catch (e) { toast("Přepočet se nepovedl: " + ((e && (e.code || e.message)) || e) + " – je publikováno firestore.rules?"); }
+    catch (e) { toast(failMsg("Přepočítání", ((e && (e.code || e.message)) || e) + " – je publikováno firestore.rules?")); }
   };
   q("#cpr").onclick = async () => {
     try { const r = await C().rebuildPrices(); if (r) toast(r.set || r.del ? "Ceny pro hráčky: zapsáno " + r.set + ", smazáno " + r.del : "Ceny pro hráčky jsou aktuální"); }
-    catch (e) { toast("Doplnění se nepovedlo: " + ((e && (e.code || e.message)) || e) + " – je publikováno firestore.rules?"); }
+    catch (e) { toast(failMsg("Doplnění", ((e && (e.code || e.message)) || e) + " – je publikováno firestore.rules?")); }
   };
 }
 // Data: záloha, CSV; manager navíc obnova ze zálohy (Nahradit vším potvrzením druhým klepnutím)

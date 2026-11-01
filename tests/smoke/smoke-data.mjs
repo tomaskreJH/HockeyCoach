@@ -37,7 +37,11 @@ export function teamData() {
     e8: {title: "Trénink daleko", date: "2026-11-20", time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-11-19T18:00"},
     e9: {title: "Trénink", date: OLD, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-07-14T18:00"}
   };
-  const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: [], ln: {}}};
+  const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: [], ln: {}},
+    // v22.29: uzavřený zápas se sestavou a góly (⧉ Jako minule pro m1, 📤 souhrn ke sdílení)
+    m0: {opp: "Lvice", date: "2026-10-12", time: "17:00", home: false, place: "Hala Lvic", closed: true, nom: ["p1", "p2", "p4", "p5", "p6", "p7"],
+      lineup: {"1C": "p1", "1LW": "p2", "1RW": "p6", "1LD": "p4", "1RD": "p5", G1: "p7"},
+      events: [{id: "g1", k: "G", team: "us", per: 1, time: "04:10", scorer: "p1", a1: "p2", sit: "E", on: []}, {id: "g2", k: "G", team: "opp", per: 2, time: "11:00", sit: "E", on: []}, {id: "g3", k: "G", team: "us", per: 3, time: "15:30", scorer: "p6", sit: "PP", on: []}]}};
   const attendance = {};
   ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"].forEach(p => { attendance["e1_" + p] = {eid: "e1", pid: p, st: "yes"}; attendance["e0_" + p] = {eid: "e0", pid: p, st: p === "p3" ? "no" : "yes"}; });
   ["t1", "t2", "t3"].forEach(t => { attendance["e1_" + t] = {eid: "e1", pid: t, st: "yes"}; });

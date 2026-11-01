@@ -48,6 +48,8 @@ function ensureLevels() {
     const d = v.docs.find(x => x.id === PLEVEL_DOC);
     S.plv = (d && d.data().lv) || {};
     S.plvErr = null;
+    // Otevřené okno ⭐ se nepřekresluje (obrazovka by skočila); souhrn se obnoví po zavření
+    if (S.plvo && document.querySelector("#plvm")) return;
     render();
   }, e => { S.plvErr = (e && (e.code || e.message)) || "chyba"; S.plv = {}; render(); });
 }
@@ -113,11 +115,12 @@ function bindSheet(a) {
   // Překreslení po klepnutí okno vytvoří znovu – posun seznamu se pamatuje (S.plvo.y), aby obrazovka neskočila nahoru
   const box = m.querySelector(".mb");
   if (box) { box.scrollTop = (S.plvo && S.plvo.y) || 0; box.onscroll = () => { if (S.plvo) S.plvo.y = box.scrollTop; }; }
+  // Klepnutí na hvězdy: uloží hned a označí jen čísla v řádku hráčky (bez překreslení – seznam zůstane, kde je)
   m.querySelectorAll("[data-lsl]").forEach(b => b.onclick = () => {
     const [id, n] = b.dataset.lsl.split("|"), lv = lvlSet(S.plv || {}, id, +n);
     S.plv = lv;
     S.db.doc(PLEVEL_COLL + "/" + PLEVEL_DOC).merge({v: 1, lv, ...stamp()});
-    render();
+    m.querySelectorAll("[data-lsl]").forEach(x => { const [xi, xn] = x.dataset.lsl.split("|"); if (xi === id) x.classList.toggle("on", hasLvl(lv, id) && lvlOf(lv, id) === +xn); });
   });
 }
 

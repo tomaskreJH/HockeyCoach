@@ -38,8 +38,9 @@ export const isPosBlock = b => !!b && b.by === "pos";
 export const posGrp = pos => (pos === "Obránkyně" ? DF : FW);
 // Linka s brankářkami se netočí
 export const isFixedLane = l => (l.grp || []).includes(GK);
-// Používá blok „Další volby“ úpravy plánu? (podle postů, vlastní točení, trenéři u linek, souběžná linka u Společně) – pak je sekce otevřená
-export const blockExtras = b => !!b && !isBreak(b) && (isPosBlock(b) || !!b.rot || (b.lanes || []).some(l => (l.co || []).length > 0) || (b.mode !== "st" && (b.lanes || []).length > 1));
+// Používá blok „Další volby“ úpravy plánu? (podle postů, vlastní točení, souběžná linka u Společně) – pak je sekce otevřená.
+// Trenéři linek jsou přímo u linky (od v22.27), sekci proto neotevírají.
+export const blockExtras = b => !!b && !isBreak(b) && (isPosBlock(b) || !!b.rot || (b.mode !== "st" && (b.lanes || []).length > 1));
 // Nové krátké id bloku / linky (unikátní v rámci plánu)
 export const newPid = (p = "b") => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Označení linek bloku: stanoviště A–D (jen linky, které se točí), linka brankářek 🥅, u bloku Společně prázdný text

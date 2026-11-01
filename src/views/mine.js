@@ -155,7 +155,7 @@ function reqState() {
   const p = meP();
   if (!p) return "";
   const o = openReq(S.rq, p.id, "pay");
-  if (o) return `<div class="cd" style="border-color:var(--wa)"><b>✋ Žádost o změnu placení – ${esc(REQ_ST.open)}</b><div>${reqLine(o)}</div>${o.note ? `<div class="mu">„${esc(o.note)}“</div>` : ""}<button class="s w" id="mkrqdel" style="margin-top:8px">${armed("mkrqdel" + o.id) ? "Opravdu zrušit žádost?" : "Zrušit žádost"}</button></div>`;
+  if (o) return `<div class="cd" style="border-color:var(--wa)"><b>✋ Žádost o změnu placení – ${esc(REQ_ST.open)}</b><div>${reqLine(o)}</div>${o.note ? `<div class="mu">„${esc(o.note)}“</div>` : ""}<button class="s w" id="mkrqdel" style="margin-top:8px">${armed("mkrqdel" + o.id) ? "Opravdu zrušit žádost? Klepni znovu" : "Zrušit žádost"}</button></div>`;
   const l = reqsOf(S.rq, p.id, "pay").find(r => r.st !== "open" && Date.now() - new Date(r.doneAt || r.at).getTime() < 30 * 864e5);
   if (!l) return "";
   return `<div class="cd" style="border-color:var(--${l.st === "ok" ? "ok" : "no"})"><b>${l.st === "ok" ? "✅" : "❌"} Žádost o změnu placení – ${esc(REQ_ST[l.st] || l.st)}</b><div>${reqLine(l)}</div>${l.reply ? `<div class="mu">Odpověď: „${esc(l.reply)}“</div>` : ""}</div>`;
@@ -244,7 +244,7 @@ export function mineView(a) {
     const sh = shown;   // kopie – okno se mezitím může překreslit
     if (!sh) return;
     saveQrImage(sh.q, sh.info, sh.name).then(r => {
-      if (r === "download") toast("QR uložen jako " + sh.name);
+      if (r === "download") toast("✅ QR uložen jako " + sh.name);
       else if (r === "error") toast("Obrázek QR se nepodařilo vytvořit. Použij údaje pro ruční platbu.");
     }).catch(() => toast("Obrázek QR se nepodařilo uložit."));
   };

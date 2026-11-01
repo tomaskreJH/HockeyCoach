@@ -58,7 +58,7 @@ export function reqModal() {
   if (!r || r.st !== "open" || !p) { S.rqo = null; reply = ""; return ""; }
   const own = HK.pid() === r.mid;
   const acts = own ? '<div class="mu" style="margin-top:10px">Vlastní žádost vyřídí jiný správce pokladny.</div>'
-    : `<input id="rqrep" placeholder="Odpověď hráčce (nepovinné)" maxlength="300" value="${esc(reply)}" style="margin-top:10px"><div class="row" style="margin-top:8px"><button class="p" id="rqok">${armed("rqok" + r.id) ? "Opravdu schválit?" : "✓ Schválit"}</button><button class="d" id="rqno">${armed("rqno" + r.id) ? "Opravdu zamítnout?" : "✕ Zamítnout"}</button></div>`;
+    : `<input id="rqrep" placeholder="Odpověď hráčce (nepovinné)" maxlength="300" value="${esc(reply)}" style="margin-top:10px"><div class="row" style="margin-top:8px"><button class="p" id="rqok">${armed("rqok" + r.id) ? "Opravdu schválit? Klepni znovu" : "✓ Schválit"}</button><button class="d" id="rqno">${armed("rqno" + r.id) ? "Opravdu zamítnout? Klepni znovu" : "✕ Zamítnout"}</button></div>`;
   return `<div class="md" id="rqbg"><div class="mb"><h2>✋ Žádost o změnu placení</h2><div><b>${pn(r.mid)}</b></div><div style="margin-top:4px">${reqLine(r)}</div>
 <div class="mu">Podáno ${esc(fDay(r.at))}${r.by ? " · " + esc(r.by) : ""}</div>${r.note ? `<div style="margin-top:6px">„${esc(r.note)}“</div>` : ""}
 <h3 style="margin-top:12px">Dopad schválení</h3><div class="mu">Po schválení se zapíše historie způsobu placení: příspěvky od ${esc(ymLabel(r.ym))} a vyúčtování událostí od toho měsíce se počítají podle nového způsobu.</div>${impactHtml(r, p)}

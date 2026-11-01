@@ -239,6 +239,56 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 35. v22.32 (beta) – 🧹 Úklid drobností
+- [ ] 35.1 V betě je v záhlaví **v22.32.1** (v22.32 se nenasadila).
+- [ ] 35.2 Detail tréninku po začátku → 👥 Docházka → Realizační tým: u člena s „Jdu“ tlačítko 🚫; klepnutí = „🚫 Nedorazil(a)“, další klepnutí zruší. 📊 Docházka ukáže člena v 🚫. 🕘 Historie přihlášek má záznam. Plat za událost (📅 Měsíce) se nemění.
+- [ ] 35.3 Manager: Team → Realizační tým → jméno, funkce, **e-mail a role** → Přidat → hláška „✅ … přidán(a) – přístup …“; v ⚙️ → 👥 Členové týmu je e-mail s rolí a propojeným členem týmu (🎓). Bez e-mailu se přidá jen člen týmu jako dřív. Trenér pole e-mail nevidí.
+- [ ] 35.4 Trénink s přihlášenou 🎟 hostující → 📋 ✏️ Upravit → 📊 Pokrytí dovedností: hostující se nepočítá, pod přehledem „🎟 Hostující (1) se nepočítají“.
+
+## 34. v22.31 (beta) – 💸 Předvyplněný výdaj
+- [ ] 34.1 V betě je v záhlaví **v22.31**.
+- [ ] 34.2 Team → 🏦 Pokladna → ➖ Výdaj: kategorie, příjemce a účet jsou jako u posledního ručně zapsaného výdaje (nahoře poznámka „jako u posledního výdaje“); datum dnešní, částka prázdná.
+- [ ] 34.3 Po 💸 Vyplatit plat (📅 Měsíce) se ➖ Výdaj dál předvyplní podle posledního výdaje, ne podle platu.
+- [ ] 34.4 Se zvoleným účtem ve filtru pohybů (provozní) má přednost zvolený účet.
+- [ ] 34.5 🧾 Náklady → ➖ Zapsat platbu: předvyplní se údaje nákladu (ne poslední výdaj), jako dřív.
+- [ ] 34.6 Zůstatek, příjmy, výdaje a součty podle kategorií po uložení výdaje sedí jako dřív (výpočty beze změny).
+
+## 33. v22.30 (beta) – 💬 Jednotné hlášky a potvrzení
+- [ ] 33.1 V betě je v záhlaví **v22.30**.
+- [ ] 33.2 Režim letadlo → přihlásit se na trénink (✅ Jdu) nebo uložit plán → dole „📶 Bez připojení – uloženo v zařízení, odešle se po připojení“ (nejvýš jednou za 20 s). Vypnout letadlo → změna je v databázi (druhé zařízení ji uvidí).
+- [ ] 33.3 Uložení s chybou (např. 👁 náhled role hráčky není chyba – jen „V náhledu se nezapisuje“; chybu vyvolá třeba nepublikované pravidlo) → „⚠️ Uložení se nepovedlo: důvod“. Úspěch: „✅ … uloženo“ (plán tréninku, nastavení, poznámka, nepřítomnost).
+- [ ] 33.4 ⚙️ → 👥 Členové týmu → Odebrat: tlačítko zčervená „Odebrat přístup? Klepni znovu“ (žádné okno prohlížeče), po 4 s se vrátí; druhé klepnutí odebere.
+- [ ] 33.5 ⚙️ → Pokladna → návrh změny účtů (druhý správce) → ✕ Zamítnout: „Opravdu zamítnout? Klepni znovu“, druhé klepnutí návrh zamítne.
+- [ ] 33.6 Namátkou: 🗑 Smazat plán, 🗑 Smazat cvičení (vyřazené), ✋ žádosti Schválit / Zamítnout – všude „… Klepni znovu“ a stejná doba 4 s.
+
+## 32. v22.29 (beta) – 🏒 Zápas: Jako minule a souhrn
+- [ ] 32.1 V betě je v záhlaví **v22.29**.
+- [ ] 32.2 Nový zápas → nominace → 2 Sestava: vedle ↻ Podle základní formace je **⧉ Jako minule** a pod ním „ze zápasu X d. m. rrrr“ (poslední zápas se sestavou, i proti jinému soupeři).
+- [ ] 32.3 ⧉ Jako minule u vyplněné sestavy → „Opravdu přepsat? Klepni znovu“ → sestava i přesilovky / oslabení jako minule; hráčky, které teď nejsou nominované, chybí (místa volná, rotace setřesené), nominované navíc jsou v Náhradnicích.
+- [ ] 32.4 Uzavřít a potvrdit zápas (druhým klepnutím) → přepne se na krok 3 a posune na kartu **📤 Souhrn zápasu**; vyúčtování plateb vzniklo jako dřív.
+- [ ] 32.5 📤 Sdílet souhrn → nabídka sdílení telefonu (WhatsApp) s textem: zápas a skóre s třetinami, datum a místo, góly se stavem (střelkyně, asistence, třetina a čas), střely, tresty, nejvíc bodů. Venku je domácí soupeř první a skóre z jeho pohledu.
+- [ ] 32.6 Starší uzavřený zápas: karta 📤 je u něj také. Živý zápis, střely, góly a časomíra fungují beze změny (krátký zkušební zápas).
+
+## 31. v22.28 (beta) – ⏱ Přehlednější živý trénink (nejlépe na ledě)
+- [ ] 31.1 V betě je v záhlaví **v22.28**.
+- [ ] 31.2 ⏱ Živý trénink (řídící): shora odpočet → **▶ Teď** (moje linka: cvičení, skupiny, jména) → **⏭ Za m:ss → …** → ⚡ ➕ / ☕ / 👥 → sbalené **🎛 ⏮ Zpět · ✂ −1 min · +5 min · ⏹ Konec**; dole pevná lišta ⏸ / ⏭ / +1 min.
+- [ ] 31.3 Trenér, který vede jen jedno stanoviště: vidí své stanoviště celé, ostatní linky jedním řádkem (A / B / 🥅, cvičení, barva skupiny v tomto kole, 🎓 trenér); po otočení kola se barvy změní. „Podrobnosti ostatních linek“ rozbalí plné karty.
+- [ ] 31.4 Druhý trenér (neřídí): 🎛 Ovládání hodin · řídí X je sbalené; po rozbalení ⏸ / ⏭ … a převzetí řízení druhým klepnutím jako dřív. Rozbalené 🎛 zůstane rozbalené i po změně kola.
+- [ ] 31.5 ⏹ Konec: první klepnutí se zeptá (🎛 zůstane otevřené), druhé ukončí. Po doběhnutí plánu se trénink sám neukončí – ⏹ Konec tréninku je vidět.
+- [ ] 31.6 ⌚ Oznámení na hodinkách: 60 s „⏱ 1:00 · cvičení“ + „Pak: …“; 10 s „⏱ 0:10 → další cvičení · St. X“; točení „▶ cvičení · St. X“ s barvou, „do 18:42“ a „Pak: …“; změna od řídícího „↪ Teď: …“, „⏸ Pauza – cvičení“. Texty se vejdou na displej hodinek.
+- [ ] 31.7 Zachováno: 🔒 zámek dotyku (dvojité klepnutí), ☀ stav obrazovky, ⚡ improvizace, 📋 Zbytek plánu s ▶ Teď, štafeta a ⏲ stopky u měřeného cvičení.
+
+## 30. v22.27 (beta) – 📋 Plán tréninku pohodlněji
+- [ ] 30.1 V betě je v záhlaví **v22.27**.
+- [ ] 30.2 Trénink → 📋 ✏️ Upravit → rozbalený blok: u každé linky pod skupinami řádek 🎓 se jmény přihlášeného realizačního týmu; klepnutí trenéra přidá (zvýrazní), další klepnutí odebere. V „⚙ Další volby“ trenéři nejsou a sekce se kvůli trenérovi sama neotevírá.
+- [ ] 30.3 Sbalený blok ▸ ukazuje u linky „· 🎓 jméno“.
+- [ ] 30.4 + 👥 Společně → blok se přidá, posune na obrazovku a rovnou se otevře výběr cvičení; výběr vloží cvičení a délku z banky. ✕ ve výběru = blok zůstane prázdný.
+- [ ] 30.5 Ve výběru napiš hledání (např. „Zatáčky“) → ➕ Nové cvičení → název předvyplněný, zvol část tréninku, délku klepnutím (8), popis; ▸ 📷 / ▶ / 📄 → přidej fotku → 💾 Uložit do banky a vybrat → výběr se zavře, cvičení je v lince, plán zůstal na stejném místě (nic se neuložilo do plánu, dokud nedáš 💾 Uložit plán).
+- [ ] 30.6 Team → 📚 Cvičení: nové cvičení je v bance (výchozí dovednost podle části tréninku, fotka, popis).
+- [ ] 30.7 💾 Uložit plán i ← Zpět k tréninku vrátí obrazovku rovnou na kartu 📋 Plán (ne na začátek detailu).
+- [ ] 30.8 🎽 → ⭐ Výkonnost: posuň seznam dolů, klepni hvězdy u několika hráček → seznam neskočí nahoru, čísla se hned označí; po Zavřít souhrn pod tlačítky odpovídá.
+- [ ] 30.9 Role bez práva upravovat 📚 banku (🔐 Práva rolí → Banka cvičení bez „e“) nevidí ➕ Nové cvičení ve výběru; asistent ho ve výchozím nastavení vidí.
+
 ## 29. v22.25 (beta) – 🟢 Kdo je online (po publikaci pravidel)
 - [ ] 29.1 Pravidla publikovaná; v betě je v záhlaví **v22.25**.
 - [ ] 29.2 Manager: ⚙️ → 👥 Tým a členové → nahoře „🟢 Teď online: 1“ a u vlastního účtu 🟢 online · v22.25 🧪.

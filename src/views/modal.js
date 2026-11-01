@@ -8,7 +8,7 @@ import {TEAM_NAME} from "../config/team-config.js";
 import {ensureOp,save} from "../core/actions.js";
 import {compactRot,isG,lineIds,liveIds,luPlayers,pl,pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {$,clone,dlBeforeStart,esc,norm,td,toast,uid} from "../core/utils.js";
+import {$, clone, dlBeforeStart, esc, failMsg, norm, td, toast, uid} from "../core/utils.js";
 import {dlFor,evDefaults} from "../domain/event-time.js";
 import {addPen,el_,fitLayout,goalPen,logEv,migrate,procExp} from "../domain/live-engine.js";
 import {HK} from "../data/storage.js";
@@ -46,7 +46,7 @@ if(M.k==="NEW"){$("#d").onchange=()=>{sy();if(M.dlAuto)M.dl=dlDefault(M.date);mo
 // Nový zápas vzniká bez nominace a sestavy jako zveřejněná událost: hráčky se přihlásí, teprve pak trenér nominuje z přihlášených
 $("#ok").onclick=async()=>{sy();const o=M.opp.trim();if(!o)return toast("Zadej soupeře");
 if(M.k==="NEW"){if(HK.blocked())return;const dt=M.date||td();if(!M.dl)return toast("Zadej konečný termín přihlašování");if(!dlBeforeStart(M.dl,dt,M.time))return toast("Termín přihlašování musí být před začátkem zápasu")}if(M.k==="EM"){const mm=S.ma.find(x=>x.id===M.id);if(mm&&mm.live)toast("Zápas je zahájen – údaje nelze měnit");else if(mm){save({...clone(mm),opp:o,date:M.date||td(),home:M.home});ensureOp(o)}S.M=null;return modal()}const d={date:M.date||td(),time:M.time||"",place:M.place||"",dl:M.dl,opp:o,home:M.home,perLen:M.perLen||20,ot:M.ot!==false,lineup:{},nom:[],events:[]};
-const r=await S.db.collection("matches").add(d).catch(()=>toast("Uložení se nepovedlo"));S.M=null;
+const r=await S.db.collection("matches").add(d).catch(()=>toast(failMsg("Uložení")));S.M=null;
 // Po vytvoření detail události (přihlášky); místní kopie zápasu hned, než dorazí změna z databáze
 if(r){if(!S.ma.some(x=>x.id===r.id))S.ma=[...S.ma,{id:r.id,...d}];S.mid=null;S.tab="ev";S.evid=r.id;S.evBack=null;S.evf=null;ensureOp(o);toast("Zápas je zveřejněn – hráčky se mohou přihlašovat")}render()};return}
 
@@ -78,7 +78,7 @@ S.db.batch().merge(PPAY_COLL+"/"+M.id,pd).commit().then(done);return}
 const n=M.name.trim();if(!n)return toast("Zadej jméno");const d={name:n,num:M.num.trim(),pos:M.pos,alt:M.alt,st:M.st};if(HK.can("roster"))Object.assign(d,guestPatch(M.guest));
 // Trenér: soupiska i platební pole v jedné dávce; asistent jen soupiska (pravidla mu povolí jen stav)
 if(HK.can("money")){const pd=payDoc();if(!pd)return toast("Zadej koeficient 0–100 %");S.db.batch().merge("players/"+M.id,d).merge(PPAY_COLL+"/"+M.id,pd).commit().then(done);return}
-S.db.doc("players/"+M.id).merge(d).then(done).catch(()=>toast("Uložení se nepovedlo"))};return}
+S.db.doc("players/"+M.id).merge(d).then(done).catch(()=>toast(failMsg("Uložení")))};return}
 
 // --- Člen realizačního týmu (kolekce staff): jméno, funkce, plat ---
 // Jméno a funkci mění jen trenér; správce pokladny (pokladník) jen plat

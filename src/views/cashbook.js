@@ -6,9 +6,9 @@
 import {confirm2, strip} from "../core/actions.js";
 import {pn} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, fd, td, toast, uid} from "../core/utils.js";
+import {esc, failMsg, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {ACC, TR, accLabel, accName, cashAcc, cashCfg, catSums, chargeMsg, isDay, kc, r2, sumCash, trCheck, trFrom, trTo, twoAcc, ymOk, ymShort} from "../domain/cash.js";
+import {ACC, TR, accLabel, accName, cashAcc, cashCfg, catSums, chargeMsg, isDay, kc, lastOutPrefill, r2, sumCash, trCheck, trFrom, trTo, twoAcc, ymOk, ymShort} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
 import {render} from "./shell.js";
 
@@ -44,18 +44,22 @@ function payees(cfg) {
   (S.cs || []).forEach(x => { if (x.k === "out" && x.payee) s.add(String(x.payee).trim()); });
   return [...s].filter(Boolean).sort((a, b) => a.localeCompare(b, "cs"));
 }
-// Nový formulář: vklady mají výchozí kategorii „Vklady / dary“, výdaje první kategorii výdajů; převod z hlavního na provozní
+// Nový formulář: vklady mají výchozí kategorii „Vklady / dary“; ➖ výdaj předvyplní kategorii, příjemce a účet posledního výdaje
+// (jinak první kategorii výdajů; zvolený účet ve filtru má přednost); převod z hlavního na provozní
 function openForm(k) {
   const cfg = cashCfg(S.cc), cats = cfg.cats[k === "in" ? "in" : "out"];
   if (k === TR) { f = {k, d: td(), amt: "", from: fa || "main", to: fa === "op" ? "main" : "op", note: ""}; return; }
   f = {k, d: td(), amt: "", cat: k === "in" ? (cats.includes("Vklady / dary") ? "Vklady / dary" : cats[0] || "") : cats[0] || "", note: "", acc: fa || "main", payee: "", pym: ""};
+  const L = k === "out" ? lastOutPrefill(S.cs, cats) : null;
+  if (L) { if (L.cat) f.cat = L.cat; f.payee = L.payee; if (!fa) f.acc = L.acc; f.pre = true; }
 }
 // Předvyplněný výdaj (z 🧾 Náklady): kategorie, příjemce, měsíc a částka; obrazovka se pak přepne na 🏦 Pokladna
 export function openOut(pre) {
   openForm("out");
   const p = pre || {};
+  f.pre = false;                                   // údaje z 🧾 Náklady, ne z posledního výdaje
   if (p.cat) f.cat = p.cat;
-  if (p.payee) f.payee = p.payee;
+  f.payee = p.payee || "";
   if (ymOk(p.pym)) f.pym = p.pym;
   if (+p.amt > 0) f.amt = String(r2(+p.amt));
   if (p.acc === "main" || p.acc === "op") f.acc = p.acc;
@@ -93,7 +97,7 @@ function moveFormHtml(cfg, two) {
   const pList = out ? payees(cfg) : [];
   const outFields = out ? `<label>Komu (příjemce)</label><input data-cf="payee" list="cbpl" value="${esc(f.payee || "")}" placeholder="např. Zimní stadion">${pList.length ? `<datalist id="cbpl">${pList.map(p => `<option value="${esc(p)}">`).join("")}</datalist>` : ""}
 <label>Za měsíc (nepovinné)</label><input type="month" data-cf="pym" value="${esc(f.pym || "")}" style="max-width:220px"><div class="mu" style="margin:-4px 0 8px">Led účtovaný zpětně: zvol měsíc, za který platíš – 🧾 Náklady ho spárují s událostmi toho měsíce.</div>` : "";
-  return `<div class="cd" id="cbf"><h2>${out ? "➖ Výdaj" : "➕ Vklad / příjem"}</h2>
+  return `<div class="cd" id="cbf"><h2>${out ? "➖ Výdaj" : "➕ Vklad / příjem"}</h2>${out && f.pre ? '<div class="mu" style="margin-bottom:6px">Kategorie, příjemce a účet jako u posledního výdaje – zkontroluj a doplň částku.</div>' : ""}
 <label>Datum platby</label><input type="date" data-cf="d" value="${esc(f.d)}">
 <label>Částka (Kč)</label><input type="number" min="0" step="0.01" inputmode="decimal" data-cf="amt" value="${esc(f.amt)}" style="max-width:200px">
 ${two ? `<label>Účet</label><div class="chips">${Object.entries(ACC).map(([a, t]) => `<button class="chip ${f.acc === a ? "on" : ""}" data-cfa="${a}">${t}</button>`).join("")}</div>` : ""}
@@ -103,7 +107,7 @@ ${outFields}<label>Poznámka</label><input data-cf="note" value="${esc(f.note)}"
 }
 // Řádek pohybu v seznamu (převod: šipka mezi účty, se zvoleným účtem znaménko podle směru)
 function rowHtml(x, cfg, two) {
-  const key = "cb" + x.id, arm = S.cf === key, del = `<button class="d" data-cbd="${x.id}" title="Stornovat pohyb" style="padding:8px 10px;${arm ? "background:var(--no);color:#fff" : ""}">${arm ? "Storno?" : "🗑"}</button>`;
+  const key = "cb" + x.id, arm = S.cf === key, del = `<button class="d" data-cbd="${x.id}" title="Stornovat pohyb" style="padding:8px 10px;${arm ? "background:var(--no);color:#fff" : ""}">${arm ? "Storno? Klepni znovu" : "🗑"}</button>`;
   if (isTr(x)) {
     const sign = fa ? (trFrom(x) === fa ? "−" : "+") : "", col = fa ? (trFrom(x) === fa ? "var(--no)" : "var(--ok)") : "var(--a2)";
     return `<div class="ev" style="align-items:center"><div class="t">${x.d ? fd(x.d) : "–"}</div><div class="b">🔁 Převod ${esc(ACC[trFrom(x)])} → ${esc(ACC[trTo(x)])}${x.note ? `<div class="mu">${esc(x.note)}</div>` : ""}</div><b style="color:${col};white-space:nowrap">${sign}${kc(+x.amt || 0)}</b>${del}</div>`;
@@ -175,7 +179,7 @@ export function bindCashbook(a) {
     if (f.k === TR) {
       const r = trCheck(f, twoAcc(cfg));
       if (r.err) return toast(r.err);
-      S.db.doc("cash/" + uid()).set({d: f.d, k: TR, amt: r.amt, from: f.from, to: f.to, note: (f.note || "").trim(), by: email()}).catch(() => toast("Uložení se nepovedlo"));
+      S.db.doc("cash/" + uid()).set({d: f.d, k: TR, amt: r.amt, from: f.from, to: f.to, note: (f.note || "").trim(), by: email()}).catch(() => toast(failMsg("Uložení")));
       toast("Převod zapsán");
       f = null;
       render();
@@ -189,7 +193,7 @@ export function bindCashbook(a) {
     // Výdaj: příjemce a měsíc, za který se platí, jen když jsou vyplněné (data se jen přidávají)
     if (f.k === "out" && String(f.payee || "").trim()) d.payee = String(f.payee).trim().slice(0, 80);
     if (f.k === "out" && ymOk(f.pym)) d.pym = f.pym;
-    S.db.doc("cash/" + uid()).set(d).catch(() => toast("Uložení se nepovedlo"));
+    S.db.doc("cash/" + uid()).set(d).catch(() => toast(failMsg("Uložení")));
     toast(f.k === "in" ? "Vklad zapsán" : "Výdaj zapsán");
     f = null;
     render();

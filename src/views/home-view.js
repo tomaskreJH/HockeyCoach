@@ -7,7 +7,7 @@
 import {TEAM_NAME} from "../config/team-config.js";
 import {S} from "../core/state.js";
 import {STABLE_URL} from "../core/channel.js";
-import {dlText, esc, td, toast} from "../core/utils.js";
+import {dlText, esc, shareText, td} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {cashflow} from "../domain/budget-track.js";
 import {budgetPlan, normBudget, seasonKeyOf} from "../domain/budget.js";
@@ -49,11 +49,9 @@ function setSelf(P) {
   const pl_ = isPl();
   S.evp = selfMember(HK.pid(), pl_ ? null : HK.tid(), P.map(p => p.id), S.tr.map(t => t.id), pl_);
 }
-// 📲 Sdílení textu: nabídka sdílení telefonu (WhatsApp, SMS …), jinak zkopírovat do schránky, jinak ukázat text k ručnímu zkopírování
-async function shareText(text) {
-  if (navigator.share) { try { await navigator.share({text}); return; } catch (e) { if (e && e.name === "AbortError") return; } }
-  try { await navigator.clipboard.writeText(text); toast("Připomínka zkopírována – vlož ji do WhatsApp nebo SMS"); }
-  catch (e) { missTxt = text; render(); }
+// 📲 Sdílení připomínky (core/utils.js shareText); bez sdílení i schránky ukázat text k ručnímu zkopírování
+async function shareRemind(text) {
+  if (await shareText(text, "Připomínka zkopírována – vlož ji do WhatsApp nebo SMS") === "fail") { missTxt = text; render(); }
 }
 // Varování cashflow z uloženého rozpočtu běžící sezóny (jen správce pokladny); chyba výpočtu přehled nezastaví
 function flowOf() {
@@ -126,7 +124,7 @@ function bind(a, L, M) {
   a.querySelectorAll("[data-hjr]").forEach(b => b.onclick = () => openJoinWindow());
   // ❔ Chybí odpověď: rozbalit / sbalit jména, 📲 Připomenout = text ke sdílení s odkazem na stabilní verzi aplikace
   a.querySelectorAll("[data-hms]").forEach(b => b.onclick = () => { if (!M) return; missOpen = missOpen === M.e.id ? null : M.e.id; missTxt = ""; render(); });
-  a.querySelectorAll("[data-hrm]").forEach(b => b.onclick = () => { if (M) shareText(reminderText(M.e, M.miss.map(m => m.name), {when: whenPlain(M.e), dl: M.e.dl && !M.e.locked ? dlText(M.e.dl) : "", url: location.origin + STABLE_URL})); });
+  a.querySelectorAll("[data-hrm]").forEach(b => b.onclick = () => { if (M) shareRemind(reminderText(M.e, M.miss.map(m => m.name), {when: whenPlain(M.e), dl: M.e.dl && !M.e.locked ? dlText(M.e.dl) : "", url: location.origin + STABLE_URL})); });
   a.querySelectorAll("[data-hbud]").forEach(b => b.onclick = go(() => { S.tab = "fo"; S.tm = "bud"; S.mid = null; S.evid = null; }));
   // Manager / trenér / asistent: otevře kartu běžícího zápasu a v ní živý zápis (stejně jako ▶ Pokračovat v živém zápisu)
   // Ostatní členové: 👁 náhled běžícího zápasu jen ke čtení
