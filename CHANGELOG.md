@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.34 (1. 11. 2026) – 🚫⭐ Nehodnotit u bloku a plat bez 🚫
+> **Nasazení – kanál 🧪 BETA:** commit „v22.34“ do větve **`beta`**. firestore.rules beze změny. **Data: nové volitelné pole bloku `ne: true` v `trplan/{eid}`** (schváleno uživatelem 1. 11. 2026; pravidla bloky nekontrolují, starší verze pole ignoruje a při uložení plánu ho zahodí). V betě Načíst novou verzi (cache `hokej-beta-v137`). 🔒 Vyžadovat verzi: ne. Test: kap. 37.
+
+**⚠️ SAHÁ NA PLATBY – jen výpočet platu za událost** (`domain/cash.js` – `salaryRows`).
+
+**Změněno** (rozhodnutí uživatele 1. 11. 2026)
+- **🚫⭐ Nehodnotit u bloku** (`views/trplan-edit.js`, `noEvalBlock` v `domain/training-plan.js`, `planDoc` pole zachová): přepínač přímo u bloku v ✏️ úpravě plánu (např. předzápasová rozcvička), sbalený blok ukazuje „🚫⭐ nehodnotí se“. Takový blok nemá výzvu k hodnocení na ledě ani řádek v ⭐ Hodnocení hráček (`evalLanes`). **Nahrazuje pravidlo z v22.33** (nehodnotila se celá část 🔥 Rozbruslení a rozcvička) – běžná rozcvička se zase hodnotí.
+- **Plat za událost jen za skutečnou účast:** člen realizačního týmu s „Jdu“ a 🚫 Nedorazil(a) událost do platu nedostane (dřív se počítala podle „Jdu“). Měsíční plat beze změny. Nápověda: 🚫 u realizačního týmu.
+
+**Beze změny:** ostatní výpočty pokladny, předpisy, úhrady, rozpočet; živý trénink, stopky, štafeta, dresy; živý zápis, střely, góly, časomíra.
+
+**Ověřeno:** `npm test` (517 testů; `tests/training-flex.test.js` – `noEvalBlock`, `evalLanes`, `planDoc` s `ne`, `salaryRows` s 🚫), `npm run smoke` bez chyb pro všechny role (nově přepínač 🚫⭐ v úpravě plánu).
+
 ## v22.33 (1. 11. 2026) – ⏱ Variabilní trénink
 > **Nasazení – kanál 🧪 BETA:** commit „v22.33“ do větve **`beta`**. Pravidla databáze ani struktura dat se nemění (📝 cvičení jen do plánu je linka s názvem `dn` bez `drill` – stejně jako dosud ⚡ improvizace; volba 🔕 jen v `localStorage` zařízení `hk-tev-off`). V betě Načíst novou verzi (cache `hokej-beta-v136`). 🔒 Vyžadovat verzi: ne. Test: kap. 36 (nejlépe na ledě).
 

@@ -113,6 +113,8 @@ async function events() {
     snap("plan-edit");
     await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
+    // v22.34: 🚫⭐ Nehodnotit u bloku (zapnout a vypnout)
+    if (await tap('[data-tpne="1"]', 200)) { if (!/Nehodnotit ✓/.test(document.body.textContent)) throw new Error("🚫⭐ přepínač se nezapnul"); snap("plan-edit-noeval"); await tap('[data-tpne="1"]', 200); }
     // v22.27: 🎓 trenéři přímo u linky (ne v ⚙ Další volby); nový blok rovnou otevře výběr cvičení, ➕ nové cvičení uloží do banky a vybere
     if ($("details.tpmo [data-tpco]")) throw new Error("📋 trenéři linky jsou pořád v ⚙ Další volby");
     if (await tap('[data-tpadd="all"]', 250)) {

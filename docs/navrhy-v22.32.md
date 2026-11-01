@@ -106,5 +106,5 @@ match /tract/{id} {
 
 ---
 
-## C. Drobnost k rozhodnutí z v22.32 – 🚫 u realizačního týmu a plat
+## C. ~~Drobnost k rozhodnutí z v22.32~~ – hotovo v22.34 (plat jen bez 🚫, rozhodnutí 1. 11. 2026) – 🚫 u realizačního týmu a plat
 Od v22.32 jde 🚫 označit i u člena realizačního týmu. **Plat za událost se dál počítá podle odpovědi „Jdu“** (`salaryRows` v `domain/cash.js` – výpočet pokladny se bez souhlasu nemění). Má se člen týmu s 🚫 do platu za událost nepočítat? (změna výpočtu pokladny – jedna podmínka `!isNos(a)` + test)

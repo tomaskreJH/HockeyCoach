@@ -8,7 +8,7 @@ import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {BLK_DUR_MAX, BLK_DUR_MIN, blockBlank, blockExtras, breakBlank, BRK_MAX, BY, clock, DF, FW, GK, groupsFor, grpLabel, isBreak, isFixedLane, isPosBlock, laneBlank, laneSeq, laneTags, mergePlan, MODES, moveBlock, PLAN_MAX, planDoc, planIssues, planMinutes, planTimes, posGrp, seqBlank, seqMinutes, seqOk, seqStart, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
+import {BLK_DUR_MAX, BLK_DUR_MIN, blockBlank, blockExtras, breakBlank, BRK_MAX, BY, clock, DF, FW, GK, groupsFor, grpLabel, isBreak, isFixedLane, isPosBlock, laneBlank, laneSeq, laneTags, mergePlan, MODES, moveBlock, noEvalBlock, PLAN_MAX, planDoc, planIssues, planMinutes, planTimes, posGrp, seqBlank, seqMinutes, seqOk, seqStart, seqTimes, TRPLAN_COLL} from "../domain/training-plan.js";
 import {openDrillPicker} from "./drill-picker.js";
 import {render} from "./shell.js";
 import {bindCover, bindReuse, coverHtml, reuseHtml} from "./trplan-reuse.js";
@@ -93,12 +93,13 @@ function blockEditHtml(b, bi, t, X, D, n) {
   if (isBreak(b)) return `<div class="tpe brk"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${bi + 1}. ☕ Pauza · ${clock(X.start, t.a)}–${clock(X.start, t.b)}</b>${mv}</div>
 <input data-tpbn="${bi}" maxlength="${BRK_MAX}" value="${esc(b.brk || "")}" placeholder="Pití, odpočinek…" style="margin:6px 0">${durRow(QUICK_BRK)}</div></div>`;
   // Sbalený blok: záhlaví s časem a délkou, obsah jedním řádkem na linku; klepnutí rozbalí
-  if (!isOpen(b, S.tpe.p)) return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;min-width:0;text-align:left;border:0;background:none;padding:2px 0"><b>▸ Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b><div class="mu" style="font-size:12px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}</div>${blockSum(b, D, X)}</button>${mv}</div></div>`;
+  if (!isOpen(b, S.tpe.p)) return `<div class="tpe"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;min-width:0;text-align:left;border:0;background:none;padding:2px 0"><b>▸ Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b><div class="mu" style="font-size:12px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${noEvalBlock(b) ? " · 🚫⭐ nehodnotí se" : ""}</div>${blockSum(b, D, X)}</button>${mv}</div></div>`;
   const tags = laneTags(b), rl = b.lanes.filter(l => !isFixedLane(l)).length, auto = rl > 1 ? Math.round(b.dur / rl * 10) / 10 : b.dur;
   return `<div class="tpe" data-tpb="${bi}"><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="s" data-tpop="${bi}" style="flex:1;text-align:left;border:0;background:none;padding:2px 0"${S.tpe.p.blocks.length === 1 ? " disabled" : ""}><b>${S.tpe.p.blocks.length === 1 ? "" : "▾ "}Blok ${bi + 1} · ${clock(X.start, t.a)}–${clock(X.start, t.b)} · ${b.dur} min</b></button>
 ${mv}</div>
 <div class="mu" style="font-size:12px;margin:2px 0 6px">${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${b.mode === "st" && b.rot ? " · točení po " + b.rot + " min" : ""}</div>
 ${durRow(QUICK_DUR)}${bankDur(b, D) && bankDur(b, D) !== b.dur ? `<button class="s" data-tpdq="${bi}|${bankDur(b, D)}">↺ z banky ${bankDur(b, D)}</button>` : ""}</div>
+<div class="chips" style="margin:4px 0"><button class="chip ${noEvalBlock(b) ? "on" : ""}" data-tpne="${bi}" title="Hráčky se v tomto bloku nehodnotí (např. předzápasová rozcvička)">${noEvalBlock(b) ? "🚫⭐ Nehodnotit ✓" : "🚫⭐ Nehodnotit"}</button></div>
 ${b.lanes.map((l, li) => laneEditHtml(b, bi, l, li, X, D, tags[li])).join("")}
 ${b.mode === "st" && b.lanes.length < PLAN_MAX.lanes ? `<button class="s w" data-tpla="${bi}" style="margin-top:8px">+ Stanoviště / linka</button>` : ""}
 ${b.mode === "st" ? `<div class="mu" style="font-size:12px;margin-top:8px">Rozpis točení</div>${roundsHtml(b, t.a, {...X, mine: null, tid: null}) || '<div class="mu">Pro točení přidej aspoň 2 stanoviště se skupinami.</div>'}` : ""}
@@ -167,6 +168,8 @@ function bindEditor(a, ctx) {
   on("data-tpdu", ([bi, d]) => edit(p => { const b = p.blocks[+bi]; setDur(b, Math.max(1, Math.min(90, b.dur + +d))); }));
   on("data-tpdi", ([bi], el) => edit(p => { setDur(p.blocks[+bi], parseInt(el.value, 10)); }), "onchange");
   on("data-tpdq", ([bi, m]) => edit(p => { setDur(p.blocks[+bi], +m); }));
+  // 🚫⭐ Nehodnotit: blok bez výzvy k hodnocení na ledě a bez řádku v ⭐ Hodnocení hráček (např. předzápasová rozcvička)
+  on("data-tpne", ([bi]) => edit(p => { const b = p.blocks[+bi]; if (noEvalBlock(b)) delete b.ne; else b.ne = true; }));
   on("data-tprot", ([bi], el) => edit(p => { p.blocks[+bi].rot = el.value ? +el.value : null; }), "onchange");
   on("data-tpla", ([bi]) => edit(p => { p.blocks[+bi].lanes.push(laneBlank()); }));
   on("data-tplr", ([bi, li]) => edit(p => { p.blocks[+bi].lanes.splice(+li, 1); }));

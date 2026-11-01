@@ -1,12 +1,13 @@
 // Testy variabilního živého tréninku (v22.33): 📋 Co následuje s hodinami začátků (liveQueue, atClock), ⚠ zdržení (delayDue, delayLevel,
-// delayNote), nepovinné hodnocení – 🔥 rozcvička se nehodnotí (noEval, evalLanes) a rychlá volba jen pro hráčky bez hodnocení (unratedPids),
+// delayNote), nepovinné hodnocení – blok s 🚫⭐ Nehodnotit (noEvalBlock, evalLanes) a rychlá volba jen pro hráčky bez hodnocení (unratedPids),
 // ⚡ hledání v bance podle části tréninku (quickHits s cat). Čisté funkce – nic se nezapisuje.
 
 // ===== Importy =====
 import test from "node:test";
 import assert from "node:assert/strict";
 import {DELAY_AT, atClock, delayDue, delayLevel, delayNote, liveAt, liveBlocks, liveQueue} from "../src/domain/training-live.js";
-import {NO_EVAL_CATS, evalLanes, noEval, unratedPids} from "../src/domain/training-eval.js";
+import {evalLanes, unratedPids} from "../src/domain/training-eval.js";
+import {noEvalBlock, planDoc} from "../src/domain/training-plan.js";
 import {QUICK_CAT_HITS, QUICK_HITS, quickHits} from "../src/domain/training-impro.js";
 
 // ===== Pomocná data =====
@@ -62,14 +63,17 @@ test("delayLevel a delayNote: úroveň pruhu a krátký text oznámení", () => 
 });
 
 // ===== ⭐ Nepovinné hodnocení =====
-test("noEval a evalLanes: 🔥 rozcvička se nehodnotí, ostatní cvičení ano, bez banky podle linky", () => {
-  assert.deepEqual(NO_EVAL_CATS, ["warm"]);
-  assert.equal(noEval({cat: "warm"}), true);
-  assert.equal(noEval({cat: "skill"}), false);
-  assert.equal(noEval(null), false);
+test("noEvalBlock a evalLanes: blok s 🚫⭐ Nehodnotit se vynechá (i rozcvička bez přepínače se hodnotí), planDoc pole ne zachová", () => {
+  assert.equal(noEvalBlock({ne: true}), true);
+  assert.equal(noEvalBlock({ne: "1"}), false);
+  assert.equal(noEvalBlock(null), false);
   const D = {w: {id: "w", name: "Rozbruslení", cat: "warm"}, s: {id: "s", name: "Střelba", cat: "skill"}};
-  const plan = {blocks: [{id: "b1", mode: "all", dur: 8, lanes: [{id: "l1", drill: "w", grp: []}]}, {id: "b2", mode: "all", dur: 10, lanes: [{id: "l2", drill: "s", grp: []}, {id: "l3", drill: "q", dn: "Mimo banku", grp: []}]}]};
-  assert.deepEqual(evalLanes(plan, D).map(l => l.lid), ["l2", "l3"]);
+  const plan = {blocks: [{id: "b0", mode: "all", dur: 5, ne: true, lanes: [{id: "l0", drill: "w", grp: []}]}, {id: "b1", mode: "all", dur: 8, lanes: [{id: "l1", drill: "w", grp: []}]},
+    {id: "b2", mode: "all", dur: 10, lanes: [{id: "l2", drill: "s", grp: []}, {id: "l3", drill: "q", dn: "Mimo banku", grp: []}]}]};
+  assert.deepEqual(evalLanes(plan, D).map(l => l.lid), ["l1", "l2", "l3"]);
+  const p = planDoc(plan, D);
+  assert.equal(p.blocks[0].ne, true);
+  assert.equal("ne" in p.blocks[1], false, "bez přepínače pole chybí");
 });
 test("unratedPids: jen hráčky bez platného hodnocení (zrušené 0 = bez hodnocení)", () => {
   const e = {pl: {p1: {r: 4}, p2: {r: 0}, p3: {n: "pozdě"}}};
@@ -89,4 +93,14 @@ test("quickHits: text i část tréninku, jen část = celá část abecedně, v
   const many = Array.from({length: 30}, (_, i) => ({id: "m" + i, name: "Cvičení " + String(i).padStart(2, "0"), cat: "skill"}));
   assert.equal(quickHits(many, "", "skill").length, QUICK_CAT_HITS);
   assert.equal(quickHits(many, "cvic", "").length, QUICK_HITS);
+});
+
+// ===== 💰 Plat za událost (v22.34) =====
+test("salaryRows: plat za událost jen za „Jdu“ bez 🚫 nedorazil(a), měsíční plat beze změny", async () => {
+  const {salaryRows} = await import("../src/domain/cash.js");
+  const staff = [{id: "t1", name: "T", pay: {m: "event", amt: 200}}, {id: "t2", name: "U", pay: {m: "month", amt: 3000}}];
+  const evs = [{id: "e1", date: "2026-10-05"}, {id: "e2", date: "2026-10-12"}, {id: "e3", date: "2026-10-19"}];
+  const at = [{eid: "e1", pid: "t1", st: "yes"}, {eid: "e2", pid: "t1", st: "yes", nos: true}, {eid: "e3", pid: "t1", st: "no"}, {eid: "e1", pid: "t2", st: "yes", nos: true}];
+  const R = salaryRows(staff, "2026-10", evs, at, [], "2026-10-20");
+  assert.deepEqual(R.map(r => [r.tid, r.n, r.amt]), [["t1", 1, 200], ["t2", 0, 3000]]);
 });

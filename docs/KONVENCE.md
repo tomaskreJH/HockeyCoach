@@ -88,7 +88,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
 | `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, 📋 co následuje `liveQueue` / `atClock`, ⚠ zdržení `delayDue` / `delayLevel`, upozornění, ⌚ text oznámení, `laneSub`) |
 | `training-impro.js` | ⚡ improvizace na ledě (hledání v bance podle textu a části tréninku, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
-| `training-eval.js` | ⭐ hodnocení hráček (nepovinné; 🔥 rozcvička `noEval` se nehodnotí, `unratedPids` pro 🙂 Ostatním) |
+| `training-eval.js` | ⭐ hodnocení hráček (nepovinné; blok s 🚫⭐ `ne: true` – `noEvalBlock` z `training-plan.js` – se nehodnotí, `unratedPids` pro 🙂 Ostatním) |
 | `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
@@ -173,7 +173,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | Kolekce | Obsah | Čte / zapisuje |
 |---|---|---|
 | `drills/{id}`, `drillimg/{id}` | banka cvičení, obrázek (≤ 700 000 znaků) | `drills r` / `e`, `d`; obrázky čte `isTeam` |
-| `trplan/{eid}` | `{v, goal, blocks: [{id, mode, dur, rot, by, brk, lanes: [{id, drill, dn, di, co, grp, seq}]}]}`; `seq: [{id, drill, dn, di, dur}]` jen u linky, která se netočí | `trplan r` / `e` |
+| `trplan/{eid}` | `{v, goal, blocks: [{id, mode, dur, rot, by, brk, ne, lanes: [{id, drill, dn, di, co, grp, seq}]}]}`; `seq: [{id, drill, dn, di, dur}]` jen u linky, která se netočí | `trplan r` / `e` |
 | `trtpl/{id}` | šablona plánu | `trplan e` |
 | `trlive/{eid}` | hodiny `{st, e0, wAt, sAt == request.time, ctl, adj, skip}` | `trplan r` / `e` |
 | `plevel/team` | ⭐ výkonnost `{lv: {pid: 1–5}}` | `isStaff` |

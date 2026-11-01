@@ -239,13 +239,19 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 37. v22.34 (beta) – 🚫⭐ Nehodnotit u bloku, plat bez 🚫
+- [ ] 37.1 V betě je v záhlaví **v22.34**.
+- [ ] 37.2 Plán: ✏️ Upravit → blok (např. předzápasová rozcvička) → **🚫⭐ Nehodnotit** → 💾 Uložit; sbalený blok ukazuje „🚫⭐ nehodnotí se“.
+- [ ] 37.3 ⏱ Živý trénink: po tomto bloku žádná výzva „Jak šlo hráčkám?“; v ⭐ Hodnocení hráček blok chybí. Rozcvička **bez** přepínače se hodnotí normálně.
+- [ ] 37.4 💰 Pokladna → Měsíce → Platy: člen realizačního týmu s platem za událost a 🚫 Nedorazil(a) u jedné události – ta se do počtu ani částky nepočítá.
+
 ## 36. v22.33 (beta) – ⏱ Variabilní trénink (nejlépe na ledě)
 - [ ] 36.1 V betě je v záhlaví **v22.33**.
 - [ ] 36.2 ⏱ Živý trénink (běžící): pod ovládáním **📋 Co následuje** – současný blok „teď“ se zbývajícím časem, další bloky s hodinami začátku (např. 17:42), nahoře „Konec plánu v … · konec tréninku …“. Asistent bez práva upravovat plán vidí seznam bez tlačítek.
 - [ ] 36.3 Řídící: u dalšího bloku − / + (zkrátit / prodloužit o minutu), ⏭ vypustit, ↩ vrátit, ▶ Teď – hodiny začátků se přepočítají; uložený plán (✏️ Upravit) beze změny.
 - [ ] 36.4 ⚠ Zdržení: ⏸ Pauza na 2–3 min (nebo +1 min několikrát), až plán přetahuje přes konec tréninku o 2 min → vibrace, tón, ⌚ oznámení „⚠ Zdržení 2 min“ a oranžový pruh; další upozornění až při 5 a 10 min. **📋 Upravit** v pruhu otevře Co následuje. Po vypuštění bloku pruh zmizí.
 - [ ] 36.5 ⭐ Po kole „Jak šlo hráčkám? · nepovinné“: označit dvě hráčky, **🙂 Ostatním (N)** označí jen zbylé; **⏰ Později** výzvu schová (další kolo ukáže novou); **🔕 Dnes nehodnotit** – výzvy zmizí, v detailu tréninku ⭐ Hodnocení hráček je „🔔 Zapnout“.
-- [ ] 36.6 Cvičení z části 🔥 Rozbruslení a rozcvička: po kole žádná výzva, v ⭐ Hodnocení hráček chybí (nehodnotí se, nechybí v počtu).
+- [ ] 36.6 (od v22.34 nahrazeno přepínačem u bloku – kap. 37.2–37.3)
 - [ ] 36.7 ⚡ ➕ Cvičení: řádek částí tréninku (🔥 / 🎯 / ⚡ …) – klepnutí ukáže cvičení té části i bez psaní, druhé klepnutí filtr zruší; s textem hledá jen v části.
 - [ ] 36.8 Plán: ✏️ Upravit → 📚 Vybrat cvičení → ➕ Nové cvičení → název, délka → **📝 Jen do plánu (bez banky)** → linka „📝 Název (jen v plánu)“, délka bloku podle formuláře, v 📚 bance nové cvičení není, kontrola plánu nehlásí „bez cvičení“. Trenér bez práva upravovat banku vidí jen tuto volbu.
 - [ ] 36.9 Beze změny: 🎽 rozdělení do dresů, ⏲ stopky, 🏃 štafeta, příprava pro hráčky (👁 náhled hráčky – plán s popisem a videem).

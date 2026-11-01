@@ -6,6 +6,7 @@
 // ===== Importy =====
 import {isG, pl} from "../core/selectors.js";
 import {ibanToCz} from "./bank-account.js";
+import {isNos} from "./attendance.js";
 
 // ===== Konstanty =====
 export const GRP = {monthly: "Příspěvek", single: "Za událost"};
@@ -407,10 +408,11 @@ export function contribPlan(ym, rows, cfg, all, msgOf) {
 
 // ===== Platy realizačního týmu (F4) =====
 // Návrh platů za měsíc: staff.pay = {m: "month" | "event", amt}. U platu za událost se počítají události měsíce do dneška,
-// na které je člen přihlášen „Jdu“ (evs = [{id, date}], at = docházka). paid = už zapsaný výdaj platu v pokladně (cash id sal_RRRR-MM_{tid}).
+// na které je člen přihlášen „Jdu“ a nemá 🚫 nedorazil(a) (evs = [{id, date}], at = docházka). paid = už zapsaný výdaj platu v pokladně (cash id sal_RRRR-MM_{tid}).
 export function salaryRows(staff, ym, evs, at, cs, today) {
   const inMonth = (evs || []).filter(e => String(e.date || "").startsWith(ym) && e.date <= today).map(e => e.id);
-  const going = new Set((at || []).filter(a => a.st === "yes").map(a => a.eid + "|" + a.pid));
+  // Plat za událost jen za skutečnou účast: „Jdu“ bez 🚫 nedorazil(a) (rozhodnutí uživatele 1. 11. 2026)
+  const going = new Set((at || []).filter(a => a.st === "yes" && !isNos(a)).map(a => a.eid + "|" + a.pid));
   return (staff || []).filter(t => t.pay && (t.pay.m === "month" || t.pay.m === "event"))
     .sort((a, b) => (a.name || "").localeCompare(b.name || "", "cs"))
     .map(t => {

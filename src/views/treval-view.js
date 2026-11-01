@@ -1,6 +1,6 @@
 // ⭐ Hodnocení hráček (nepovinné): karta v kartě plánu (jen realizační tým – treval r) a výzva v ⏱ živém tréninku po skončeném kole
 // (hráčky mé linky, jméno + 😃 🙂 😐 😴, 🙂 Ostatním, ⏰ Později, 🔕 Dnes nehodnotit); po tréninku doplnění po linkách a 📝 poznámky, nebo vůbec.
-// 🔥 Rozcvička se nehodnotí (noEval). Druhé klepnutí hodnocení zruší (r 0). Data treval/{eid}, poslech jen u otevřeného tréninku, zápis dávkou
+// Blok s 🚫⭐ Nehodnotit (noEvalBlock) se nehodnotí. Druhé klepnutí hodnocení zruší (r 0). Data treval/{eid}, poslech jen u otevřeného tréninku, zápis dávkou
 // s hlubokým sloučením; hodnotí HK.perm("treval", "e"). Výpočty domain/training-eval.js.
 // ===== Importy =====
 import {nm} from "../core/selectors.js";
@@ -104,7 +104,7 @@ function cardHtml(eid, plan, D, roster, past) {
   const first = L.findIndex(l => { const pl = entry(l.key).pl || {}; return l.pids.some(p => !rateOk((pl[p] || {}).r)); });
   return CSS + `<details class="tev" id="tevd" ${open ? "open" : ""}><summary><b>⭐ Hodnocení hráček</b> <span class="mu">${c.n === c.all ? "nehodnoceno (nepovinné)" : c.n ? `bez hodnocení ${c.n} z ${c.all}` : "vše ohodnoceno ✓"}</span></summary>
 ${E.err ? `<div class="msg">Hodnocení se nepodařilo načíst (${esc(E.err)}). Manager musí publikovat pravidla databáze ve verzi v21.6.</div>` : ""}
-<div class="mu" style="font-size:12px;margin-bottom:4px">Vidí jen realizační tým, hráčky ne. Hodnocení je nepovinné – hned na ledě, později tady, nebo vůbec. 🔥 Rozcvička se nehodnotí. ${can ? "Klepnutí na zvolený smajlík hodnocení zruší." : ""}</div>
+<div class="mu" style="font-size:12px;margin-bottom:4px">Vidí jen realizační tým, hráčky ne. Hodnocení je nepovinné – hned na ledě, později tady, nebo vůbec. Bloky s 🚫⭐ Nehodnotit (např. předzápasová rozcvička) se nehodnotí. ${can ? "Klepnutí na zvolený smajlík hodnocení zruší." : ""}</div>
 ${can && isOff(eid) ? `<div class="row" style="align-items:center;margin:4px 0"><span class="mu" style="flex:1;font-size:13px">🔕 Výzvy k hodnocení na ledě jsou pro tento trénink vypnuté (toto zařízení).</span><button class="s" data-tevon="${esc(eid)}" style="flex:none;min-height:40px">🔔 Zapnout</button></div>` : ""}
 ${L.map((l, i) => laneHtml(eid, l, can, i === first)).join("")}</details>`;
 }
@@ -198,7 +198,7 @@ export function bindEvalCard(a, eid, getX) {
 export function liveEvalHtml(eid, spots, X, done) {
   if (!canE() || isOff(eid)) { E.items = []; return ""; }
   ensureEv(eid);
-  // 🔥 rozcvička v evalLanes není – výzva se po ní neukáže
+  // Blok s 🚫⭐ Nehodnotit v evalLanes není – výzva se po něm neukáže
   const all = evalLanes(X.plan, X.D), items = spots.map(s => ({lane: all.find(l => l.bid === s.block.id && l.lid === s.lane.id), pids: lanePids(s.block, s.lane, X.roster, s.round)})).filter(x => x.lane && x.pids.length);
   if (items.length && E.later.has(promptKey(items))) { E.items = []; return ""; }
   E.items = items;

@@ -30,6 +30,8 @@ const grpKey = (g, pos) => (g === GK ? GK : pos ? (POS_GRPS.includes(g) ? g : nu
 // Pořadí skupin: pětky vzestupně, útočnice, obránkyně, brankářky na konci
 const grpRank = g => (g === GK ? 9 : g === FW ? 7 : g === DF ? 8 : +g);
 const grpSort = (a, b) => grpRank(a) - grpRank(b);
+// Nehodnotí se blok? (ne: true – přepínač 🚫⭐ u bloku, např. předzápasová rozcvička; ☕ pauza se nehodnotí vždy)
+export const noEvalBlock = b => !!(b && b.ne === true);
 // Je blok ☕ pauza (bez cvičení)?
 export const isBreak = b => !!b && b.brk != null && b.brk !== false;
 // Dělí blok skupiny podle postů?
@@ -139,6 +141,7 @@ export function planDoc(p, drills) {
     const o = {id: str(b.id, 24) || newPid("b"), mode, dur, rot: mode === "st" && rot && rot >= 1 && rot <= dur ? rot : null,
       lanes: (Array.isArray(b.lanes) ? b.lanes : []).slice(0, PLAN_MAX.lanes).map(l => lane(l, mode, pos))};
     if (pos) o.by = "pos";
+    if (noEvalBlock(b)) o.ne = true;                          // ⭐ blok se nehodnotí (např. předzápasová rozcvička)
     return o;
   });
   return {v: PLAN_VER, goal: str(src.goal, PLAN_MAX.goal), blocks};
