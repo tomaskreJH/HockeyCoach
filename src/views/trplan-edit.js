@@ -39,10 +39,11 @@ const anyMine = (p, X) => !!X.tid && ((p && p.blocks) || []).some(b => (b.lanes 
 // ===== Vykreslení: úprava plánu =====
 function laneEditHtml(b, bi, l, li, X, D, tag) {
   // Cvičení se vybírá v okně s hledáním a filtrem (views/drill-picker.js); vyřazené / smazané z banky se jen označí
-  const d = D[l.drill], dn = d ? d.name + " · " + (+d.dur || "?") + " min" + (d.arch ? " (vyřazené)" : "") : l.drill ? (l.dn || "?") + " (není v bance)" : "";
+  // 📝 Cvičení jen do plánu (bez banky): linka má jen název dn
+  const d = D[l.drill], dn = d ? d.name + " · " + (+d.dur || "?") + " min" + (d.arch ? " (vyřazené)" : "") : l.drill ? (l.dn || "?") + " (není v bance)" : l.dn ? l.dn + " (jen v plánu)" : "";
   const gc = [...new Set([...groupsFor(b, X.groups, X.pgFull), ...(l.grp || [])])], seq = laneSeq(b, l), me = myLane(l, X);
   const pick = seq ? seqEditHtml(b, bi, l, li, seq, X, D)
-    : `<button class="s w" data-tpdl="${bi}|${li}" style="text-align:left;min-height:46px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dn ? "📚 " + esc(dn) : "📚 Vybrat cvičení z banky…"}</button>${seqOk(b, l) ? `<button class="s" data-tpsq="${bi}|${li}" style="margin-bottom:6px;font-size:13px">🔁 Víc cvičení s vlastním časem</button>` : ""}`;
+    : `<button class="s w" data-tpdl="${bi}|${li}" style="text-align:left;min-height:46px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dn ? (d || l.drill ? "📚 " : "📝 ") + esc(dn) : "📚 Vybrat cvičení z banky…"}</button>${seqOk(b, l) ? `<button class="s" data-tpsq="${bi}|${li}" style="margin-bottom:6px;font-size:13px">🔁 Víc cvičení s vlastním časem</button>` : ""}`;
   return `<div style="border-top:1px dashed var(--bd);padding-top:6px;margin-top:6px"><div class="row" style="align-items:center;flex-wrap:nowrap"><b style="flex:1">${me ? "⭐ " : ""}${tag ? (tag === "🥅" ? "🥅 Linka brankářek" : "Stanoviště " + tag) : b.lanes.length > 1 ? "Linka " + (li + 1) : "Cvičení"}</b>${b.lanes.length > 1 ? `<button class="d" data-tplr="${bi}|${li}" style="flex:none;padding:4px 10px;min-height:0">🗑</button>` : ""}</div>
 ${pick}
 <div class="mu" style="font-size:12px">Skupiny${b.mode === "all" ? " (bez výběru = všichni)" : " (na začátku bloku; 🥅 = linka se netočí)"}</div><div class="chips">${gc.map(g => `<button class="chip ${(l.grp || []).includes(g) ? "on" : ""}" data-tpgr="${bi}|${li}|${g}">${GRP_ICON[g] ? GRP_ICON[g][0] + (g === GK ? "" : GRP_ICON[g][1]) : esc(grpLabel(g))}</button>`).join("")}${gc.length ? "" : '<span class="mu">Nikdo zatím nemá dres.</span>'}</div>
@@ -52,8 +53,8 @@ ${laneCoachHtml(l, bi, li, X)}</div>`;
 function seqEditHtml(b, bi, l, li, seq, X, D) {
   const sm = seqMinutes(seq), T = seqTimes(b, seq), k = bi + "|" + li;
   const rows = seq.map((x, i) => {
-    const d = D[x.drill], dn = d ? d.name + (d.arch ? " (vyřazené)" : "") : x.drill ? (x.dn || "?") + " (není v bance)" : "", tm = T.find(y => y.i === i);
-    return `<div class="tpsr"><div class="row"><b style="flex:none">${i + 1}.</b><button class="s" data-tpsd="${k}|${i}" style="flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dn ? "📚 " + esc(dn) : "📚 Vybrat cvičení…"}</button></div>
+    const d = D[x.drill], dn = d ? d.name + (d.arch ? " (vyřazené)" : "") : x.drill ? (x.dn || "?") + " (není v bance)" : x.dn ? x.dn + " (jen v plánu)" : "", tm = T.find(y => y.i === i);
+    return `<div class="tpsr"><div class="row"><b style="flex:none">${i + 1}.</b><button class="s" data-tpsd="${k}|${i}" style="flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dn ? (d || x.drill ? "📚 " : "📝 ") + esc(dn) : "📚 Vybrat cvičení…"}</button></div>
 <div class="row" style="margin-top:4px"><span class="mu" style="flex:none;font-size:12px">${tm ? Math.round(tm.a / 6) / 10 + "–" + Math.round(tm.b / 6) / 10 + "′" : "mimo blok"}</span><button class="s" data-tpsu="${k}|${i}|-1" style="flex:none;min-width:44px">−</button><input type="number" inputmode="numeric" data-tpsi="${k}|${i}" value="${x.dur}" style="width:58px;flex:none;margin:0;text-align:center"><button class="s" data-tpsu="${k}|${i}|1" style="flex:none;min-width:44px">+</button><span class="mu" style="flex:none">min</span><span style="flex:1"></span><button class="s" data-tpsm="${k}|${i}" style="flex:none;min-width:40px" ${i ? "" : "disabled"}>↑</button><button class="d" data-tpsx="${k}|${i}" style="flex:none;min-width:40px">🗑</button></div></div>`;
   }).join("");
   const sum = sm > b.dur ? `<div class="tpss err">⛔ Cvičení mají ${sm} min, blok jen ${b.dur} min – zkrať je (čas bloku určuje hlavní trenér).</div>`
@@ -139,11 +140,11 @@ function bindEditor(a, ctx) {
   const flip = (arr, v) => (arr || []).includes(v) ? arr.filter(x => x !== v) : [...(arr || []), v];
   a.querySelector("#tpg").oninput = e => { E.p.goal = e.target.value; E.dirty = true; E.struct = true; };
   // 📚 Výběr cvičení linky: okno s hledáním, filtrem a ➕ novým cvičením; výběr převezme délku z banky, dokud ji trenér ručně nezměnil.
-  // doc = cvičení právě založené ve výběru (ještě nemusí být v S.dr)
+  // doc = cvičení právě založené ve výběru (ještě nemusí být v S.dr); doc.free = 📝 jen do plánu (bez id, délka z formuláře)
   const pickLane = (bi, li) => openDrillPicker(lane(bi, li).drill, (id, doc) => edit(p => {
-    const b = p.blocks[+bi], l = lane(bi, li), d = D[id] || (doc ? {id, ...doc} : null), DD = d ? {...D, [id]: d} : D;
-    l.drill = id; l.dn = d ? d.name : ""; l.di = d ? d.img || [] : [];
-    const bd = bankDur(b, DD);
+    const b = p.blocks[+bi], l = lane(bi, li), free = !id && doc && doc.free, d = free ? null : D[id] || (doc ? {id, ...doc} : null), DD = d ? {...D, [id]: d} : D;
+    l.drill = id; l.dn = d ? d.name : free ? doc.name : ""; l.di = d ? d.img || [] : [];
+    const bd = free && b.mode !== "st" && li === 0 ? Math.max(1, Math.min(90, doc.dur)) : bankDur(b, DD);
     if (bd && !(E.man || []).includes(b.id)) { b.dur = bd; if (b.rot && b.rot > b.dur) b.rot = null; }
   }));
   // Nový blok: rozbalí se, posune na obrazovku a u cvičení rovnou otevře výběr pro první linku (✕ = blok zůstane prázdný)
@@ -177,7 +178,7 @@ function bindEditor(a, ctx) {
   on("data-tpsq", ([bi, li]) => editSeq(lane(bi, li).id, p => { const b = p.blocks[+bi]; lane(bi, li).seq = seqStart(b, lane(bi, li)); }));
   on("data-tpsd", ([bi, li, i]) => openDrillPicker(sq(bi, li)[+i].drill, (id, doc) => editSeq(lane(bi, li).id, () => {
     const x = sq(bi, li)[+i], d = D[id] || (doc ? {id, ...doc} : null);
-    x.drill = id; x.dn = d ? d.name : ""; x.di = d ? d.img || [] : [];
+    x.drill = id; x.dn = d ? d.name : ""; x.di = d && d.img ? d.img : [];
     if (d && +d.dur > 0 && !(E.sman || []).includes(x.id)) x.dur = Math.max(BLK_DUR_MIN, Math.min(BLK_DUR_MAX, Math.round(+d.dur)));
   })));
   on("data-tpsu", ([bi, li, i, d]) => editSeq(lane(bi, li).id, () => { const x = sq(bi, li)[+i]; sdur(x, x.dur + +d); }));

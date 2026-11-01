@@ -130,6 +130,16 @@ async function events() {
         snap("plan-edit-newdrill-done");
       } else await tap("#dpx", 150);
     }
+    // v22.33: 📝 cvičení jen do plánu (bez banky) – nic se nezapíše do drills, linka nese jen název
+    if (await tap('[data-tpadd="all"]', 250) && await tap("#dpk [data-dpnew]", 200)) {
+      const n = $("#dpnn"), w0 = globalThis.__fb.writes.length;
+      n.value = "Smoke jen v plánu";
+      await tap("#dpnfree", 250);
+      if ($("#dpk")) throw new Error("📝 jen do plánu: výběr se nezavřel");
+      if (globalThis.__fb.writes.slice(w0).some(w => /^drills\//.test(w.path))) throw new Error("📝 jen do plánu zapsal cvičení do banky");
+      if (!/Smoke jen v plánu \(jen v plánu\)/.test(document.body.textContent)) throw new Error("📝 cvičení jen do plánu se nevložilo do bloku");
+      snap("plan-edit-free");
+    } else await tap("#dpx", 150);
     if (await tap("#tponly", 250)) snap("plan-edit-only");
     // v22.18.1: 💾 Uložit plán musí zapsat trplan (chyběl podpis stamp – uložení tiše padalo)
     const n0 = globalThis.__fb.writes.length;
@@ -144,6 +154,8 @@ async function events() {
     const sec = $("#tlv .tlsec"), cd = $("#tlv #tlcd");
     if (!sec) throw new Error("⏱ chybí ▶ Teď pod odpočtem");
     if (cd && !(sec.compareDocumentPosition(cd) & 4)) throw new Error("⏱ 🎛 ovládání je nad ▶ Teď");
+    // v22.33: 📋 Co následuje s hodinami začátků vidí celý realizační tým (upravit jen kdo smí plán)
+    if (!$("#tlv #tlrs .tlck")) throw new Error("⏱ chybí 📋 Co následuje s hodinami začátků");
     // 🔒 Zámek dotyku: zapnout, odemknout dvojitým klepnutím
     if (await tap("#tlk", 200)) {
       snap("trlive-lock");
@@ -161,6 +173,8 @@ async function events() {
     if (await tap('[data-tq="ice"]', 200)) { snap("trlive-ice"); await tap('[data-tq="ice"]', 150); }
     if (await tap('[data-tq="add"]', 250)) {
       if (!$("#tlq #tlqs")) throw new Error("⚡ okno vložení cvičení bez hledání");
+      // v22.33: filtr části tréninku v hledání (klepnutí a zrušení)
+      if (await tap('#tlq [data-tqc="warm"]', 150)) { snap("trlive-quick-cat"); await tap('#tlq [data-tqc="warm"]', 150); }
       const s = $("#tlqs"), n0 = (globalThis.__fb.writes || []).length;
       s.value = "Hra 2 na 2"; s.dispatchEvent(new window.Event("input"));
       await wait(150);

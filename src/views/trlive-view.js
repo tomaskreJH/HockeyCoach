@@ -1,6 +1,7 @@
 // ⏱ Živý trénink (jen HK.can("sport")): stav a tlačítko v kartě plánu, obrazovka #tlv (✕ / Zpět zavře, hodiny běží dál; tik 250 ms mění jen čísla).
 // Pořadí obrazovky: přilepené záhlaví (zbývá plán / do konce), velký odpočet, ▶ Teď (moje linka, přehled kdo kde), ⏭ Potom, ⭐ hodnocení, ⚡ improvizace
-// (trlive-quick.js), 🎛 další ovládání sbalené, 📋 Zbytek plánu; řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku.
+// (trlive-quick.js), 🎛 další ovládání sbalené, 📋 Co následuje (hodiny začátků, kdo řídí: zkrátit / prodloužit / vypustit / ▶ Teď);
+// ⚠ zdržení = pruh a upozornění, když plán přetahuje přes konec tréninku; řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku.
 // Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e), převzetí řízení druhým klepnutím; ⏲ stopky, ⭐ hodnocení (treval-view.js).
 // Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js.
 
@@ -12,12 +13,12 @@ import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {laneMeas} from "../domain/stopwatch.js";
 import {prevSpot} from "../domain/training-eval.js";
-import {adjPatch, alertsDue, coachLanes, cutSec, groupPids, jumpPatch, laneSub, LIVE_ST, liveAt, liveBlocks, liveBudget, liveCtl, liveRest, liveSec, mmss, remoteKind, skewNext, skewObs, stepSec, TRLIVE_COLL} from "../domain/training-live.js";
+import {adjPatch, alertsDue, atClock, coachLanes, cutSec, DELAY_AT, delayDue, delayLevel, groupPids, jumpPatch, laneSub, LIVE_ST, liveAt, liveBlocks, liveBudget, liveCtl, liveQueue, liveSec, mmss, remoteKind, skewNext, skewObs, stepSec, TRLIVE_COLL} from "../domain/training-live.js";
 import {DF, expandLanes, FW, GK, grpLabel, isBreak, isPosBlock, laneOf, laneSeq, laneTags, MODES, planTimes, seqTimes} from "../domain/training-plan.js";
 import {render} from "./shell.js";
 import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
 import {bindLiveEval, liveEvalHtml} from "./treval-view.js";
-import {alarm, beep, remote, show, toggleNtf, wakeOff, wakeOn, wakeState} from "./trlive-alerts.js";
+import {alarm, beep, delayAlarm, remote, show, toggleNtf, wakeOff, wakeOn, wakeState} from "./trlive-alerts.js";
 import {bindQuick, quickEmptyHtml, quickHtml} from "./trlive-quick.js";
 
 // ===== Konstanty a stav =====
@@ -33,8 +34,8 @@ const UNLOCK_MS = 600;                                   // 🔒 zámek dotyku: 
 // rest = 📋 Zbytek plánu rozbalený (null = podle toho, zda plán přetahuje); wakeP = žádost o zámek obrazovky běží, wakeT = poslední pokus;
 // lock = 🔒 zámek dotyku zapnutý, tap = čas posledního klepnutí na zamčenou obrazovku;
 // q = ⚡ rozpracované vložení cvičení (undefined = bez plánu se okno otevře samo, null = zavřené), ice = 👥 Na ledě otevřené,
-// cd = 🎛 další ovládání rozbalené
-let L = {eid: null, un: null, live: undefined, t0: 0, sess: null, getX: null, el: null, timer: null, wake: null, wakeP: false, wakeT: 0, ac: null, shown: "", prev: null, rest: null, lock: false, tap: 0, q: undefined, ice: false, cd: false};
+// cd = 🎛 další ovládání rozbalené; dly = ⚠ nejvyšší ohlášené zdržení (s, null = ještě neměřeno – stávající zdržení po otevření se neohlásí)
+let L = {eid: null, un: null, live: undefined, t0: 0, sess: null, getX: null, el: null, timer: null, wake: null, wakeP: false, wakeT: 0, ac: null, shown: "", prev: null, rest: null, lock: false, tap: 0, q: undefined, ice: false, cd: false, dly: null};
 const CSS = `<style>
 #tlv{position:fixed;inset:0;z-index:40;background:var(--bg);color:var(--tx);overflow:auto;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
 #tlv .tltop{position:sticky;top:-12px;z-index:3;background:var(--bg);margin:-12px 0 0;padding:12px 0 6px;border-bottom:1px solid var(--bd)}
@@ -68,6 +69,12 @@ const CSS = `<style>
 #tlv .tlrr .tlgo{min-width:72px;font-weight:700}
 #tlv .tlrr button{flex:none;min-height:44px;min-width:44px;padding:4px 8px}
 #tlv .tlrr.sk>div{text-decoration:line-through;opacity:.55}
+#tlv .tlrr.cur{background:color-mix(in srgb,var(--ac) 12%,transparent);border-radius:8px}
+#tlv .tlrr .tlck{display:inline-block;min-width:44px;font-variant-numeric:tabular-nums;color:var(--mu)}
+#tlv .tldly{border:2px solid var(--wa);background:color-mix(in srgb,var(--wa) 16%,transparent);border-radius:12px;padding:8px 10px;margin:8px 0;display:flex;align-items:center;gap:8px}
+#tlv .tldly.n{border-color:var(--no);background:color-mix(in srgb,var(--no) 14%,transparent)}
+#tlv .tldly>div{flex:1;min-width:0}
+#tlv .tldly button{flex:none;min-height:46px}
 #tlv .tlbrk{font-size:28px;font-weight:800;text-align:center;padding:18px 10px}
 #tlv .tlsec{margin:12px 0 6px;font-size:16px}
 #tlv .tlov{display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--bd);font-size:14px}
@@ -266,20 +273,31 @@ function budgetText(X, total, sec) {
   const end = g.realLeft >= 0 ? "do konce tréninku <b>" + mmss(g.realLeft) + "</b>" : "<b>po konci tréninku</b>", m = Math.round(g.over / 60);
   return end + " · " + (m >= 1 ? `<span class="w">plán přetahuje o ${m} min</span>` : m <= -1 ? `<span class="ok">rezerva ${-m} min</span>` : "plán sedí");
 }
-// 📋 Zbytek plánu (jen řídit smí): další bloky jen pro tento průběh – ▶ Teď (skok na blok, bloky mezi se vypustí), −/+ 1 min,
-// ⏭ vypustit / ↩ vrátit; plán se nemění
+// 📋 Co následuje: současný a další bloky s hodinami začátku podle skutečného průběhu a konec plánu proti konci tréninku – vidí celý
+// realizační tým; kdo smí upravovat plán, má u dalších bloků ▶ Teď (skok, bloky mezi se vypustí), −/+ 1 min, ⏭ vypustit / ↩ vrátit.
+// Úpravy jen pro tento průběh, uložený plán se nemění. Rozbalí se samo, když plán přetahuje.
 function restHtml(X, at, v) {
-  if (!canE() || !v || !LIVE_ST[v.st] || v.st === "end" || !at || at.done) return "";
-  const R = liveRest(planB(X), v, at), P = planB(X);
-  if (!R.length) return "";
-  const g = liveBudget(at.total, at.sec, endMs(X), Date.now()), open = L.rest != null ? L.rest : g.over != null && g.over >= 60;
-  const left = R.reduce((s, x) => s + x.eff, 0), ch = R.filter(x => x.skip || x.adj).length;
+  if (!v || !LIVE_ST[v.st] || v.st === "end" || !at || at.done) return "";
+  const Q = liveQueue(planB(X), v, at), P = planB(X), now = Date.now(), ed = canE();
+  if (Q.length < 2 && !ed) return "";
+  const g = liveBudget(at.total, at.sec, endMs(X), now), open = L.rest != null ? L.rest : g.over != null && g.over >= 60;
+  const R = Q.filter(x => !x.cur), left = R.reduce((s, x) => s + x.eff, 0), ch = R.filter(x => x.skip || x.adj).length;
+  const fin = atClock(now, at.sec, at.total), endT = endMs(X), endTxt = endT ? new Date(endT).getHours() + ":" + String(new Date(endT).getMinutes()).padStart(2, "0") : "";
   // ▶ Teď: potvrzení druhým klepnutím (skok nejde vrátit jedním klepnutím)
   const go = x => { const on = armed("tlj" + L.eid + x.id); return `<button class="${on ? "d" : "p"} tlgo" data-tlj="${esc(x.id)}" style="${on ? "background:var(--wa);color:#222" : ""}" title="Přejít hned na tento blok">${on ? "Klepni znovu" : "▶ Teď"}</button>`; };
-  return `<details class="tlrs" id="tlrs" ${open ? "open" : ""}><summary>📋 Zbytek plánu – přeskočit / zkrátit · ${left} min${ch ? ` · upraveno ${ch}` : ""}</summary>
-<div class="mu" style="font-size:13px;margin-bottom:4px">Jen pro dnešní průběh – uložený plán zůstane beze změny. <b>▶ Teď</b> = hned přejít na blok (bloky mezi se vypustí), <b>⏭</b> = vypustit blok.</div>
-${R.map(x => `<div class="tlrr ${x.skip ? "sk" : ""}"><div><b>${x.bi + 1}.</b> ${esc(blockName(P[x.bi], X))} · <b>${x.eff}</b> min${x.adj ? ` <span class="mu">(plán ${x.dur})</span>` : ""}</div>
-${go(x)}${x.skip ? `<button class="s" data-tla="${esc(x.id)}|skip">↩ Vrátit</button>` : `<button class="s" data-tla="${esc(x.id)}|−">−</button><button class="s" data-tla="${esc(x.id)}|+">+</button><button class="d" data-tla="${esc(x.id)}|skip" title="Vypustit">⏭</button>`}</div>`).join("")}</details>`;
+  const tools = x => (!ed || x.cur ? "" : go(x) + (x.skip ? `<button class="s" data-tla="${esc(x.id)}|skip">↩ Vrátit</button>` : `<button class="s" data-tla="${esc(x.id)}|−">−</button><button class="s" data-tla="${esc(x.id)}|+">+</button><button class="d" data-tla="${esc(x.id)}|skip" title="Vypustit">⏭</button>`));
+  const row = x => `<div class="tlrr ${x.skip ? "sk" : ""} ${x.cur ? "cur" : ""}"><div><span class="tlck">${x.skip ? "–" : x.cur ? "teď" : atClock(now, at.sec, x.a)}</span><b>${x.bi + 1}.</b> ${esc(blockName(P[x.bi], X))} · <b>${x.eff} min</b>${x.adj ? ` <span class="mu">(plán ${x.dur})</span>` : ""}</div>${tools(x)}</div>`;
+  return `<details class="tlrs" id="tlrs" ${open ? "open" : ""}><summary>📋 Co následuje · ${R.length} ${R.length === 1 ? "blok" : R.length < 5 ? "bloky" : "bloků"} · ${left} min${ch ? ` · upraveno ${ch}` : ""}</summary>
+<div class="mu" style="font-size:13px;margin-bottom:4px">Konec plánu v <b>${fin}</b>${endTxt ? ` · konec tréninku ${endTxt}` : ""}.${ed ? " Jen pro dnešní průběh – uložený plán zůstane beze změny. <b>▶ Teď</b> = hned přejít na blok (bloky mezi se vypustí), <b>−/+</b> = zkrátit / prodloužit o minutu, <b>⏭</b> = vypustit. Nové cvičení přidáš ➕ Cvičení výš." : ""}</div>
+${Q.map(row).join("")}</details>`;
+}
+// ⚠ Pruh zdržení: plán přetahuje přes konec tréninku aspoň o první hranici DELAY_AT – co s tím (řídící: 📋 rovnou otevře Co následuje)
+function delayHtml(X, at, v) {
+  if (!v || !LIVE_ST[v.st] || v.st === "end" || !at || at.done) return "";
+  const g = liveBudget(at.total, at.sec, endMs(X), Date.now()), lv = delayLevel(g.over);
+  if (!lv) return "";
+  const m = Math.round(g.over / 60);
+  return `<div class="tldly ${lv >= DELAY_AT[DELAY_AT.length - 1] ? "n" : ""}"><div><b>⚠ Zdržení ${m} min</b><div class="mu" style="font-size:13px">Plán se do konce tréninku nevejde – zkrať nebo vypusť další cvičení.</div></div>${canE() ? '<button class="s" data-tldly="1">📋 Upravit</button>' : ""}</div>`;
 }
 function screenHtml() {
   const X = L.getX ? L.getX() : null, B = liveB(X), v = L.live;
@@ -298,7 +316,7 @@ function screenHtml() {
   return CSS + top + `<div style="text-align:center;margin-top:8px;font-weight:700">${sub}</div>
 ${(() => { const c = clk(B, at, X); return `${c.s ? `<div class="mu" style="text-align:center">🔁 ${c.s.it ? "moje cvičení " + (c.s.i + 1) + "/" + c.s.n : "řada skončila – volno"}</div>` : ""}<div class="tlbig" id="tlc">${mmss(c.left)}</div>${at.nr > 1 || c.s ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}`; })()}
 <div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>
-${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${rateHtml(B, at, X)}${!st || st === "end" ? controlsHtml(v, at) + quickHtml(X) : quickHtml(X) + controlsHtml(v, at)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
+${delayHtml(X, at, v)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${rateHtml(B, at, X)}${!st || st === "end" ? controlsHtml(v, at) + quickHtml(X) : quickHtml(X) + controlsHtml(v, at)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
 }
 // Celé překreslení obrazovky (změna stavu, kola nebo bloku); tik mění jen čísla
 function paint() {
@@ -315,7 +333,9 @@ function shownKey() {
   const at = B.length ? liveAt(B, liveSec(v, Date.now(), skew()) || 0) : null;
   // ⚡ Změna plánu (vložený blok) a 👥 kdo chybí (🚫) překreslí obrazovku i u ostatních trenérů
   const pk = planB(X).map(b => b.id + ":" + b.dur).join(","), ab = ((X && X.absent) || []).join(",");
-  return (at ? clk(B, at, X).key : "-") + "|" + (v ? v.st + v.e0 + v.ctl + JSON.stringify([v.adj || {}, v.skip || []]) : "0") + "|" + (L.eid || "") + "|" + (L.lock ? 1 : 0) + "|" + pk + "|" + ab;
+  // ⚠ Úroveň zdržení a (při pauze) minuta – pruh zdržení a hodiny začátků v 📋 Co následuje se obnoví
+  const dl = at && !at.done ? delayLevel(liveBudget(at.total, at.sec, endMs(X), Date.now()).over) : 0, pm = v && v.st === "pause" ? Math.floor(Date.now() / 60000) : "";
+  return (at ? clk(B, at, X).key : "-") + "|" + (v ? v.st + v.e0 + v.ctl + JSON.stringify([v.adj || {}, v.skip || []]) : "0") + "|" + (L.eid || "") + "|" + (L.lock ? 1 : 0) + "|" + pk + "|" + ab + "|" + dl + "|" + pm;
 }
 // Tik: odpočet, upozornění při čerstvém překročení hranic, při změně kola / stavu celé překreslení
 function tick() {
@@ -332,6 +352,14 @@ function tick() {
     else if (L.prev.left <= sw) alarm("switch", at);
   } else if (run && L.prev && at && at.done && !L.prev.done && L.prev.left <= sw) alarm("end", at);
   L.prev = c ? {key: c.key, left: c.left, done: false} : {key: "end", left: 0, done: true};
+  // ⚠ Zdržení: nová hranice přetahování (2 / 5 / 10 min) – vibrace, zvuk a ⌚ oznámení jednou; zdržení už při otevření obrazovky se jen ukáže
+  if (at && !at.done && v && LIVE_ST[v.st] && v.st !== "end") {
+    const ov = liveBudget(at.total, at.sec, endMs(X), Date.now()).over;
+    if (ov != null) {
+      if (L.dly == null) L.dly = ov;
+      else { const m = delayDue(L.dly, ov); if (m) { L.dly = m * 60; delayAlarm(m, at); } else if (ov < L.dly - 60) L.dly = ov; }      // zdržení se zmenšilo (vypuštěný blok) – další růst se ohlásí znovu
+    }
+  }
   // ☀ Zámek obrazovky: ztracený (úsporný režim, návrat do aplikace) obnovit nejdřív po WAKE_RETRY
   if (!hid && wakeState() === "off" && Date.now() - L.wakeT > WAKE_RETRY) { L.wakeT = Date.now(); wakeOn(); }
   if (shownKey() !== L.shown) { paint(); return; }
@@ -412,6 +440,9 @@ function bind() {
   // 📋 Zbytek plánu: úprava dalšího bloku jen pro tento průběh (zápis spolu se stavem hodin – pravidla chtějí řídícího)
   const rs = el.querySelector("#tlrs");
   if (rs) rs.ontoggle = () => { L.rest = rs.open; };
+  // ⚠ 📋 Upravit z pruhu zdržení: rozbalit Co následuje a posunout na něj
+  const dy = el.querySelector("[data-tldly]");
+  if (dy) dy.onclick = () => { L.rest = true; paint(); const r = L.el && L.el.querySelector("#tlrs"); if (r && r.scrollIntoView) r.scrollIntoView({block: "start"}); };
   // 🎛 Další ovládání: rozbalení se pamatuje do zavření obrazovky
   const cd = el.querySelector("#tlcd");
   if (cd) cd.ontoggle = () => { L.cd = cd.open; };
@@ -439,7 +470,7 @@ function bind() {
 function open(eid, getX) {
   if (L.el) close();
   ensureLive(eid);
-  L.getX = getX; L.prev = null; L.rest = null; L.q = undefined; L.ice = false; L.cd = false;
+  L.getX = getX; L.prev = null; L.rest = null; L.q = undefined; L.ice = false; L.cd = false; L.dly = null;
   S.tl = {eid};
   const el = document.createElement("div");
   el.id = "tlv";

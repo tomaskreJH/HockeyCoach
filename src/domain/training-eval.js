@@ -12,8 +12,11 @@ export const EV_VER = 1;                                 // treval.v: verze tvar
 export const RATES = [4, 3, 2, 1];                       // pořadí tlačítek (nejlepší vlevo)
 export const RATE = {4: {i: "😃", t: "super"}, 3: {i: "🙂", t: "v pohodě"}, 2: {i: "😐", t: "nic moc"}, 1: {i: "😴", t: "vůbec se nesnaží"}};
 export const NOTE_MAX = 300;                             // nejdelší poznámka (znaků)
+export const NO_EVAL_CATS = ["warm"];                    // části tréninku, které se nehodnotí nikdy (🔥 rozbruslení a rozcvička, i předzápasová)
 
 // ===== Pomocné funkce =====
+// Cvičení se nehodnotí (rozcvička): d = cvičení z banky (bez banky se hodnotí podle linky)
+export const noEval = d => !!d && NO_EVAL_CATS.includes(d.cat);
 // Platné hodnocení 1–4 (0 / jiné = bez hodnocení)
 export const rateOk = r => RATES.includes(r);
 // Ikona hodnocení pro zobrazení („–“ bez hodnocení)
@@ -26,13 +29,13 @@ export const entryOf = (res, key) => (res && res.r && res.r[key]) || null;
 // ===== Linky k hodnocení =====
 // Linky plánu s cvičením v pořadí plánu: {key, bi, li, bid, lid, d, dn, tag (A–D / 🥅 / ""), where ("Blok 2 · Stanoviště A")};
 // linka s řadou cvičení = jedna položka na cvičení (lid = blok_linka-cvičení, li = pořadí linky, where navíc „· 2/4“);
-// drills = banka {id: cvičení} – název z banky, jinak kopie v plánu
+// drills = banka {id: cvičení} – název z banky, jinak kopie v plánu; 🔥 rozcvička (noEval) se vynechá – nehodnotí se a nechybí
 export function evalLanes(plan, drills) {
   const out = [], D = drills || {};
   ((plan && plan.blocks) || []).forEach((b, bi) => {
     const T = laneTags(b), LI = Object.fromEntries((b.lanes || []).map((l, i) => [l.id, i]));
     expandLanes(b).forEach(l => {
-      if (!l.drill) return;
+      if (!l.drill || noEval(D[l.drill])) return;
       const li = LI[l.pid || l.id], dd = D[l.drill], tag = T[li];
       out.push({key: msKey(b.id, l.id), bi, li, bid: b.id, lid: l.id, d: l.drill, dn: String((dd && dd.name) || l.dn || "Cvičení").slice(0, 80), tag,
         where: "Blok " + (bi + 1) + (tag === "🥅" ? " · 🥅 Brankářky" : tag ? " · Stanoviště " + tag : " · " + (MODES[b.mode] || "")) + (l.sid ? " · " + (l.si + 1) + "/" + l.sn : "")});
@@ -67,6 +70,9 @@ export function unratedCount(lanes, res) {
   (lanes || []).forEach(l => { const pl = (entryOf(res, l.key) || {}).pl || {}; (l.pids || []).forEach(pid => { all++; if (!rateOk((pl[pid] || {}).r)) n++; }); });
   return {n, all};
 }
+
+// Hráčky z pids bez platného hodnocení v záznamu linky (rychlá volba „ostatním 🙂“ označí jen tyto – ručně zadané se nepřepíšou)
+export const unratedPids = (entry, pids) => (pids || []).filter(p => !rateOk((((entry && entry.pl) || {})[p] || {}).r));
 
 // ===== Živý trénink =====
 // Kolo, které právě skončilo (k hodnocení po kole / bloku): poloha těsně před začátkem současného kola, po konci plánu poslední kolo;

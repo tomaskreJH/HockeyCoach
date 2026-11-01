@@ -2,6 +2,24 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.33 (1. 11. 2026) – ⏱ Variabilní trénink
+> **Nasazení – kanál 🧪 BETA:** commit „v22.33“ do větve **`beta`**. Pravidla databáze ani struktura dat se nemění (📝 cvičení jen do plánu je linka s názvem `dn` bez `drill` – stejně jako dosud ⚡ improvizace; volba 🔕 jen v `localStorage` zařízení `hk-tev-off`). V betě Načíst novou verzi (cache `hokej-beta-v136`). 🔒 Vyžadovat verzi: ne. Test: kap. 36 (nejlépe na ledě).
+
+**Přidáno / změněno** (zadání uživatele 1. 11. 2026 – plán je doporučení, trénink se mění za běhu)
+- **📋 Co následuje** (`views/trlive-view.js`, dřív 📋 Zbytek plánu jen pro řídícího): vidí celý realizační tým; současný blok „teď“ se zbývajícím časem a další bloky s **hodinami začátku podle skutečného průběhu** (`liveQueue`, `atClock` v `domain/training-live.js`), nahoře „Konec plánu v … · konec tréninku …“. Kdo smí upravovat plán, má dál ▶ Teď, −/+ 1 min, ⏭ vypustit, ↩ vrátit (logika `adjPatch` / `jumpPatch` beze změny).
+- **⚠ Zdržení:** když plán přetahuje přes konec tréninku o 2, 5 a 10 min (`DELAY_AT`, `delayDue`, `delayLevel`), každá hranice jednou vibrace, tón a ⌚ oznámení „⚠ Zdržení N min · Zkrať / vypusť cvičení · plán ještě … · pak …“ (`delayNote`, `delayAlarm` v `trlive-alerts.js`) a pruh nad linkami s **📋 Upravit** (rozbalí Co následuje). Zdržení, které už bylo při otevření obrazovky, se jen ukáže.
+- **⭐ Nepovinné hodnocení** (`views/treval-view.js`): výzva po kole má **🙂 Ostatním (N)** (označí „v pohodě“ jen hráčky bez hodnocení, `unratedPids`), **⏰ Později** (schová výzvu, doplní se v detailu) a **🔕 Dnes nehodnotit** (výzvy vypnuté pro trénink v tomto zařízení, v ⭐ Hodnocení hráček 🔔 Zapnout). Texty „nepovinné“, „bez hodnocení N z M“ místo „neohodnoceno“.
+- **🔥 Rozcvička se nehodnotí nikdy** (`NO_EVAL_CATS`, `noEval` v `domain/training-eval.js`): cvičení z části „Rozbruslení a rozcvička“ (i předzápasové) nemají výzvu ani řádek v ⭐ Hodnocení hráček a nepočítají se jako chybějící. Dříve uložená hodnocení zůstávají v datech i v 📈 přehledu.
+- **📝 Cvičení jen do plánu** (`views/drill-picker.js`, `views/trplan-edit.js`): ve výběru cvičení ➕ Nové cvičení → **📝 Jen do plánu (bez banky)** – název a délka, linka „📝 Název (jen v plánu)“, délka bloku z formuláře; smí každý, kdo upravuje plán (bez práva na banku jen tato volba). Kontrola plánu (`planIssues`) linku s názvem nehlásí jako „bez cvičení“. V ⚡ improvizaci je nové cvičení názvem dál jen do plánu (💾 do banky volitelně).
+- **⚡ Hledání podle části tréninku** (`views/trlive-quick.js`, `quickHits(list, text, část)`): v ➕ Cvičení řádek částí tréninku – bez psaní ukáže až 15 cvičení části, s textem hledá jen v ní; nové cvičení do banky dostane zvolenou část. Výběr cvičení v plánu měl hledání a filtr už dřív (beze změny).
+- Nápověda: plán jako doporučení, Co následuje, ⚠ zdržení, nepovinné hodnocení a rozcvička, 📝 jen do plánu, tabulka „Kde co najdu“.
+
+**K rozhodnutí:** nehodnotí se celá část 🔥 Rozbruslení a rozcvička. Pokud se běžná rozcvička hodnotit má, je potřeba přepínač „nehodnotit“ u bloku = nové pole bloku v `trplan` (pravidla to dovolují, data jen přidaná) – až po souhlasu. ✏️ Úprava proběhlého tréninku dál čeká na souhlas (`docs/navrhy-v22.32.md`, A).
+
+**Zachováno beze změny:** 🎽 rozdělení do dresů, ⏲ stopky, 🏃 štafeta, příprava na trénink pro hráčky, ⏹ Konec jen ručně, převzetí řízení, upozornění 60 / 10 s, ⌚ oznámení kol; data a pravidla; živý zápis zápasu, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (516 testů, nově `tests/training-flex.test.js`; `tests/training-plan.test.js` a `tests/lane-seq.test.js` – „bez cvičení“ = bez cvičení i bez názvu), `npm run smoke` bez chyb pro všechny role (nově: 📝 jen do plánu nic nezapíše do `drills`, 📋 Co následuje s hodinami začátků, filtr části tréninku v ⚡).
+
 ## v22.32.1 (1. 11. 2026) – Oprava kouřového testu (nasazení v22.32 neproběhlo)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.32.1“ do větve **`beta`**. Aplikace beze změny funkcí proti v22.32, jen číslo verze a cache `hokej-beta-v135`. Pravidla ani data se nemění. 🔒 Vyžadovat verzi: ne. Ruční test: kap. 35 (platí pro v22.32.1).
 

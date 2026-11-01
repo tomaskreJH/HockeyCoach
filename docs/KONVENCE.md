@@ -86,9 +86,9 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `training-plan.js` | 📋 plán tréninku (bloky, linky, ☕ pauza, řada cvičení `seq` / `expandLanes`, časy, točení, kontrola, `mergePlan`; kopie podrobností cvičení pro hráčky `dx` – `planDetails`, `planDxStale`) |
 | `plan-reuse.js`, `skill-coverage.js` | ⧉ kopie a 📑 šablony plánu, 📊 pokrytí dovedností (`groupDrills` / `groupSkills` = minuty skupiny podle plánu) |
 | `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
-| `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, upozornění, ⌚ text oznámení, `laneSub`) |
-| `training-impro.js` | ⚡ improvizace na ledě (hledání v bance, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
-| `training-eval.js` | ⭐ hodnocení hráček |
+| `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, 📋 co následuje `liveQueue` / `atClock`, ⚠ zdržení `delayDue` / `delayLevel`, upozornění, ⌚ text oznámení, `laneSub`) |
+| `training-impro.js` | ⚡ improvizace na ledě (hledání v bance podle textu a části tréninku, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
+| `training-eval.js` | ⭐ hodnocení hráček (nepovinné; 🔥 rozcvička `noEval` se nehodnotí, `unratedPids` pro 🙂 Ostatním) |
 | `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |

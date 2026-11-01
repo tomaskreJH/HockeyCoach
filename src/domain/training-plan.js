@@ -282,14 +282,14 @@ export function planIssues(p, ctx = {}) {
     if (!L.length) add("warn", bi, nm + "bez linky.");
     L.forEach((l, li) => {
       const ln = L.length > 1 ? "linka " + (li + 1) + " " : "";
-      if (!l.drill) add("warn", bi, nm + ln + "bez cvičení.");
+      if (!l.drill && !String(l.dn || "").trim()) add("warn", bi, nm + ln + "bez cvičení.");   // 📝 jen do plánu = název bez banky je v pořádku
       else if (D && (!D[l.drill] || D[l.drill].arch)) add("warn", bi, nm + ln + "– cvičení „" + (l.dn || "?") + "“ už v bance není (vyřazené nebo smazané).");
       if (coaches) (l.co || []).filter(c => !coaches.has(c)).forEach(() => add("warn", bi, nm + ln + "– trenér není přihlášený na trénink."));
       // Řada cvičení: musí se vejít do času bloku (blok určuje hlavní trenér, cvičení si linka plánuje sama)
       const seq = laneSeq(b, l), sm = seqMinutes(seq);
       if (seq && sm > b.dur) add("err", bi, nm + ln + "– cvičení řady mají " + sm + " min, blok jen " + b.dur + " min.");
       else if (seq && sm < b.dur) add("warn", bi, nm + ln + "– v řadě zbývá " + (b.dur - sm) + " min volna.");
-      if (seq) seq.slice(1).forEach((x, si) => { if (!x.drill) add("warn", bi, nm + ln + "– " + (si + 2) + ". cvičení řady bez cvičení."); });
+      if (seq) seq.slice(1).forEach((x, si) => { if (!x.drill && !String(x.dn || "").trim()) add("warn", bi, nm + ln + "– " + (si + 2) + ". cvičení řady bez cvičení."); });
     });
     // Kolize trenérů: tentýž člen týmu na dvou linkách téhož bloku
     const seen = {};

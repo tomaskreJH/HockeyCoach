@@ -10,7 +10,7 @@
 const BETA = /\/beta\/sw\.js$/.test(self.location.pathname);
 // Název cache se mění s každou verzí (hokej-vNN, číslo jen roste), aby se stará kopie aplikace zahodila; přiřazení k verzím je v CHANGELOG.md.
 // Beta má stejné číslo s předponou hokej-beta-v (src/core/channel.js cachePrefix).
-const VER = "135", PFX = BETA ? "hokej-beta-v" : "hokej-v", C = PFX + VER;
+const VER = "136", PFX = BETA ? "hokej-beta-v" : "hokej-v", C = PFX + VER;
 const CORE = ["./", "index.html", "styles/main.css", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/";
 // Cesta složky bety vedle stabilní verze (stabilní worker ji nechává betě)
