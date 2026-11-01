@@ -239,6 +239,14 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 38. v22.35 (beta) – ✏️ Skutečný průběh, pravidla (po publikaci pravidel)
+- [ ] 38.1 Pravidla publikovaná ručně (Firebase Console → Firestore → Rules → Publish); v betě je v záhlaví **v22.35**.
+- [ ] 38.2 Dnešní trénink s plánem: v kartě plánu řádek **✏️ Skutečný průběh** „zapíše se při ⏹ Konec“. ⏱ Živý trénink → vypustit blok, ⏹ Konec → řádek ukáže „skutečně N min z M · vypuštěno 1 · ⏹ z živého tréninku“.
+- [ ] 38.3 **✏️ Upravit** → −/+ u bloku, ⏭ vypustit, ↺ podle plánu → 💾 Uložit průběh → souhrn „✏️ upraveno ručně“; plán (✏️ Upravit plán) beze změny.
+- [ ] 38.4 Statistiky → 🏒 Trénink: minuty hráčky odpovídají skutečnosti (vypuštěný blok se nepočítá); hráčka v Můj trénink vidí stejné minuty, ⭐ hodnocení dál ne.
+- [ ] 38.5 ✏️ Plán → 📊 Pokrytí dovedností počítá se skutečností.
+- [ ] 38.6 👁 Náhled role hráčka: ⭐ hodnocení nikde; 📊 Rozpočet (pokladník): úprava schváleného rozpočtu přidá revizi, starší revize zůstanou.
+
 ## 37. v22.34 (beta) – 🚫⭐ Nehodnotit u bloku, plat bez 🚫
 - [ ] 37.1 V betě je v záhlaví **v22.34**.
 - [ ] 37.2 Plán: ✏️ Upravit → blok (např. předzápasová rozcvička) → **🚫⭐ Nehodnotit** → 💾 Uložit; sbalený blok ukazuje „🚫⭐ nehodnotí se“.

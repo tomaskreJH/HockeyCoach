@@ -30,6 +30,7 @@ import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {PLEVEL_COLL} from "../domain/line-split.js";
 import {TRMS_COLL} from "../domain/stopwatch.js";
 import {TREVAL_COLL} from "../domain/training-eval.js";
+import {TRACT_COLL} from "../domain/training-actual.js";
 import {TRLIVE_COLL} from "../domain/training-live.js";
 import {backupApi} from "./backup.js";
 import {cfgApi} from "./cfg-api.js";
@@ -78,7 +79,7 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL];
 // Kolekce Tréninku, které se v zařízení nečtou celé (plán, ⏲ výsledky měření a ⭐ hodnocení jen u otevřeného tréninku, obrázky cvičení, šablony plánu a ⭐ výkonnost na vyžádání):
 // do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
-const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL, TREVAL_COLL];
+const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL, TREVAL_COLL, TRACT_COLL];
 [...COLL, ...EXTRA, ...FETCH].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====

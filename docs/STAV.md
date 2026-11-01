@@ -3,11 +3,11 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální v betě:** v22.34 (1. 11. 2026) – 🚫⭐ Nehodnotit u bloku plánu, ⚠️ plat za událost bez 🚫. Cache `hokej-beta-v137`. Před tím v22.33 (⏱ variabilní trénink). Pravidla beze změny (nové pole bloku `ne` v `trplan` – pravidla ho dovolují).
+- **Aktuální v betě:** v22.35 (1. 11. 2026) – ✏️ skutečný průběh tréninku `tract/{eid}`, pravidla B2 (`budgetKeep`) a B3 (`treval` jen realizační tým). Cache `hokej-beta-v138`. **firestore.rules: PUBLIKOVAT RUČNĚ** (nová kolekce `tract` – do publikace se průběh neuloží a statistiky počítají s plánem).
 - **Stabilní (`main`):** v22.25 (PR #4 – podle uživatele 31. 10. 2026). v22.26 a novější jen v betě.
-- **Další číslo:** v22.35 (cache `hokej-v138`), opravy v22.34.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Další číslo:** v22.36 (cache `hokej-v139`), opravy v22.35.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
 - **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Po každém vydání (PR) upravit řádek Stabilní.
-- **Pravidla databáze:** v22.25 (blok `seen`) – **ověřit**, zda jsou publikovaná (Firebase Console → Firestore → Rules; v ⚙️ → 👥 Členové týmu manager vidí 🟢 aktivitu, jinak „Aktivitu se nepodařilo načíst“). Od v22.26 se pravidla nemění.
+- **Pravidla databáze:** **v22.35 – publikovat** (`tract`, `budgetKeep`, `treval` + `isStaff`; obsahuje i blok `seen` z v22.25). Stabilní verze nová pravidla snese (jen přidaná kolekce a zúžení, které stabilní nepoužívá).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a novější nevyžadují. V betě se nenastavuje.
 
 ## K testu
@@ -43,7 +43,8 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - **v22.32 / v22.32.1 (beta) – 🧹 úklid drobností (kap. 35)**.
 - **v22.33 (beta) – ⏱ variabilní trénink (kap. 36)**: Co následuje, ⚠ zdržení, nepovinné hodnocení, 📝 jen do plánu, filtr části tréninku – nejlépe na ledě.
 - **v22.34 (beta) – 🚫⭐ Nehodnotit u bloku, plat bez 🚫 (kap. 37)**.
-- **Rozhodnuto 1. 11. 2026:** přepínač u bloku (hotovo v22.34), plat bez 🚫 (hotovo v22.34), ✏️ úprava proběhlého tréninku podle doporučení (A: automaticky při ⏹ Konec, hráčky vidí skutečné minuty, „↺ Spustit znovu“ nemaže) – další verze v22.35 s pravidly (+ B2, B3 podle doporučení).
+- **v22.35 (beta) – ✏️ skutečný průběh, pravidla B2 a B3 (kap. 38)** – po publikaci pravidel.
+- **Rozhodnuto 1. 11. 2026:** přepínač u bloku a plat bez 🚫 (v22.34), ✏️ skutečný průběh podle doporučení a B2 + B3 (v22.35). Zbývá B1 (`settings/beta`, nízké riziko – zatím ponecháno) a B4 (kontrola pravidel v konzoli, App Check).
 - **Návrhy čekající na souhlas:** `docs/navrhy-v22.32.md` – A ✏️ úprava proběhlého tréninku (kolekce `tract`), B pravidla z kontroly v22.18.1 (`settings/beta`, `budgetKeep`, `treval`), C 🚫 člena týmu a plat.
 - Kontrola kódu v22.18.1 – otevřené body k rozhodnutí: pravidla `settings/beta` (čtení jen manager / vývojář), `budgetKeep` (neměnné starší revize rozpočtu), `treval` u hráček vynutit pravidly; ověřit nasazená pravidla v konzoli a zvážit App Check.
 

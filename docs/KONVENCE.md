@@ -88,6 +88,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
 | `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, 📋 co následuje `liveQueue` / `atClock`, ⚠ zdržení `delayDue` / `delayLevel`, upozornění, ⌚ text oznámení, `laneSub`) |
 | `training-impro.js` | ⚡ improvizace na ledě (hledání v bance podle textu a části tréninku, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
+| `training-actual.js` | ✏️ skutečný průběh tréninku `tract` (`tractFromLive` při ⏹ Konec, `actualPlan` pro statistiky a pokrytí, úpravy `tractRows` / `tractEdit`) |
 | `training-eval.js` | ⭐ hodnocení hráček (nepovinné; blok s 🚫⭐ `ne: true` – `noEvalBlock` z `training-plan.js` – se nehodnotí, `unratedPids` pro 🙂 Ostatním) |
 | `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
@@ -124,6 +125,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `trplan-reuse.js` | ⧉ kopie, 📑 šablony, 📊 pokrytí dovedností, ✨ příprava |
 | `line-split-view.js` | rozdělení do pětek, okno ⭐ výkonnosti |
 | `trlive-view.js` | ⏱ živý trénink (karta, obrazovka, přilepené záhlaví se zbývajícím časem, spodní lišta řídícího, 🔒 zámek dotyku, zbytek plánu) |
+| `tract-view.js` | ✏️ skutečný průběh v kartě plánu (souhrn, úprava délek a vypuštění bloků) |
 | `trlive-quick.js` | ⚡ improvizace v živém tréninku (➕ cvičení / ☕ pauza do plánu, trénink bez plánu, 👥 Na ledě s 🚫) |
 | `trlive-alerts.js` | ⏱ vibrace, zvuk, ⌚ oznámení (i změna od řídícího), Wake Lock s obnovou a stavem ☀ |
 | `stopwatch-view.js`, `treval-view.js` | ⏲ stopky a výsledky, ⭐ hodnocení |
@@ -176,6 +178,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `trplan/{eid}` | `{v, goal, blocks: [{id, mode, dur, rot, by, brk, ne, lanes: [{id, drill, dn, di, co, grp, seq}]}]}`; `seq: [{id, drill, dn, di, dur}]` jen u linky, která se netočí | `trplan r` / `e` |
 | `trtpl/{id}` | šablona plánu | `trplan e` |
 | `trlive/{eid}` | hodiny `{st, e0, wAt, sAt == request.time, ctl, adj, skip}` | `trplan r` / `e` |
+| `tract/{eid}` | ✏️ skutečný průběh `{v, blocks: [{id, dur, skip}], src: live \| edit}` – statistiky přes `actualPlan` | `trplan r` / `e` |
 | `plevel/team` | ⭐ výkonnost `{lv: {pid: 1–5}}` | `isStaff` |
 | `trms/{eid}` | měření `{r: {klíč: {d, dn, u, low, ms: {pid: [pokusy]}, rl}}}` – vidí celý tým | `trplan r` / `treval e` |
 | `treval/{eid}` | hodnocení `{r: {klíč: {d, dn, r, n, pl: {pid: {r, n}}}}}` – **hráčka nikdy** | `treval r` / `e` |

@@ -12,6 +12,7 @@ import {HK} from "../data/storage.js";
 import {TPL_MAX, TRTPL_COLL, copySources, latestTpl, planCopy, planSummary, tplDoc, tplError, tplSort} from "../domain/plan-reuse.js";
 import {COVER_DAYS, COVER_DEF, COVER_LOW, coverWindow, skillCoverage} from "../domain/skill-coverage.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
+import {TRACT_COLL, actualPlan} from "../domain/training-actual.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -36,6 +37,8 @@ const dmy = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); 
 const names = ids => ids.map(id => esc(nm(id))).join(", ");
 // Plán jednoho tréninku jednorázově (chyba = žádný plán)
 const planOf = id => S.db.doc(TRPLAN_COLL + "/" + id).get().catch(() => null);
+// Plán podle ✏️ skutečného průběhu (pro 📊 pokrytí – co se opravdu trénovalo); kopie a šablony berou záměr = plán
+const realOf = id => Promise.all([planOf(id), S.db.doc(TRACT_COLL + "/" + id).get().catch(() => null)]).then(([p, t]) => actualPlan(p, t));
 
 // ===== Načtení =====
 // ⧉ Kopie: předchozí tréninky a jejich plány (jen ty, které plán mají)
@@ -71,7 +74,7 @@ const own = ids => (ids || []).filter(id => !(pl(id) || {}).guest);
 // 📊 Pokrytí: tréninky v období → jejich plány (po jednom dokumentu) → výpočet nad docházkou a bankou cvičení
 function loadCover(eid, days, X, D) {
   const R = S.tcv = {eid, days, st: "load"}, T = coverWindow(S.ev, eid, days);
-  Promise.all(T.map(e => planOf(e.id).then(p => [e.id, p]))).then(L => {
+  Promise.all(T.map(e => realOf(e.id).then(p => [e.id, p]))).then(L => {
     if (S.tcv !== R) return;
     R.res = skillCoverage({pids: own([...X.cnt.sk, ...X.cnt.gk]), goalies: new Set(X.cnt.gk), trainings: T.map(e => ({id: e.id, lines: e.lines || {}})),
       plans: Object.fromEntries(L), att: S.at, drills: D, pos: X.pos});

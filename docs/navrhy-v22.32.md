@@ -4,7 +4,7 @@ Nic z tohoto souboru není v kódu ani v `firestore.rules`. Každý bod mění d
 
 ---
 
-## A. ✏️ Úprava proběhlého tréninku (kolekce `tract`)
+## A. ✏️ Úprava proběhlého tréninku (kolekce `tract`) – **hotovo v22.35** (podle doporučení: automaticky při ⏹ Konec, hráčky vidí skutečné minuty, „↺ Spustit znovu“ nemaže; zatím délky a vypuštění bloků, skupiny a trenéři linek později)
 
 ### Co uživatel získá
 Po tréninku jedním místem opravit, **jak trénink skutečně proběhl**: časy bloků a cvičení (zkrácené, prodloužené, vypuštěné, vložené za běhu), kdo kde byl, pořadí štafety a výsledky měření – a statistiky (📈 Trénink, 📊 Pokrytí dovedností, minuty na kartě hráčky) počítají se skutečností, ne s plánem.
@@ -79,7 +79,7 @@ match /tract/{id} {
   ```
 - **Riziko:** nízké (seznam testerů není citlivý údaj; jde o zásadu „vidí jen kdo potřebuje“). Lze i ponechat.
 
-### B2. `budgetKeep` – starší revize rozpočtu neměnné
+### B2. `budgetKeep` – starší revize rozpočtu neměnné – **hotovo v22.35**
 - **Dnes:** po schválení nejde změnit `approved`, revize `rev` se nesmí ubrat (jen počet) – starší revizi ale jde přepsat.
 - **Návrh:** starší revize musí zůstat beze změny (prefix seznamu):
   ```
@@ -88,7 +88,7 @@ match /tract/{id} {
   ```
 - Aplikace revize jen přidává na konec (`budget-review.js`) – změna by ji neměla zasáhnout; ověřit testem `tests/budget-review.test.js` a ručně (📊 Rozpočet → úprava schváleného).
 
-### B3. `treval` u hráček vynutit pravidly
+### B3. `treval` u hráček vynutit pravidly – **hotovo v22.35** (matice hráčce `treval` neupravitelnou buňku nenabízí už dřív)
 - **Dnes:** čtení podle matice práv `can('treval', 'r')`. Výchozí matice hráčce čtení nedává, ale manager by ho v ⚙️ → 🔐 Práva rolí mohl omylem zapnout – a hráčky by viděly hodnocení trenérů (trvalé rozhodnutí: **nikdy**).
 - **Návrh:**
   ```

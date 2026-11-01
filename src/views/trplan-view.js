@@ -1,6 +1,6 @@
 // 📋 Plán tréninku v detailu tréninku: karta pod rozdělením do pětek (bloky za sebou od začátku tréninku, linky s cvičením, trenéry
 // a skupinami – 🎽 pětky / ⚔ posty / 🥅, rozpis točení stanovišť, 🔁 řady cvičení), okno cvičení #tpd, ✨ Připravit trénink; pod kartou
-// ⏱ živý trénink (bez plánu ⚡ improvizace), ⏲ výsledky měření a ⭐ hodnocení. Poslech jen trplan/{eid} otevřeného tréninku; číst HK.perm("trplan", "r"),
+// ⏱ živý trénink (bez plánu ⚡ improvizace), ✏️ skutečný průběh, ⏲ výsledky měření a ⭐ hodnocení. Poslech jen trplan/{eid} otevřeného tréninku; číst HK.perm("trplan", "r"),
 // hráčka vidí svou skupinu zvýrazněnou. Úprava plánu: trplan-edit.js; společné styly a pomůcky (derive, grpChip …) exportuje tento soubor.
 
 // ===== Importy =====
@@ -18,6 +18,7 @@ import {render} from "./shell.js";
 import {bindMsCard, msCardHtml} from "./stopwatch-view.js";
 import {bindEvalCard, evalCardHtml} from "./treval-view.js";
 import {bindLiveCard, liveCardHtml, liveImproHtml} from "./trlive-view.js";
+import {bindTractCard, tractCardHtml} from "./tract-view.js";
 import {bindCover, coverHtml, loadPrep} from "./trplan-reuse.js";
 
 // ===== Konstanty a stav =====
@@ -181,7 +182,7 @@ function cardHtml(ctx) {
   else if (S.tpErr && !p) body = `<div class="msg">Plán se nepodařilo načíst (${esc(S.tpErr)}). Manager musí publikovat pravidla databáze ve verzi v21.1.</div>`;
   else if (!p || !(p.blocks || []).length) body = e ? '<div class="mu" style="margin-bottom:8px">Plán zatím není. Bloky Společně a Stanoviště s cvičeními z 📚 banky, trenéry a skupinami z rozdělení do dresů.</div><button class="p w" id="tpprep" style="min-height:52px">✨ Připravit trénink</button><div class="mu" style="font-size:12px;margin:4px 0 8px">Rozdělí přihlášené do dresů (jako minule, pokud ještě nejsou) a nabídne minulý plán nebo poslední šablonu.</div><button class="s w" id="tpnew">➕ Prázdný plán</button>' + liveImproHtml(eid) : '<div class="mu">Trenér zatím plán nepřipravil.</div>';
   else body = bodyHtml(p, X, D, staff);
-  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${e && p && (p.blocks || []).length && planDxStale(p, D) ? '<div class="msg" style="margin:8px 0">👀 Hráčky zatím nevidí aktuální popis, videa a PDF cvičení (plán uložený dřív nebo cvičení se v bance změnilo).<button class="p w" id="tpshr" style="min-height:48px;margin-top:6px">📤 Zpřístupnit hráčkám</button></div>' : ""}${p && (p.blocks || []).length ? msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
+  return CSS + `<div class="cd" id="tpc"><div class="row" style="align-items:center;flex-wrap:nowrap"><h2 style="margin:0;flex:1">📋 Plán tréninku</h2>${e && p && (p.blocks || []).length ? '<button class="s" id="tped" style="flex:none">✏️ Upravit</button>' : ""}</div>${p && (p.blocks || []).length ? liveCardHtml(eid) : ""}${body}${e && p && (p.blocks || []).length && planDxStale(p, D) ? '<div class="msg" style="margin:8px 0">👀 Hráčky zatím nevidí aktuální popis, videa a PDF cvičení (plán uložený dřív nebo cvičení se v bance změnilo).<button class="p w" id="tpshr" style="min-height:48px;margin-top:6px">📤 Zpřístupnit hráčkám</button></div>' : ""}${p && (p.blocks || []).length ? tractCardHtml(eid, p, D, ctx.ev.date) + msCardHtml(eid, p, D) + evalCardHtml(eid, p, D, X.roster, ctx.ev.date) : ""}${p !== undefined ? coverHtml(eid, X) : ""}</div>` + drillSheetHtml(p, X, D);
 }
 
 // ===== Eventy =====
@@ -193,6 +194,7 @@ function bindCard(a, ctx) {
   bindLiveCard(a, eid, () => ({...derive(ctx), D: drillMap(), plan: S.tp[eid], ev: ctx.ev, end: ctx.end}));
   bindMsCard(a, eid, () => ({...derive(ctx), D: drillMap(), plan: S.tp[eid]}));
   if (S.tp[eid]) bindEvalCard(a, eid, () => ({...derive(ctx), D: drillMap(), plan: S.tp[eid]}));
+  if (S.tp[eid]) bindTractCard(a, eid, () => S.tp[eid]);
   const nw = a.querySelector("#tpnew");
   if (nw) nw.onclick = () => open(planBlank());
   // ✨ Připravit trénink: pětky posledním způsobem (jen nerozdělené přihlášené), pak plán s nabídkou minulého plánu / poslední šablony

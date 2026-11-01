@@ -3,7 +3,7 @@
 // (trlive-quick.js), 🎛 další ovládání sbalené, 📋 Co následuje (hodiny začátků, kdo řídí: zkrátit / prodloužit / vypustit / ▶ Teď);
 // ⚠ zdržení = pruh a upozornění, když plán přetahuje přes konec tréninku; řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku.
 // Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e), převzetí řízení druhým klepnutím; ⏲ stopky, ⭐ hodnocení (treval-view.js).
-// Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js.
+// Zvuk, vibrace, ⌚ oznámení a Wake Lock: trlive-alerts.js. ⏹ Konec zapíše i ✏️ skutečný průběh tract/{eid} (training-actual.js).
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
@@ -12,6 +12,7 @@ import {S} from "../core/state.js";
 import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {laneMeas} from "../domain/stopwatch.js";
+import {TRACT_COLL, tractFromLive} from "../domain/training-actual.js";
 import {prevSpot} from "../domain/training-eval.js";
 import {adjPatch, alertsDue, atClock, coachLanes, cutSec, DELAY_AT, delayDue, delayLevel, groupPids, jumpPatch, laneSub, LIVE_ST, liveAt, liveBlocks, liveBudget, liveCtl, liveQueue, liveSec, mmss, remoteKind, skewNext, skewObs, stepSec, TRLIVE_COLL} from "../domain/training-live.js";
 import {DF, expandLanes, FW, GK, grpLabel, isBreak, isPosBlock, laneOf, laneSeq, laneTags, MODES, planTimes, seqTimes} from "../domain/training-plan.js";
@@ -20,6 +21,7 @@ import {mayMeasure, msData, openStopwatch} from "./stopwatch-view.js";
 import {bindLiveEval, liveEvalHtml} from "./treval-view.js";
 import {alarm, beep, delayAlarm, remote, show, toggleNtf, wakeOff, wakeOn, wakeState} from "./trlive-alerts.js";
 import {bindQuick, quickEmptyHtml, quickHtml} from "./trlive-quick.js";
+import {tractKnown} from "./tract-view.js";
 
 // ===== Konstanty a stav =====
 const MUTE_KEY = "hk-tl-mute", SKEW_KEY = "hk-clk", NTF_KEY = "hk-tl-ntf";
@@ -394,6 +396,12 @@ function ctl(kind, extra, sec) {
   else d = liveCtl(kind, v, o);
   if (!d) return;
   S.db.doc(TRLIVE_COLL + "/" + L.eid).merge({...d, by: me(), at: new Date().toISOString(), ...(extra || {})});
+  // ⏹ Konec: ✏️ skutečný průběh (délky, vypuštěné bloky) pro statistiky – samostatný zápis, aby chyba nezastavila konec hodin
+  if (kind === "end" && planB(X).length) {
+    const t = {...tractFromLive(planB(X), v, cur), by: me(), at: new Date().toISOString()};
+    S.db.doc(TRACT_COLL + "/" + L.eid).set(t);
+    tractKnown(L.eid, t);
+  }
   L.prev = null;
   if (kind === "start" || kind === "restart") toast("Trénink spuštěn – hodiny běží všem");
 }

@@ -2,6 +2,23 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.35 (1. 11. 2026) – ✏️ Skutečný průběh tréninku a pravidla
+> **Nasazení – kanál 🧪 BETA:** commit „v22.35“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish; schváleno uživatelem 1. 11. 2026) – nová kolekce `tract`, zpřísněné `budgetKeep` a `treval`. Stabilní verze pravidla snese (`tract` nepoužívá, hodnocení čte jen realizační tým, revize rozpočtu jen přidává). Do publikace se průběh neuloží (⚠️ hláška u ⏹ Konec / 💾) a statistiky počítají s plánem. V betě Načíst novou verzi (cache `hokej-beta-v138`). 🔒 Vyžadovat verzi: ne. Test: kap. 38.
+
+**Přidáno** (návrh A – schváleno 1. 11. 2026 podle doporučení)
+- **✏️ Skutečný průběh** `tract/{eid}` = `{v, blocks: [{id, dur, skip}], src, by, at}` (`domain/training-actual.js`, `views/tract-view.js`): při ⏹ Konec živého tréninku se zapíše automaticky (`tractFromLive`: zkrácené / vypuštěné bloky z úprav průběhu, rozběhnutý blok do konce hodin, nezačaté vypuštěné) – samostatný zápis, chyba nezastaví konec hodin. V kartě plánu dnešního / proběhlého tréninku řádek „skutečně N min z M“ a **✏️ Upravit** (délky −/+, ⏭ vypustit, ↺ podle plánu, 💾 Uložit průběh) pro toho, kdo smí upravovat plán. „↺ Spustit znovu“ záznam nemaže (přepíše ho až další ⏹ Konec).
+- **Statistiky podle skutečnosti** (`actualPlan`): 📈 Statistiky → 🏒 Trénink (i hráčka v Můj trénink) a 📊 Pokrytí dovedností počítají minuty z plánu upraveného skutečným průběhem; ⧉ kopie, ✨ příprava a 📑 šablony berou dál plán (záměr). Bez záznamu (starší tréninky) beze změny.
+- 📉 Čtení: +1 dokument na trénink v období při otevření 📈 přehledu a 📊 pokrytí, +1 při otevření detailu dnešního / proběhlého tréninku (jen realizační tým); žádný trvalý poslech. Záloha JSON obsahuje `tract`.
+
+**Změněno – pravidla** (návrh B2, B3)
+- `budgetKeep`: starší úpravy rozpočtu (`rev`) musí zůstat beze změny, seznam jde jen prodloužit.
+- `treval`: čtení i zápis navíc jen realizační tým (`isStaff()`) – hráčka hodnocení trenérů nikdy, ani po omylu v matici práv.
+- Nápověda: ✏️ Skutečný průběh.
+
+**Beze změny:** plán a jeho úprava, živý trénink (kromě zápisu průběhu při ⏹ Konec), hodnocení, měření, štafeta, dresy, pokladna; živý zápis, střely, góly, časomíra. B1 (`settings/beta`) zůstává podle návrhu ponecháno.
+
+**Ověřeno:** `npm test` (522 testů, nově `tests/training-actual.test.js`; `tests/training-eval.test.js` – pravidla `treval` s `isStaff`), `npm run smoke` bez chyb pro všechny role (nově ✏️ Skutečný průběh: úprava a zápis `tract`).
+
 ## v22.34 (1. 11. 2026) – 🚫⭐ Nehodnotit u bloku a plat bez 🚫
 > **Nasazení – kanál 🧪 BETA:** commit „v22.34“ do větve **`beta`**. firestore.rules beze změny. **Data: nové volitelné pole bloku `ne: true` v `trplan/{eid}`** (schváleno uživatelem 1. 11. 2026; pravidla bloky nekontrolují, starší verze pole ignoruje a při uložení plánu ho zahodí). V betě Načíst novou verzi (cache `hokej-beta-v137`). 🔒 Vyžadovat verzi: ne. Test: kap. 37.
 

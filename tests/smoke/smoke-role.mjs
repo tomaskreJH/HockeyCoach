@@ -109,6 +109,15 @@ async function events() {
     if (await tap('[data-alv="pers"]', 150)) snap("att-log-pers");
     await tap("#algx", 150);
   }
+  // v22.35: ✏️ Skutečný průběh (realizační tým) – úprava délky bloku a uložení do tract
+  if (await tap("#tred", 300)) {
+    snap("tract-edit");
+    const w0 = globalThis.__fb.writes.length;
+    await tap('[data-trx]', 150);
+    await tap("#trok", 250);
+    if (!globalThis.__fb.writes.slice(w0).some(w => /^tract\//.test(w.path))) throw new Error("✏️ skutečný průběh se nezapsal");
+    snap("tract-saved");
+  }
   if (await tap("#tped", 300)) {
     snap("plan-edit");
     await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
