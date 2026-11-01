@@ -2,6 +2,15 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.32.1 (1. 11. 2026) – Oprava kouřového testu (nasazení v22.32 neproběhlo)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.32.1“ do větve **`beta`**. Aplikace beze změny funkcí proti v22.32, jen číslo verze a cache `hokej-beta-v135`. Pravidla ani data se nemění. 🔒 Vyžadovat verzi: ne. Ruční test: kap. 35 (platí pro v22.32.1).
+
+**Opraveno**
+- GitHub Actions nasazení v22.32 selhalo v kouřovém testu („🚫 chybí u realizačního týmu“, role manager a trenér) – **beta zůstala na v22.31**. Příčina: nová kontrola v `tests/smoke/smoke-role.mjs` předpokládala časové pásmo Prahy; GitHub běží v UTC, kde je zmrazený čas testu 16:10 a trénink v 17:00 ještě nezačal, takže 🚫 se správně nenabízí nikomu. Aplikace se chovala správně.
+- Kontrola teď ověřuje, že se 🚫 u realizačního týmu nabízí přesně tehdy jako u hráček – nezávisle na časovém pásmu.
+
+**Ověřeno:** `npm test` (509 testů), `npm run smoke` bez chyb v časovém pásmu Praha i UTC (`TZ=UTC npm run smoke`).
+
 ## v22.32 (1. 11. 2026) – 🧹 Úklid drobností
 > **Nasazení – kanál 🧪 BETA:** commit „v22.32“ do větve **`beta`**. Pravidla databáze ani struktura dat se nemění (🚫 u člena týmu používá stávající pole docházky `nos`, nový člen stávající `members/{e-mail}` – pravidla obojí už dovolují). V betě Načíst novou verzi (cache `hokej-beta-v134`). 🔒 Vyžadovat verzi: ne. Test: kap. 35.
 

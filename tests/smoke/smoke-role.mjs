@@ -100,8 +100,8 @@ async function events() {
   // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
   if (await tap("#evatt summary", 300)) {
     snap("ev-e1-att");
-    // v22.32: 🚫 i u realizačního týmu (trénink e1 už začal, trenéři odpověděli „Jdu“)
-    if (["manager", "trener"].includes(role) && !$('[data-nos="t1"]')) throw new Error("🚫 chybí u realizačního týmu");
+    // v22.32: 🚫 i u realizačního týmu – nabízí se stejně jako u hráček (jen po začátku tréninku; nezávisí na časovém pásmu běhu testu)
+    if (["manager", "trener"].includes(role) && !!$('[data-nos="p1"]') !== !!$('[data-nos="t1"]')) throw new Error("🚫 u realizačního týmu se nenabízí stejně jako u hráček");
   }
   if (await tap("[data-alg]", 300)) {
     snap("att-log");

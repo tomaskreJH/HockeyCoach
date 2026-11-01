@@ -240,7 +240,7 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
 ## 35. v22.32 (beta) – 🧹 Úklid drobností
-- [ ] 35.1 V betě je v záhlaví **v22.32**.
+- [ ] 35.1 V betě je v záhlaví **v22.32.1** (v22.32 se nenasadila).
 - [ ] 35.2 Detail tréninku po začátku → 👥 Docházka → Realizační tým: u člena s „Jdu“ tlačítko 🚫; klepnutí = „🚫 Nedorazil(a)“, další klepnutí zruší. 📊 Docházka ukáže člena v 🚫. 🕘 Historie přihlášek má záznam. Plat za událost (📅 Měsíce) se nemění.
 - [ ] 35.3 Manager: Team → Realizační tým → jméno, funkce, **e-mail a role** → Přidat → hláška „✅ … přidán(a) – přístup …“; v ⚙️ → 👥 Členové týmu je e-mail s rolí a propojeným členem týmu (🎓). Bez e-mailu se přidá jen člen týmu jako dřív. Trenér pole e-mail nevidí.
 - [ ] 35.4 Trénink s přihlášenou 🎟 hostující → 📋 ✏️ Upravit → 📊 Pokrytí dovedností: hostující se nepočítá, pod přehledem „🎟 Hostující (1) se nepočítají“.
