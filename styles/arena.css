@@ -159,6 +159,7 @@
 :root[data-skin="arena"] #hmw .hms { font-size: 38px; letter-spacing: .06em; }
 :root[data-skin="arena"] #tlv .tlbig { font-size: 84px; }
 :root[data-skin="arena"] #tllock .tlbig { font-size: 112px; }
+:root[data-skin="arena"] #tlv .tltop .tlbig { font-size: 54px; }
 
 
 /* ==========================================================

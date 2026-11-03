@@ -12,6 +12,7 @@ import {TEAM_NAME} from "../config/team-config.js";
 import {nm} from "../core/selectors.js";
 import {mmss} from "../core/utils.js";
 import {el_} from "./live-engine.js";
+import {psText} from "./penalty-shot.js";
 
 const perLabel = n => (n < 4 ? n + ". tř." : "prodl.");
 
@@ -73,6 +74,7 @@ export function shiftStats(m, limit) {
 }
 
 const evText = (e) => {
+  if (e.ps) return psText(e, id => nm(id));                       // 🎯 trestné střílení (gól i neproměněné)
   if (e.k === "G") {
     const sit = SIT[e.sit] || SIT.E;
     return e.team === "us"
@@ -98,8 +100,8 @@ export function goalScores(m) {
 export function timeline(m, {shots = true, subs = true, flow = true, limit = 120000} = {}) {
   const E = [], push = (t, ord, o) => E.push({t, ord, ...o});
   (m.events || []).forEach((e, i) => {
-    if (e.k === "S" && !shots) return;
-    push(estimate(m, e), e.k === "S" ? 3 : 1, {kind: e.k, per: e.per, el: e.time || "", team: e.team, text: evText(e), idx: i});
+    if (e.k === "S" && !shots && !e.ps) return;                  // neproměněné trestné střílení je vidět i bez střel
+    push(estimate(m, e), e.k === "S" && !e.ps ? 3 : 1, {kind: e.k, per: e.per, el: e.time || "", team: e.team, text: evText(e), idx: i});
   });
   (m.injLog || []).forEach(x => {
     const t = x.at != null ? x.at : estimate(m, x);

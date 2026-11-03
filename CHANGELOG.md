@@ -2,6 +2,26 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.38 (4. 11. 2026) – 🎯 Trestné střílení, krosček, ⏱ ukotvený odpočet tréninku
+> **Nasazení – kanál 🧪 BETA:** commit „v22.38“ do větve **`beta`**. firestore.rules beze změny. **Data:** nové volitelné pole události zápasu `ps: true` (a u trestného střílení soupeře `pf` = naše faulující hráčka) v existujícím poli `events` – pravidla události nekontrolují; stabilní verze ukáže proměněné trestné střílení jako běžný gól (skóre i statistiky sedí, situace „5 na 5“) a neproměněné jako střelu. V betě Načíst novou verzi (cache `hokej-beta-v141`). 🔒 Vyžadovat verzi: ne. Test: kap. 41.
+
+**Přidáno** (zadání uživatele 3. 11. 2026)
+- **🎯 Trestné střílení** (`domain/penalty-shot.js` – `psEvent`, `isPS`, `psText`): zvláštní událost s `ps: true`. Proměněné = gól `k: "G"`, `sit: "PS"` (SIT „Trestné střílení“) – počítá se do skóre, gólů a střel střelkyně, bez asistencí a bez +/- (`on: []`), u soupeře gól brankářce; neproměněné = `k: "S"` (střela / zákrok brankářky). Trest se nezapisuje (trestné střílení ho nahrazuje) a gól z trestného střílení neukončí probíhající trest (IIHF).
+- Živý zápis (`views/live-quick.js`): 🚫 Trest → kdo faulovala → **🎯 Trestné střílení** (místo délky) → faulovala soupeřka: kdo z našich střílí (nejdřív hráčky na ledě, pak ostatní nominované bruslařky) / faulovala naše: střílí soupeř na brankářku v bráně → **🥅 Gól** / neproměněno. ↩ Zpět vrací „Trestné střílení“.
+- ✏️ Opravy zápisu (`views/editor.js`): **+ 🎯 Trestné střílení**, úprava (tým, střelkyně / brankářka, výsledek); neproměněné je v seznamu i bez „Zobrazit střely“.
+- Průběh (živý zápis, 👁 náhled, karta zápasu, zápis utkání – i neproměněné v „Průběh (góly a tresty)“), 📤 souhrn „(trestné střílení)“ u gólu.
+- **Krosček** v důvodech trestu (`config/constants.js` `REA`) – živý zápis, okno trestu i opravy zápisu. Délky trestů podle IIHF beze změny (krosček = 2 min, případně 5 + do konce).
+
+**Změněno**
+- **⏱ Živý trénink:** odpočet cvičení je menší (48 px, v Aréně 54 px) a je součástí přilepeného záhlaví vedle bloku a „do konce bloku“ spolu s pruhem průběhu – zůstává vidět při posouvání. 🔒 zámek dotyku a „✅ Plán skončil“ beze změny (`views/trlive-view.js`, `styles/arena.css`).
+- Výběr situace běžného gólu (okno gólu, opravy zápisu) nabízí jen 5 na 5 / přesilovku / oslabení (`GSIT`).
+
+**Beze změny:** střely, góly, tresty a jejich délky, ukončení trestu gólem, střídání, časomíra, buly, ↩ Zpět ostatních kroků; statistiky (`playerStats` beze změny – trestné střílení je gól / střela), zápasy bez trestného střílení (`tests/d1-baseline.test.js` beze změny); odpočet a upozornění živého tréninku (jen přesun a velikost).
+
+**📉 Čtení databáze** (analýza, bez změny kódu): zbývající rostoucí kolekce poslouchané celé realizačním týmem – `evpub`, `lineuppub`, `evcash`, `attnote`, `drills` – návrh D4 v `docs/plan.md`, rozhodnout podle čísel z ⚙️ → 💾 Data → 📉.
+
+**Ověřeno:** `npm test` (534 testů, nově `tests/penalty-shot.test.js` – událost, statistiky hráček a brankářek, text, krosček), `npm run smoke` bez chyb pro všechny role (nově 🎯 trestné střílení v živém zápisu: gól s `ps` bez trestu; odpočet živého tréninku v přilepeném záhlaví).
+
 ## v22.37 (3. 11. 2026) – ⚪ Buly a ⏸ přerušení hry, 📉 starší zápasy z paměti zařízení
 > **Nasazení – kanál 🧪 BETA:** commit „v22.37“ do větve **`beta`**. firestore.rules beze změny (čtení zápasů dotazem povoluje stávající `isTeam()`). **Data:** nové záznamy v existujícím poli zápasu `log` (`ty: "fo"` / `"stop"`) – bez nového pole, pravidla `log` nekontrolují, stabilní verze je ignoruje (zobrazí jako „↩ Návrat z trestu: ?“ v kompletním vývoji – kosmetické, jen u zápasů zapsaných v betě). V betě Načíst novou verzi (cache `hokej-beta-v140`). 🔒 Vyžadovat verzi: ne. Test: kap. 40.
 

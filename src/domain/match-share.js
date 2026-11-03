@@ -59,7 +59,7 @@ export function matchSummary(m, {team = "", name = id => id, fd = d => d} = {}) 
     lines.push("", "🥅 Góly:");
     G.forEach(e => {
       const st = m.home ? gs.get(e) : gs.get(e).split(":").reverse().join(":"), when = (PER[e.per] || e.per + ".") + " tř." + (e.time ? " " + e.time : "");
-      const who = e.team === "us" ? (e.scorer ? name(e.scorer) : "?") + ([e.a1, e.a2].filter(Boolean).length ? " (" + [e.a1, e.a2].filter(Boolean).map(name).join(", ") + ")" : "") : "soupeř";
+      const who = (e.team === "us" ? (e.scorer ? name(e.scorer) : "?") + ([e.a1, e.a2].filter(Boolean).length ? " (" + [e.a1, e.a2].filter(Boolean).map(name).join(", ") + ")" : "") : "soupeř") + (e.ps ? " (trestné střílení)" : "");
       lines.push(`${st} ${who} · ${when}`);
     });
   }

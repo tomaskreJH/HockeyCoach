@@ -160,6 +160,7 @@ async function events() {
     snap("trlive");
     // v22.17: přilepené záhlaví se zbývajícím časem vždy; řídící má pevnou spodní lištu ⏸ / ⏭ / +1 min
     if (!$("#tlv .tltop #tlr")) throw new Error("⏱ chybí zbývající čas v záhlaví");
+    if ($("#tlv #tlc") && !$("#tlv .tltop #tlc")) throw new Error("⏱ odpočet cvičení není v přilepeném záhlaví (v22.38)");
     if ($("#tlv .tlbot")) snap("trlive-bar");
     // v22.28: ▶ Teď (linky) hned pod odpočtem, méně časté ovládání sbalené pod 🎛 až za ním
     const sec = $("#tlv .tlsec"), cd = $("#tlv #tlcd");
@@ -293,7 +294,8 @@ async function money() {
   }
 }
 
-// 🔴 Živý zápis (v22.37): stojící čas = ▶ Buly naše / soupeř, buly spustí čas a zapíše log fo, ⏸ Přerušit zapíše log stop
+// 🔴 Živý zápis (v22.37): stojící čas = ▶ Buly naše / soupeř, buly spustí čas a zapíše log fo, ⏸ Přerušit zapíše log stop;
+// 🎯 trestné střílení (v22.38) přes 🚫 Trest
 async function liveMatch() {
   await tap('#nav button[data-t="home"]', 250);
   if (!(await tap("[data-hlv]", 400))) return;
@@ -312,6 +314,15 @@ async function liveMatch() {
   if (!st || ((st.d || {}).log || []).filter(x => x.ty === "stop").length !== 2) throw new Error("⏸ Přerušit nezapsalo přerušení");
   if (!$("#lv #lfu")) throw new Error("⏸ Přerušit nevrátilo ▶ Buly");
   snap("live-stopped");
+  // 🎯 Trestné střílení (v22.38): 🚫 Trest → Soupeř → 🎯 → střelkyně → 🥅 Gól = gól s ps do skóre, bez trestu
+  const w2 = globalThis.__fb.writes.length;
+  if (!(await tap("#lv #qp", 200)) || !(await tap('#lv [data-qb="who:opp"]', 150)) || !(await tap('#lv [data-qb="len:ps"]', 150))) throw new Error("🎯 chybí volba Trestné střílení");
+  snap("live-ps-who");
+  if (!(await tap('#lv [data-qb^="pss:"]', 150)) || !(await tap('#lv [data-qb="psr:g"]', 250))) throw new Error("🎯 chybí výběr střelkyně / výsledku");
+  const ps = globalThis.__fb.writes.slice(w2).filter(w => /^matches\/m2/.test(w.path)).pop(), pe = ps && ((ps.d || {}).events || []);
+  if (!pe || !pe.some(e => e.ps && e.k === "G" && e.team === "us" && e.sit === "PS") || pe.some(e => e.k === "P" && e.team === "opp")) throw new Error("🎯 trestné střílení nezapsalo gól");
+  if (((ps.d.live || {}).pen || []).length) throw new Error("🎯 trestné střílení zapsalo trest");
+  snap("live-ps-done");
   if (await tap("#lv #lmn", 200)) await tap('#lv [data-m="x"]', 250);   // ⋯ → odchod ze živého zápisu
 }
 

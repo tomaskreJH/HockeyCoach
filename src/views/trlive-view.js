@@ -1,5 +1,5 @@
 // ⏱ Živý trénink (jen HK.can("sport")): stav a tlačítko v kartě plánu, obrazovka #tlv (✕ / Zpět zavře, hodiny běží dál; tik 250 ms mění jen čísla).
-// Pořadí obrazovky: přilepené záhlaví (zbývá plán / do konce), velký odpočet, ▶ Teď (moje linka, přehled kdo kde), ⏭ Potom, ⭐ hodnocení, ⚡ improvizace
+// Pořadí obrazovky: přilepené záhlaví (zbývá plán / do konce, blok a menší odpočet cvičení), ▶ Teď (moje linka, přehled kdo kde), ⏭ Potom, ⭐ hodnocení, ⚡ improvizace
 // (trlive-quick.js), 🎛 další ovládání sbalené, 📋 Co následuje (hodiny začátků, kdo řídí: zkrátit / prodloužit / vypustit / ▶ Teď);
 // ⚠ zdržení = pruh a upozornění, když plán přetahuje přes konec tréninku; řídící má ⏸ / ⏭ / +1 min v pevné spodní liště, 🔒 zámek dotyku.
 // Společné hodiny trlive/{eid} řídí, kdo smí upravovat plán (trplan e), převzetí řízení druhým klepnutím; ⏲ stopky, ⭐ hodnocení (treval-view.js).
@@ -53,6 +53,10 @@ const CSS = `<style>
 #tlv .tlh h2{flex:1;margin:0;font-size:18px}
 #tlv .tlbig{font-size:76px;font-weight:800;text-align:center;line-height:1;font-variant-numeric:tabular-nums;margin:6px 0}
 #tlv .tlbig.w{color:var(--wa)} #tlv .tlbig.n{color:var(--no)}
+#tlv .tlcd{display:flex;align-items:center;gap:10px;margin-top:6px}
+#tlv .tlcdi{flex:1;min-width:0;font-size:14px;line-height:1.3}
+#tlv .tltop .tlbig{font-size:48px;margin:0;flex:none}
+#tlv .tltop .tlbar{margin:6px 0 0}
 #tlv .tlbar{height:8px;border-radius:4px;background:var(--bd);overflow:hidden;margin:6px 0 10px}
 #tlv .tlbar i{display:block;height:100%;background:var(--ac)}
 #tlv .tlln{border:2px solid var(--bd);border-radius:12px;padding:10px;margin-bottom:8px}
@@ -308,16 +312,17 @@ function screenHtml() {
   if (v === undefined) return CSS + head + '<div class="mu">Načítám hodiny…</div>';
   const sec = liveSec(v, Date.now(), skew()), at = liveAt(B, sec || 0), st = v && LIVE_ST[v.st] ? v.st : null, T = planTimes(B);
   const b = B[at.bi], total = T[T.length - 1].b;
-  // Přilepené záhlaví: ovládání okna, stav hodin, zbývající čas plánu a do konce tréninku (vždy nahoře i při posunu)
+  // Přilepené záhlaví: ovládání okna, stav hodin, zbývající čas plánu a do konce tréninku, odpočet cvičení (vždy nahoře i při posunu)
   const info = `<div class="tlrem"><span>zbývá plán <b id="tlr">${mmss(total - (sec || 0))}</b></span><span class="mu"><span id="tlt">${mmss(sec || 0)}</span> / ${mmss(total)}</span></div>
 <div class="tlbud" id="tlg">${st && st !== "end" ? budgetText(X, total, sec || 0) : ""}</div>
 <div class="mu" style="font-size:13px">${st ? LIVE_ST[st] : "Čeká na spuštění"}${v && v.ctl ? " · řídí " + ctlName(v.ctl) : ""} · <span id="tlw">${wakeTxt()}</span></div>`;
-  const top = `<div class="tltop">${head}${info}</div>`;
-  if (at.done) return CSS + top + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at) + quickHtml(X) + rateHtml(B, at, X) + botHtml(v, at) + lockHtml(B, at, X);
+  if (at.done) return CSS + `<div class="tltop">${head}${info}</div>` + `<div class="tlbig">✅</div><div style="text-align:center;font-size:20px;font-weight:700">Plán skončil</div>` + controlsHtml(v, at) + quickHtml(X) + rateHtml(B, at, X) + botHtml(v, at) + lockHtml(B, at, X);
   const sub = isBreak(b) ? `Blok ${at.bi + 1}/${B.length} · ☕ Pauza` : `Blok ${at.bi + 1}/${B.length} · ${MODES[b.mode]}${isPosBlock(b) ? " · ⚔ podle postů" : ""}${at.nr > 1 ? ` · kolo ${at.ri + 1}/${at.nr}` : ""}`;
-  return CSS + top + `<div style="text-align:center;margin-top:8px;font-weight:700">${sub}</div>
-${(() => { const c = clk(B, at, X); return `${c.s ? `<div class="mu" style="text-align:center">🔁 ${c.s.it ? "moje cvičení " + (c.s.i + 1) + "/" + c.s.n : "řada skončila – volno"}</div>` : ""}<div class="tlbig" id="tlc">${mmss(c.left)}</div>${at.nr > 1 || c.s ? `<div class="mu" style="text-align:center">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}`; })()}
-<div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>
+  // ⏱ Odpočet cvičení je součástí přilepeného záhlaví (menší, vpravo) – zůstává vidět i při posunu obrazovky
+  const c = clk(B, at, X);
+  const cd = `<div class="tlcd"><div class="tlcdi"><b>${sub}</b>${c.s ? `<div class="mu">🔁 ${c.s.it ? "moje cvičení " + (c.s.i + 1) + "/" + c.s.n : "řada skončila – volno"}</div>` : ""}${at.nr > 1 || c.s ? `<div class="mu">do konce bloku <span id="tlb">${mmss(at.bleft)}</span></div>` : ""}</div><div class="tlbig" id="tlc">${mmss(c.left)}</div></div>
+<div class="tlbar"><i id="tlp" style="width:${Math.min(100, Math.round((sec || 0) / total * 100))}%"></i></div>`;
+  return CSS + `<div class="tltop">${head}${info}${cd}</div>
 ${delayHtml(X, at, v)}${lanesHtml(b, at, X)}${nextHtml(B, at, X)}${rateHtml(B, at, X)}${!st || st === "end" ? controlsHtml(v, at) + quickHtml(X) : quickHtml(X) + controlsHtml(v, at)}${restHtml(X, at, v)}${botHtml(v, at)}${lockHtml(B, at, X)}`;
 }
 // Celé překreslení obrazovky (změna stavu, kola nebo bloku); tik mění jen čísla

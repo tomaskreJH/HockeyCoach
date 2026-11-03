@@ -239,6 +239,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 41. v22.38 (beta) – 🎯 Trestné střílení, krosček, ⏱ odpočet tréninku
+- [ ] 41.1 V betě je v záhlaví **v22.38**. Živý zápis, přerušená hra: 🚫 Trest → hráčka / soupeř → v délkách je **🎯 Trestné střílení**; v důvodech trestu **Krosček**.
+- [ ] 41.2 🚫 Trest → Soupeř → 🎯 → vybrat naši střelkyni → **🥅 Gól**: skóre +1, v průběhu „🎯 Trestné střílení – gól: …“, žádný štítek trestu, situace se nezmění. ↩ Zpět vrátí vše.
+- [ ] 41.3 🚫 Trest → naše hráčka → 🎯 → **🧤 Chyceno**: skóre beze změny, střely soupeře +1, naše hráčka zůstává na ledě; v průběhu „… soupeře – chyceno (brankářka …) · faul: …“.
+- [ ] 41.4 Probíhá náš trest (oslabení) a soupeř promění trestné střílení → trest běží dál (gól ho neukončí).
+- [ ] 41.5 Po zápase: zápis utkání „Průběh (góly a tresty)“ ukazuje obě trestná střílení; Statistiky zápasu – střelkyně G +1, střely +1, +/- beze změny, asistence žádné; brankářka zásahy / góly. 📤 Sdílet souhrn: „(trestné střílení)“ u gólu.
+- [ ] 41.6 ✏️ Opravit zápis → **+ 🎯 Trestné střílení** → uložit; ✏️ u něj → změna výsledku Gól ↔ Neproměněno se promítne do skóre.
+- [ ] 41.7 ⏱ Živý trénink: odpočet cvičení je menší, vpravo v horním záhlaví vedle bloku; při posunu obrazovky dolů zůstává nahoře i s pruhem průběhu. Barvy upozornění (poslední minuta žlutě, 10 s červeně) fungují; 🔒 zámek má dál velký odpočet. Vyzkoušet i v Aréně.
+
 ## 40. v22.37 (beta) – ⚪ Buly, ⏸ přerušení, 📉 starší zápasy z paměti
 - [ ] 40.1 V betě je v záhlaví **v22.37**. Živý zápis se stojícím časem: místo ▶ Start dvě tlačítka **▶ Buly** (náš tým plné zelené / soupeř zelený obrys), vedle ↩ Zpět; v Aréně i v tmavém režimu čitelné.
 - [ ] 40.2 ▶ Buly náš tým → čas běží, v liště pod skóre „buly 1:0“, v průběhu „⚪ Buly – vyhrál …“. ⏸ Přerušit → čas stojí, v průběhu „⏸ Přerušení hry“. ▶ Buly soupeř → „buly 1:1“.

@@ -61,6 +61,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `live-engine.js` | jádro živého zápisu (čas, střídání, tresty IIHF, jednotky) |
 | `lineup.js`, `corrections.js`, `shift-edit.js`, `timeline.js` | sestava zápasu, opravy zápisu, editace střídání, časová osa a skóre po gólech |
 | `player-stats.js` | statistiky hráček `playerStats` (zápas i souhrn) |
+| `penalty-shot.js` | 🎯 trestné střílení `psEvent` (gól `k: "G"` / pokus `k: "S"`, vždy `ps: true`, gól `sit: "PS"`, `on: []`), `isPS`, `psText`; zápis `live-quick.js` a `editor.js`, gól z trestného střílení neukončí trest |
 | `game-flow.js` | ⚪ buly a ⏸ přerušení hry z `m.log` (`ty: "fo"` s `team`, `ty: "stop"`) – zápas `flowStats`, sezóna `flowTotals`; zápis `doFaceoff` / `doStop` v `live-engine.js` |
 | `match-share.js` | ⧉ sestava „Jako minule“ (`lastLineupMatch`, `lineupLike`, `unitsLike`), 📤 souhrn zápasu ke sdílení (`matchSummary`) |
 | `watch-feed.js` | 👁 náhled živého zápasu pro členy |
