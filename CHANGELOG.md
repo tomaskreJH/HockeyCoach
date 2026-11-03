@@ -2,6 +2,17 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.39 (4. 11. 2026) – ❄️ Vzhled Ledová aréna
+> **Nasazení – kanál 🧪 BETA:** commit „v22.39“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v142`). 🔒 Vyžadovat verzi: ne. Test: kap. 42.
+
+**Přidáno** (zadání uživatele 4. 11. 2026 – vybraná varianta náhledu „Ledová aréna“, jen styl zobrazení)
+- **❄️ Ledová aréna** v ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika (`src/core/skin.js`, nový `styles/led.css`): tmavě modrá plocha s reflektorem nahoře, ledově modrý akcent, karty bez rámečků, štítky jako pilulky, záhlaví splývá s plochou s ledovou linkou. Staví na 🏟 Aréně (`data-skin="arena"` + `data-led`), proto písmo, rozměry a rozložení zůstávají stejné. Výchozí tmavý režim i při „Podle telefonu“, světlý při ☀ Světlý.
+- První nastavení bez probliknutí v `index.html`, `styles/led.css` v offline cache (`sw.js`), nápověda ⚙️ (`views/help.js`).
+
+**Beze změny:** veškerá funkčnost a ovládání (žádná změna JavaScriptu mimo přepínač vzhledu), vzhledy Klasický a 🏟 Aréna, živý zápis, trénink, pokladna.
+
+**Ověřeno:** `npm test` (534 testů), `npm run smoke` bez chyb, vizuální kontrola Ledové arény (tmavá i světlá) na šířce telefonu.
+
 ## v22.38 (4. 11. 2026) – 🎯 Trestné střílení, krosček, ⏱ ukotvený odpočet tréninku
 > **Nasazení – kanál 🧪 BETA:** commit „v22.38“ do větve **`beta`**. firestore.rules beze změny. **Data:** nové volitelné pole události zápasu `ps: true` (a u trestného střílení soupeře `pf` = naše faulující hráčka) v existujícím poli `events` – pravidla události nekontrolují; stabilní verze ukáže proměněné trestné střílení jako běžný gól (skóre i statistiky sedí, situace „5 na 5“) a neproměněné jako střelu. V betě Načíst novou verzi (cache `hokej-beta-v141`). 🔒 Vyžadovat verzi: ne. Test: kap. 41.
 

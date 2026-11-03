@@ -1,0 +1,95 @@
+/* ==========================================================
+   VZHLED „LEDOVÁ ARÉNA“ (přepínatelný, ⚙️ → 👤 Účet → 🎨 Vzhled → ❄️ Ledová aréna; src/core/skin.js)
+   Staví na vzhledu 🏟 Aréna: <html data-skin="arena" data-led="1">. Písmo, rozměry, rozložení, živý zápis
+   a chování zůstávají ze styles/main.css a styles/arena.css – tento soubor mění jen barvy a povrch prvků.
+   Motiv: večerní led pod reflektory – tmavě modrá plocha, ledově modrý akcent, karty bez rámečků, štítky jako pilulky.
+   Režim: výchozí je tmavý (i při „Podle telefonu“), světlý jen při volbě ☀ Světlý.
+   Soubor se načítá po arena.css, proto stejně silné selektory zde vyhrávají.
+   ========================================================== */
+
+/* ==========================================================
+   1. BARVY – TMAVÝ „VEČERNÍ LED“ (výchozí)
+   Stejné proměnné jako Aréna (--bg, --cd, --tx, --mu, --ac, --a2, --ok, --no, --wa, --bd, --ink, --brd, --rl, --bl, --glow).
+   ========================================================== */
+:root[data-skin="arena"][data-led] {
+  --bg: #0b1622; --cd: #13243a; --tx: #e8f1fa; --mu: #9cb3cb;
+  --ac: #5ec8ff; --a2: #1a2f49; --ok: #5fd59b; --no: #ff8a7a;
+  --wa: #ffb547; --bd: #22395a;
+  --ink: #06111b; --brd: #0b1622; --rl: #ff5c6c; --bl: #5ec8ff;
+  --sh: 0 1px 0 rgba(255, 255, 255, .03), 0 10px 24px -18px rgba(0, 0, 0, .9);
+  --glow: #12304d;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="arena"][data-led]:not([data-theme="light"]) { color-scheme: dark; }
+}
+:root[data-skin="arena"][data-led][data-theme="dark"] { color-scheme: dark; }
+
+/* ==========================================================
+   2. BARVY – SVĚTLÝ „DENNÍ LED“ (jen při volbě ☀ Světlý)
+   ========================================================== */
+:root[data-skin="arena"][data-led][data-theme="light"] {
+  --bg: #eef5fb; --cd: #ffffff; --tx: #10263d; --mu: #4f6882;
+  --ac: #0a6fb0; --a2: #e1eef8; --ok: #13703a; --no: #b3261e;
+  --wa: #8f5400; --bd: #cfdeeb;
+  --ink: #ffffff; --brd: #10263d; --rl: #c8102e; --bl: #0a6fb0;
+  --sh: 0 1px 0 rgba(16, 38, 61, .04), 0 8px 20px -14px rgba(16, 38, 61, .3);
+  --glow: #ffffff;
+  color-scheme: light;
+}
+
+/* ==========================================================
+   3. PLOCHA – reflektor nad ledem (jen horní část stránky, nic se nepřekresluje při posunu)
+   ========================================================== */
+:root[data-skin="arena"][data-led] body {
+  background: var(--bg) radial-gradient(120% 340px at 50% 0, var(--glow) 0, var(--bg) 100%) no-repeat;
+}
+
+/* ==========================================================
+   4. ZÁHLAVÍ A ZÁLOŽKY – záhlaví splývá s plochou, pod ním ledově modrá linka; zvolená záložka plnou linkou
+   ========================================================== */
+:root[data-skin="arena"][data-led] header { background: var(--brd); color: var(--tx); }
+:root[data-skin="arena"][data-led][data-theme="light"] header { color: #ffffff; }
+:root[data-skin="arena"][data-led] header::after {
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0, var(--ac) 20%, var(--ac) 80%, transparent 100%);
+}
+:root[data-skin="arena"][data-led] header #ver { color: var(--mu); }
+:root[data-skin="arena"][data-led][data-theme="light"] header #ver { color: #c9d8e8; }
+:root[data-skin="arena"][data-led] nav { background: var(--cd); border-bottom-color: var(--bd); box-shadow: none; }
+:root[data-skin="arena"][data-led] nav button[data-t].on { color: var(--ac); }
+:root[data-skin="arena"][data-led] nav button[data-t].on::after { background: var(--ac); height: 3px; }
+
+/* ==========================================================
+   5. KARTY – plné plochy bez rámečku, záhlaví karty o odstín světlejší
+   ========================================================== */
+:root[data-skin="arena"][data-led] .cd { border-color: transparent; border-radius: 14px; }
+:root[data-skin="arena"][data-led] .acc { border-color: transparent; }
+:root[data-skin="arena"][data-led] .acc.on { border-color: color-mix(in srgb, var(--ac) 40%, transparent); }
+:root[data-skin="arena"][data-led] .stat { border-color: transparent; }
+
+/* ==========================================================
+   6. TLAČÍTKA – plné tlačítko ledově modré s tmavým textem, bez lesku (rozměry beze změny)
+   ========================================================== */
+:root[data-skin="arena"][data-led] .p { box-shadow: none; }
+:root[data-skin="arena"][data-led] .p:active { box-shadow: none; filter: brightness(.92); }
+:root[data-skin="arena"][data-led] .s { background: transparent; }
+:root[data-skin="arena"][data-led] .d { background: transparent; }
+:root[data-skin="arena"][data-led] input,
+:root[data-skin="arena"][data-led] select,
+:root[data-skin="arena"][data-led] textarea { background: var(--a2); border-color: var(--bd); }
+
+/* ==========================================================
+   7. ČIPY A ŠTÍTKY – štítky jako pilulky (počty „Jdu 14“, stavy)
+   ========================================================== */
+:root[data-skin="arena"][data-led] .tag { border-radius: 999px; font-variant-numeric: tabular-nums; }
+:root[data-skin="arena"][data-led] .chip { background: var(--a2); border-color: transparent; }
+:root[data-skin="arena"][data-led] .chip.on { background: var(--ac); color: var(--ink); border-color: var(--ac); }
+:root[data-skin="arena"][data-led] .chip.no.on { background: var(--no); color: var(--ink); border-color: var(--no); }
+
+/* ==========================================================
+   8. HLÁŠKY A ŽIVÝ ZÁPIS – jen barvy (rozložení a tlačítka beze změny)
+   ========================================================== */
+:root[data-skin="arena"][data-led] #toast { background: var(--cd) !important; color: var(--tx) !important; border-left-color: var(--ac); }
+:root[data-skin="arena"][data-led] .lb { border-top-color: var(--bd); }
+:root[data-skin="arena"][data-led] .lb button { background: transparent; }

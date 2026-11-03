@@ -378,3 +378,9 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 25.3 👁 Náhled role hráčka (nebo účet hráčky): 📋 Plán → klepnout na cvičení → kategorie, úroveň, délka, pomůcky, popis, ▶ video a 📄 PDF se zobrazí a přehrají.
 - [ ] 25.4 Změnit popis cvičení v 📚 bance → u plánu se znovu ukáže 👀 upozornění; 💾 Uložit plán nebo 📤 ho vyřeší.
 - [ ] 25.5 Hráčka dál nevidí 📚 banku cvičení ani ⭐ hodnocení trenérů.
+
+## 42. v22.39 (beta) – ❄️ Vzhled Ledová aréna
+1. ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **❄️ Ledová aréna**: aplikace hned ztmavne (tmavě modrá plocha, ledově modrý akcent), po znovunačtení bez probliknutí jiného vzhledu.
+2. Režim **Podle telefonu** i **🌙 Tmavý** = tmavý; **☀ Světlý** = světlá varianta. Texty čitelné, štítky jako pilulky.
+3. Projít Domů, detail události (Jdu / Nejdu), Team, Statistiky, ⚙️, živý zápis (lišta, skóre, čas) a živý trénink – rozložení a tlačítka na stejném místě jako v 🏟 Aréně, vše funguje stejně.
+4. Přepnout zpět na Klasický a 🏟 Aréna – beze změny proti v22.38.
