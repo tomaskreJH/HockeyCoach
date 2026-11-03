@@ -8,6 +8,7 @@ import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
 import {fixClosed, syncOps} from "./core/actions.js";
 import {initNav} from "./core/nav.js";
+import {applySkin} from "./core/skin.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {ABS_COLL} from "./domain/absence.js";
@@ -57,6 +58,8 @@ function readyGate(keys) {
 }
 
 // ===== Spuštění =====
+// 🎨 Vzhled a režim z tohoto zařízení (barva lišty prohlížeče; atributy nastavil už index.html)
+applySkin();
 if (new URLSearchParams(location.search).has("debug")) installDebug();
 // Řazení tabulek kliknutím na hlavičku (sleduje změny DOM, funguje i po překreslení)
 initTableSort();

@@ -2,6 +2,18 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.36 (3. 11. 2026) – 🎨 Přepínatelná grafika „Aréna“
+> **Nasazení – kanál 🧪 BETA:** commit „v22.36“ do větve **`beta`**. firestore.rules ani data beze změny (volba vzhledu jen v `localStorage` zařízení – nové klíče `hk-skin`, `hk-mode`). V betě Načíst novou verzi (cache `hokej-beta-v139`). 🔒 Vyžadovat verzi: ne. Test: kap. 39.
+
+**Přidáno** (zadání uživatele 3. 11. 2026 – moderní, přehledný vzhled s prvky hokeje, funkce beze změny)
+- **🎨 Vzhled** v ⚙️ → 👤 Účet (všechny role, `src/core/skin.js`): Grafika **Klasický / 🏟 Aréna**, Režim **Podle telefonu / ☀ Světlý / 🌙 Tmavý** (režim platí i pro klasický vzhled). Změna hned, bez načtení stránky; první nastavení už v `index.html` (bez probliknutí). Výchozí zůstává Klasický.
+- **🏟 Aréna** (`styles/arena.css`, platí jen při `data-skin="arena"`): záhlaví jako tmavá tabule nad ledem s čarami kluziště (modrá – červená – modrá), stejný motiv u zvolené záložky; nadpisy, záložky a čísla (skóre, časomíra, odpočet tréninku, statistiky) písmem Barlow Condensed (`styles/fonts/`, licence SIL OFL, latinka i čeština, offline přes cache); karty se zaoblením mantinelu, modální okna jako spodní list s úchytem; štítky čitelné i v tmavém režimu. Barvy: kontrast textu proti pozadí ≥ 5,9 : 1 ve světlém i tmavém režimu; bílý text na barevných tlačítkách a pruzích se v tmavém režimu mění na tmavý (`--ink`).
+- Rozměry, rozložení a ovládání zůstávají z `styles/main.css` (užší písmo záložek šetří místo – „Moje platby“ se vejde na šířku telefonu).
+
+**Beze změny:** všechny funkce a obrazovky, barvy pětek L1–L4, hřiště živého zápisu, data, pravidla; živý zápis, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test`, `npm run smoke` bez chyb pro všechny role; náhled Arény ve světlém i tmavém režimu (šířka 390 px).
+
 ## v22.35 (1. 11. 2026) – ✏️ Skutečný průběh tréninku a pravidla
 > **Nasazení – kanál 🧪 BETA:** commit „v22.35“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish; schváleno uživatelem 1. 11. 2026) – nová kolekce `tract`, zpřísněné `budgetKeep` a `treval`. Stabilní verze pravidla snese (`tract` nepoužívá, hodnocení čte jen realizační tým, revize rozpočtu jen přidává). Do publikace se průběh neuloží (⚠️ hláška u ⏹ Konec / 💾) a statistiky počítají s plánem. V betě Načíst novou verzi (cache `hokej-beta-v138`). 🔒 Vyžadovat verzi: ne. Test: kap. 38.
 

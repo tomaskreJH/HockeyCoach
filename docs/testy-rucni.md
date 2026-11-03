@@ -239,6 +239,15 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 39. v22.36 (beta) – 🎨 Grafika Aréna
+- [ ] 39.1 V betě je v záhlaví **v22.36**. Bez změny nastavení vypadá aplikace jako dřív (Klasický).
+- [ ] 39.2 ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **🏟 Aréna**: hned tmavá tabule nahoře s čarami modrá – červená – modrá, záložky užším písmem, „Moje platby“ na jednom řádku.
+- [ ] 39.3 Režim ☀ Světlý / 🌙 Tmavý / Podle telefonu se přepne hned; platí i pro Klasický. Po zavření a novém spuštění aplikace volba zůstane (bez probliknutí klasického vzhledu).
+- [ ] 39.4 Tmavý režim: tlačítka ✅ ❌ ❓ u události, zvolené čipy, ⚠️ pruhy a potvrzení „Klepni znovu“ mají čitelný (tmavý) text; štítky (pozdě, dluh) čitelné.
+- [ ] 39.5 🔴 Živý zápis v Aréně: časomíra a skóre čitelné, hřiště, pětky a tlačítka na stejném místě jako dřív (nic se neposune, scrollování stejné). Gól, střela, trest, start / stop fungují.
+- [ ] 39.6 ⏱ Živý trénink a 🔒 zámek: velký odpočet čitelný. Venku na slunci (světlý) i večer (tmavý) – čitelnost všech textů.
+- [ ] 39.7 Rychlá kontrola z kap. 1 v Aréně.
+
 ## 38. v22.35 (beta) – ✏️ Skutečný průběh, pravidla (po publikaci pravidel)
 - [ ] 38.1 Pravidla publikovaná ručně (Firebase Console → Firestore → Rules → Publish); v betě je v záhlaví **v22.35**.
 - [ ] 38.2 Dnešní trénink s plánem: v kartě plánu řádek **✏️ Skutečný průběh** „zapíše se při ⏹ Konec“. ⏱ Živý trénink → vypustit blok, ⏹ Konec → řádek ukáže „skutečně N min z M · vypuštěno 1 · ⏹ z živého tréninku“.

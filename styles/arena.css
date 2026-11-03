@@ -1,0 +1,221 @@
+/* ==========================================================
+   VZHLED „ARÉNA“ (přepínatelný, ⚙️ → 👤 Účet → 🎨 Vzhled; src/core/skin.js)
+   Platí jen při <html data-skin="arena">. Mění barvy, písmo a povrch prvků – rozměry, rozložení a chování
+   zůstávají z styles/main.css (stejné místo na obrazovce, žádné scrollování navíc).
+   Motiv: zimní stadion – tabule nad ledem, čáry kluziště (modrá – červená – modrá), čísla jako na dresu.
+   Barvy: světlý „led“ a tmavý „večerní zápas“; každý text proti svému pozadí má kontrast nejméně 5,9 : 1.
+   ========================================================== */
+
+/* ==========================================================
+   1. PÍSMO – Barlow Condensed (SIL OFL, styles/fonts/OFL.txt), jen nadpisy, záložky a čísla
+   Tělo textu zůstává systémové písmo telefonu (nejlepší čitelnost, česká diakritika).
+   ========================================================== */
+@font-face { font-family: "HC Board"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "HC Board"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/barlow-condensed-latin-ext-600-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "HC Board"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "HC Board"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/barlow-condensed-latin-ext-700-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+
+/* ==========================================================
+   2. BARVY – SVĚTLÝ „LED“ (výchozí) A TMAVÝ „VEČERNÍ ZÁPAS“
+   Stejné proměnné jako klasický vzhled (--bg, --cd, --tx …), navíc:
+   --ink = text na plné barvě (tlačítko, zvolený čip); --brd = tabule záhlaví; --rl / --bl = červená a modrá čára
+   ========================================================== */
+:root[data-skin="arena"] {
+  --bg: #e8eef3; --cd: #fbfcfd; --tx: #0c1a27; --mu: #465769;
+  --ac: #0b4a9c; --a2: #dfe9f4; --ok: #13703a; --no: #b3261e;
+  --wa: #8f5400; --bd: #cbd7e2;
+  --ink: #ffffff; --brd: #0d2238; --rl: #c8102e; --bl: #1e5bb8;
+  --sh: 0 1px 0 rgba(12, 26, 39, .05), 0 8px 20px -14px rgba(12, 26, 39, .35);
+  --fh: "HC Board", "Arial Narrow", system-ui, sans-serif;
+  --glow: #f4f8fb;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="arena"]:not([data-theme="light"]) {
+    --bg: #0a121a; --cd: #121d28; --tx: #edf3f8; --mu: #a3b3c4;
+    --ac: #7cc0ff; --a2: #182c40; --ok: #62d699; --no: #ff8174;
+    --wa: #ffbf5e; --bd: #243546;
+    --ink: #06111b; --brd: #050b11; --rl: #ff4d5e; --bl: #4f8fe8;
+    --sh: 0 1px 0 rgba(255, 255, 255, .03), 0 10px 24px -16px rgba(0, 0, 0, .9);
+    --glow: #12263a;
+    color-scheme: dark;
+  }
+}
+:root[data-skin="arena"][data-theme="dark"] {
+  --bg: #0a121a; --cd: #121d28; --tx: #edf3f8; --mu: #a3b3c4;
+  --ac: #7cc0ff; --a2: #182c40; --ok: #62d699; --no: #ff8174;
+  --wa: #ffbf5e; --bd: #243546;
+  --ink: #06111b; --brd: #050b11; --rl: #ff4d5e; --bl: #4f8fe8;
+  --sh: 0 1px 0 rgba(255, 255, 255, .03), 0 10px 24px -16px rgba(0, 0, 0, .9);
+  --glow: #12263a;
+  color-scheme: dark;
+}
+
+
+/* ==========================================================
+   3. PLOCHA A TYPOGRAFIE
+   Pozadí: led osvětlený shora (světlý pruh nahoře, jen v horní části stránky – nic se nepřekresluje při posunu).
+   ========================================================== */
+:root[data-skin="arena"] body {
+  background: var(--bg) linear-gradient(180deg, var(--glow) 0, var(--bg) 360px) no-repeat;
+  -webkit-font-smoothing: antialiased;
+}
+:root[data-skin="arena"] h2 { font-family: var(--fh); font-weight: 700; font-size: 22px; line-height: 1.15; letter-spacing: .005em; }
+:root[data-skin="arena"] h3 { font-family: var(--fh); font-weight: 600; font-size: 17px; letter-spacing: .01em; color: var(--mu); }
+:root[data-skin="arena"] .mu { color: var(--mu); }
+:root[data-skin="arena"] :focus-visible { outline: 3px solid color-mix(in srgb, var(--ac) 60%, transparent); outline-offset: 2px; }
+:root[data-skin="arena"] ::selection { background: color-mix(in srgb, var(--ac) 30%, transparent); }
+
+
+/* ==========================================================
+   4. ZÁHLAVÍ = TABULE NAD LEDEM
+   Tmavá tabule v obou režimech, pod ní čáry kluziště z ptačí perspektivy: modrá – červená (střed) – modrá.
+   ========================================================== */
+:root[data-skin="arena"] header {
+  position: relative; background: var(--brd); color: #ffffff;
+  font-family: var(--fh); font-size: 22px; font-weight: 700; letter-spacing: .01em;
+  padding: 10px 16px 13px;
+}
+:root[data-skin="arena"] header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: linear-gradient(90deg, var(--bl) 0 31%, transparent 31% 46%, var(--rl) 46% 54%, transparent 54% 69%, var(--bl) 69% 100%);
+}
+:root[data-skin="arena"] header #ver { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #c9d8e8; opacity: 1 !important; letter-spacing: 0; }
+
+
+/* ==========================================================
+   5. ZÁLOŽKY – zvolená záložka nese stejné čáry jako záhlaví (modrá se středovou červenou)
+   Užší písmo Barlow Condensed = víc místa pro šest záložek na šířku telefonu.
+   ========================================================== */
+:root[data-skin="arena"] nav { background: var(--cd); border-bottom: 1px solid var(--bd); box-shadow: 0 6px 14px -12px rgba(12, 26, 39, .5); }
+:root[data-skin="arena"] nav button[data-t] { font-family: var(--fh); font-size: 17px; font-weight: 600; letter-spacing: .01em; color: var(--mu); border-bottom: 0; position: relative; padding: 12px 2px 13px; white-space: nowrap; }
+:root[data-skin="arena"] nav button[data-t].on { color: var(--tx); font-weight: 700; }
+:root[data-skin="arena"] nav button[data-t].on::after {
+  content: ""; position: absolute; left: 14%; right: 14%; bottom: 0; height: 4px; border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, var(--ac) 0 40%, var(--rl) 40% 60%, var(--ac) 60% 100%);
+}
+
+
+/* ==========================================================
+   6. KARTY – plocha jako mantinel (zaoblené rohy kluziště), záhlaví karty jako cedule
+   ========================================================== */
+:root[data-skin="arena"] .cd { border-radius: 16px; box-shadow: var(--sh); }
+:root[data-skin="arena"] .cd > h2:first-child,
+:root[data-skin="arena"] .cd > .row:first-child:has(> h2) { border-radius: 15px 15px 0 0; background: var(--a2); padding: 8px 14px; }
+:root[data-skin="arena"] #evw .evi > .evh { border-radius: 15px 15px 0 0; }
+:root[data-skin="arena"] .acc { border-radius: 14px; background: var(--cd); }
+:root[data-skin="arena"] .acc.on { border-color: color-mix(in srgb, var(--ac) 45%, var(--bd)); }
+:root[data-skin="arena"] .acc-h { font-family: var(--fh); font-size: 18px; font-weight: 600; letter-spacing: .01em; }
+:root[data-skin="arena"] .acc-h .acc-st { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: 0; }
+:root[data-skin="arena"] .stat { background: var(--a2); border: 1px solid color-mix(in srgb, var(--ac) 14%, transparent); }
+
+
+/* ==========================================================
+   7. TLAČÍTKA A FORMULÁŘE
+   Plné tlačítko = barva dresu s jemným leskem; stisk tlačítko zamáčkne (odezva na klepnutí rukavicí).
+   ========================================================== */
+:root[data-skin="arena"] .p { background: var(--ac); color: var(--ink); border-color: var(--ac); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 2px 0 color-mix(in srgb, var(--ac) 45%, #000); }
+:root[data-skin="arena"] .s { background: var(--cd); color: var(--ac); border-color: color-mix(in srgb, var(--ac) 70%, var(--bd)); }
+:root[data-skin="arena"] .d { background: var(--cd); color: var(--no); border-color: var(--no); }
+:root[data-skin="arena"] .p:active, :root[data-skin="arena"] .s:active, :root[data-skin="arena"] .d:active, :root[data-skin="arena"] .chip:active { transform: translateY(1px); }
+:root[data-skin="arena"] .p:active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15); }
+:root[data-skin="arena"] input, :root[data-skin="arena"] select, :root[data-skin="arena"] textarea { background: var(--cd); color: var(--tx); border-color: var(--bd); }
+:root[data-skin="arena"] input:focus, :root[data-skin="arena"] select:focus, :root[data-skin="arena"] textarea:focus { border-color: var(--ac); outline: 3px solid color-mix(in srgb, var(--ac) 25%, transparent); outline-offset: 0; }
+:root[data-skin="arena"] label { color: var(--mu); }
+
+
+/* ==========================================================
+   8. ČIPY, ŠTÍTKY A SEZNAMY
+   Štítky míchají barvu s plochou karty – čitelné ve světlém i tmavém režimu (klasický vzhled má pevně světlé).
+   ========================================================== */
+:root[data-skin="arena"] .chip { background: var(--cd); border-color: var(--bd); border-radius: 12px; }
+:root[data-skin="arena"] .chip.on { background: var(--ac); color: var(--ink); border-color: var(--ac); }
+:root[data-skin="arena"] .chip.no.on { background: var(--no); color: var(--ink); border-color: var(--no); }
+:root[data-skin="arena"] .tag { background: color-mix(in srgb, var(--ac) 14%, var(--cd)); color: var(--ac); }
+:root[data-skin="arena"] .tag.pp { background: color-mix(in srgb, var(--ok) 16%, var(--cd)); color: var(--ok); }
+:root[data-skin="arena"] .tag.sh { background: color-mix(in srgb, var(--wa) 18%, var(--cd)); color: var(--wa); }
+:root[data-skin="arena"] .tag.red { background: color-mix(in srgb, var(--no) 15%, var(--cd)); color: var(--no); }
+:root[data-skin="arena"] .ev .t { font-family: var(--fh); font-size: 16px; font-weight: 600; color: var(--mu); font-variant-numeric: tabular-nums; }
+:root[data-skin="arena"] th { font-family: var(--fh); font-size: 15px; font-weight: 600; letter-spacing: .01em; color: var(--mu); }
+:root[data-skin="arena"] td { font-variant-numeric: tabular-nums; }
+
+
+/* ==========================================================
+   9. ČÍSLA JAKO NA TABULI (skóre, časy, statistiky) – úzké tučné číslice stejné šířky
+   ========================================================== */
+:root[data-skin="arena"] .sc,
+:root[data-skin="arena"] .lsc,
+:root[data-skin="arena"] .lt b,
+:root[data-skin="arena"] .stat b,
+:root[data-skin="arena"] #hmw .hms,
+:root[data-skin="arena"] #tlv .tlbig,
+:root[data-skin="arena"] #tllock .tlbig,
+:root[data-skin="arena"] #tlv .tlrem b { font-family: var(--fh); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+:root[data-skin="arena"] .sc { font-size: 40px; }
+:root[data-skin="arena"] .lsc { font-size: 32px; }
+:root[data-skin="arena"] .lt b { font-size: 36px; }
+:root[data-skin="arena"] .stat b { font-size: 24px; color: var(--ac); }
+:root[data-skin="arena"] #hmw .hms { font-size: 38px; letter-spacing: .06em; }
+:root[data-skin="arena"] #tlv .tlbig { font-size: 84px; }
+:root[data-skin="arena"] #tllock .tlbig { font-size: 112px; }
+
+
+/* ==========================================================
+   10. MODÁLNÍ OKNA – spodní list s úchytem (telefon), na počítači okno uprostřed
+   ========================================================== */
+:root[data-skin="arena"] .md, :root[data-skin="arena"] .lmw { background: rgba(5, 12, 20, .62); }
+:root[data-skin="arena"] .mb, :root[data-skin="arena"] .lmb { border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, .45); }
+:root[data-skin="arena"] .mb::before, :root[data-skin="arena"] .lmb::before { content: ""; display: block; width: 44px; height: 4px; border-radius: 2px; margin: -6px auto 10px; background: var(--bd); }
+@media (min-width: 700px) {
+  :root[data-skin="arena"] .mb { border-radius: 20px; }
+  :root[data-skin="arena"] .mb::before { display: none; }
+}
+:root[data-skin="arena"] #toast { background: var(--brd) !important; color: #ffffff !important; border-left: 4px solid var(--rl); border-radius: 12px !important; box-shadow: 0 10px 24px -10px rgba(0, 0, 0, .6); }
+:root[data-skin="arena"] .ghost { background: var(--ac); color: var(--ink); }
+
+
+/* ==========================================================
+   11. ŽIVÝ ZÁPIS – jen písmo a barvy lišty (hřiště, pětky a rozložení beze změny)
+   ========================================================== */
+:root[data-skin="arena"] .lb { background: var(--cd); border-top: 1px solid var(--bd); box-shadow: 0 -8px 20px -14px rgba(0, 0, 0, .5); }
+:root[data-skin="arena"] .lb button { background: var(--cd); color: var(--ac); border-color: color-mix(in srgb, var(--ac) 70%, var(--bd)); font-family: var(--fh); font-size: 18px; }
+:root[data-skin="arena"] .lnud { background: var(--cd); color: var(--tx); border-color: var(--bd); }
+:root[data-skin="arena"] .lchip.ub { background: var(--cd); color: var(--ac); border-color: var(--ac); }
+:root[data-skin="arena"] .lchip.ub.pp,
+:root[data-skin="arena"] .lunit-row button.ub.pp { background: var(--ac); color: var(--ink); }
+:root[data-skin="arena"] .lchip.ub.sh,
+:root[data-skin="arena"] .lunit-row button.ub.sh { background: var(--wa); border-color: var(--wa); color: var(--ink); }
+:root[data-skin="arena"] .lpl-row button { font-family: var(--fh); font-size: 17px; }
+
+
+/* ==========================================================
+   12. TEXT NA PLNÉ BARVĚ V POHLEDECH (ODPOVĚDI, POTVRZENÍ, PRUHY)
+   Pohledy píšou bílý text na --ok / --no / --wa / --ac. V tmavém režimu jsou tyto barvy světlé,
+   proto text přebírá --ink (tmavý) – ve světlém režimu je --ink bílá, vzhled se nemění.
+   Prohlížeč může mít vložený styl zapsaný i jako „rgb(255, 255, 255)“ – proto obě podoby.
+   ========================================================== */
+:root[data-skin="arena"] #evw .evq button.on-yes,
+:root[data-skin="arena"] #evw .evq button.on-no,
+:root[data-skin="arena"] #evw .evq button.on-maybe,
+:root[data-skin="arena"] #evw .evq button.evns.on,
+:root[data-skin="arena"] .dii.on .bx { color: var(--ink); }
+:root[data-skin="arena"] [style*="var(--ok)"][style*="#fff"],
+:root[data-skin="arena"] [style*="var(--no)"][style*="#fff"],
+:root[data-skin="arena"] [style*="var(--wa)"][style*="#fff"],
+:root[data-skin="arena"] [style*="var(--ac)"][style*="#fff"],
+:root[data-skin="arena"] [style*="var(--ok)"][style*="255, 255, 255"],
+:root[data-skin="arena"] [style*="var(--no)"][style*="255, 255, 255"],
+:root[data-skin="arena"] [style*="var(--wa)"][style*="255, 255, 255"],
+:root[data-skin="arena"] [style*="var(--ac)"][style*="255, 255, 255"] { color: var(--ink) !important; }
+/* Tlačítko uvnitř pruhu (např. Ukončit náhled): stejná barva textu a rámečku jako pruh */
+:root[data-skin="arena"] [style*="var(--no)"][style*="#fff"] button,
+:root[data-skin="arena"] [style*="var(--wa)"][style*="#fff"] button { color: var(--ink) !important; border-color: var(--ink) !important; }
+
+
+/* ==========================================================
+   13. OHLEDUPLNOST – bez pohybu, když ho telefon nechce
+   ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="arena"] .p:active, :root[data-skin="arena"] .s:active, :root[data-skin="arena"] .d:active, :root[data-skin="arena"] .chip:active { transform: none; }
+}

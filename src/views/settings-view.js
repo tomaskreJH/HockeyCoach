@@ -1,11 +1,12 @@
 // Okno ⚙️ Účet a data (všechny role, HK.openCfg z main.js): nahoře 👤 Účet (verze, Načíst novou verzi, u managera 🔒 Vyžadovat verzi),
-// pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV, obnova a 📉 odhad čtení;
+// 🎨 Vzhled v 👤 Účet (src/core/skin.js); pod ním sbalitelné sekce (otevřená nejvýš jedna, localStorage), stav v záhlaví sbalené sekce; 💾 Data = záloha, CSV, obnova a 📉 odhad čtení;
 // 🧪 Beta testování (manager nebo vývojář) a přepnutí kanálu v 👤 Účet – views/beta-view.js.
 // Jen vykreslení a obsluha – údaje a zápisy přes HK.cfg, oprávnění HK.can. 🔐 Práva rolí: views/perm-view.js.
 
 // ===== Importy =====
 import {APP_VERSION, cmpVer} from "../core/app-version.js";
 import {IS_BETA} from "../core/channel.js";
+import {MODES, SKINS, modeOf, setSkin, skinOf} from "../core/skin.js";
 import {armed, confirm2} from "../core/actions.js";
 import {esc, failMsg, LS, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -51,7 +52,7 @@ function verInfo() {
 // manager tu má i 🔒 Vyžadovat verzi (zvýšení minimální verze – potvrzení druhým klepnutím)
 function accountHtml(coach, staff) {
   const a = C().acct();
-  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div>${betaAcctHtml()}${coach ? gateHtml() : ""}</div>`;
+  return `<div class="cd" style="margin:0"><div class="mu" style="margin-bottom:8px"><b>${esc(a.email)}</b> · ${esc(a.label)}${a.preview ? " (👁 náhled)" : ""}${a.cash ? " · 💰 pokladník" : ""}${a.player ? " · " + esc(a.player) : ""}${staff && a.staff ? " · 🎓 " + esc(a.staff) : ""}<br>${C().online() ? "Online – změny se ukládají do databáze." : "Offline – změny se uloží v zařízení a odešlou po připojení."}<br>Verze aplikace: <b>${esc(HK.version)}</b>${verInfo()}</div><div class="row"><button class="s" id="cu2">Načíst novou verzi</button><button class="s" id="clo">Odhlásit</button></div><div class="mu" style="margin-top:6px">Pokud po nahrání nové verze vidíš starou, načti ji tlačítkem Načíst novou verzi.</div>${skinHtml()}${betaAcctHtml()}${coach ? gateHtml() : ""}</div>`;
 }
 // 🔒 Brána verze (jen manager, pod Načíst novou verzi): zvýšit minimum na tuto verzi, nebo stav, že minimum odpovídá; v 🧪 betě jen poznámka
 function gateHtml() {
@@ -97,6 +98,10 @@ function dataHtml(coach) {
   if (coach) body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>`;
   body += readHtml() + moneyLazyHtml();
   return sec("data", "💾 Data", body);
+}
+// 🎨 Vzhled (všechny role, jen v tomto zařízení): Klasický / Aréna a režim Podle telefonu / Světlý / Tmavý
+function skinHtml() {
+  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)"><b>🎨 Vzhled</b><div class="row" style="margin-top:6px"><div><label for="csk">Grafika</label><select id="csk">${opts(SKINS, skinOf())}</select></div><div><label for="csm">Režim</label><select id="csm">${opts(MODES, modeOf())}</select></div></div><div class="mu" style="margin-top:-4px">Mění jen barvy a písmo, ovládání zůstává stejné. Platí v tomto zařízení.</div></div>`;
 }
 // 🛠 Vývojář: 👁 náhled role (jen DEV_EMAILS); při běžícím náhledu popis a Ukončit
 function devHtml() {
@@ -182,6 +187,8 @@ function bindCommon(el, q, close) {
   q("#cbg").onclick = e => { if (e.target.id === "cbg") close(); };
   q("#cu2").onclick = HK.refresh;
   q("#clo").onclick = () => C().logout();
+  // 🎨 Vzhled: změna se projeví hned (bez načtení stránky)
+  q("#csk").onchange = q("#csm").onchange = () => setSkin(q("#csk").value, q("#csm").value);
   // Výchozí sraz a délka tréninku: okno views/event-settings.js (napojeno v main.js)
   if (q("#ces")) q("#ces").onclick = () => { close(); if (HK.openEvSet) HK.openEvSet(); };
 }

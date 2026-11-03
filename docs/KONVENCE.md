@@ -29,6 +29,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `sw.js` | offline cache `hokej-vNN` (beta `hokej-beta-vNN`, kanál podle adresy), klepnutí na ⌚ oznámení živého tréninku |
 | `.github/workflows/pages.yml` | 🧪 nasazení na GitHub Pages: větev `main` do kořene, `beta` do `beta/` |
 | `styles/main.css` | všechny styly, barvy jako proměnné (`--ac`, `--ok`, `--no`, `--wa`, `--a2`) pro světlý i tmavý režim |
+| `styles/arena.css`, `styles/fonts/` | 🎨 vzhled 🏟 Aréna (jen při `data-skin="arena"`: barvy, písmo Barlow Condensed, povrch prvků – rozměry z `main.css`); nové styly piš do `main.css` přes proměnné, Aréna je převezme |
 | `firestore.rules` | pravidla databáze – jediná skutečná ochrana dat (publikuje se ručně) |
 | `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení, Zpět |
 | `src/debug.js` | ruční ladění (`?debug` → `window.__hk`) |
@@ -40,6 +41,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `drill-starter.js` | 📥 základní sada cvičení |
 | **core/** | stav a pomůcky bez domény |
 | `app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), brána verze |
+| `skin.js` | 🎨 vzhled a režim zařízení (`hk-skin`, `hk-mode`, `applySkin`, `setSkin`); první nastavení v `index.html` |
 | `channel.js` | 🧪 kanál stabilní / beta podle adresy, cesty pro přepnutí, předpona cache |
 | `state.js` | sdílený stav `S` |
 | `utils.js` | DOM, formát, čas, hlášky, `csv`, `clone`, `clamp`, `ceil` (Kč nahoru), `reqWord` |
