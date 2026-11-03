@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální v betě:** v22.36 (3. 11. 2026) – 🎨 přepínatelná grafika 🏟 Aréna a režim světlý / tmavý (⚙️ → 👤 Účet → 🎨 Vzhled, jen `localStorage`). Cache `hokej-beta-v139`. Pravidla beze změny. Předtím v22.35: ✏️ skutečný průběh `tract/{eid}`, pravidla B2 a B3 – **firestore.rules: PUBLIKOVAT RUČNĚ**, pokud ještě nejsou.
+- **Aktuální v betě:** v22.37 (3. 11. 2026) – ⚪ ▶ Buly naše / soupeř místo ▶ Start (spustí čas, zapíše buly do `m.log` `ty: "fo"`), ⏸ Přerušit zapíše přerušení (`ty: "stop"`); buly a přerušení v liště, zápisu utkání, vývoji, 📤 souhrnu a Statistikách → Tým; 📉 `matches` v okně poslechu (starší zápasy z paměti zařízení, 🔄 Aktualizovat zápasy). Cache `hokej-beta-v140`. Pravidla beze změny. Předtím v22.36: 🎨 grafika 🏟 Aréna. v22.35: ✏️ skutečný průběh `tract/{eid}`, pravidla B2 a B3 – **firestore.rules: PUBLIKOVAT RUČNĚ**, pokud ještě nejsou.
 - **Stabilní (`main`):** v22.25 (PR #4 – podle uživatele 31. 10. 2026). v22.26 a novější jen v betě.
-- **Další číslo:** v22.37 (cache `hokej-v140`), opravy v22.36.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Další číslo:** v22.38 (cache `hokej-v141`), opravy v22.37.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
 - **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Po každém vydání (PR) upravit řádek Stabilní.
 - **Pravidla databáze:** **v22.35 – publikovat** (`tract`, `budgetKeep`, `treval` + `isStaff`; obsahuje i blok `seen` z v22.25). Stabilní verze nová pravidla snese (jen přidaná kolekce a zúžení, které stabilní nepoužívá).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a novější nevyžadují. V betě se nenastavuje.
@@ -45,6 +45,7 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - **v22.34 (beta) – 🚫⭐ Nehodnotit u bloku, plat bez 🚫 (kap. 37)**.
 - **v22.35 (beta) – ✏️ skutečný průběh, pravidla B2 a B3 (kap. 38)** – po publikaci pravidel.
 - **v22.36 (beta) – 🎨 grafika Aréna a režim světlý / tmavý (kap. 39)**: čitelnost na slunci i večer, živý zápis a trénink v Aréně.
+- **v22.37 (beta) – ⚪ buly, ⏸ přerušení, 📉 starší zápasy z paměti (kap. 40)**: nejlépe na zápase (rychlost dvou tlačítek ▶ Buly), pak Statistiky na hráčce.
 - **Rozhodnuto 1. 11. 2026:** přepínač u bloku a plat bez 🚫 (v22.34), ✏️ skutečný průběh podle doporučení a B2 + B3 (v22.35). Zbývá B1 (`settings/beta`, nízké riziko – zatím ponecháno) a B4 (kontrola pravidel v konzoli, App Check).
 - **Návrhy čekající na souhlas:** `docs/navrhy-v22.32.md` – A ✏️ úprava proběhlého tréninku (kolekce `tract`), B pravidla z kontroly v22.18.1 (`settings/beta`, `budgetKeep`, `treval`), C 🚫 člena týmu a plat.
 - Kontrola kódu v22.18.1 – otevřené body k rozhodnutí: pravidla `settings/beta` (čtení jen manager / vývojář), `budgetKeep` (neměnné starší revize rozpočtu), `treval` u hráček vynutit pravidly; ověřit nasazená pravidla v konzoli a zvážit App Check.

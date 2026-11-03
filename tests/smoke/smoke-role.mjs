@@ -293,6 +293,28 @@ async function money() {
   }
 }
 
+// 🔴 Živý zápis (v22.37): stojící čas = ▶ Buly naše / soupeř, buly spustí čas a zapíše log fo, ⏸ Přerušit zapíše log stop
+async function liveMatch() {
+  await tap('#nav button[data-t="home"]', 250);
+  if (!(await tap("[data-hlv]", 400))) return;
+  if (!$("#lv #lfu") || !$("#lv #lfo") || $("#lv #lpl")) throw new Error("🔴 stojící čas: chybí ▶ Buly naše / soupeř");
+  if (!/buly 1:0/.test($("#lv .lsc").textContent)) throw new Error("🔴 lišta neukazuje počet buly");
+  snap("live-stop");
+  const w0 = globalThis.__fb.writes.length;
+  await tap("#lv #lfo", 250);
+  const fo = globalThis.__fb.writes.slice(w0).filter(w => /^matches\/m2/.test(w.path)).pop();
+  if (!fo || !((fo.d || {}).log || []).some(x => x.ty === "fo" && x.team === "opp")) throw new Error("▶ Buly soupeř nezapsalo buly");
+  if (!$("#lv #lpl") || !/Přerušit/.test($("#lv #lpl").textContent)) throw new Error("▶ Buly nespustilo čas");
+  snap("live-run");
+  const w1 = globalThis.__fb.writes.length;
+  await tap("#lv #lpl", 250);
+  const st = globalThis.__fb.writes.slice(w1).filter(w => /^matches\/m2/.test(w.path)).pop();
+  if (!st || ((st.d || {}).log || []).filter(x => x.ty === "stop").length !== 2) throw new Error("⏸ Přerušit nezapsalo přerušení");
+  if (!$("#lv #lfu")) throw new Error("⏸ Přerušit nevrátilo ▶ Buly");
+  snap("live-stopped");
+  if (await tap("#lv #lmn", 200)) await tap('#lv [data-m="x"]', 250);   // ⋯ → odchod ze živého zápisu
+}
+
 // ===== Hlavní logika =====
 try {
   await start();
@@ -304,6 +326,7 @@ try {
   await help();
   await events();
   await matchShare();
+  await liveMatch();
   await money();
   await tap('#nav button[data-t="home"]', 250);
   snap("end");

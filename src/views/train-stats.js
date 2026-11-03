@@ -17,7 +17,7 @@ import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {TRACT_COLL, actualPlan} from "../domain/training-actual.js";
 import {TS_DAYS, TS_DEF, drillList, loadRows, loadSkills, measExercises, measRows, measTable, missSkill, playerEvals, playerLoad, playerMeas, statWindow} from "../domain/training-stats.js";
 import {render} from "./shell.js";
-import {stats} from "./stats.js";
+import {stats, statsArch} from "./stats.js";
 
 // ===== Konstanty a stav =====
 // S.stv = "m" | "t" (podzáložka), S.tst = {days, st: "load" | "ok" | "err", at, T, plans, ms, ev, err}, S.tsx = id cvičení v tabulce měření,
@@ -170,11 +170,11 @@ function bind(a) {
 // ===== Exporty =====
 // Záložka Statistiky: přepínač Zápasy / Trénink (Trénink jen s právem číst plán tréninku); zápasové statistiky vykreslí stats.js beze změny
 export function statsView(a) {
-  if (!HK.perm("trplan", "r") || HK.can("guest")) { stats(a); return; }
+  if (!HK.perm("trplan", "r") || HK.can("guest")) { stats(a); statsArch(a); return; }
   const v = S.stv === "t" ? "t" : "m";
   a.innerHTML = `<div class="chips"><button class="chip ${v === "m" ? "on" : ""}" data-stv="m">📊 Zápasy</button><button class="chip ${v === "t" ? "on" : ""}" data-stv="t">🏒 Trénink</button></div><div id="stb"></div>`;
   const box = a.querySelector("#stb");
-  if (v === "m") stats(box);
+  if (v === "m") { stats(box); statsArch(box); }
   else { ensure((S.tst && S.tst.days) || TS_DEF); box.innerHTML = trainHtml(); }
   bind(a);
 }

@@ -2,6 +2,7 @@
 // Formace podle počtu hráček na ledě: 5 = pětky (PP), 4 = OS1/OS2, 3 = OS3/OS4; po trestu nabídka jednotky (S.lsub "uask"), hlídač watchSit.
 // Rotace: dlaždice = na led, partnerka malým tlačítkem (podržení = pořadí). Čas na ledě shiftList (nulová vynechá, navazující sloučí).
 // Menu ⋯ a panely: live-panels.js, klepnutí: live-events.js, odezva: live-feedback.js. Odchod ze živého zápisu zastaví čas.
+// Stojící čas: místo ▶ Start dvě tlačítka ▶ Buly (naše / soupeř) – vhazování spustí čas a zapíše, kdo buly vyhrál; v liště počet buly.
 // ===== Importy =====
 import {COLS, LAYOUT, ULAB} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
@@ -9,6 +10,7 @@ import {baseKey, curM, nomOf, pl, pn, score, shots, slotIds, slotKey} from "../c
 import {S} from "../core/state.js";
 import {$, cd, esc, mmss, toast} from "../core/utils.js";
 import {act, el_, ela, logEv, migrate, perMs, periodEndPlan, procExp, shiftMax, sk, skCount} from "../domain/live-engine.js";
+import {flowStats} from "../domain/game-flow.js";
 import {perLabel, timeline} from "../domain/timeline.js";
 import {qaHtml} from "./live-quick.js";
 import {applyFlash} from "./live-feedback.js";
@@ -32,7 +34,7 @@ export function liveRender(){const e=$("#lv");
 if(!S.lv){if(e.style.display!=="none"){e.innerHTML="";e.style.display="none"}if(S.wl){S.wl.release().catch(()=>{});S.wl=null}return}
 const m=curM();if(!m||!m.live||m.closed){S.lv=false;e.style.display="none";return}
 if(!S.wl&&navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>S.wl=l).catch(()=>{});
-e.style.display="block";migrate(m.live);const L=m.live,[g,o]=score(m),sh=shots(m),now=el_(L),us=sk(L,"us",now),op=sk(L,"opp",now),u=(L.u||[]).slice(-1)[0],run=L.running,ended=!!m.end,plan=periodEndPlan(m);
+e.style.display="block";migrate(m.live);const L=m.live,[g,o]=score(m),sh=shots(m),fl=flowStats(m),now=el_(L),us=sk(L,"us",now),op=sk(L,"opp",now),u=(L.u||[]).slice(-1)[0],run=L.running,ended=!!m.end,plan=periodEndPlan(m);
 const sit=us>op?"Přesilovka "+us+" na "+op:op>us?"Oslabení "+us+" na "+op:us+" na "+op,grp=grpFor(us,op),uv=unitView(L,us,op);e.style.paddingBottom=run?"130px":"310px";const lay=LAYOUT(us),shown=COLS.filter(c=>lay.includes(c)||L.ice[c]),gt=`grid-template-columns:repeat(${shown.length},minmax(0,1fr))`;
 // Zobrazené fronty.
 // Běžné řady: při oslabení se fronty skrytých sloupců (PK, u 3 hráček i LK) přidají pod nejbližší viditelný sloupec (stejné pořadí jako ve fitLayout), aby čekající hráčky šly nasadit.
@@ -58,7 +60,7 @@ pchips=(L.pen||[]).map(x=>{const tl={min:"2'",maj:"5'",mis:"10'",gm:"DK"}[x.ty],
 // Nabídka jednotky při nerovnosti bez režimu PP/OS nebo s jednotkou jiné skupiny; jednotka z minulé nerovnosti → ↩ Řady
 uchips=(grp&&(!uv||!grp.includes(L.unit))?`<button class="lchip ub ${us>op?"pp":"sh"}" data-uask="1">${us>op?"⚡ PP":"🛡 OS"}</button>`:"")+(L.unit&&!uv?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:""),
 chips=pchips+uchips;
-let h=`<div class="lt lt-b"><div class="lt-r1"><div class="lt-left"><div class="lper" id="lchips"><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small>${tag}${chips}</div><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}</small></div></div></div>`;
+let h=`<div class="lt lt-b"><div class="lt-r1"><div class="lt-left"><div class="lper" id="lchips"><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small>${tag}${chips}</div><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}${fl.n?` · buly ${fl.us}:${fl.opp}`:""}</small></div></div></div>`;
 // Pomocné pro dlaždice: pětka hráčky (barva), číslo, jméno
 const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc((pl(id)||{}).name||"?");
 const firstUp=new Set(shown.map(c=>dq[c][0]).filter(Boolean)),waiting=new Set(COLS.flatMap(c=>dq[c]||[])),lastShift=(L.sh||[]).slice(-1)[0],playerState=id=>`live-player${onIce.has(id)?" on-ice":""}${firstUp.has(id)?" next":""}${lastShift&&lastShift.p===id&&waiting.has(id)?" just-off":""}`;
@@ -85,7 +87,7 @@ h+=`<div class="lg lqs" style="${gt}">${shown.map(colHtml).join("")}</div>`;
 // Góly podsvícené podle týmu: náš gól .lev-gu (zelená), gól soupeře .lev-go (červená) – barvy pro obě schémata v main.css.
 const lim=shiftMax()*1000,tl=timeline(m,{shots:true,subs:true,limit:lim}).reverse(),evCls=x=>x.kind==="G"?(x.team==="us"?" lev-gu":" lev-go"):"";
 h+=`<div style="margin-top:22px"><div class="mu" style="text-align:center;margin-bottom:4px">PRŮBĚH</div><div id="lwarn" style="display:none"></div><div style="height:220px;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:0 6px">${tl.map(x=>`<div class="ev${evCls(x)}" style="padding:6px 0;${x.long?"background:#fff3dc;color:#5a3a00;border-radius:6px;padding-left:4px;padding-right:4px":""}"><div class="t">${perLabel(x.per)} ${esc(x.el)}</div><div class="b">${esc(x.text)}</div></div>`).join("")||'<div class="mu" style="text-align:center;padding:10px 0">Zatím nic.</div>'}</div></div>`;
-h+=`<div class="lb" style="flex-direction:column;gap:10px">${run?"":ended?`<div style="display:flex;gap:12px"><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`:`<div style="display:flex;gap:12px"><button id="qg" style="flex:1;font-size:16px;background:var(--ac);color:#fff;border-color:transparent">🥅 Gól ${TEAM_NAME}</button><button id="qo" style="flex:1;font-size:16px;background:var(--no);color:#fff;border-color:transparent">🥅 Gól soupeř</button></div><div style="display:flex;gap:12px"><button id="qp" style="flex:1;font-size:15px">🚫 Trest</button><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`}<div style="display:flex;gap:12px"><button id="lun" style="flex:1;font-size:14px" title="${u?esc(u.t):""}">↩ Zpět</button><button id="lpl" style="flex:2.4;font-size:20px;background:${ended?"#6b7480":run?"var(--no)":"var(--ok)"};color:#fff;border-color:transparent">${ended?"🏁 Zápas ukončen":run?"⏸ Přerušit":"▶ Start"}</button></div></div>`;
+h+=`<div class="lb" style="flex-direction:column;gap:10px">${run?"":ended?`<div style="display:flex;gap:12px"><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`:`<div style="display:flex;gap:12px"><button id="qg" style="flex:1;font-size:16px;background:var(--ac);color:#fff;border-color:transparent">🥅 Gól ${TEAM_NAME}</button><button id="qo" style="flex:1;font-size:16px;background:var(--no);color:#fff;border-color:transparent">🥅 Gól soupeř</button></div><div style="display:flex;gap:12px"><button id="qp" style="flex:1;font-size:15px">🚫 Trest</button><button id="lmn" style="flex:1;font-size:15px">⋯ Další volby</button></div>`}<div style="display:flex;gap:12px"><button id="lun" style="flex:1;font-size:14px" title="${u?esc(u.t):""}">↩ Zpět</button>${ended||run?`<button id="lpl" style="flex:2.4;font-size:20px;background:${ended?"#6b7480":"var(--no)"};color:#fff;border-color:transparent">${ended?"🏁 Zápas ukončen":"⏸ Přerušit"}</button>`:`<button id="lfu" class="lfo" style="background:var(--ok);color:#fff;border:2px solid var(--ok)">▶ Buly<small>${esc(TEAM_NAME)}</small></button><button id="lfo" class="lfo" style="background:var(--cd);color:var(--ok);border:2px solid var(--ok)">▶ Buly<small>soupeř</small></button>`}</div></div>`;
 // Menu ⋯ a panely (sestava, jednotky, zranění, brankářka, čas na ledě, nastavení) – live-panels.js
 h+=panelHtml({m,L,us,op,run,ended,plan,sit,grp,uv});
 if(S.qa)h+=qaHtml(m,L);

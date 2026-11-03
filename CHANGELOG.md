@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.37 (3. 11. 2026) – ⚪ Buly a ⏸ přerušení hry, 📉 starší zápasy z paměti zařízení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.37“ do větve **`beta`**. firestore.rules beze změny (čtení zápasů dotazem povoluje stávající `isTeam()`). **Data:** nové záznamy v existujícím poli zápasu `log` (`ty: "fo"` / `"stop"`) – bez nového pole, pravidla `log` nekontrolují, stabilní verze je ignoruje (zobrazí jako „↩ Návrat z trestu: ?“ v kompletním vývoji – kosmetické, jen u zápasů zapsaných v betě). V betě Načíst novou verzi (cache `hokej-beta-v140`). 🔒 Vyžadovat verzi: ne. Test: kap. 40.
+
+**Přidáno** (zadání uživatele 3. 11. 2026)
+- **▶ Buly náš tým / soupeř** místo ▶ Start (`views/live-view.js`, `live-events.js`; `doFaceoff` v `domain/live-engine.js`): stojící čas = dvě tlačítka podle vítěze vhazování (název týmu z `TEAM_NAME`); klepnutí spustí čas a zapíše `{ty: "fo", team, per, at}` do `m.log`. Krok ↩ Zpět smaže jen záznam buly, čas běží dál.
+- **⏸ Přerušit** zapíše přerušení hry `{ty: "stop", per, at}` (`doStop`). Odchod ze živého zápisu a konec třetiny přerušení nezapisují (nejde o přerušení hry).
+- **Statistika buly a přerušení** (`domain/game-flow.js` – `flowStats`, `flowTotals`): v liště živého zápisu „buly X:Y“; v zápisu utkání u skóre buly s procentem a počet přerušení, v souhrnu po třetinách sloupce Buly a Přerušení; v kompletním vývoji „⚪ Buly – vyhrál …“ a „⏸ Přerušení hry“ (čip Buly a přerušení ve vývoji, CSV typ Buly / Přerušení); v 📤 souhrnu ke sdílení ⚪ Buly; ve Statistikách → Tým sloupce Buly a % buly (jen zápasy se zapsanými buly, Ø přerušení na zápas). Zápasy bez buly beze změny.
+- **📉 Starší zápasy z paměti zařízení** (`domain/data-window.js` – `WIN.matches`, `data/storage.js`): `matches` v okně poslechu jako události (realizační tým 45 dní zpět, hráčka 8 dní zpět a 15 dopředu); starší zápasy z paměti zařízení, ze serveru jednou na zařízení a pak týdně pás 60 dní před oknem. Ve Statistikách řádek „📱 Starší zápasy (N) z paměti zařízení · ověřeno …“ a **🔄 Aktualizovat zápasy** (`HK.archRefresh("matches")`, stojí čtení = počet starších zápasů). Úspora: při každém spuštění po pauze se nečtou odehrané zápasy (každý zápas = 1 čtení na zařízení).
+
+**Opraveno**
+- Zápis, oprava nebo smazání dokumentu mimo živé okno (starší událost, nově i zápas) se hned projeví v zařízení – archiv se znovu vezme z paměti zařízení (`archTouch`), dřív mohla další změna okna vrátit starou kopii až do nového spuštění.
+
+**Beze změny:** střely, góly, tresty, střídání, časomíra (běh a posun času), ↩ Zpět ostatních kroků, uzavření zápasu, pokladna; výstup Statistik a zápisu utkání u zápasů bez buly (`tests/d1-baseline.test.js` beze změny).
+
+**Ověřeno:** `npm test` (529 testů, nově `tests/game-flow.test.js` – buly, přerušení, ↩ Zpět, pořadí ve vývoji a na hranici třetin, souhrny, 📤 souhrn), `npm run smoke` bez chyb pro všechny role (nově 🔴 živý zápis: ▶ Buly soupeř → čas běží a zápis buly, ⏸ Přerušit → zápis přerušení; hráčka vidí starší zápas z paměti).
+
 ## v22.36 (3. 11. 2026) – 🎨 Přepínatelná grafika „Aréna“
 > **Nasazení – kanál 🧪 BETA:** commit „v22.36“ do větve **`beta`**. firestore.rules ani data beze změny (volba vzhledu jen v `localStorage` zařízení – nové klíče `hk-skin`, `hk-mode`). V betě Načíst novou verzi (cache `hokej-beta-v139`). 🔒 Vyžadovat verzi: ne. Test: kap. 39.
 

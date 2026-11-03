@@ -239,6 +239,17 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 40. v22.37 (beta) – ⚪ Buly, ⏸ přerušení, 📉 starší zápasy z paměti
+- [ ] 40.1 V betě je v záhlaví **v22.37**. Živý zápis se stojícím časem: místo ▶ Start dvě tlačítka **▶ Buly** (náš tým plné zelené / soupeř zelený obrys), vedle ↩ Zpět; v Aréně i v tmavém režimu čitelné.
+- [ ] 40.2 ▶ Buly náš tým → čas běží, v liště pod skóre „buly 1:0“, v průběhu „⚪ Buly – vyhrál …“. ⏸ Přerušit → čas stojí, v průběhu „⏸ Přerušení hry“. ▶ Buly soupeř → „buly 1:1“.
+- [ ] 40.3 Omyl: po ▶ Buly klepnout ↩ Zpět → záznam buly zmizí, čas běží dál (správné buly už nejde doplnit – počítá se bez něj).
+- [ ] 40.4 Gól v přerušení: ⏸ → 🥅 Gól → ▶ Buly: v průběhu pořadí přerušení → gól → buly. Konec třetiny (⋯) → ▶ Buly otevře další třetinu (buly patří do nové třetiny 00:00).
+- [ ] 40.5 Zápis utkání: u skóre „Buly X : Y (Z %) · Přerušení N“, v souhrnu po třetinách sloupce Buly a Přerušení; čip „Buly a přerušení ve vývoji“ je skryje / ukáže; CSV vývoje s typem Buly / Přerušení. 📤 Sdílet souhrn obsahuje ⚪ Buly. Starší zápas bez buly vypadá jako dřív.
+- [ ] 40.6 Statistiky → Tým: sloupce Buly a % buly a řádek „Buly a přerušení ze N zápasů …“ – až po uzavření zápasu s buly.
+- [ ] 40.7 Statistiky dole „📱 Starší zápasy (N) z paměti zařízení · ověřeno …“ a **🔄 Aktualizovat zápasy** → hláška, datum ověření se změní. Hráčka vidí ve Statistikách i Soupeřích všechny odehrané zápasy jako dřív (i starší než 8 dní).
+- [ ] 40.8 Oprava staršího uzavřeného zápasu (⋯ opravy zápisu) na jednom telefonu se hned projeví; na druhém po 🔄 Aktualizovat zápasy.
+- [ ] 40.9 ⚙️ → 💾 Data → 📉 Čtení databáze: u zápasů „živě od … starší N z paměti zařízení“; odhad čtení menší o starší zápasy.
+
 ## 39. v22.36 (beta) – 🎨 Grafika Aréna
 - [ ] 39.1 V betě je v záhlaví **v22.36**. Bez změny nastavení vypadá aplikace jako dřív (Klasický).
 - [ ] 39.2 ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **🏟 Aréna**: hned tmavá tabule nahoře s čarami modrá – červená – modrá, záložky užším písmem, „Moje platby“ na jednom řádku.

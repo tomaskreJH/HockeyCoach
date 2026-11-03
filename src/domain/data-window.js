@@ -1,4 +1,4 @@
-// 📉 Okno poslechu (D2): události a docházka se živě poslouchají jen od data from (dnes − dny okna), u hráčky jen do winTo
+// 📉 Okno poslechu (D2): události, zápasy a docházka se živě poslouchají jen od data from (dnes − dny okna), u hráčky jen do winTo
 // (dnes + 15 dní; vzdálenější budoucnost až tlačítkem Načíst další); starší („archiv“)
 // se berou z paměti zařízení (zdarma) a ze serveru jen jednou na zařízení a pak občas pás posledních BAND dní před oknem.
 // Čisté funkce bez databáze (tests/data-window.test.js); poslech a čtení v data/storage.js (listenWin), přehled v ⚙️ → 💾 Data.
@@ -6,8 +6,10 @@
 // ===== Konstanty =====
 const DAY = 24 * 60 * 60 * 1000;
 // Kolekce s oknem: pole s datem (RRRR-MM-DD), jak často obnovit pás archivu ze serveru, šířka pásu (dny)
+// Zápasy (od v22.37): starší (odehrané, uzavřené) se berou z paměti zařízení; změny ověří pás jednou týdně nebo 🔄 Aktualizovat zápasy (Statistiky)
 export const WIN = {
   events: {f: "date", ttl: DAY, band: 60},
+  matches: {f: "date", ttl: 7 * DAY, band: 60},
   attendance: {f: "d", ttl: 7 * DAY, band: 60}
 };
 // Dny okna podle role: realizační tým vidí živě delší minulost (docházka, vyúčtování), hráčka jen posledních 8 dní

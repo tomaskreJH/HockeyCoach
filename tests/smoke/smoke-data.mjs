@@ -41,7 +41,12 @@ export function teamData() {
     // v22.29: uzavřený zápas se sestavou a góly (⧉ Jako minule pro m1, 📤 souhrn ke sdílení)
     m0: {opp: "Lvice", date: "2026-10-12", time: "17:00", home: false, place: "Hala Lvic", closed: true, nom: ["p1", "p2", "p4", "p5", "p6", "p7"],
       lineup: {"1C": "p1", "1LW": "p2", "1RW": "p6", "1LD": "p4", "1RD": "p5", G1: "p7"},
-      events: [{id: "g1", k: "G", team: "us", per: 1, time: "04:10", scorer: "p1", a1: "p2", sit: "E", on: []}, {id: "g2", k: "G", team: "opp", per: 2, time: "11:00", sit: "E", on: []}, {id: "g3", k: "G", team: "us", per: 3, time: "15:30", scorer: "p6", sit: "PP", on: []}]}};
+      events: [{id: "g1", k: "G", team: "us", per: 1, time: "04:10", scorer: "p1", a1: "p2", sit: "E", on: []}, {id: "g2", k: "G", team: "opp", per: 2, time: "11:00", sit: "E", on: []}, {id: "g3", k: "G", team: "us", per: 3, time: "15:30", scorer: "p6", sit: "PP", on: []}]},
+    // v22.37: rozehraný živý zápis (čas stojí, jedno buly a přerušení) – ▶ Buly naše / soupeř, ⏸ Přerušit
+    m2: {opp: "Rysice", date: TODAY, time: "19:00", home: true, place: "Zimní stadion", nom: ["p1", "p2", "p4", "p5", "p6", "p7"],
+      lineup: {"1C": "p1", "1LK": "p2", "1PK": "p6", "1LO": "p4", "1PO": "p5", G1: "p7"}, events: [],
+      log: [{id: "fo1", ty: "fo", team: "us", per: 1, at: 0}, {id: "st1", ty: "stop", per: 1, at: 45000}],
+      live: {running: false, t0: 0, acc: 45000, per: 1, pst: 0, ice: {C: "p1", LK: "p2", PK: "p6", LO: "p4", PO: "p5"}, q: {LK: [], C: [], PK: [], LO: [], PO: []}, since: {p1: 0, p2: 0, p6: 0, p4: 0, p5: 0}, sh: [], pen: [], seq: 0, u: [], ri: {}, G: "p7"}}};
   const attendance = {};
   ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"].forEach(p => { attendance["e1_" + p] = {eid: "e1", pid: p, st: "yes"}; attendance["e0_" + p] = {eid: "e0", pid: p, st: p === "p3" ? "no" : "yes"}; });
   ["t1", "t2", "t3"].forEach(t => { attendance["e1_" + t] = {eid: "e1", pid: t, st: "yes"}; });

@@ -4,6 +4,7 @@
 
 // ===== Importy =====
 import {compactRot} from "../core/selectors.js";
+import {flowStats} from "./game-flow.js";
 import {goalScores} from "./timeline.js";
 
 // ===== Konstanty =====
@@ -62,11 +63,13 @@ export function matchSummary(m, {team = "", name = id => id, fd = d => d} = {}) 
       lines.push(`${st} ${who} · ${when}`);
     });
   }
-  // Střely a trestné minuty (jen když se zapisovaly)
+  // Střely, buly a trestné minuty (jen když se zapisovaly)
   const sh = t => E.filter(e => e.k === "S" && e.team === t).length + E.filter(e => e.k === "G" && e.team === t).length;
   const pim = t => E.filter(e => e.k === "P" && e.team === t).reduce((s, e) => s + (+e.min || 0), 0);
   const extra = [];
   if (E.some(e => e.k === "S")) extra.push("🏒 Střely " + (m.home ? sh("us") + ":" + sh("opp") : sh("opp") + ":" + sh("us")));
+  const fl = flowStats(m);
+  if (fl.n) extra.push("⚪ Buly " + (m.home ? fl.us + ":" + fl.opp : fl.opp + ":" + fl.us));
   if (E.some(e => e.k === "P")) extra.push("🚫 Tresty " + (m.home ? pim("us") + ":" + pim("opp") : pim("opp") + ":" + pim("us")) + " min");
   if (extra.length) lines.push("", extra.join(" · "));
   // Nejlepší střelkyně týmu v zápase (góly + asistence)
