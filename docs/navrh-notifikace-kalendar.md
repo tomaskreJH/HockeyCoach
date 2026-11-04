@@ -40,6 +40,6 @@ Stav: **návrh, nic není implementováno.** Zadání uživatele (4. 11. 2026): 
 5. Tiché hodiny (např. 22–7)?
 
 ## 6. Navržené verze
-- **v22.46:** .ics export (jedna událost + „Moje události“) s `UID`, `SEQUENCE`, `CLASS:PRIVATE`, `VALARM`; testy generátoru (čistá funkce `domain/ical.js`). Bez změny databáze.
-- **v22.47:** nastavení notifikací v ⚙️ + registrace zařízení (rules schválit), push přes FCM (po rozhodnutí o Blaze).
-- **v22.48:** Cloud Functions: změny / zrušení, připomínky, ICS feed s tokenem.
+- **v22.47:** .ics export (jedna událost + „Moje události“) s `UID`, `SEQUENCE`, `CLASS:PRIVATE`, `VALARM`; testy generátoru (čistá funkce `domain/ical.js`). Bez změny databáze.
+- **v22.48:** nastavení notifikací v ⚙️ + registrace zařízení (rules schválit), push přes FCM (po rozhodnutí o Blaze).
+- **v22.49:** Cloud Functions: změny / zrušení, připomínky, ICS feed s tokenem.

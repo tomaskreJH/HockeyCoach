@@ -5,7 +5,7 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoDoc, pickMotto, shownMottos} from "../src/domain/mottos.js";
+import {MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, pickMotto, shownMottos} from "../src/domain/mottos.js";
 
 // ===== Kontrola =====
 test("mottoCheck: prázdné ne, příliš dlouhé ne, víc než 5 ne, mezery se slijí", () => {
@@ -45,4 +45,10 @@ test("pravidla mottos: čtou členové týmu, zakládá vlastník nebo manager, 
   assert.match(blk, /allow create: if isTeam\(\) && mottoOk\(request\.resource\.data\) && \(isMgr\(\) \|\| ownsMid\(request\.resource\.data\.mid\)\)/);
   assert.match(blk, /isStaff\(\) && chKeys\(\)\.hasOnly\(\['off'\]\)/);
   assert.match(r, /function mottoOk[\s\S]*hasOnly\(\['t', 'mid', 'by', 'at'\]\)[\s\S]*d\.t\.size\(\) <= 80/);
+});
+test("mottoTag: #číslo hráčky, bez čísla jméno, neznámý autor prázdné", () => {
+  assert.equal(mottoTag({mid: "p1"}, [{id: "p1", name: "Majda", num: "9"}], []), "#9");
+  assert.equal(mottoTag({mid: "p1"}, [{id: "p1", name: "Majda", num: ""}], []), "Majda");
+  assert.equal(mottoTag({mid: "t1"}, [], [{id: "t1", name: "Trenér"}]), "Trenér");
+  assert.equal(mottoTag({mid: "x"}, [], []), "");
 });

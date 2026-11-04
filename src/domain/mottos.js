@@ -32,6 +32,13 @@ export function pickMotto(list, rnd) {
   const r = typeof rnd === "function" ? rnd() : Math.random();
   return l[Math.min(l.length - 1, Math.floor(r * l.length))];
 }
+// Štítek před mottem: „#9“ (číslo dresu hráčky), bez čísla jméno hráčky / člena týmu, jinak prázdný
+export function mottoTag(m, players, staff) {
+  if (!m) return "";
+  const p = (players || []).find(x => x.id === m.mid);
+  if (p && str(p.num)) return "#" + str(p.num);
+  return mottoBy(m, players, staff);
+}
 // Podpis pod mottem = jméno autora (hráčka / člen týmu), nebo prázdný, když ho nelze určit
 export function mottoBy(m, players, staff) {
   if (!m) return "";

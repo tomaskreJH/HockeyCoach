@@ -2,6 +2,11 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.46 (4. 11. 2026) – Motto jako nálepka s číslem hráčky
+> **Nasazení – kanál 🧪 BETA:** commit „v22.46“ do větve **`beta`**. firestore.rules beze změny proti v22.45 (publikovat jen pokud ještě nejsou), data beze změny. Cache `hokej-beta-v151`. 🔒 Vyžadovat verzi: ne.
+
+**Změněno:** motto na kartě 🆚 Příští zápas má místo jména před textem **„#číslo hráčky:“** a vzhled **nálepky** (zaoblený štítek v barvě akcentu, lehce nakloněný). Bez čísla dresu (členové týmu) se zobrazí jméno. Nové `mottoTag` v `domain/mottos.js`.
+
 ## v22.45 (4. 11. 2026) – 💬 Banka mott a pokřiků u příštího zápasu
 > **Nasazení – kanál 🧪 BETA:** commit „v22.45“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `mottos`, rozšířené `joinreq` o volitelné `motto`) – bez publikace motta nejdou uložit (karta zůstane bez motta, zbytek běží). Data beze změny (jen přibývá nová kolekce). V betě Načíst novou verzi (cache `hokej-beta-v150`). 🔒 Vyžadovat verzi: ne. Test: kap. 48.
 

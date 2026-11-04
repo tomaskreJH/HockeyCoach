@@ -45,7 +45,9 @@ const CSS = `<style>
 #hmw .hmxh{margin:-14px -14px 8px;padding:9px 14px;background:var(--a2);border-bottom:1px solid var(--bd);border-radius:11px 11px 0 0;font-size:17px}
 #hmw .hmxc{font-size:32px;font-weight:800;line-height:1.1;color:var(--ac);font-variant-numeric:tabular-nums}
 #hmw .hmxs{margin-top:4px}
-#hmw .hmxm{margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd);font-style:italic;font-size:16px;line-height:1.35}
+#hmw .hmxm{margin-top:10px}
+#hmw .hmxk{display:inline-block;max-width:100%;padding:7px 12px;border-radius:12px 12px 12px 3px;background:var(--cd);color:var(--ink);border:2px solid var(--ac);outline:2px solid #fff;outline-offset:-5px;transform:rotate(-1.5deg);font-weight:600;font-size:16px;line-height:1.3}
+#hmw .hmxk b{color:var(--ac);font-family:var(--fh)}
 </style>`;
 let missOpen = null;                                                  // id události s rozbaleným seznamem ❔ Chybí odpověď
 let missTxt = "";                                                     // text připomínky k ručnímu zkopírování (bez sdílení i schránky)

@@ -8,7 +8,7 @@ import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, failMsg, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {MOTTO_COLL, MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoDoc, pickMotto, shownMottos} from "../domain/mottos.js";
+import {MOTTO_COLL, MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, pickMotto, shownMottos} from "../domain/mottos.js";
 
 // ===== Konstanty a stav =====
 let chosen = null;                        // vybrané motto (id) – drží se do zavření aplikace, aby se při překreslení neměnilo
@@ -26,8 +26,8 @@ export function mottoLine() {
   let m = chosen && list.find(x => x.id === chosen);
   if (!m) { m = pickMotto(list); chosen = m ? m.id : null; }
   if (!m) return "";
-  const by = mottoBy(m, S.pl, S.tr);
-  return `<div class="hmxm">„${esc(m.t)}“${by ? ` <span class="mu">– ${esc(by)}</span>` : ""}</div>`;
+  const tag = mottoTag(m, S.pl, S.tr);
+  return `<div class="hmxm"><span class="hmxk">${tag ? `<b>${esc(tag)}:</b> ` : ""}${esc(m.t)}</span></div>`;
 }
 
 // ===== Sekce v ⚙️ =====
