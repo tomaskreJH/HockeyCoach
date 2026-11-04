@@ -408,4 +408,4 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 3. Pruh stavu vlevo je užší a **bez textu**; celá karta má jemný nádech barvy stavu. Klepnout na Jdu / Nejdu / Nejsem jistý: pruh, nádech i obrys tlačítka změní barvu, odpověď se uloží jako dřív.
 4. Světlý i tmavý režim, zrušená a uzavřená událost (šedá).
 5. Nález: je zápas dost výrazný? Je nádech karty dost vidět (nebo moc)? Případně šířka pruhu a míra zaoblení.
-
+6. (v22.42.1) Vzhled Čistý: v záhlaví je oficiální logo týmu (modrý kruh se zlatým lemem, zkřížené hole, puk) a vedle něj nápis STŘELY; logo je ostré a bez bílého okraje ve světlém i tmavém režimu.

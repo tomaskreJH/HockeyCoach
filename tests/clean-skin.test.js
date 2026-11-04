@@ -53,6 +53,8 @@ test("vzhled Čistý: je v nabídce, v index.html, v offline cache a má styly",
   assert.match(html, /styles\/clean\.css/);
   assert.match(html, /k==="clean"\)d\.dataset\.clean="1"/);
   assert.match(html, /<b>STŘELY<\/b>/);
+  assert.match(html, /<img src="logo-strely\.png"/, "oficiální logo v záhlaví");
+  assert.ok(sw.includes('"logo-strely.png"'), "logo v offline cache");
   assert.ok(sw.includes('"styles/clean.css"'));
   assert.match(html, /<div id="tabbar"/);
   assert.match(css, /:root\[data-clean\] #tabbar \{/);

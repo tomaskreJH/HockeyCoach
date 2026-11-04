@@ -46,7 +46,7 @@
 .hb-new { display: none; }
 :root[data-clean] .hb-old { display: none; }
 :root[data-clean] .hb-new { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
-:root[data-clean] .hb-new svg { width: 30px; height: 30px; color: var(--lg); flex: none; }
+:root[data-clean] .hb-new img { width: 44px; height: 44px; flex: none; display: block; }
 :root[data-clean] .hb-new b { font-family: var(--fh); font-size: 24px; font-weight: 700; letter-spacing: .1em; line-height: 1; }
 :root[data-clean] header { background: var(--hd); color: var(--hdt); padding: 10px 14px; border-bottom: 1px solid var(--bd); }
 :root[data-clean] header #ver { color: var(--hdt); opacity: .65 !important; font-family: system-ui, sans-serif; letter-spacing: 0; }

@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.42.1 (4. 11. 2026) – Oficiální logo v záhlaví (vzhled Čistý)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.42.1“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v147`). 🔒 Vyžadovat verzi: ne. Test: kap. 45, bod 6.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- Záhlaví vzhledu Čistý ukazuje **oficiální logo týmu** (`logo-strely.png`, dodané logo bez bílého pozadí, 144 × 144 px) místo zjednodušené kresby; vedle něj zůstává nápis **STŘELY**. Soubor je v offline cache (`sw.js`). Ostatní vzhledy logo nepoužívají.
+
+**Beze změny:** veškerá funkčnost, vzhledy, data, pravidla; ikona aplikace na ploše telefonu (`icon-192.png`, `icon-512.png`).
+
+**Ověřeno:** `npm test`, `npm run smoke`, kontrola loga na tmavě modrém i bílém podkladu.
+
 ## v22.42 (4. 11. 2026) – Vzhled Čistý: zápasy, zaoblení, jemnější pruh stavu
 > **Nasazení – kanál 🧪 BETA:** commit „v22.42“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v146`). 🔒 Vyžadovat verzi: ne. Test: kap. 45.
 
