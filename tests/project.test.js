@@ -75,8 +75,24 @@ test("pravidla: settings/app (brána verze) zapisuje jen manager a nejde smazat;
   const rules = read("firestore.rules"), s = ruleBlock(rules, "match /settings/{id}");
   assert.match(rules, /function appSettingsOk\(\) \{\s+return isMgr\(\)/);
   assert.match(s, /id == 'app' \? appSettingsOk\(\)/);
-  assert.match(s, /allow delete: if id != 'cash' && id != 'app' && id != 'beta' && \(id == 'perm' \? isMgr\(\) : isStaff\(\)\);/);
+  assert.match(s, /allow delete: if id != 'cash' && id != 'app' && id != 'beta' && id != 'notif' && \(id == 'perm' \? isMgr\(\) : isStaff\(\)\);/);
   assert.match(s, /id == 'perm' \? permSettingsOk\(\)/);
+});
+
+test("pravidla: 🔔 settings/notif (vypínač) jen manager nebo vývojář a nejde smazat; devices si zapisuje a maže vlastník", () => {
+  const rules = read("firestore.rules"), s = ruleBlock(rules, "match /settings/{id}"), d = ruleBlock(rules, "match /devices/{id}");
+  assert.match(rules, /function notifSettingsOk\(\) \{\s+return \(isMgr\(\) \|\| isDevAcct\(\)\) && request\.resource\.data\.keys\(\)\.hasOnly\(\['on', 'vapid', 'by', 'at'\]\)/);
+  assert.match(rules, /request\.resource\.data\.on is bool && request\.resource\.data\.by == mail\(\)/);
+  assert.match(s, /id == 'notif' \? notifSettingsOk\(\) : isStaff\(\)/);
+  assert.ok((s.match(/id == 'notif' \? notifSettingsOk\(\)/g) || []).length === 2, "create i update");
+  // Zařízení: jen vlastní e-mail, pid a tid podle členství, čas ze serveru, pevná sada polí
+  assert.match(rules, /function deviceOk\(id\) \{[\s\S]*?hasOnly\(\['tok', 'email', 'pid', 'tid', 'ch', 'z', 'u', 'at'\]\)[\s\S]*?d\.email == mail\(\)[\s\S]*?d\.pid == memStr\('pid'\)[\s\S]*?d\.tid == memStr\('tid'\)[\s\S]*?d\.at == request\.time;/);
+  assert.match(d, /allow create: if deviceOk\(id\);/);
+  assert.match(d, /allow update: if deviceOk\(id\) && resource\.data\.email == mail\(\);/);
+  assert.match(d, /allow read: if isTeam\(\) && \(resource\.data\.email == mail\(\) \|\| isMgr\(\)\);/);
+  assert.match(d, /allow delete: if isTeam\(\) && \(resource\.data\.email == mail\(\) \|\| isMgr\(\)\);/);
+  // Záznamy odeslaných vln (pushLog) nemají pravidlo → klient je nepřečte ani nezapíše (zapisují je jen Cloud Functions)
+  assert.ok(!rules.includes("match /pushLog/"));
 });
 
 test("pravidla: kolekce, které aplikace čte, mají pravidlo", () => {

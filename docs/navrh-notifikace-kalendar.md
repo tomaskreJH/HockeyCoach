@@ -1,6 +1,6 @@
 # Návrh: notifikace + synchronizace kalendáře (podklad pro nové čisté vlákno)
 
-Stav: **v22.50 hotovo (.ics export), zbytek návrh – nic dalšího není implementováno.** Rozhodnuto 4. 11. 2026: Blaze schváleno; notifikace jen zrušení / změna času a uzávěrka bez odpovědi (1 h před); do kalendáře jen název a čas; funkce nasazuje uživatel ručně. Zadání uživatele (4. 11. 2026): synchronizaci kalendáře dělat **zároveň s notifikacemi**; kalendář se má dostat k uživatelům automaticky (uživatel používá Outlook / M365), událost jako **soukromá**. Změny databáze / `firestore.rules` vždy nejdřív schválit.
+Stav: **v22.50 hotovo (.ics export), v22.51 hotovo (notifikace), zbytek návrh – nic dalšího není implementováno.** Rozhodnuto 4. 11. 2026: Blaze schváleno; notifikace jen zrušení / změna času a uzávěrka bez odpovědi (1 h před); do kalendáře jen název a čas; funkce nasazuje uživatel ručně. Zadání uživatele (4. 11. 2026): synchronizaci kalendáře dělat **zároveň s notifikacemi**; kalendář se má dostat k uživatelům automaticky (uživatel používá Outlook / M365), událost jako **soukromá**. Změny databáze / `firestore.rules` vždy nejdřív schválit.
 
 ## 1. Cíle
 - **Notifikace:** připomínka přihlášení na událost („zbývá 24 h, ještě jsi neodpověděla“), blížící se uzávěrka, zrušení / změna události, začátek zápasu, odpověď trenéra.
@@ -41,5 +41,5 @@ Stav: **v22.50 hotovo (.ics export), zbytek návrh – nic dalšího není imple
 
 ## 6. Verze
 - **v22.50 (hotovo):** .ics export (jedna událost + „Moje události“) s `UID`, `SEQUENCE`, `CLASS:PRIVATE`, `VALARM`; testy generátoru (`domain/ical.js`). Bez změny databáze.
-- **v22.51:** nastavení notifikací v ⚙️ + registrace zařízení (`devices`, `notifprefs`; pravidla schválit před úpravou).
-- **v22.52:** Cloud Functions: změna / zrušení události, uzávěrka bez odpovědi (1 h před), ICS feed s tokenem; nasazení ručně.
+- **v22.51 (hotovo):** notifikace – `functions/` (změna / zrušení, uzávěrka bez odpovědi 1 h před), `settings/notif` + ⛔ STOP, `devices`; nasazení ručně (`docs/notifikace-nasazeni.md`). Rozhodnutí: bez `notifprefs` – volby jsou přímo v dokumentu zařízení (`z`, `u`).
+- **v22.52:** ICS feed s tokenem (`calfeeds`).

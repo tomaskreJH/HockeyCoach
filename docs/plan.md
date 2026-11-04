@@ -50,7 +50,8 @@ Původní zadání: průchod hlavních toků na Androidu (události a docházka,
 ## N – 🔔 notifikace a automatický kalendář
 - **Rozhodnuto 4. 11. 2026:** plán **Blaze schválen** (karta; nastavit rozpočtové upozornění v Google Cloudu – tvrdý strop nákladů neexistuje); notifikace jen **zrušení / změna času** (přihlášeným) a **uzávěrka bez odpovědi – 1 hodinu před uzávěrkou** (členům bez odpovědi); do kalendáře jen název a čas; Cloud Functions **nasazuje uživatel ručně** (`firebase deploy --only functions`). Změny `firestore.rules` a nové kolekce nejdřív schválit (nejdou vrátit přes Git).
 - **Hotovo:** v22.50 – 📅 export `.ics` (jedna událost i „Moje události“, bez serveru, bez nákladů; generátor `domain/ical.js` použije i feed).
-- **Dál (návrh, nic není implementováno):** v22.51 – nastavení notifikací v ⚙️, registrace zařízení (`devices`, `notifprefs`; pravidla ke schválení); v22.52 – Cloud Functions (`functions/`): push při změně času / zrušení (spouštěč zápisu), uzávěrka bez odpovědi (plánovač, čte jen události s uzávěrkou v nejbližší hodině), ICS feed s tokenem (`calfeeds`). Podrobnosti a architektura: `docs/navrh-notifikace-kalendar.md`.
+- **Hotovo:** v22.51 – 🔔 push notifikace: `functions/` (změna času / zrušení, uzávěrka bez odpovědi hodinu předem), `settings/notif` s ⛔ STOP, `devices`; nasazení a vypnutí: `docs/notifikace-nasazeni.md`.
+- **Dál (návrh, nic není implementováno):** v22.52 – ICS feed s tokenem (`calfeeds`) pro automatický odběr kalendáře. Podrobnosti a architektura: `docs/navrh-notifikace-kalendar.md`.
 - **Hlídání nákladů při návrhu:** žádné plošné čtení kolekcí ve funkcích (jen dotaz na okno událostí), omezení počtu instancí funkcí, deduplikace odeslaných pushů (`pushLog`), před nasazením ověřit aktuální bezplatné limity Blaze, Cloud Scheduleru a FCM.
 - Otevřené otázky: soukromí e-mailů ve feedu; tiché hodiny; kdo smí ručně poslat „📣 Připomenout“ (dnes text 📲 Připomenout v Domů).
 

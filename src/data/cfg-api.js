@@ -107,7 +107,12 @@ export function cfgApi(C) {
     startPreview({role: r, pid: pid_ ? p : null, tid: staffOk(r) ? t || null : null, cash: cashOk(r) && c, write: !!w});
     return null;
   }
-  const logout = async () => { pvWrite(null); await signOut(C.auth()); location.reload(); };
+  // Odhlášení: nejdřív (nejvýš 2,5 s) smazat zařízení pro notifikace tohoto účtu, aby sdílený telefon nedostával cizí oznámení
+  const logout = async () => {
+    pvWrite(null);
+    if (C.notifLeave) { try { await Promise.race([C.notifLeave(), new Promise(r => setTimeout(r, 2500))]); } catch (e) { /* offline */ } }
+    await signOut(C.auth()); location.reload();
+  };
   // Počty dokumentů ve vybraném souboru zálohy (náhled před obnovou)
   const backupCounts = obj => { const d = (obj && obj.data) || {}; return [...COLL, ...FETCH].map(c => [c, Object.keys(d[c] || {}).length]); };
   // Brána verze pro ⚙️: požadované minimum, kdo a kdy ho nastavil, zda je tato verze starší a zda ji jde vyžadovat

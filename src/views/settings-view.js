@@ -14,6 +14,7 @@ import {onlineCount, seenState} from "../domain/presence.js";
 import {READ_LIMIT, collLabel, readCost} from "../domain/read-cost.js";
 import {betaAcctHtml, betaSecHtml, bindBetaAcct, renderBetaTesters} from "./beta-view.js";
 import {bindMotto, mottoSecHtml} from "./motto-view.js";
+import {bindNotif, notifSecHtml} from "./notif-view.js";
 import {permStatus, renderPerm, resetPermWork} from "./perm-view.js";
 
 // ===== Konstanty a stav =====
@@ -156,6 +157,7 @@ function openSettings() {
  ${accountHtml(coach, staff)}
  ${cashier ? teamHtml(coach) : ""}
  ${team ? mottoSecHtml(sec) : ""}
+ ${team ? notifSecHtml(sec) : ""}
  ${team ? sec("perm", "🔐 Práva rolí", '<div id="cpm"></div>', permStatus()) : ""}
  ${staff ? eventsHtml() : ""}
  ${cashier ? cashHtml() : ""}
@@ -174,7 +176,7 @@ function openSettings() {
   bindBetaAcct(q);
   if (cashier) renderMembers(el);
   if (beta) renderBetaTesters(el);
-  if (team) { renderPerm(el, arm2); bindMotto(el); }
+  if (team) { renderPerm(el, arm2); bindMotto(el); bindNotif(el); }
 }
 
 // ===== Eventy =====

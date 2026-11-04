@@ -1,0 +1,15 @@
+{
+  "name": "hockeycoach-functions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HockeyCoach – Cloud Functions pro push notifikace (zrušení a změna času události, uzávěrka přihlášení bez odpovědi).",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

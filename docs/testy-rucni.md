@@ -463,3 +463,15 @@ Bez změny databáze, nic se neukládá.
 4. Zruš událost (❌) a stáhni znovu → v kalendáři „ZRUŠENO – …“ bez připomínek.
 5. Čas kolem změny času (přelom března a října): událost v kalendáři ve stejnou hodinu jako v aplikaci.
 6. Nález: čitelnost tlačítka a textu pod seznamem, název souboru, chování stahování na telefonu (otevře se kalendář, nebo jen uloží do Stažených?).
+
+## 52. v22.51 (beta) – 🔔 Notifikace a ⛔ STOP
+Předpoklad: pravidla publikována, funkce nasazeny, klíč VAPID vložen (`docs/notifikace-nasazeni.md`). **Změna databáze: `settings/notif`, `devices`, `pushLog`.**
+1. ⚙️ → 🔔 Notifikace: bez zapnutého týmu stav „🔴 vypnuto“; zapnout na zařízení ještě jde (zapíše se), ale nic nepřijde.
+2. Manager: **▶️ Zapnout notifikace týmu** (druhé klepnutí) → „🟢 zapnuto“. Člen: **🔔 Zapnout na tomto zařízení**, povolit oznámení → „Zapnuto na tomto zařízení“.
+3. Testovací událost za několik dní, člen ✅ Jdu. Trenér změní začátek → do pár vteřin přijde „🕒 Změna: …“ jen přihlášeným. Zrušení → „❌ Zrušeno“, obnovení → „↩️ Obnoveno“.
+4. Změna jen názvu / místa / poznámky nebo živý zápis zápasu → žádné oznámení.
+5. Událost s uzávěrkou za ~1 h, člen bez odpovědi → do 15 min přijde „⏳ Hodina do uzávěrky“ jen jemu (ne těm, co odpověděli); podruhé už ne.
+6. **⛔ STOP** (manager): změna času události → nepřijde nic. Zapnout znovu → zase chodí.
+7. Odhlásit → zařízení zmizí z `devices` (Firebase konzole); sdílený telefon cizí oznámení nedostává.
+8. iPhone: bez přidání na plochu aplikace vysvětlí, proč notifikace nejdou. Zamítnuté povolení: sekce to řekne.
+9. Nález: čitelnost sekce, rychlost doručení, texty oznámení, baterie.

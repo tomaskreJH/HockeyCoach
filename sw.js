@@ -1,5 +1,6 @@
 // Service worker: síť má přednost, offline se použije uložená kopie. Moduly a styly se ukládají za běhu.
 // Firebase SDK (verzované neměnné adresy na gstatic.com) se ukládá také, aby aplikace šla spustit offline.
+// 🔔 Push z Cloud Functions (zrušení / změna času, uzávěrka bez odpovědi): zpráva přijde bez vlastního zobrazení a worker oznámení vždy ukáže.
 // Oznámení ⏱ živého tréninku (i na hodinkách): klepnutí otevře aplikaci, akce ⏸ / ⏭ se pošlou otevřené aplikaci (řídí hodiny).
 // 🧪 Kanály: stejný soubor běží ve stabilní verzi (kořen webu) i v betě (složka beta/). Kanál se pozná podle vlastní adresy
 // (stejné pravidlo jako src/core/channel.js). Každý kanál má vlastní předponu cache a maže jen své staré cache; stabilní worker
@@ -10,7 +11,7 @@
 const BETA = /\/beta\/sw\.js$/.test(self.location.pathname);
 // Název cache se mění s každou verzí (hokej-vNN, číslo jen roste), aby se stará kopie aplikace zahodila; přiřazení k verzím je v CHANGELOG.md.
 // Beta má stejné číslo s předponou hokej-beta-v (src/core/channel.js cachePrefix).
-const VER = "155", PFX = BETA ? "hokej-beta-v" : "hokej-v", C = PFX + VER;
+const VER = "156", PFX = BETA ? "hokej-beta-v" : "hokej-v", C = PFX + VER;
 const CORE = ["./", "index.html", "styles/main.css", "styles/arena.css", "styles/led.css", "styles/clean.css", "logo-strely.png", "src/main.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/";
 // Cesta složky bety vedle stabilní verze (stabilní worker ji nechává betě)
@@ -58,4 +59,15 @@ self.addEventListener("notificationclick", e => {
     if (act) { if (c) c.postMessage({hk: "tl", act, eid: d.eid}); return null; }
     return c ? c.focus() : self.clients.openWindow("./");
   }));
+});
+
+// ===== Push notifikace (FCM Web Push) =====
+// Zpráva z Cloud Functions je data-only: {data: {title, body, tag, url}} (obálku FCM čteme tolerantně). Prohlížeč vyžaduje, aby každý push
+// něco zobrazil, proto se oznámení ukáže vždy (i při nečitelné zprávě). Stejný tag nahradí starší oznámení téže události.
+// Klepnutí obsluhuje společný notificationclick výše (otevře / zobrazí aplikaci).
+self.addEventListener("push", e => {
+  let d = {};
+  try { const j = e.data ? e.data.json() : {}; d = (j && (j.data || j.notification)) || j || {}; } catch (x) { d = {}; }
+  const title = String(d.title || "HockeyCoach"), opt = {body: String(d.body || "Otevři aplikaci."), icon: "icon-192.png", badge: "icon-192.png", tag: d.tag ? String(d.tag) : "hk-push", renotify: true, data: {url: d.url || "./"}};
+  e.waitUntil(self.registration.showNotification(title, opt));
 });

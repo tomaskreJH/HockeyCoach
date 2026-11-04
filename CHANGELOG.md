@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.51 (4. 11. 2026) – 🔔 Push notifikace (zrušení / změna času, uzávěrka bez odpovědi) + ⛔ STOP
+> **Nasazení – kanál 🧪 BETA:** commit „v22.51“ do větve **`beta`**. ⚠️ **firestore.rules změněno – schválit a publikovat ručně** (`settings/notif`, kolekce `devices`; kolekce `pushLog` bez pravidla). **Cloud Functions se nasazují ručně** (`docs/notifikace-nasazeni.md`); bez toho a bez zapnutí v ⚙️ → 🔔 se nic neděje (výchozí stav VYPNUTO). Cache `hokej-beta-v156`. 🔒 Vyžadovat verzi: ne. Test: kap. 52.
+
+**Přidáno** (zadání uživatele 4. 11. 2026: notifikace jen zrušení / změna času a uzávěrka bez odpovědi hodinu předem; STOP tlačítko)
+- **Cloud Functions** (`functions/`, Node 22, Firebase Functions v2, oblast `europe-west1`, `maxInstances: 1`): `notifyEventChange`, `notifyMatchChange` (změna dokumentu události / zápasu) a `notifyDeadlines` (plánovač každých 15 min + nočně úklid `pushLog`). Logika `logic.js` (čistá) a `core.js` (rozhodování nad rozhraním úložiště / odesílání), `store.js` (Firestore + FCM přes Admin SDK).
+- **Příjemci:** zrušení / změna času jen přihlášeným (Jdu / Nejsem jistý) na události do 30 dní; uzávěrka jen těm, kdo neodpověděli (hráčka, jinak člen týmu).
+- **⛔ STOP:** ⚙️ → 🔔 Notifikace (manager, vývojář): červené tlačítko vypne vše jedním klepnutím (`settings/notif.on = false`); zapnutí druhým klepnutím. Chybějící dokument = vypnuto.
+- **Pojistky:** živý zápis zápasu nic nečte, denní strop 200, hodinový limit 3 na zařízení (4. souhrn), dedupe `pushLog`, mazání neplatných tokenů, odhlášení smaže zařízení.
+- **Aplikace:** `domain/notif.js`, `data/notif-api.js` (messaging SDK se načte až při zapnutí zařízení; tichá obnova nejvýš 1× týdně), `views/notif-view.js`; `sw.js` dostal obsluhu `push`.
+- Nápověda doplněna, `docs/notifikace-nasazeni.md` (kroky, vypnutí, náklady).
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, docházka.
+**Ověřeno:** `npm test`, `npm run smoke`, `node --check functions/*.js`.
+
 ## v22.50 (4. 11. 2026) – 📅 Export událostí do kalendáře (.ics)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.50“ do větve **`beta`**. firestore.rules beze změny, data beze změny (nic se nezapisuje, soubor vzniká v zařízení). Cache `hokej-beta-v155`. 🔒 Vyžadovat verzi: ne. Test: kap. 51. Bez dalších nákladů (žádný server).
 

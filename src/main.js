@@ -209,5 +209,7 @@ function moneyData(db) {
     teamData(db, ok);
     staffData(db);
     moneyData(db);
+    // 🔔 Tichá obnova zařízení pro notifikace (nejvýš 1 zápis týdně; nikdy nežádá o povolení). Nastavení týmu se do té doby načte.
+    setTimeout(() => HK.notif.sync(), 8000);
   } catch (e) { S.err = "Nepodařilo se spustit úložiště: " + (e && e.message || e); render(); }
 })();
