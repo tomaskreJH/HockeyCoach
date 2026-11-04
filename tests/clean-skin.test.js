@@ -57,6 +57,8 @@ test("vzhled Čistý: je v nabídce, v index.html, v offline cache a má styly",
   assert.match(html, /<div id="tabbar"/);
   assert.match(css, /:root\[data-clean\] #tabbar \{/);
   assert.match(read("src/views/shell.js"), /const ICONS = \{/);
-  assert.match(css, /:root\[data-clean\] \.evi\[data-evk\]::before/);
+  assert.match(css, /\.evi\[data-ety="match"\] > \.evh \{ background: var\(--ac\)/);
+  assert.ok(!css.includes("::before"), "pruh stavu bez textu");
+  assert.ok(!read("src/views/event-core.js").includes("data-evt"), "karta nenese text stavu");
   assert.ok(!/gradient|box-shadow: 0/.test(css.replace(/\/\*[\s\S]*?\*\//g, "")), "čistý styl bez přechodů a stínů");
 });

@@ -2,6 +2,18 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.42 (4. 11. 2026) – Vzhled Čistý: zápasy, zaoblení, jemnější pruh stavu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.42“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v146`). 🔒 Vyžadovat verzi: ne. Test: kap. 45.
+
+**Změněno** (zadání uživatele 4. 11. 2026, jen vzhled Čistý)
+- **Zápasy zvýrazněné** proti ostatním událostem: záhlaví karty zápasu je v barvě akcentu (modrá / ve tmavém zlatá) s velkým nadpisem; tréninky a další události mají neutrální záhlaví. Karta nese atribut `data-ety` (`views/event-core.js`).
+- **Lehké zaoblení** (6 px) karet, tlačítek, polí a chipů, štítky 4 px, okna se zaoblenými horními rohy (proměnné `--rd`, `--rs` v `styles/clean.css`).
+- **Pruh stavu** na kartě události je **užší (5 px) a bez textu**; stav navíc dává celé kartě jemný nádech barvy (zelená Jdu, žlutá Nejsem jistý, červená Nejdu, šedá bez odpovědi / uzavřeno / zrušeno) a záhlaví mírně barvu stavu. Atribut s textem stavu (`data-evt`) z karty zmizel.
+
+**Beze změny:** veškerá funkčnost a ovládání, ostatní vzhledy, menu dole jen s ikonami, živý zápis a trénink, data, pravidla.
+
+**Ověřeno:** `npm test`, `npm run smoke`, vizuální kontrola karet (zápas, trénink, stavy) ve světlém i tmavém režimu na šířce telefonu.
+
 ## v22.41.1 (4. 11. 2026) – Oprava: „Načítám pokladnu…“ už nezůstane viset
 > **Nasazení – kanál 🧪 BETA:** commit „v22.41.1“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v145`). 🔒 Vyžadovat verzi: ne. Test: kap. 44, bod 6.
 

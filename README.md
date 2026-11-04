@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.41.1 (4. 11. 2026, 🧪 beta)** – oprava: ⏳ „Načítám pokladnu…“ se po načtení překreslí samo. Předtím v22.41: vzhled **Čistý**: menu dole jen s ikonami (⚙️ → 👤 Účet → 🎨 Vzhled; jen zobrazení). Předtím v22.40: vzhled Čistý (ostré hrany, černobílé ikony, pruh stavu na kartě, značka STŘELY). v22.39: ❄️ Ledová aréna. v22.38: 🎯 trestné střílení, krosček, ⏱ ukotvený odpočet tréninku.
+**Aktuální verze: v22.42 (4. 11. 2026, 🧪 beta)** – vzhled Čistý: lehké zaoblení, výrazné záhlaví zápasů, užší pruh stavu bez textu a nádech barvy karty. Předtím v22.41.1: oprava: ⏳ „Načítám pokladnu…“ se po načtení překreslí samo. Předtím v22.41: vzhled **Čistý**: menu dole jen s ikonami (⚙️ → 👤 Účet → 🎨 Vzhled; jen zobrazení). Předtím v22.40: vzhled Čistý (ostré hrany, černobílé ikony, pruh stavu na kartě, značka STŘELY). v22.39: ❄️ Ledová aréna. v22.38: 🎯 trestné střílení, krosček, ⏱ ukotvený odpočet tréninku.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

@@ -192,9 +192,9 @@ function cardHtml(e, AT, P) {
   const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, cn = isCancelled(e), lk = (isLocked(e) && !staff()) || cn, m = e.raw, g = guest();
   const sc = cn ? ' <span class="tag red">❌ Zrušeno</span>' : e.type === "match" && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
   const cq = g ? {yes: "", no: "", maybe: ""} : c, pL = placeLine(e), tL = timeLine(e);
-  // Stav pro pruh na boku karty (vzhled „Čistý“, styles/clean.css); ostatní vzhledy atributy nepoužívají
+  // Atributy pro vzhled „Čistý“ (styles/clean.css): stav = pruh a nádech barvy karty, druh události = zvýrazněný zápas; ostatní vzhledy je nepoužívají
   const sx = cardState(mine, cn, isLocked(e), !!S.evp);
-  return `<div class="cd evi" data-eo="${e.id}"${sx.k ? ` data-evk="${sx.k}" data-evt="${sx.t}"` : ""}${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
+  return `<div class="cd evi" data-eo="${e.id}" data-ety="${e.type === "match" ? "match" : "other"}"${sx.k ? ` data-evk="${sx.k}"` : ""}${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
 ${pL ? `<div class="mu">${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
 <div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
 ${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}

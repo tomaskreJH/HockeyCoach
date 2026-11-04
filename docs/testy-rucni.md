@@ -401,3 +401,11 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 5. Nález: srozumitelnost ikon (které poznáš hůř), velikost lišty.
 
 6. (v22.41.1) Čerstvě spustit aplikaci (pokladník / manager), otevřít **Moje platby** a **Team → Pokladna**: po „⏳ Načítám pokladnu…“ se obsah zobrazí sám, bez přepnutí záložky.
+
+## 45. v22.42 (beta) – Vzhled Čistý: zápasy, zaoblení, pruh stavu
+1. Vzhled **Čistý**, Domů a Události: karta **zápasu** má záhlaví v barvě akcentu s velkým nadpisem, tréninky mají neutrální záhlaví – zápas je hned vidět.
+2. Karty mají lehce zaoblené rohy; tlačítka, pole a okna také. Nic se nepřekrývá a nic neuřezává.
+3. Pruh stavu vlevo je užší a **bez textu**; celá karta má jemný nádech barvy stavu. Klepnout na Jdu / Nejdu / Nejsem jistý: pruh, nádech i obrys tlačítka změní barvu, odpověď se uloží jako dřív.
+4. Světlý i tmavý režim, zrušená a uzavřená událost (šedá).
+5. Nález: je zápas dost výrazný? Je nádech karty dost vidět (nebo moc)? Případně šířka pruhu a míra zaoblení.
+
