@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.39 (4. 11. 2026, 🧪 beta)** – ❄️ nový vzhled Ledová aréna (⚙️ → 👤 Účet → 🎨 Vzhled; jen barvy a povrch, ovládání beze změny). Předtím v22.38: 🎯 trestné střílení, krosček, ⏱ ukotvený odpočet tréninku.
+**Aktuální verze: v22.40 (4. 11. 2026, 🧪 beta)** – nový vzhled **Čistý** (⚙️ → 👤 Účet → 🎨 Vzhled; plochý, ostré hrany, černobílé ikony, pruh stavu na kartě události, značka STŘELY; jen zobrazení). Předtím v22.39: ❄️ Ledová aréna. v22.38: 🎯 trestné střílení, krosček, ⏱ ukotvený odpočet tréninku.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

@@ -384,3 +384,12 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 2. Režim **Podle telefonu** i **🌙 Tmavý** = tmavý; **☀ Světlý** = světlá varianta. Texty čitelné, štítky jako pilulky.
 3. Projít Domů, detail události (Jdu / Nejdu), Team, Statistiky, ⚙️, živý zápis (lišta, skóre, čas) a živý trénink – rozložení a tlačítka na stejném místě jako v 🏟 Aréně, vše funguje stejně.
 4. Přepnout zpět na Klasický a 🏟 Aréna – beze změny proti v22.38.
+
+## 43. v22.40 (beta) – Vzhled Čistý
+1. ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **Čistý**: aplikace se hned zploští, ostré hrany, záhlaví se značkou a nápisem **STŘELY**, ikony černobílé (✓ ✕ ? místo barevných emoji).
+2. Domů a Události: každá karta má vlevo pruh stavu s textem (Jdu / Nejdu / Nejsem jistý / Bez odpovědi / Uzavřeno / Zrušeno). Klepnout na **Jdu**, **Nejdu**, **Nejsem jistý**: pruh i tlačítko změní barvu a odpověď se uloží stejně jako dřív (i klepnutím přímo na ikonu uvnitř tlačítka).
+3. Režim **Podle telefonu**, **☀ Světlý**, **🌙 Tmavý**: texty čitelné, žlutý akcent ve tmavém, tmavě modrý ve světlém.
+4. Projít detail události, Team, Statistiky, ⚙️, 🔴 živý zápis (klepnutí na hráčky, ikony na tlačítkách) a ⏱ živý trénink – vše funguje stejně, formace mají své barvy.
+5. Znovu načíst aplikaci: vzhled zůstane bez probliknutí. Přepnout na Klasický / 🏟 Aréna / ❄️ Ledová aréna – beze změny proti v22.39 (barevná emoji, původní záhlaví).
+6. Napsat nález: co ještě působí „moc“ (barvy, ikony, rozměry), případně které ikony nahradit vlastními.
+

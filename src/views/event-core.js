@@ -13,7 +13,7 @@ import {canNos, isNos, nosPatch, startMs} from "../domain/attendance.js";
 import {costTotal, cxOf, kc} from "../domain/cash.js";
 import {memberBlocked} from "../domain/debtors.js";
 import {cancelText, isCancelled} from "../domain/event-cancel.js";
-import {answerCounts} from "../domain/event-helpers.js";
+import {answerCounts, cardState} from "../domain/event-helpers.js";
 import {pushReason, reasonChips} from "../domain/event-prefill.js";
 import {dlFor, evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
@@ -192,7 +192,9 @@ function cardHtml(e, AT, P) {
   const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, cn = isCancelled(e), lk = (isLocked(e) && !staff()) || cn, m = e.raw, g = guest();
   const sc = cn ? ' <span class="tag red">❌ Zrušeno</span>' : e.type === "match" && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
   const cq = g ? {yes: "", no: "", maybe: ""} : c, pL = placeLine(e), tL = timeLine(e);
-  return `<div class="cd evi" data-eo="${e.id}"${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
+  // Stav pro pruh na boku karty (vzhled „Čistý“, styles/clean.css); ostatní vzhledy atributy nepoužívají
+  const sx = cardState(mine, cn, isLocked(e), !!S.evp);
+  return `<div class="cd evi" data-eo="${e.id}"${sx.k ? ` data-evk="${sx.k}" data-evt="${sx.t}"` : ""}${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
 ${pL ? `<div class="mu">${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
 <div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
 ${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}

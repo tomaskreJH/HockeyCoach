@@ -2,6 +2,20 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.40 (4. 11. 2026) – Vzhled Čistý
+> **Nasazení – kanál 🧪 BETA:** commit „v22.40“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v143`). 🔒 Vyžadovat verzi: ne. Test: kap. 43.
+
+**Přidáno** (zadání uživatele 4. 11. 2026 – „méně AI vzhledu“, čistší, barva jen jako stav)
+- **Čistý** v ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika (`styles/clean.css`, `src/core/skin.js`): plochý styl bez přechodů, záře a stínů, ostré hrany (2 px), jedna neutrální základna a jeden akcent (světlý režim týmová tmavě modrá, tmavý týmová zlatá). Staví na Klasickém (rozměry a rozložení z `main.css`), režim Podle telefonu / Světlý / Tmavý funguje jako u ostatních vzhledů. Písmo nadpisů a záložek Barlow Condensed (už v aplikaci).
+- **Pruh stavu na kartě události** (Domů i Události): levý okraj s ostrou hranou, barva = stav přihlášeného účtu (zelená Jdu, žlutá Nejsem jistý, červená Nejdu, šedá Bez odpovědi, světle šedá Uzavřeno / Zrušeno) a nenápadný svislý text stavu. Čistá funkce `cardState` v `domain/event-helpers.js`, karta (`views/event-core.js`) jen přidá atributy `data-evk` a `data-evt`; ostatní vzhledy je nepoužívají. Zvolená odpověď v rychlých tlačítkách je obrysem v barvě stavu, ne plnou výplní.
+- **Černobílé ikony** (`core/emoji-clean.js`): ve vzhledu Čistý se emoji v textech zešedí (obalí se `<span class="em">`), ✅ ❌ ❓ se zobrazí jako ✓ ✕ ?. Text, tlačítka a data se nemění (`textContent` zůstává, ikona nezachytává klepnutí); mimo vzhled Čistý modul nic nedělá.
+- **Záhlaví se značkou týmu** (`index.html`): zjednodušené logo (kruh, zkřížené hole, puk – jednobarevné SVG) a nápis **STŘELY**; ostatní vzhledy ukazují původní „🏒 HockeyCoach“. Verze zůstává vedle značky.
+- `styles/clean.css` v offline cache (`sw.js`), nápověda ⚙️ (`views/help.js`), testy `tests/clean-skin.test.js`.
+
+**Beze změny:** veškerá funkčnost a ovládání (střely, góly, časomíra, trénink, pokladna), barvy formací a živého zápisu, vzhledy Klasický, 🏟 Aréna a ❄️ Ledová aréna; odpočet přihlášení na kartě (zatím bez změny, čeká na rozhodnutí).
+
+**Ověřeno:** `npm test`, `npm run smoke`, vizuální kontrola karet, záhlaví a tlačítek ve světlém i tmavém režimu na šířce telefonu.
+
 ## v22.39 (4. 11. 2026) – ❄️ Vzhled Ledová aréna
 > **Nasazení – kanál 🧪 BETA:** commit „v22.39“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v142`). 🔒 Vyžadovat verzi: ne. Test: kap. 42.
 
