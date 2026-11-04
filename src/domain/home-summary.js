@@ -5,7 +5,10 @@
 
 // ===== Importy =====
 import {isG, score} from "../core/selectors.js";
+import {norm} from "../core/utils.js";
+import {seasonKeyOf} from "./budget.js";
 import {debtOf, r2, restOf} from "./cash.js";
+import {clockText, DAY_MS} from "./countdown.js";
 import {debtorState} from "./debtors.js";
 import {openReqs} from "./requests.js";
 
@@ -57,13 +60,25 @@ export function nextMatch(items, now, today) {
   const list = (items || []).filter(e => e.type === "match" && !e.closed && !e.live && !e.cancelled && e.date >= today && (e.date > today || !e.time || startMs(e) >= now));
   return list.sort(byStart)[0] || null;
 }
-// Odpočet do zápasu pro připomínku na Domů: {days, text}; days = počet kalendářních dní od dneška (0 = dnes),
-// text = „Dnes“ / „Zítra“ / „Za 3 dny“ / „Za 9 dní“. Dnes s časem začátku navíc ukáže „Dnes v 18:00“.
-export function matchCountdown(m, today) {
-  const days = Math.round((new Date(m.date + "T12:00:00") - new Date(today + "T12:00:00")) / 864e5);
-  const at = /^\d{1,2}:\d{2}$/.test(m.time || "") ? m.time.padStart(5, "0") : "";
-  const text = days <= 0 ? "Dnes" + (at ? " v " + at : "") : days === 1 ? "Zítra" : "Za " + days + (days < 5 ? " dny" : " dní");
-  return {days: Math.max(days, 0), text};
+// Odpočet do zápasu pro připomínku na Domů: {days, text, at, live}. Do začátku méně než 24 hodin = živé hodiny HH:MM:SS
+// (live = true, at = začátek v ms); jinak text „Dnes“ / „Zítra“ / „Za 3 dny“ / „Za 9 dní“ podle kalendářních dnů od dneška.
+export function matchCountdown(m, today, now = Date.now()) {
+  const days = Math.max(0, Math.round((new Date(m.date + "T12:00:00") - new Date(today + "T12:00:00")) / DAY_MS));
+  const left = /^\d{1,2}:\d{2}$/.test(m.time || "") ? startMs(m) - now : null;
+  if (left != null && left > 0 && left < DAY_MS) return {days, text: clockText(left), at: startMs(m), live: true};
+  return {days, text: days === 0 ? "Dnes" : days === 1 ? "Zítra" : "Za " + days + (days < 5 ? " dny" : " dní"), at: 0, live: false};
+}
+// Série se soupeřem v sezóně dne day: odehrané (uzavřené) zápasy proti soupeři (název bez rozlišení velikosti písmen)
+// → {w, d, l, n} = výhry, remízy, prohry a počet zápasů; skóre se bere z gólů zápisu (score)
+export function seriesVs(ma, opp, day) {
+  const key = seasonKeyOf(day), o = norm(opp), r = {w: 0, d: 0, l: 0, n: 0};
+  (ma || []).forEach(x => {
+    if (!x || !x.closed || !x.date || norm(x.opp) !== o || seasonKeyOf(x.date) !== key) return;
+    const [us, them] = score(x);
+    r.n++;
+    if (us > them) r.w++; else if (us < them) r.l++; else r.d++;
+  });
+  return r;
 }
 // Nadcházející události příštích 7 dní (dnes až dnes + 6, tréninky i zápasy) seřazené od nejbližší. Uplynulé se vynechají: dřívější dny,
 // dnešní událost po svém začátku (bez času až zítra) a uzavřený zápas; běžící zápas ukazuje karta 🔴 nahoře.

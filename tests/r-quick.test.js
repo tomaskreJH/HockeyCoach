@@ -6,7 +6,7 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
-import {baseLines, isTrKey, lineCounts, setLine, sortEvents, trKey} from "../src/domain/event-helpers.js";
+import {baseLines, isTrKey, lineCounts, setLine, sortCal, sortEvents, trKey} from "../src/domain/event-helpers.js";
 
 // ===== Pomocné funkce =====
 const read = p => readFileSync(fileURLToPath(new URL("../" + p, import.meta.url)), "utf8");
@@ -25,9 +25,17 @@ test("R: Nadcházející vzestupně, Minulé a Kalendář sestupně (nejnovějš
   assert.equal(ids(sortEvents(E, "cal")), "d,b,a,c");
   assert.equal(ids(E), "a,b,c,d", "vstup se nemění");
 });
-test("R: seznam událostí řadí jen přes sortEvents (žádné vlastní řazení v events.js)", () => {
+test("Kalendář: pod kalendářem od dneška dál vzestupně, pak dřívější dny od nejnovějšího; měsíc v minulosti sestupně, v budoucnu vzestupně", () => {
+  assert.equal(ids(sortCal(E, "2026-10-20")), "b,d,a,c", "dnes 20. 10.: b (21. 10.), d (2. 11.), pak a (14. 10. 18:00), c (14. 10. 8:00)");
+  assert.equal(ids(sortCal(E, "2026-10-21")), "b,d,a,c", "dnešní den se počítá mezi nadcházející");
+  assert.equal(ids(sortCal(E, "2026-12-01")), "d,b,a,c", "vše v minulosti = sestupně");
+  assert.equal(ids(sortCal(E, "2026-10-01")), "c,a,b,d", "vše v budoucnu = vzestupně");
+  assert.equal(ids(sortCal(null, "2026-10-01")), "");
+  assert.equal(ids(E), "a,b,c,d", "vstup se nemění");
+});
+test("R: seznam událostí řadí jen přes sortEvents / sortCal (žádné vlastní řazení v events.js)", () => {
   const s = read("src/views/events.js");
-  assert.ok(/sortEvents\(evs\.filter\(e => S\.evd \? e\.date === S\.evd : e\.date\.startsWith\(pre\)\), "cal"\)/.test(s), "Kalendář sestupně");
+  assert.ok(/sortCal\(evs\.filter\(e => S\.evd \? e\.date === S\.evd : e\.date\.startsWith\(pre\)\), today\)/.test(s), "Kalendář od dneška dál");
   assert.ok(!/\.sort\(asc\)/.test(s), "staré vzestupné řazení odstraněno");
 });
 

@@ -417,3 +417,12 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 4. Trenér: detail dnešního i proběhlého tréninku s plánem → karta **⭐ Hodnocení hráček** je **zavřená**; klepnutím se rozbalí, po překreslení (např. označení smajlíku) zůstane rozbalená. Budoucí trénink: také zavřená.
 5. Vzhled **Čistý**, Domů a Události: podbarvení karty podle stavu (Jdu / Nejdu / Nejsem jistý / bez odpovědi / uzavřeno) je **plynulý přechod** – u barevného pruhu nejsytější, doprava se vytrácí; stejně záhlaví karty (zápas má záhlaví v barvě akcentu). Světlý i tmavý režim; změna odpovědi přechod přebarví.
 6. Nález: je přechod dost vidět (nebo moc)? Je připomínka zápasu dost výrazná, nebo naopak ruší?
+
+## 47. v22.44 (beta) – Příští zápas, odpočet přihlášení, dresy, kalendář, písmo
+1. 🏠 Domů: karta příštího zápasu má v nadpisu **datum a zápas**, pod ním „Za N dní“ / „Zítra“; **bez místa a času**. Dole „Série v sezóně: V · R · P“ (sedí s odehranými zápasy proti soupeři v této sezóně); bez předchozího zápasu „zatím bez zápasu“.
+2. Zápas začíná za méně než 24 hodin: místo textu **tikají hodiny HH:MM:SS**. Bez naplánovaného zápasu se karta vůbec neukáže. Klepnutí otevře událost.
+3. Karta události (Domů i Události) a Podrobnosti: u otevřeného přihlašování **„⏳ zbývá …“** (např. 1 den 5 h, pod hodinu minuty), mění se samo; po uzávěrce 🔒 bez odpočtu.
+4. Vzhled **Čistý**, trénink → 🎽 ✏️ Upravit dresy: zvolená barva (M / Ž / Z / R) má **přechod v barvě dresu a čitelné písmeno** ve světlém i tmavém režimu; štítky „Modrá: 4…“ také.
+5. Události → **Kalendář**: moderní vzhled, dnešek a vybraný den v barvě akcentu, **dny s mým „Jdu“ zelený přechod**. Pod kalendářem jsou události **od dneška dál**, dřívější dny měsíce až dole; klepnutí na den zúží seznam.
+6. Záhlaví vzhledu Čistý: **STŘELY** šikmým hranatým písmem (Ř správně); porovnat s logem HC Střelci.
+7. Nález: čitelnost, výraznost zeleného přechodu v kalendáři, písmo (případně jiné tučnější).

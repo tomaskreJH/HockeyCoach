@@ -36,6 +36,8 @@ export function sortEvents(evs, mode) {
   const out = [...(evs || [])];
   return mode === "up" ? out.sort(evAsc) : out.sort((x, y) => evAsc(y, x));
 }
+// 📅 Pořadí pod kalendářem: od dneška dál vzestupně (nejbližší nahoře), pod tím dřívější dny od nejnovějšího (měsíc v minulosti tedy sestupně)
+export const sortCal = (evs, today) => [...sortEvents((evs || []).filter(e => e.date >= today), "up"), ...sortEvents((evs || []).filter(e => e.date < today), "past")];
 
 // ===== Rozdělení do pětek =====
 // Rozdělení hráček podle základní formace (lu = {"1C": id, "1C+": id, …}); going = id přihlášených hráček (bez brankářek).

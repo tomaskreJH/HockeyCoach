@@ -73,6 +73,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `beta.js` | 🧪 beta testeři `settings/beta`, nabídka bety |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
+| `countdown.js` | ⏳ text odpočtů (`clockText` HH:MM:SS, `leftText` zbývá do termínu); tikání `views/countdown-tick.js` |
 | `home-summary.js`, `home-remind.js` | 🏠 Domů, ❔ Chybí odpověď a 📲 text připomínky |
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, 🔁 převody `k: "tr"`, dluhy, VS), účty a IBAN |
 | `bank-match.js` | ⚠️ 🏦 čtení výpisu z banky (CSV) a párování plateb s předpisy |
@@ -99,6 +100,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
 | `shell.js` | záložky a hlavní vykreslení |
 | `help.js` | ❓ nápověda – jediný uživatelský návod; kapitoly (`v`) a body (`data-v`) podle role (`VIS`) |
+| `countdown-tick.js` | ⏳ tikající odpočty bez překreslení (`cdHtml`) |
 | `home-view.js`, `absence-view.js` | 🏠 Domů, 🏖 nepřítomnost |
 | `events.js` | Události: seznam, kalendář, režimy pokladny v Team (`cashPanel`) |
 | `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, karta události `cardHtml` (Události i 🏠 Domů), zápis odpovědi a důvodu, okno s důvodem |

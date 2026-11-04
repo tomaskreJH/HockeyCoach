@@ -2,6 +2,22 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.44 (4. 11. 2026) – Příští zápas se sérií a odpočtem, dresy a kalendář ve vzhledu Čistý, odpočet přihlášení, písmo STŘELY
+> **Nasazení – kanál 🧪 BETA:** commit „v22.44“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v149`). 🔒 Vyžadovat verzi: ne. Test: kap. 47.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- **🏠 Příští zápas:** v nadpisu datum a zápas (pořadí názvů podle doma / venku), pod ním „Za N dní“ / „Zítra“ a při méně než 24 hodinách do začátku **živý odpočet HH:MM:SS**; **série se soupeřem v sezóně** (V · R · P z odehraných zápasů, `seriesVs`); místo a čas se nezobrazují; bez zápasu se nezobrazí nic. Výpočty `matchCountdown`, `seriesVs` (`domain/home-summary.js`).
+- **⏳ Odpočet do uzávěrky přihlášení** v kartě události (Domů, Události) i v Podrobnostech detailu: „zbývá 1 den 5 h“, tiká sám bez překreslení a bez čtení databáze. Nové `domain/countdown.js`, `views/countdown-tick.js`.
+- **🎽 Dresy ve vzhledu Čistý** (opraveno): zvolený dres v řádku hráčky i štítky dresů mají přechod v barvě dresu a čitelný text ve světlém i tmavém režimu (dřív zmizelo pozadí a zůstal bílý text).
+- **📅 Kalendář ve vzhledu Čistý:** moderní vzhled ve značce (písmo, zaoblené dny, dnešek a vybraný den v barvě akcentu); **dny, kdy jsem přihlášená „Jdu“, mají zelený přechod** (v ostatních vzhledech jednodušší zelené podbarvení). **Události pod kalendářem** jsou od dneška dál vzestupně, dřívější dny měsíce pod nimi (`sortCal`).
+- **STŘELY v záhlaví:** písmo **Russo One** (SIL OFL, `styles/fonts/OFL-russo-one.txt`) ve šikmém řezu – nejblíž písmu loga HC Střelci s českými znaky.
+
+**Návrh (nezapsáno, čeká na souhlas):** `docs/navrhy-v22.44.md` – A banka mott a pokřiků hráček (nová kolekce + pravidla), B synchronizace kalendáře (.ics, předplatné).
+
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, data, pravidla Firestore, ostatní vzhledy (kromě zeleného dne v kalendáři a odpočtu přihlášení).
+
+**Ověřeno:** `npm test` (546 ✓, nové testy odpočtů, série, řazení kalendáře), `npm run smoke`, vizuální kontrola dresů, kalendáře, karty zápasu a záhlaví ve světlém i tmavém režimu.
+
 ## v22.43 (4. 11. 2026) – Domů: příští zápas jako připomínka, hodnocení tréninku zavřené, přechodové podbarvení stavu
 > **Nasazení – kanál 🧪 BETA:** commit „v22.43“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v148`). 🔒 Vyžadovat verzi: ne. Test: kap. 46.
 

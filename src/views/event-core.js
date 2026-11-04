@@ -18,6 +18,7 @@ import {pushReason, reasonChips} from "../domain/event-prefill.js";
 import {dlFor, evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
+import {cdHtml} from "./countdown-tick.js";
 import {statusLine} from "./event-badges.js";
 import {render} from "./shell.js";
 
@@ -55,6 +56,8 @@ const CSS = `<style>
 #evw .cal button.today{border-color:var(--ac);font-weight:700}
 #evw .cal button.sel{outline:3px solid var(--ac)}
 #evw .cal small{display:block;font-size:9px;color:var(--ac)}
+/* Den, kdy jsem přihlášená / přihlášený („Jdu“): zelený přechod přímo v kalendáři */
+#evw .cal button[data-cy]{border-color:var(--ok);background:linear-gradient(135deg,color-mix(in srgb,var(--ok) 40%,var(--bg)),color-mix(in srgb,var(--ok) 14%,var(--bg)))}
 #evw .evl{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px;margin:0 2px 4px 0}
 #evw .evln{display:flex;gap:4px}
 #evw .evln .chip{padding:8px 0;min-width:38px;text-align:center}
@@ -115,7 +118,9 @@ function roster(ev, AT) {
   return r;
 }
 const rosterLine = r => `Útočnice: <b>${r.u}</b> · Obránkyně: <b>${r.o}</b> · Brankářky: <b>${r.g}</b>${r.n ? ` · Neurčeno: <b>${r.n}</b>` : ""} · Trenéři: <b>${r.t}</b>`;
-const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl(e.dl) + ")" : "Přihlášení do " + fDl(e.dl)) : (lk ? "🔒 Uzavřeno" : "⚠️ Termín nenastaven");
+// ⏳ Odpočet do termínu přihlášení (jen otevřené přihlašování s termínem v budoucnu; tiká sám, bez překreslení)
+const dlLeft = e => { const t = dlMs(e.dl); return t != null && t > Date.now() ? " · ⏳ zbývá " + cdHtml(t, "left") : ""; };
+const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl(e.dl) + ")" : "Přihlášení do " + fDl(e.dl) + dlLeft(e)) : (lk ? "🔒 Uzavřeno" : "⚠️ Termín nenastaven");
 // Den, čas od – do (zápas jen začátek), ⏰ sraz a místo; výchozí sraz a délka tréninku ze settings/events
 const defs = () => evDefaults(S.es);
 // Zkrácené datum bez roku („Po 27. 10.“)

@@ -47,7 +47,11 @@
 :root[data-clean] .hb-old { display: none; }
 :root[data-clean] .hb-new { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
 :root[data-clean] .hb-new img { width: 44px; height: 44px; flex: none; display: block; }
-:root[data-clean] .hb-new b { font-family: var(--fh); font-size: 24px; font-weight: 700; letter-spacing: .1em; line-height: 1; }
+/* Písmo značky: Russo One (SIL OFL, styles/fonts/OFL-russo-one.txt) ve šikmém řezu – široké hranaté tahy nejblíž písmu loga HC Střelci;
+   latin-ext obsahuje české znaky (Ř, Č…). Šikmost doplní prohlížeč (font-style: italic). */
+@font-face { font-family: "HC Logo"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/russo-one-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "HC Logo"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/russo-one-latin-ext-400-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+:root[data-clean] .hb-new b { font-family: "HC Logo", var(--fh); font-style: italic; font-size: 25px; font-weight: 400; letter-spacing: .06em; line-height: 1; }
 :root[data-clean] header { background: var(--hd); color: var(--hdt); padding: 10px 14px; border-bottom: 1px solid var(--bd); }
 :root[data-clean] header #ver { color: var(--hdt); opacity: .65 !important; font-family: system-ui, sans-serif; letter-spacing: 0; }
 :root[data-clean] header button { color: var(--hdt) !important; }
@@ -148,3 +152,35 @@
 :root[data-clean] #tabbar .ti { display: block; width: 26px; height: 26px; }
 :root[data-clean] #tabbar .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :root[data-clean] main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+
+/* ==========================================================
+   9. DRESY – přechod v barvě dresu s pevně čitelným textem (světlý i tmavý režim).
+   Důvod: `.chip` výše přebíjí plné pozadí `.L1–.L4` z main.css, ale text zůstával bílý (nečitelný na světlém podkladu)
+   ========================================================== */
+:root[data-clean] .chip.L1, :root[data-clean] .evl.L1 { background: linear-gradient(135deg, #4b8de6 0%, #1e5bb8 55%, #143f82 100%); color: #fff !important; }
+:root[data-clean] .chip.L2, :root[data-clean] .evl.L2 { background: linear-gradient(135deg, #ffe066 0%, #f9c80e 55%, #d9a800 100%); color: #111 !important; }
+:root[data-clean] .chip.L3, :root[data-clean] .evl.L3 { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 55%, #1f5a23 100%); color: #fff !important; }
+:root[data-clean] .chip.L4, :root[data-clean] .evl.L4 { background: linear-gradient(135deg, #f08cb8 0%, #d94f8a 55%, #a82d61 100%); color: #fff !important; }
+:root[data-clean] .chip.L0, :root[data-clean] .evl.L0 { background: linear-gradient(135deg, #939daa 0%, #6b7480 55%, #4b525b 100%); color: #fff !important; }
+
+/* ==========================================================
+   10. KALENDÁŘ – moderní vzhled v barvách značky; dny, kdy jsem přihlášený („Jdu“), mají zelený přechod (data-cy z views/events.js)
+   ========================================================== */
+:root[data-clean] #evw .calh b { font-family: var(--fh); font-size: 21px; letter-spacing: .05em; text-transform: uppercase; }
+:root[data-clean] #evw .cal { gap: 6px; }
+:root[data-clean] #evw .cal .dh { font-family: var(--fh); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+:root[data-clean] #evw .cal button { min-height: 52px; border-radius: 10px; border: 1px solid var(--bd); background: var(--cd); color: var(--tx); font-family: var(--fh); font-size: 18px; font-weight: 600; }
+:root[data-clean] #evw .cal button.today { border: 2px solid var(--ac); }
+:root[data-clean] #evw .cal button.sel { outline: none; background: var(--ac); border-color: var(--ac); color: var(--ink); }
+:root[data-clean] #evw .cal small { color: var(--ac); letter-spacing: 1px; }
+:root[data-clean] #evw .cal button.sel small { color: var(--ink); }
+:root[data-clean] #evw .cal button[data-cy] { border-color: var(--ok); background: linear-gradient(135deg, color-mix(in srgb, var(--ok) 42%, var(--cd)) 0%, color-mix(in srgb, var(--ok) 14%, var(--cd)) 100%); }
+:root[data-clean] #evw .cal button[data-cy].sel { border-color: var(--ok); background: linear-gradient(135deg, var(--ok) 0%, color-mix(in srgb, var(--ok) 60%, var(--cd)) 100%); color: var(--stx); }
+:root[data-clean] #evw .cal button[data-cy].sel small { color: var(--stx); }
+
+/* ==========================================================
+   11. 🏠 DOMŮ – karta příštího zápasu (připomínka): nadpis jako u zápasu v Událostech, velký odpočet písmem značky
+   ========================================================== */
+:root[data-clean] #hmw .hmx > .hmxh { background: var(--ac); border-bottom-color: var(--ac); color: var(--ink); border-radius: 0 5px 0 0; }
+:root[data-clean] #hmw .hmx > .hmxh b { font-family: var(--fh); font-size: 20px; letter-spacing: .03em; text-transform: uppercase; }
+:root[data-clean] #hmw .hmxc { font-family: var(--fh); letter-spacing: .02em; }
