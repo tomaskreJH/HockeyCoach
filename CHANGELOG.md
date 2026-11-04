@@ -2,6 +2,13 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.49 (4. 11. 2026) – ✍️ Ruční zadání času ve stopkách
+> **Nasazení – kanál 🧪 BETA:** commit „v22.49“ do větve **`beta`**. firestore.rules beze změny, data beze změny (stejný tvar `trms`). Cache `hokej-beta-v154`. 🔒 Vyžadovat verzi: ne. Test: kap. 50.
+
+**Přidáno** (zadání uživatele 4. 11. 2026): v okně ⏲ Stopek u měření času třetí režim **✍️ Ručně** – hotový čas se napíše do pole u jména (např. 16,71) a ✓ zapíše jako pokus. Slouží ke vstupnímu měření (časy z loňska zapsané k tréninku na začátku sezony); Statistiky ukážou ▲ / ▼ zlepšení proti němu.
+**Beze změny:** stopky klepnutím, 🏃 štafeta, živý zápis, pokladna.
+**Ověřeno:** `npm test` 571 zelené.
+
 ## v22.48 (4. 11. 2026) – (C) u kapitánky, spravedlivé nálepky, zaoblené odpovědi, 📣 zpráva od trenéra
 > **Nasazení – kanál 🧪 BETA:** commit „v22.48“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `coachmsg`, dokument `current`) – bez publikace zprávu nejde uložit, zbytek běží. Data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v153`). 🔒 Vyžadovat verzi: ne. Test: kap. 49.
 

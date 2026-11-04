@@ -449,3 +449,8 @@ Před testem **publikovat firestore.rules** (nová kolekce `coachmsg`).
 6. Zpráva zadaná za běhu aplikace okno nevyvolá (jen kartu).
 7. Nález: čitelnost okna, (C) ve všech výskytech.
 
+## 50. v22.49 (beta) – Ruční zadání času
+1. Trénink s datem začátku sezony a plánem s cvičením s měřením času (bank. cvičení s ⏲ čas) → ⏲ Měřit → přepínač **✍️ Ručně**.
+2. U jména pole „16,71“; zapsat čas a ✓ → pokus se uloží (řádek ukáže ⭐ nejlepší). Neplatné (0, text) → „Zadej platné číslo“.
+3. Zpět na ⏱ Jednotlivě: stopky fungují jako dřív, 🏃 Štafeta také.
+4. Statistiky → 🏒 Trénink → období 90 / 180 dní → ⏲ Výsledky měření: pořadí a nejlepší čas; po dalším měření ▲ / ▼ oproti vstupnímu.
