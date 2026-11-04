@@ -57,7 +57,15 @@ export function nextMatch(items, now, today) {
   const list = (items || []).filter(e => e.type === "match" && !e.closed && !e.live && !e.cancelled && e.date >= today && (e.date > today || !e.time || startMs(e) >= now));
   return list.sort(byStart)[0] || null;
 }
-// Nadcházející události příštích 7 dní (dnes až dnes + 6) seřazené od nejbližší. Uplynulé se vynechají: dřívější dny,
+// Odpočet do zápasu pro připomínku na Domů: {days, text}; days = počet kalendářních dní od dneška (0 = dnes),
+// text = „Dnes“ / „Zítra“ / „Za 3 dny“ / „Za 9 dní“. Dnes s časem začátku navíc ukáže „Dnes v 18:00“.
+export function matchCountdown(m, today) {
+  const days = Math.round((new Date(m.date + "T12:00:00") - new Date(today + "T12:00:00")) / 864e5);
+  const at = /^\d{1,2}:\d{2}$/.test(m.time || "") ? m.time.padStart(5, "0") : "";
+  const text = days <= 0 ? "Dnes" + (at ? " v " + at : "") : days === 1 ? "Zítra" : "Za " + days + (days < 5 ? " dny" : " dní");
+  return {days: Math.max(days, 0), text};
+}
+// Nadcházející události příštích 7 dní (dnes až dnes + 6, tréninky i zápasy) seřazené od nejbližší. Uplynulé se vynechají: dřívější dny,
 // dnešní událost po svém začátku (bez času až zítra) a uzavřený zápas; běžící zápas ukazuje karta 🔴 nahoře.
 // Každá s mojí odpovědí, počtem „Jdu“ a uzavřením přihlašování (po termínu nebo zahájený zápas).
 export function upcomingEvents(items, at, mid, now, today, n = DAYS_AHEAD) {

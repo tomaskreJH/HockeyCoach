@@ -409,3 +409,11 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 4. Světlý i tmavý režim, zrušená a uzavřená událost (šedá).
 5. Nález: je zápas dost výrazný? Je nádech karty dost vidět (nebo moc)? Případně šířka pruhu a míra zaoblení.
 6. (v22.42.1) Vzhled Čistý: v záhlaví je oficiální logo týmu (modrý kruh se zlatým lemem, zkřížené hole, puk) a vedle něj nápis STŘELY; logo je ostré a bez bílého okraje ve světlém i tmavém režimu.
+
+## 46. v22.43 (beta) – Domů: připomínka příštího zápasu, hodnocení zavřené, přechod stavu
+1. 🏠 Domů: nad seznamem je **🆚 Příští zápas** jako karta s odpočtem („Za N dní“ / „Zítra“ / „Dnes v 18:00“), soupeřem, dnem, časem, srazem a místem; **bez tlačítek** ✅ ❌ ❓. Klepnutí otevře událost, ← Domů vrátí zpět.
+2. Pod ní **📅 Příštích 7 dní**: tréninky **i zápasy** jako běžné karty s ✅ ❌ ❓ (zápas do 7 dní je tedy vidět dvakrát – připomínka a karta). Počet ❔ bez odpovědi vpravo nahoře zahrnuje i zápasy. Zápas za více než 7 dní je jen v připomínce.
+3. Během běžícího zápasu: karta 🔴 (trenér ▶ Do živého zápisu, ostatní 👁 náhled); připomínka ukazuje další zápas, nebo zmizí, žádný další není.
+4. Trenér: detail dnešního i proběhlého tréninku s plánem → karta **⭐ Hodnocení hráček** je **zavřená**; klepnutím se rozbalí, po překreslení (např. označení smajlíku) zůstane rozbalená. Budoucí trénink: také zavřená.
+5. Vzhled **Čistý**, Domů a Události: podbarvení karty podle stavu (Jdu / Nejdu / Nejsem jistý / bez odpovědi / uzavřeno) je **plynulý přechod** – u barevného pruhu nejsytější, doprava se vytrácí; stejně záhlaví karty (zápas má záhlaví v barvě akcentu). Světlý i tmavý režim; změna odpovědi přechod přebarví.
+6. Nález: je přechod dost vidět (nebo moc)? Je připomínka zápasu dost výrazná, nebo naopak ruší?

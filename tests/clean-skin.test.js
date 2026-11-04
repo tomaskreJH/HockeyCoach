@@ -62,5 +62,10 @@ test("vzhled Čistý: je v nabídce, v index.html, v offline cache a má styly",
   assert.match(css, /\.evi\[data-ety="match"\] > \.evh \{ background: var\(--ac\)/);
   assert.ok(!css.includes("::before"), "pruh stavu bez textu");
   assert.ok(!read("src/views/event-core.js").includes("data-evt"), "karta nenese text stavu");
-  assert.ok(!/gradient|box-shadow: 0/.test(css.replace(/\/\*[\s\S]*?\*\//g, "")), "čistý styl bez přechodů a stínů");
+  // Bez stínů; přechod barev je povolený jen u podbarvení stavu karty události (.evi a její záhlaví .evh), jinde nikde
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.ok(!/box-shadow: 0/.test(code), "čistý styl bez stínů");
+  const grad = code.split("\n").filter(l => l.includes("gradient"));
+  assert.equal(grad.length, 2, "přechod jen u karty události a jejího záhlaví");
+  assert.ok(grad.every(l => l.includes(".evi") && l.includes("--evc")), "přechod nese barvu stavu karty");
 });

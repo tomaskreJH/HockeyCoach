@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.43 (4. 11. 2026) – Domů: příští zápas jako připomínka, hodnocení tréninku zavřené, přechodové podbarvení stavu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.43“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v148`). 🔒 Vyžadovat verzi: ne. Test: kap. 46.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- **🏠 Domů – 🆚 Příští zápas je jen připomínka** (psychologický moment pro tréninky): velký odpočet („Za 9 dní“, „Zítra“, „Dnes v 18:00“), soupeř (doma / venku podle pořadí názvů), den, 🕔 čas, ⏰ sraz a 📍 místo. Bez tlačítek přihlášení; klepnutí otevře událost (← Domů vrátí). Při běžícím zápase zůstává karta 🔴 (živý zápis / 👁 náhled) a připomínka ukazuje další zápas. Výpočet odpočtu: `matchCountdown` v `domain/home-summary.js`.
+- **📅 Příštích 7 dní** ukazuje zase **tréninky i zápasy** jako běžné karty s ✅ ❌ ❓ (dřívější „bez zápasů“ zrušeno); počet ❔ bez odpovědi zahrnuje i zápasy.
+- **⭐ Hodnocení hráček** v kartě plánu tréninku je **výchozně vždy zavřené** (dřív bylo u dnešního a proběhlého tréninku rozbalené). Rozbalení si pamatuje do zavření aplikace; `evalCardHtml` už nepřebírá datum tréninku.
+- **Vzhled Čistý – podbarvení stavu přihlášení je plynulý přechod**: u pruhu nejsytější, doprava se vytrácí do barvy karty; stejně v záhlaví karty (zápas má záhlaví v barvě akcentu jako dřív). Test `clean-skin` povoluje přechod jen u karty události (`.evi`, `--evc`), jinde zůstává zakázán.
+
+**Beze změny:** živý zápis, střely, góly, časomíra, živý trénink, pokladna, data, pravidla Firestore, ostatní vzhledy.
+
+**Ověřeno:** `npm test` (542 ✓, nový test `matchCountdown`), `npm run smoke`.
+
 ## v22.42.1 (4. 11. 2026) – Oficiální logo v záhlaví (vzhled Čistý)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.42.1“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v147`). 🔒 Vyžadovat verzi: ne. Test: kap. 45, bod 6.
 

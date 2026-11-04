@@ -232,4 +232,4 @@ function bindSheet(a) {
 }
 
 // ===== Exporty =====
-export {ANS, CSS, MONTHS, ORD, activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, counts, defDl, defs, dlLine, fDay, guest, isLocked, isPl, myTr, pad, placeLine, roster, rosterLine, saveLines, sheetHtml, staff, timeLine, titleLine, toggleNos, trs};
+export {ANS, CSS, MONTHS, ORD, activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, counts, defDl, defs, dlLine, fDay, guest, isLocked, isPl, myTr, pad, placeLine, roster, rosterLine, saveLines, sheetHtml, shortDay, staff, timeLine, titleLine, toggleNos, trs};

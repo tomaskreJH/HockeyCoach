@@ -4,7 +4,7 @@
 // ===== Importy =====
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {flowWarn, goingSplit, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
+import {flowWarn, goingSplit, homeItems, liveMatch, matchCountdown, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
 
 // ===== Konstanty =====
 const TODAY = "2026-10-21";                                      // středa
@@ -35,6 +35,16 @@ test("nextMatch: nejbližší neuzavřený zápas, dnešní jen do svého začá
   assert.equal(nextMatch(items, new Date("2026-10-21T08:00:00").getTime(), TODAY).id, "m0");
   assert.equal(nextMatch(homeItems([], [{...MA[1], live: {per: 1}}, MA[2]]), NOW, TODAY).id, "m2", "zahájený zápas není „příští“");
   assert.equal(nextMatch(homeItems(EV, [MA[3]]), NOW, TODAY), null);
+});
+
+test("matchCountdown: dnes (s časem), zítra, za 2–4 dny, za 5 a více dní; změna času (25. 10.) počet dní nezkreslí", () => {
+  assert.deepEqual(matchCountdown({date: "2026-10-21", time: "18:00"}, TODAY), {days: 0, text: "Dnes v 18:00"});
+  assert.equal(matchCountdown({date: "2026-10-21", time: "9:00"}, TODAY).text, "Dnes v 09:00");
+  assert.deepEqual(matchCountdown({date: "2026-10-21"}, TODAY), {days: 0, text: "Dnes"});
+  assert.deepEqual(matchCountdown({date: "2026-10-22"}, TODAY), {days: 1, text: "Zítra"});
+  assert.equal(matchCountdown({date: "2026-10-24"}, TODAY).text, "Za 3 dny");
+  assert.equal(matchCountdown({date: "2026-10-26"}, TODAY).text, "Za 5 dní");
+  assert.deepEqual(matchCountdown({date: "2026-11-02"}, TODAY), {days: 12, text: "Za 12 dní"});
 });
 
 test("upcomingEvents: příštích 7 dní bez uplynulých, s mojí odpovědí, počtem Jdu a uzávěrkou; ❓ jen otevřené bez odpovědi", () => {

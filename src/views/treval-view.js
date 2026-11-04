@@ -5,7 +5,7 @@
 // ===== Importy =====
 import {nm} from "../core/selectors.js";
 import {S} from "../core/state.js";
-import {esc, td, toast} from "../core/utils.js";
+import {esc, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {NOTE_MAX, RATE, RATES, TREVAL_COLL, entryOf, evalLanes, evalPatch, lanePids, noteOf, playerPatch, rateLanes, rateOk, unratedCount, unratedPids} from "../domain/training-eval.js";
 import {render} from "./shell.js";
@@ -94,12 +94,13 @@ function laneHtml(eid, l, can, firstOpen) {
   return `<details class="tevl" data-tevlo="${esc(l.key)}" ${open ? "open" : ""}><summary>${l.tag ? `<span class="tevk">${esc(l.tag)}</span>` : ""}<b>${esc(l.dn)}</b> <span class="mu" style="font-size:12px">${esc(l.where)} · ${un ? "zbývá " + un : "✓"}</span></summary>
 ${note}${l.pids.map(p => rowHtml(l, p, can, true)).join("")}</details>`;
 }
-function cardHtml(eid, plan, D, roster, past) {
+function cardHtml(eid, plan, D, roster) {
   ensureEv(eid);
   if (E.res === undefined) return "";
   const L = rateLanes(plan, D, roster).filter(l => l.pids.length);
   if (!L.length) return "";
-  const can = canE(), c = unratedCount(L, E.res), open = E.open[eid] != null ? E.open[eid] : past;
+  // Karta je ve výchozím stavu vždy zavřená (překáží před tréninkem i při jeho přípravě); rozbalení si pamatuje jen do zavření aplikace
+  const can = canE(), c = unratedCount(L, E.res), open = E.open[eid] === true;
   // Rozbalená je první linka s neohodnocenou hráčkou (ostatní klepnutím)
   const first = L.findIndex(l => { const pl = entry(l.key).pl || {}; return l.pids.some(p => !rateOk((pl[p] || {}).r)); });
   return CSS + `<details class="tev" id="tevd" ${open ? "open" : ""}><summary><b>⭐ Hodnocení hráček</b> <span class="mu">${c.n === c.all ? "nehodnoceno (nepovinné)" : c.n ? `bez hodnocení ${c.n} z ${c.all}` : "vše ohodnoceno ✓"}</span></summary>
@@ -180,8 +181,8 @@ function bindRows(root, lanes, redraw) {
 
 // ===== Exporty =====
 // Karta „⭐ Hodnocení hráček“ do karty plánu (jen s právem číst hodnocení); roster = přihlášené {lines, skaters, goalies};
-// date = datum tréninku (dnešní a minulý trénink má kartu rozbalenou)
-export function evalCardHtml(eid, plan, D, roster, date) { return canR() ? cardHtml(eid, plan, D, roster, !!date && date <= td()) : ""; }
+// Karta je výchozně zavřená; klepnutím na nadpis ji trenér rozbalí
+export function evalCardHtml(eid, plan, D, roster) { return canR() ? cardHtml(eid, plan, D, roster) : ""; }
 // getX = údaje tréninku (derive z trplan-view + D, plan)
 export function bindEvalCard(a, eid, getX) {
   if (!canR()) return;

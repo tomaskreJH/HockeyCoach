@@ -106,8 +106,9 @@
 :root[data-clean] .evi[data-evk="maybe"] { --evc: var(--wa); }
 :root[data-clean] .evi[data-evk="none"] { --evc: var(--mu); }
 :root[data-clean] .evi[data-evk="off"] { --evc: color-mix(in srgb, var(--mu) 55%, var(--cd)); }
-:root[data-clean] .evi { border-left: 5px solid var(--evc, var(--bd)); background: color-mix(in srgb, var(--evc, var(--cd)) 8%, var(--cd)); }
-:root[data-clean] #evw .evi > .evh { border-radius: 0 5px 0 0; background: color-mix(in srgb, var(--evc, var(--a2)) 14%, var(--a2)); }
+/* Nádech barvy stavu je plynulý přechod: u pruhu nejsytější, doprava se vytrácí do barvy karty (stejně v záhlaví karty) */
+:root[data-clean] .evi { border-left: 5px solid var(--evc, var(--bd)); background: var(--cd) linear-gradient(90deg, color-mix(in srgb, var(--evc, var(--cd)) 20%, var(--cd)) 0%, color-mix(in srgb, var(--evc, var(--cd)) 7%, var(--cd)) 45%, var(--cd) 100%); }
+:root[data-clean] #evw .evi > .evh { border-radius: 0 5px 0 0; background: var(--a2) linear-gradient(90deg, color-mix(in srgb, var(--evc, var(--a2)) 30%, var(--a2)) 0%, color-mix(in srgb, var(--evc, var(--a2)) 10%, var(--a2)) 55%, var(--a2) 100%); }
 /* Zápas: záhlaví v barvě akcentu s velkým nadpisem – hned je vidět, co je zápas a co trénink */
 :root[data-clean] #evw .evi[data-ety="match"] > .evh { background: var(--ac); color: var(--ink); border-bottom-color: var(--ac); }
 :root[data-clean] #evw .evi[data-ety="match"] > .evh b { font-family: var(--fh); font-size: 20px; letter-spacing: .03em; text-transform: uppercase; }
