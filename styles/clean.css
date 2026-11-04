@@ -126,3 +126,24 @@
 :root[data-clean] #evw .evq button[class^="on-maybe"] .evqn { background: var(--wa); color: var(--stx); }
 :root[data-clean] #evw .cal button { border-radius: 2px; }
 :root[data-clean] #evw .evl { border-radius: 2px; }
+
+/* ==========================================================
+   8. MENU DOLE – jen ikony (dolní lišta #tabbar naplněná z views/shell.js; pruhy staré verze, náhledu a bety zůstávají nahoře v #nav)
+   Text záložek je jen pro čtečky (title a aria-label mají stejný název); v ostatních vzhledech se #tabbar ani ikony nezobrazují
+   ========================================================== */
+.ti { display: none; }
+#tabbar { display: none; }
+:root[data-clean] #nav:empty { display: none; }
+:root[data-clean] #tabbar {
+  display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+  background: var(--cd); border-top: 1px solid var(--bd); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root[data-clean] #nav[style*="none"] ~ #tabbar { display: none; }
+:root[data-clean] #tabbar button {
+  flex: 1 !important; display: flex; align-items: center; justify-content: center; height: 56px; padding: 0; position: relative;
+  border: 0; border-top: 3px solid transparent; background: none; color: var(--mu); font-size: inherit !important;
+}
+:root[data-clean] #tabbar button.on { color: var(--ac); border-top-color: var(--ac); }
+:root[data-clean] #tabbar .ti { display: block; width: 26px; height: 26px; }
+:root[data-clean] #tabbar .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:root[data-clean] main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }

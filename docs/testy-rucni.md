@@ -393,3 +393,10 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 5. Znovu načíst aplikaci: vzhled zůstane bez probliknutí. Přepnout na Klasický / 🏟 Aréna / ❄️ Ledová aréna – beze změny proti v22.39 (barevná emoji, původní záhlaví).
 6. Napsat nález: co ještě působí „moc“ (barvy, ikony, rozměry), případně které ikony nahradit vlastními.
 
+## 44. v22.41 (beta) – Menu dole jen s ikonami
+1. Vzhled **Čistý**: záložky jsou dole v liště a jsou jen ikony (domek, kalendář, lidé, sloupce, štít, peněženka); zvolená má barvu akcentu a linku nahoře. Klepnutí přepíná obrazovky jako dřív.
+2. Dole nic nezakrývá poslední kartu (dá se doposouvat); lišta je nad spodním okrajem telefonu.
+3. 🔴 Živý zápis a ⏱ živý trénink: překryvná obrazovka je nad lištou, ovládání beze změny.
+4. Náhled role a pruh bety (🧪) jsou nahoře, ne dole. Přepnout vzhled na Klasický / 🏟 Aréna / ❄️ Ledová aréna: záložky se hned vrátí nahoře s textem.
+5. Nález: srozumitelnost ikon (které poznáš hůř), velikost lišty.
+

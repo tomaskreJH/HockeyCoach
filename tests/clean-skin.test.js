@@ -54,6 +54,9 @@ test("vzhled Čistý: je v nabídce, v index.html, v offline cache a má styly",
   assert.match(html, /k==="clean"\)d\.dataset\.clean="1"/);
   assert.match(html, /<b>STŘELY<\/b>/);
   assert.ok(sw.includes('"styles/clean.css"'));
+  assert.match(html, /<div id="tabbar"/);
+  assert.match(css, /:root\[data-clean\] #tabbar \{/);
+  assert.match(read("src/views/shell.js"), /const ICONS = \{/);
   assert.match(css, /:root\[data-clean\] \.evi\[data-evk\]::before/);
   assert.ok(!/gradient|box-shadow: 0/.test(css.replace(/\/\*[\s\S]*?\*\//g, "")), "čistý styl bez přechodů a stínů");
 });

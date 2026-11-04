@@ -39,4 +39,6 @@ export function setSkin(skin, mode) {
   LS.set(SKIN_KEY, pick(SKINS, skin, "classic"));
   LS.set(MODE_KEY, pick(MODES, mode, "auto"));
   applySkin();
+  // Záložky (views/shell.js) se podle vzhledu přesouvají nahoru / dolů – dát jim vědět
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof Event === "function") window.dispatchEvent(new Event("hk-skin"));
 }

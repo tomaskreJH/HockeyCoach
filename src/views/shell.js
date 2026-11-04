@@ -43,12 +43,37 @@ const pvBar = () => { const p = HK.preview && HK.preview(); return p ? `<div sty
 // Pruh staré verze přes celou šířku lišty (prázdný, když verze stačí)
 const oldBar = () => HK.outdated && HK.outdated() ? `<div style="flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 12px;background:var(--no);color:#fff;font-size:13px;font-weight:600"><span>⚠️ Starší verze aplikace – zápis je zablokovaný</span><button id="oldx" style="flex:none;padding:6px 10px;border:1px solid #fff;border-radius:8px;background:none;color:#fff;font:inherit;font-size:13px;cursor:pointer">Načíst novou verzi</button></div>` : "";
 
-// Záložky (a nad nimi případné pruhy staré verze, náhledu a bety); obsluha klepnutí jen na tlačítka záložek (data-t); zamčená beta bez záložek
-export function tabs(){const all=[["home","🏠"],["ev","Události"],["fo","Team"],["st","Statistiky"],["op","Soupeři"]],base=baseTabs(all),list=betaLocked()?[]:hasMine()?[...base,["mk","Moje platby"]]:base,bar=oldBar()+pvBar()+betaBar(render),nav=$("#nav");nav.style.flexWrap=bar?"wrap":"";nav.innerHTML=bar+list.map(([k,l])=>`<button class="${S.tab===k?"on":""}" data-t="${k}"${k==="home"?HOME_BTN:""}>${l}</button>`).join("");
-const x=nav.querySelector("#pvx");if(x)x.onclick=()=>HK.endPreview();
-const o=nav.querySelector("#oldx");if(o)o.onclick=()=>HK.refresh();
-bindBetaBar(nav,render);
-nav.querySelectorAll("button[data-t]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.hw=null;S.mid=null;S.oid=null;S.evid=null;S.evf=null;S.evr=null;S.evBack=null;render()})}
+// ===== Ikony záložek (obrysové SVG; vidět jen ve vzhledu „Čistý“, kde je menu dole a bez textu – ostatní vzhledy je skrývají) =====
+const ICONS = {
+  home: '<path d="M3 11 L12 3 L21 11 V21 H14 V14 H10 V21 H3 Z"/>',
+  ev: '<rect x="4" y="5" width="16" height="16"/><path d="M4 10 H20 M8 3 V7 M16 3 V7"/>',
+  fo: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20 V18 A6 6 0 0 1 15 18 V20"/><circle cx="17.5" cy="9" r="2.4"/><path d="M17 14.2 A5 5 0 0 1 21 18 V20"/>',
+  st: '<path d="M5 20 V12 M12 20 V5 M19 20 V9"/>',
+  op: '<path d="M12 3 L20 6 V12 C20 17 16.5 20 12 21 C7.5 20 4 17 4 12 V6 Z"/>',
+  mk: '<rect x="3" y="7" width="18" height="13"/><path d="M3 11 H21"/><circle cx="16" cy="15.5" r="1"/>'
+};
+const icon = k => `<svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">${ICONS[k] || ""}</svg>`;
+// Vzhled „Čistý“ (data-clean na <html>, src/core/skin.js): záložky jsou v dolní liště #tabbar, pruhy zůstávají nahoře v #nav
+const isClean = () => typeof document !== "undefined" && !!(document.documentElement && document.documentElement.dataset && document.documentElement.dataset.clean);
+
+// ===== Záložky =====
+// Záložky (a nad nimi případné pruhy staré verze, náhledu a bety); obsluha klepnutí jen na tlačítka záložek (data-t); zamčená beta bez záložek.
+// Ve vzhledu „Čistý“ jsou tlačítka záložek v dolní liště #tabbar (jen ikony, text je skrytý pro čtečky), jinak v #nav za pruhy.
+export function tabs() {
+  const all = [["home", "🏠"], ["ev", "Události"], ["fo", "Team"], ["st", "Statistiky"], ["op", "Soupeři"]], base = baseTabs(all);
+  const list = betaLocked() ? [] : hasMine() ? [...base, ["mk", "Moje platby"]] : base;
+  const bar = oldBar() + pvBar() + betaBar(render), nav = $("#nav"), tb = $("#tabbar"), clean = isClean();
+  const btns = list.map(([k, l]) => `<button class="${S.tab === k ? "on" : ""}" data-t="${k}"${k === "home" ? HOME_BTN : ` title="${l}" aria-label="${l}"`}>${icon(k)}<span class="tl">${l}</span></button>`).join("");
+  nav.style.flexWrap = bar ? "wrap" : "";
+  nav.innerHTML = clean ? bar : bar + btns;
+  if (tb) tb.innerHTML = clean ? btns : "";
+  const x = nav.querySelector("#pvx"); if (x) x.onclick = () => HK.endPreview();
+  const o = nav.querySelector("#oldx"); if (o) o.onclick = () => HK.refresh();
+  bindBetaBar(nav, render);
+  document.querySelectorAll("#nav button[data-t], #tabbar button[data-t]").forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.hw = null; S.mid = null; S.oid = null; S.evid = null; S.evf = null; S.evr = null; S.evBack = null; render(); });
+}
+// Změna vzhledu v ⚙️ přepíše i umístění záložek (nahoře / dole)
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") window.addEventListener("hk-skin", () => tabs());
 export function render(){if(onlyPl()){if(!plTabs().includes(S.tab))S.tab="home";S.mid=null}if(S.tab==="mk"&&!hasMine())S.tab="home";if(permOff(S.tab))S.tab="home";tabs();const a=$("#app");
 if(S.err){a.innerHTML=`<div class="msg">${esc(S.err)}</div>`;return}
 if(!S.ready){a.innerHTML='<div class="msg">Načítám…</div>';return}

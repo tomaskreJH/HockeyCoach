@@ -2,6 +2,18 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.41 (4. 11. 2026) – Menu dole jen s ikonami (vzhled Čistý)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.41“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v144`). 🔒 Vyžadovat verzi: ne. Test: kap. 44.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- Ve vzhledu **Čistý** jsou záložky v **dolní liště** a **jen jako obrysové ikony** (Domů, Události, Team, Statistiky, Soupeři, Moje platby); zvolená záložka má ikonu v barvě akcentu a linku nahoře. Text záložek zůstává pro čtečky obrazovky (`title`, `aria-label`).
+- Pruhy staré verze, náhledu role a bety zůstávají nahoře. Změna vzhledu v ⚙️ přesune záložky hned (událost `hk-skin`, `core/skin.js` → `views/shell.js`).
+- Ostatní vzhledy (Klasický, 🏟 Aréna, ❄️ Ledová aréna) mají záložky nahoře jako dřív; ikony i dolní lišta se v nich nezobrazují.
+
+**Beze změny:** veškerá funkčnost a ovládání (jen jiné umístění a podoba záložek), živý zápis a trénink (překryvná obrazovka je nad lištou), data, pravidla.
+
+**Ověřeno:** `npm test`, `npm run smoke`, vizuální kontrola lišty ve světlém i tmavém režimu na šířce telefonu.
+
 ## v22.40 (4. 11. 2026) – Vzhled Čistý
 > **Nasazení – kanál 🧪 BETA:** commit „v22.40“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v143`). 🔒 Vyžadovat verzi: ne. Test: kap. 43.
 
