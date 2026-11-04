@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.50 (4. 11. 2026) – 📅 Export událostí do kalendáře (.ics)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.50“ do větve **`beta`**. firestore.rules beze změny, data beze změny (nic se nezapisuje, soubor vzniká v zařízení). Cache `hokej-beta-v155`. 🔒 Vyžadovat verzi: ne. Test: kap. 51. Bez dalších nákladů (žádný server).
+
+**Přidáno** (zadání uživatele 4. 11. 2026: kalendář k uživatelům, soukromě, jen název a čas)
+- **📅 Do kalendáře** v detailu události (ℹ️ Podrobnosti) a **📅 Moje události do kalendáře (N)** pod seznamem Nadcházejících: stáhne se soubor `.ics` (události od dneška, na které je člen „Jdu“ nebo „Nejsem jistý“).
+- **Obsah:** jen název a čas (trénink začátek a konec, zápas začátek + 90 min), řádek „Sraz HH:MM“, `CLASS:PRIVATE`, připomínky 24 h a 2 h předem. Místo, poznámky, jména a důvody zrušení v souboru nejsou.
+- **Aktualizace:** stálé UID `id@hockeycoach`, `SEQUENCE` roste s každým exportem → opětovné otevření souboru událost přepíše; zrušená má `STATUS:CANCELLED` a „ZRUŠENO –“ v názvu. Čas je přepočtený z pražského času na UTC (bez VTIMEZONE, funguje v Outlooku M365, Google i Apple).
+- Nové `domain/ical.js` (čisté funkce, 14 testů v `tests/ical.test.js`), `views/calendar-export.js`; nápověda doplněna.
+**Příprava dalších kroků:** stejný generátor použije později automatický odběr kalendáře (ICS feed) a push notifikace – vyžadují plán Blaze a nová pravidla, nejdřív se schválí (viz `docs/plan.md`, kap. N).
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, docházka, databáze a pravidla.
+**Kouřový test opraven:** záložky ve vzhledu Čistý jsou v dolní liště `#tabbar`, test hledal jen `#nav` a od v22.47 klepal naprázdno (procházel kolem 20 obrazovek). Selektory doplněny o `#tabbar`, test teď projde 25 – 83 obrazovek na roli (včetně Událostí a detailu) a hlídá i 📅 tlačítka.
+**Ověřeno:** `npm test` 585 zelené, `npm run smoke` všechny role bez chyb.
+
 ## v22.49 (4. 11. 2026) – ✍️ Ruční zadání času ve stopkách
 > **Nasazení – kanál 🧪 BETA:** commit „v22.49“ do větve **`beta`**. firestore.rules beze změny, data beze změny (stejný tvar `trms`). Cache `hokej-beta-v154`. 🔒 Vyžadovat verzi: ne. Test: kap. 50.
 

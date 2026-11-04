@@ -13,6 +13,7 @@ import {attReqBanner, attReqModal, bindAttReqAdmin} from "./att-request-view.js"
 import {attHtml, bindAtt} from "./attendance.js";
 import {bindBudget, budgetHtml} from "./budget-view.js";
 import {bindCashbook, cashbookHtml} from "./cashbook.js";
+import {bindIcsMine, icsMineHtml} from "./calendar-export.js";
 import {bindCost, costHtml} from "./cost-view.js";
 import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, CSS, guest, isPl, MONTHS, pad, sheetHtml} from "./event-core.js";
 import {ensureTrainStatus, forgetTrainStatus} from "./event-badges.js";
@@ -87,7 +88,7 @@ ${attReqBanner()}
 ${head}
 ${chipsH}
 ${mode === "cal" ? calHtml(evs, today, AT) : ""}
-${mode === "att" ? attHtml() : shown.length ? shown.map(e => cardHtml(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}${more}</div>` + sheetHtml() + attReqModal();
+${mode === "att" ? attHtml() : shown.length ? shown.map(e => cardHtml(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}${more}${mode === "up" ? icsMineHtml(evs, AT) : ""}</div>` + sheetHtml() + attReqModal();
   // Eventy seznamu
   const nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");
   if (nt) nt.onclick = () => { S.evf = newTraining(today); render(); };
@@ -98,6 +99,7 @@ ${mode === "att" ? attHtml() : shown.length ? shown.map(e => cardHtml(e, AT, P))
   if (ob) ob.onclick = () => { S.evOld = true; render(); };
   bindBanner(a);
   bindAttReqAdmin(a);
+  bindIcsMine(a, evs, AT);                                            // 📅 Moje události do kalendáře (.ics), jen v Nadcházejících
   if (mode === "att") bindAtt(a);
   a.querySelectorAll("[data-cn]").forEach(b => b.onclick = () => { const c = S.evc; c.m += +b.dataset.cn; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } S.evd = null; render(); });
   a.querySelectorAll("[data-cd]").forEach(b => b.onclick = () => { S.evd = S.evd === b.dataset.cd ? null : b.dataset.cd; render(); });

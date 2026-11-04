@@ -41,12 +41,12 @@ async function start() {
 }
 // Všechny záložky podle lišty
 async function tabs() {
-  const keys = [...document.querySelectorAll("#nav button[data-t]")].map(b => b.dataset.t);
-  for (const k of keys) { await tap(`#nav button[data-t="${k}"]`, 250); snap("tab-" + k); }
+  const keys = [...document.querySelectorAll("#nav button[data-t], #tabbar button[data-t]")].map(b => b.dataset.t);
+  for (const k of keys) { await tap(`#nav button[data-t="${k}"], #tabbar button[data-t="${k}"]`, 250); snap("tab-" + k); }
 }
 // 🏠 Domů – ❔ Chybí odpověď (manager, trenér, asistent): rozbalit jména a 📲 Připomenout (bez sdílení a schránky = text k ručnímu zkopírování)
 async function homeMiss() {
-  await tap('#nav button[data-t="home"]', 250);
+  await tap('#nav button[data-t="home"], #tabbar button[data-t="home"]', 250);
   if (!(await tap("[data-hms]", 200))) return;
   snap("home-miss");
   if (await tap("[data-hrm]", 250)) snap("home-remind");
@@ -54,20 +54,20 @@ async function homeMiss() {
 // 📣 Zpráva od trenéra: okno při startu zavřít „Rozumím“, v Domů rozbalit kartu; trenéři otevřou a zruší úpravu
 async function coachMsg() {
   if (await tap("#cmpok", 250)) snap("coachmsg-popup");
-  await tap('#nav button[data-t="home"]', 250);
+  await tap('#nav button[data-t="home"], #tabbar button[data-t="home"]', 250);
   if (!(await tap("#cmth", 250))) return;
   snap("coachmsg-open");
   if (await tap("#cmed", 250)) { snap("coachmsg-edit"); await tap("#cmcx", 250); }
 }
 // 🏠 Domů – karta události s rychlými tlačítky: ✅ Jdu přímo z Domů, ❌ otevře okno s důvodem (klepnutí na důvod uloží)
 async function homeQuick() {
-  await tap('#nav button[data-t="home"]', 250);
+  await tap('#nav button[data-t="home"], #tabbar button[data-t="home"]', 250);
   if (await tap("#hmw [data-qa$=\"|yes\"]", 250)) snap("home-quick");
   if (await tap("#hmw [data-qa$=\"|no\"]", 250)) { snap("home-reason"); await tap('[data-rr="0"]', 250); }
 }
 // 📈 Statistiky → 🏒 Trénink: období, výběr cvičení a hráčky, zpět na Zápasy
 async function trainStats() {
-  if (!(await tap('#nav button[data-t="st"]', 250)) || !(await tap('[data-stv="t"]', 400))) return;
+  if (!(await tap('#nav button[data-t="st"], #tabbar button[data-t="st"]', 250)) || !(await tap('[data-stv="t"]', 400))) return;
   snap("stats-train");
   await tap('[data-tsd="30"]', 400);
   const p = $("#tsp");
@@ -91,7 +91,9 @@ async function help() {
 }
 // Události: rychlé tlačítko, detail tréninku s plánem, úprava plánu, živý trénink (▶ Teď)
 async function events() {
-  await tap('#nav button[data-t="ev"]', 250);
+  await tap('#nav button[data-t="ev"], #tabbar button[data-t="ev"]', 250);
+  // 📅 Moje události do kalendáře: hráčka p1 má v testovacích datech přihlášené nadcházející události (e1, m1) → blok pod seznamem
+  if (role === "hracka" && !$("#evicm")) throw new Error("📅 Moje události do kalendáře chybí pod seznamem Nadcházejících");
   // Minulé: řádek stavu 💰 vyúčtování / 🏒 tréninku (stav tréninků se načte jednorázově)
   if (await tap('[data-evm="past"]', 400)) { snap("ev-past"); if (await tap("#evold", 250)) snap("ev-past-old"); await tap('[data-evm="up"]', 250); }
   // 📉 Hráčka: vzdálenější budoucnost až tlačítkem (druhý poslech od dnes + 16 dní)
@@ -103,6 +105,7 @@ async function events() {
   if (await tap("#evnm", 250)) { snap("ev-match-new"); await tap("#cl", 200); }
   if (!(await tap('[data-eo="e1"]', 400))) return;
   snap("ev-e1");
+  if (!$("#evics")) throw new Error("📅 Do kalendáře chybí v detailu události");
   // ✅ Potvrdit dresy (trenér): hráčky pak dresy uvidí
   if (await tap("#lsok", 250)) snap("ev-e1-lok");
   // 👥 Docházka rozbalená (řádky bez 🕘 zápisu – seznam se neposouvá) a okno 🕘 Historie přihlášek s filtry a pohledem podle osob
@@ -213,7 +216,7 @@ async function events() {
 // Peníze: Team → 💰 Platby → ⚖️ Tarify (detail), 🔓 Výjimky a ☑ Hromadně (správce pokladny), Moje platby → 📅 Po měsících s 📊 docházkou (kdo má pid / tid)
 // v22.29 Zápas: uzavřený zápas → krok 3 s 📤 Souhrn zápasu (bez sdílení i schránky ukáže text k ručnímu zkopírování)
 async function matchShare() {
-  if (!(await tap('#nav button[data-t="ev"]', 250))) return;
+  if (!(await tap('#nav button[data-t="ev"], #tabbar button[data-t="ev"]', 250))) return;
   const {S} = await import("../../src/core/state.js"), {render} = await import("../../src/views/shell.js"), {HK} = await import("../../src/data/storage.js");
   if (!HK.can("sport") || !(S.ma || []).some(m => m.id === "m0")) return;   // detail zápasu jen realizační tým
   S.mid = "m0"; S.step = 3; render(); await wait(200);
@@ -227,8 +230,8 @@ async function matchShare() {
 }
 async function money() {
   // v22.32: manager přidá člena realizačního týmu rovnou s e-mailem a rolí
-  if (role === "manager" && await tap('#nav button[data-t="fo"]', 250) && !$("#stm")) throw new Error("👥 realizační tým: chybí e-mail a role u přidání (manager)");
-  if (await tap('#nav button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
+  if (role === "manager" && await tap('#nav button[data-t="fo"], #tabbar button[data-t="fo"]', 250) && !$("#stm")) throw new Error("👥 realizační tým: chybí e-mail a role u přidání (manager)");
+  if (await tap('#nav button[data-t="fo"], #tabbar button[data-t="fo"]', 250) && await tap('[data-tm="pay"]', 250)) {
     if (await tap('[data-fv="tf"]', 250)) {
       snap("pay-tariff");
       if (await tap("[data-ft]", 250)) snap("pay-tariff-detail");   // ⚖️ detail hráčky: měsíce, události, dopad na pokladnu
@@ -296,7 +299,7 @@ async function money() {
     }
     await tap('[data-tm="team"]', 200);
   }
-  if (await tap('#nav button[data-t="mk"]', 250) && await tap('[data-mkv="mon"]', 250)) {
+  if (await tap('#nav button[data-t="mk"], #tabbar button[data-t="mk"]', 250) && await tap('[data-mkv="mon"]', 250)) {
     snap("mine-months");
     await tap('[data-mkv="list"]', 150);
   }
@@ -305,7 +308,7 @@ async function money() {
 // 🔴 Živý zápis (v22.37): stojící čas = ▶ Buly naše / soupeř, buly spustí čas a zapíše log fo, ⏸ Přerušit zapíše log stop;
 // 🎯 trestné střílení (v22.38) přes 🚫 Trest
 async function liveMatch() {
-  await tap('#nav button[data-t="home"]', 250);
+  await tap('#nav button[data-t="home"], #tabbar button[data-t="home"]', 250);
   if (!(await tap("[data-hlv]", 400))) return;
   if (!$("#lv #lfu") || !$("#lv #lfo") || $("#lv #lpl")) throw new Error("🔴 stojící čas: chybí ▶ Buly naše / soupeř");
   if (!/buly 1:0/.test($("#lv .lsc").textContent)) throw new Error("🔴 lišta neukazuje počet buly");
@@ -348,7 +351,7 @@ try {
   await matchShare();
   await liveMatch();
   await money();
-  await tap('#nav button[data-t="home"]', 250);
+  await tap('#nav button[data-t="home"], #tabbar button[data-t="home"]', 250);
   snap("end");
 } catch (e) {
   globalThis.__smokeErr.push("scénář: " + (e && e.stack || e));

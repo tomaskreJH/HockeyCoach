@@ -454,3 +454,12 @@ Před testem **publikovat firestore.rules** (nová kolekce `coachmsg`).
 2. U jména pole „16,71“; zapsat čas a ✓ → pokus se uloží (řádek ukáže ⭐ nejlepší). Neplatné (0, text) → „Zadej platné číslo“.
 3. Zpět na ⏱ Jednotlivě: stopky fungují jako dřív, 🏃 Štafeta také.
 4. Statistiky → 🏒 Trénink → období 90 / 180 dní → ⏲ Výsledky měření: pořadí a nejlepší čas; po dalším měření ▲ / ▼ oproti vstupnímu.
+
+## 51. v22.50 (beta) – 📅 export do kalendáře
+Bez změny databáze, nic se neukládá.
+1. Detail události → ℹ️ Podrobnosti → **📅 Do kalendáře**: stáhne se soubor `.ics`; otevřít v kalendáři telefonu (Android) a v Outlooku na PC (M365) → událost má správný den a čas (trénink od – do, zápas začátek + 90 min), název, řádek „Sraz …“, **žádné místo ani poznámku**, je soukromá a má dvě připomínky (24 h a 2 h předem).
+2. 🏠 / Události → Nadcházející: úplně dole **📅 Moje události do kalendáře (N)**; N = počet nadcházejících, kde jsi ✅ Jdu nebo ❓ Nejsem jistý. Bez takových událostí blok není. Soubor se po otevření uloží všechny najednou.
+3. Změň čas události (✏️), stáhni soubor znovu a otevři → událost se v kalendáři **přepíše**, nevznikne duplicita (v Outlooku případně ověřit, zda se přepsala – nález zapsat).
+4. Zruš událost (❌) a stáhni znovu → v kalendáři „ZRUŠENO – …“ bez připomínek.
+5. Čas kolem změny času (přelom března a října): událost v kalendáři ve stejnou hodinu jako v aplikaci.
+6. Nález: čitelnost tlačítka a textu pod seznamem, název souboru, chování stahování na telefonu (otevře se kalendář, nebo jen uloží do Stažených?).
