@@ -1,6 +1,6 @@
 # HockeyCoach
 
-**Aktuální verze: v22.47 (4. 11. 2026, 🧪 beta)** – nálepky mott ve dvou řádcích, © kapitánka, Čistý jako výchozí vzhled; v22.46: motto jako nálepka „#číslo:“; v22.45: 💬 banka mott a pokřiků: náhodné motto týmu u příštího zápasu v Domů, vlastní motta v ⚙️ i v žádosti o přijetí, moderace trenérem (⚠️ nutné publikovat firestore.rules). Předchozí v22.44: příští zápas s odpočtem a sérií, odpočet přihlášení, dresy a kalendář ve vzhledu Čistý.
+**Aktuální verze: v22.48 (4. 11. 2026, 🧪 beta)** – „(C)“ u jmen kapitánky, spravedlivé nálepky do dvou řádků, zaoblené odpovědi na událost, 📣 zpráva od trenéra (⚠️ nutné publikovat firestore.rules); v22.47: nálepky mott ve dvou řádcích, © kapitánka, Čistý jako výchozí vzhled; v22.46: motto jako nálepka „#číslo:“; v22.45: 💬 banka mott a pokřiků: náhodné motto týmu u příštího zápasu v Domů, vlastní motta v ⚙️ i v žádosti o přijetí, moderace trenérem (⚠️ nutné publikovat firestore.rules). Předchozí v22.44: příští zápas s odpočtem a sérií, odpočet přihlášení, dresy a kalendář ve vzhledu Čistý.
 
 Aplikace pro managery, trenéry, asistenty a hráčky jednoho týmu: soupiska, formace, události a docházka, trénink (banka cvičení, plán, živý trénink, měření, hodnocení), pokladna a rozpočet, zápasy s živým zápisem, soupeři, statistiky.
 Běží v prohlížeči jako PWA (instalace na plochu, offline), bez vlastního serveru. Data ve Firebase (Firestore, bezplatný tarif Spark), přihlášení účtem Google. Uživatelský návod = nápověda ❓ v aplikaci.

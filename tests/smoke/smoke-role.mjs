@@ -51,6 +51,14 @@ async function homeMiss() {
   snap("home-miss");
   if (await tap("[data-hrm]", 250)) snap("home-remind");
 }
+// 📣 Zpráva od trenéra: okno při startu zavřít „Rozumím“, v Domů rozbalit kartu; trenéři otevřou a zruší úpravu
+async function coachMsg() {
+  if (await tap("#cmpok", 250)) snap("coachmsg-popup");
+  await tap('#nav button[data-t="home"]', 250);
+  if (!(await tap("#cmth", 250))) return;
+  snap("coachmsg-open");
+  if (await tap("#cmed", 250)) { snap("coachmsg-edit"); await tap("#cmcx", 250); }
+}
 // 🏠 Domů – karta události s rychlými tlačítky: ✅ Jdu přímo z Domů, ❌ otevře okno s důvodem (klepnutí na důvod uloží)
 async function homeQuick() {
   await tap('#nav button[data-t="home"]', 250);
@@ -330,6 +338,7 @@ async function liveMatch() {
 try {
   await start();
   await tabs();
+  await coachMsg();
   await homeMiss();
   await homeQuick();
   await trainStats();

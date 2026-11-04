@@ -43,6 +43,8 @@ const CSS = `<style>
 #evw .evq button.on-maybe{background:var(--wa);color:#fff;border-color:var(--wa)}
 #evw .evq button.evns{border-style:dashed}
 #evw .evq button.evns.on{background:var(--no);color:#fff;border-color:var(--no);border-style:solid}
+/* Zvolená odpověď má tvar nálepky (zaoblené rohy, spodní levý skoro pravoúhlý) – stejný jako motta u příštího zápasu */
+#evw .evq button[class^="on-"],#evw .evq button.evns.on{border-radius:12px 12px 12px 3px}
 #evw .evq button[disabled]{opacity:.4}
 #evw .evq .evqn{display:inline-block;min-width:20px;padding:0 6px;margin-left:2px;border-radius:9px;background:var(--bd);font-size:12px;line-height:18px}
 /* Počet odpovědí v tlačítku: u aktivní volby (zelená, červená, oranžová) bílá pilulka s tmavým textem – čitelné na všech barvách */

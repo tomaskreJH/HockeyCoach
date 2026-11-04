@@ -125,6 +125,8 @@
 :root[data-clean] #evw .evq button.on-no { background: color-mix(in srgb, var(--no) 14%, var(--cd)); color: var(--tx); border: 2px solid var(--no); }
 :root[data-clean] #evw .evq button.on-maybe { background: color-mix(in srgb, var(--wa) 14%, var(--cd)); color: var(--tx); border: 2px solid var(--wa); }
 :root[data-clean] #evw .evq button.evns.on { background: var(--no); color: var(--stx); }
+/* Zvolená odpověď má tvar nálepky: zaoblené rohy, spodní levý skoro pravoúhlý (jako motta u příštího zápasu) */
+:root[data-clean] #evw .evq button[class^="on-"], :root[data-clean] #evw .evq button.evns.on { border-radius: 12px 12px 12px 3px; }
 :root[data-clean] #evw .evq .evqn { border-radius: var(--rd); background: var(--a2); color: var(--tx); }
 :root[data-clean] #evw .evq button[class^="on-yes"] .evqn { background: var(--ok); color: var(--stx); }
 :root[data-clean] #evw .evq button[class^="on-no"] .evqn { background: var(--no); color: var(--stx); }

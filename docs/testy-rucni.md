@@ -439,3 +439,13 @@ Před testem **publikovat firestore.rules** (Firebase → Firestore → Pravidla
 8. (v22.47) ⚙️ → Vzhled: pořadí Čistý, Aréna, Ledová aréna, Klasický; na novém zařízení (bez volby) se otevře Čistý.
 9. Nález: čitelnost řádku s mottem ve všech vzhledech (Classic, Aréna, Ledová, Čistý), světlý i tmavý režim.
 
+## 49. v22.48 (beta) – (C), nálepky, zaoblení odpovědí, zpráva od trenéra
+Před testem **publikovat firestore.rules** (nová kolekce `coachmsg`).
+1. Hráčka s příznakem Kapitánka má všude za jménem **(C)** (Domů, událost, zápas, sestava, platby); v exportech CSV a auditu bez (C).
+2. Nálepky mott: nejdřív se vynechají ty, co se nevejdou do dvou řádků, text se zkrátí jen u jediné příliš dlouhé; pořadí střídá autory (nikdo není zvýhodněn, kromě kapitánky).
+3. Události: zvolené ✅ Jdu / ❌ Nejdu / ❓ má **pravoúhlý levý spodní roh** (i ve vzhledu Čistý).
+4. Trenér / asistent / manager: úplně dole v Domů **📣 Zadat zprávu týmu** → uložit. Z jiného účtu po novém spuštění okno **📣 Zpráva od trenéra** → Rozumím; po dalším spuštění už ne.
+5. V Domů dole sbalená karta (🆕 u nepřečtené); klepnutím rozbalit. Trenér: ✏️ Upravit (s volbou znovu ukázat), 🗑 smazat druhým klepnutím. Hráčka nemá tlačítka zadání.
+6. Zpráva zadaná za běhu aplikace okno nevyvolá (jen kartu).
+7. Nález: čitelnost okna, (C) ve všech výskytech.
+

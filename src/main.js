@@ -30,6 +30,8 @@ import {openSettings} from "./views/settings-view.js";
 import {openJoinWindow, refreshJoin} from "./views/join-view.js";
 import {refreshMotto} from "./views/motto-view.js";
 import {MOTTO_COLL} from "./domain/mottos.js";
+import {CMSG_COLL, CMSG_ID} from "./domain/coach-msg.js";
+import {cmsgSnap} from "./views/coach-msg-view.js";
 import {leaveLive} from "./views/live-events.js";
 import {liveTick} from "./views/live-view.js";
 import {render} from "./views/shell.js";
@@ -120,6 +122,9 @@ function teamData(db, ok) {
   db.collection("staff").onSnapshot(s => { R.tr = rows(s); joinTr(); upd(); refreshJoin(); }, erX("t"));
   // 💬 Banka mott a pokřiků (v22.45): čtou všichni členové týmu; chyba (nepublikovaná pravidla) jen vypne motto na kartě Příští zápas
   db.collection(MOTTO_COLL).onSnapshot(s => { S.mt = rows(s); render(); refreshMotto(); }, erP(MOTTO_COLL));
+  // 📣 Zpráva od trenéra (v22.48): jeden dokument, čtou všichni členové týmu; nová zpráva krátce po spuštění otevře okno (views/coach-msg-view.js),
+  // chyba (nepublikovaná pravidla) jen vypne zprávu
+  db.doc(CMSG_COLL + "/" + CMSG_ID).onSnapshot(s => { S.cm = s.exists ? s.data() : null; render(); cmsgSnap(); }, erP(CMSG_COLL));
   // Souhrn dlužníků bez částek: čtou všichni členové; chyba = nepublikovaná pravidla (Docházka pak ukáže upozornění, zbytek aplikace běží)
   db.collection("debtors").onSnapshot(s => { S.dt = rows(s); S.dtErr = null; render(); }, e => { S.dtErr = e.code || e.message; render(); });
   // Ceny uzavřených událostí na hlavu: všichni členové; chyba (nepublikovaná pravidla) jen vypne porovnání v Moje platby

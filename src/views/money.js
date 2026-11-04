@@ -74,7 +74,7 @@ function issueContrib(rows, cfg) {
 // Smazání nezaplaceného příspěvku (předpis + audit v jedné dávce)
 export function deleteContrib(x) {
   if (+x.paid > 0) { toast("Předpis má úhradu – nejdřív ji stornuj v 🏦 Pokladna"); return; }
-  const b = S.db.batch().delete("charges/" + x.id).set("audit/" + uid(), audit(x.eid, "contrib-del", nm(x.mid, {staff: true, fb: x.mid || ""}) + ": " + kc(+x.amt || 0)));
+  const b = S.db.batch().delete("charges/" + x.id).set("audit/" + uid(), audit(x.eid, "contrib-del", nm(x.mid, {staff: true, fb: x.mid || "", cap: false}) + ": " + kc(+x.amt || 0)));
   withDebtors(b, [], [x.id]).commit();
   toast("Příspěvek smazán");
 }
@@ -182,7 +182,7 @@ function exportCsv(kind) {
     if (kind === "ch") {
       const rows = [...S.ch].sort((a, b) => (a.due || "").localeCompare(b.due || ""));
       return {name: "predpisy", rows: [["Osoba", "Druh", "Událost / měsíc", "Částka", "Zaplaceno", "Zbývá", "Splatnost", "VS", "Účet", "Zpráva pro příjemce", "Výjimka z blokace"],
-        ...rows.map(x => [nm(x.mid, {staff: true, fb: x.mid || ""}), isContrib(x) ? "Příspěvek" : x.kind === "event" ? "Událost" : (x.kind || ""), plainEvent(x.eid), csvNum(+x.amt || 0), csvNum(Math.min(+x.paid || 0, +x.amt || 0)), csvNum(restOf(x)), (x.due || "").replace("T", " "), x.vs || "", accName(cfg, accOf(x, cfg)), chargeMsg(x, S), x.exc ? "ano" : ""])]};
+        ...rows.map(x => [nm(x.mid, {staff: true, fb: x.mid || "", cap: false}), isContrib(x) ? "Příspěvek" : x.kind === "event" ? "Událost" : (x.kind || ""), plainEvent(x.eid), csvNum(+x.amt || 0), csvNum(Math.min(+x.paid || 0, +x.amt || 0)), csvNum(restOf(x)), (x.due || "").replace("T", " "), x.vs || "", accName(cfg, accOf(x, cfg)), chargeMsg(x, S), x.exc ? "ano" : ""])]};
     }
     if (kind === "mon") return {name: "pokladna-mesice", rows: [["Měsíc", "Příjmy", "Výdaje", "Saldo", "Zůstatek"], ...monthRows(S.cs).map(r => [r.ym, csvNum(r.in), csvNum(r.out), csvNum(r.net), csvNum(r.bal)])]};
     const src = S.cs.filter(x => (x.k === "in" || x.k === "out" || x.k === TR) && (kind !== "cash-y" || String(x.d || "").startsWith(yr))).sort((a, b) => (a.d || "").localeCompare(b.d || ""));
@@ -196,7 +196,7 @@ function exportCsv(kind) {
     // Převod mezi účty: typ Převod, účet „z → na“, kladná částka
     const accTxt = x => (x.k === TR ? accName(cfg, trFrom(x)) + " → " + accName(cfg, trTo(x)) : accName(cfg, cashAcc(x, cfg)));
     return {name: kind === "cash-y" ? "pokladna-" + yr : "pokladna", rows: [["Datum", "Typ", "Částka", "Účet", "Kategorie", "Osoba", "Událost / měsíc", "VS", "Poznámka / zpráva", "Zapsal"],
-      ...src.map(x => [x.d || "", x.k === "in" ? "Příjem" : x.k === TR ? "Převod" : "Výdaj", csvNum((x.k === "out" ? -1 : 1) * (+x.amt || 0)), accTxt(x), x.cat || "", nm(x.mid, {staff: true, fb: x.mid || ""}), plainEvent(x.eid), x.vs || (chOf(x) || {}).vs || "", noteOf(x), x.by || ""])]};
+      ...src.map(x => [x.d || "", x.k === "in" ? "Příjem" : x.k === TR ? "Převod" : "Výdaj", csvNum((x.k === "out" ? -1 : 1) * (+x.amt || 0)), accTxt(x), x.cat || "", nm(x.mid, {staff: true, fb: x.mid || "", cap: false}), plainEvent(x.eid), x.vs || (chOf(x) || {}).vs || "", noteOf(x), x.by || ""])]};
   };
   const r = out(kind);
   downloadFile(r.name + "-" + stamp() + ".csv", csv(r.rows), "text/csv");

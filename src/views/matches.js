@@ -6,7 +6,7 @@
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, save, upd} from "../core/actions.js";
-import {PG, compactRot, goingOf, nm, nomOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
+import {PG, capName, compactRot, goingOf, nm, nomOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, dlText, esc, failMsg, fd, Q, shareText, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -26,7 +26,7 @@ import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
 
 // Text souhrnu zápasu ke sdílení (domain/match-share.js) se jmény hráček a názvem týmu
-const summaryOf=m=>matchSummary(m,{team:TEAM_NAME,name:id=>(pl(id)||{}).name||nm(id),fd});
+const summaryOf=m=>matchSummary(m,{team:TEAM_NAME,name:id=>capName(pl(id))||nm(id),fd});
 export function matches(a){if(S.mid){const m=S.ma.find(x=>x.id===S.mid);if(m){S.mt=0;return detail(a,m)}if(!S.mt)S.mt=Date.now();if(Date.now()-S.mt<4000){a.innerHTML='<div class="msg">Načítám zápas…</div>';setTimeout(render,500);return}S.mid=null;S.mt=0}
 const l=[...S.ma].sort((x,y)=>y.date.localeCompare(x.date));
 a.innerHTML=`<button class="p w" id="nw" style="margin-bottom:12px">+ Nový zápas</button><div class="cd">${l.length?l.map(m=>{const[g,o]=score(m);return`<div class="it" data-id="${m.id}"><div><b>${esc(m.opp)}</b><div class="mu">${fd(m.date)} · ${m.home?"doma":"venku"}</div></div><div><b style="font-size:20px">${m.closed?"🔒 ":""}${g}:${o}</b> <span class="tag ${g>o?"pp":g<o?"red":""}">${g>o?"V":g<o?"P":"R"}</span></div></div>`}).join(""):'<div class="msg">Žádné zápasy.</div>'}</div>`;

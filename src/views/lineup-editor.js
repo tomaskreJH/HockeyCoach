@@ -1,7 +1,7 @@
 // Editor sestavy zápasu: řady, náhradnice, výběr hráčky, přetahování.
 import {LN, POS, SL} from "../config/constants.js";
 import {save, upd} from "../core/actions.js";
-import {PG, compactRot, nomOf, pl, pn, pri, stOf} from "../core/selectors.js";
+import {PG, capName, compactRot, nomOf, pl, pn, pri, stOf} from "../core/selectors.js";
 import {makeDrag} from "../core/drag.js";
 import {S} from "../core/state.js";
 import {clone, esc, toast} from "../core/utils.js";
@@ -17,7 +17,7 @@ return h}
 export function bindLu(root,pre,get,onCh,pool){
 const sel=`[data-sl^="${pre}"]`,key=b=>b.dataset.sl.slice(pre.length);
 makeDrag(root,[...root.querySelectorAll(sel)],{target:sel,
-start:b=>{const id=get()[key(b)];return id?{data:key(b),text:(pl(id)||{}).name||"?"}:null},
+start:b=>{const id=get()[key(b)];return id?{data:key(b),text:capName(pl(id))||"?"}:null},
 drop:(from,b)=>{const to=key(b);if(to===from)return;const lu=get(),a=lu[from],c=lu[to];lu[to]=a;if(c)lu[from]=c;else delete lu[from];onCh(compactRot(lu))},
 click:b=>()=>{S.pickAll=false;S.pick={slot:key(b),get,onCh,pool};modal()}})}
 export function benchGrouped(m){const B=benchM(m);if(!B.length)return'<span class="mu">Žádné.</span>';let h="",last=-1;B.forEach(id=>{const k=pri(pl(id));if(k!==last){h+=`<div class="lnl" style="width:100%;margin:6px 0 0">${PG[k]}</div>`;last=k}h+=`<button class="chip bn" data-bn="${id}">${pn(id)} <small class="mu">${esc((pl(id).pos||"?")[0])}</small></button>`});return h}

@@ -468,6 +468,20 @@ service cloud.firestore {
       allow delete: if isTeam() && (ownsMid(resource.data.mid) || isStaff());
     }
 
+    // ===== Zpráva od trenéra coachmsg/current = {id, t, bn, by, at} (v22.48) =====
+    // Jeden dokument „current“ (nová zpráva nahradí starou). Čte každý člen týmu (kromě hostujících); zadat, upravit a smazat smí manager,
+    // trenér a asistent (isStaff). by = e-mail autora, bn = podpis (jméno trenéra), id = označení zprávy (nové id = členům se ukáže znovu okno).
+    function cmsgOk(d) {
+      return d.keys().hasOnly(['id', 't', 'bn', 'by', 'at']) && d.id is string && d.id.size() > 0 && d.id.size() <= 40
+        && d.t is string && d.t.size() > 0 && d.t.size() <= 600 && d.bn is string && d.bn.size() > 0 && d.bn.size() <= 60
+        && d.by == mail() && d.at is string;
+    }
+    match /coachmsg/{id} {
+      allow read: if isTeam();
+      allow create, update: if isStaff() && id == 'current' && cmsgOk(request.resource.data);
+      allow delete: if isStaff();
+    }
+
     // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====
     // Člen musí předpisy číst dotazem s podmínkou mid == jeho pid / tid (aplikace to dělá)
     match /charges/{id} {

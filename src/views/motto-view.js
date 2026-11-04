@@ -8,11 +8,13 @@ import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, failMsg, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {MOTTO_COLL, MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, orderMottos} from "../domain/mottos.js";
+import {MOTTO_COLL, MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, orderMottos, packStickers} from "../domain/mottos.js";
 
 // ===== Konstanty a stav =====
-const ranks = {};                         // náhodné pořadí mott (id → 0–1) – drží se do zavření aplikace, aby se při překreslení nemíchalo
+const ranks = {};                         // náhodné pořadí mott a autorek (klíč → 0–1) – drží se do zavření aplikace, aby se při překreslení nemíchalo
 let draft = "";                           // rozepsané motto v ⚙️
+const GAP = 8, PAD = 3, ROWS = 2;         // mezera mezi nálepkami, vnitřní okraj bloku (shoda s CSS .hmxm v home-view.js) a počet vyhrazených řádků
+let fitBound = false;                     // posluchač změny velikosti / písem je zapnutý jen jednou
 
 // ===== Pomocné funkce =====
 const mid = () => HK.pid() || HK.tid() || "";
@@ -20,15 +22,34 @@ const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCas
 const errTxt = e => (e && (e.code || e.message)) || String(e);
 
 // ===== Řádek na kartě =====
-// Nálepky se řadí: nejdřív aktuální motto kapitánky (© zlatě), pak ostatní v náhodném pořadí platném do zavření aplikace.
-// Vejdou se dva řádky, co se nevejde, CSS skryje (stejně vysoké nálepky, víc jich zobrazí kratší texty). Prázdná banka = prázdný řetězec.
+// Nálepky se řadí: nejdřív aktuální motto kapitánky (zlatě, s „(C)“), pak spravedlivě po autorkách (každá má stejnou šanci bez ohledu na počet mott),
+// pořadí platí do zavření aplikace. Do dvou vyhrazených řádků se vejde tolik nálepek, kolik dovolí délky textů (fitMottos); nejdřív se tedy
+// omezí počet nálepek a text se zkrátí „…“ až když se jedna nálepka nevejde ani do dvou řádků. Prázdná banka = prázdný řetězec.
 export function mottoLine() {
-  const o = orderMottos(S.mt, S.pl, id => (ranks[id] == null ? (ranks[id] = Math.random()) : ranks[id]));
+  const o = orderMottos(S.mt, S.pl, key => (ranks[key] == null ? (ranks[key] = Math.random()) : ranks[key]));
   if (!o.length) return "";
   return `<div class="hmxm">${o.map(({m, cap}, i) => {
-    const tag = mottoTag(m, S.pl, S.tr);
-    return `<span class="hmxk${cap ? " hmxc2" : ""}" style="transform:rotate(${i % 2 ? 1.2 : -1.2}deg)">${cap ? "© " : ""}${tag ? `<b>${esc(tag)}:</b> ` : ""}${esc(m.t)}</span>`;
+    const lab = (mottoTag(m, S.pl, S.tr) + (cap ? " (C)" : "")).trim();
+    return `<span class="hmxk${cap ? " hmxc2" : ""}" style="transform:rotate(${i % 2 ? 1.2 : -1.2}deg)">${lab ? `<b>${esc(lab)}:</b> ` : ""}${esc(m.t)}</span>`;
   }).join("")}</div>`;
+}
+// Rozmístění nálepek po vykreslení (volá home-view.js): změří, jak široká je každá nálepka na jednom řádku, a podle packStickers
+// nechá jen ty, které se vejdou do dvou řádků; příliš dlouhou první nálepku zalomí na dva řádky (třída hmxl). Bez rozměrů (skrytý blok, test)
+// zůstane jen ořez v CSS. Znovu se spustí při změně velikosti okna a po načtení písem (mění šířku textů).
+export function fitMottos(root) {
+  const boxes = [...(root || document).querySelectorAll(".hmxm")];
+  boxes.forEach(box => {
+    const items = [...box.querySelectorAll(".hmxk")], width = box.clientWidth - 2 * PAD;
+    if (!items.length || !(width > 0)) return;
+    items.forEach(el => { el.hidden = false; el.classList.remove("hmxl"); el.style.maxWidth = "none"; });   // přirozená šířka na jednom řádku
+    const plan = packStickers(items.map(el => el.offsetWidth), width, GAP, ROWS);
+    items.forEach((el, i) => { el.style.maxWidth = ""; el.hidden = plan[i] === ""; el.classList.toggle("hmxl", plan[i] === "L"); });
+  });
+  if (fitBound || typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+  fitBound = true;
+  let t = null;
+  window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => fitMottos(), 150); });
+  if (typeof document !== "undefined" && document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitMottos()).catch(() => {});
 }
 
 // ===== Sekce v ⚙️ =====

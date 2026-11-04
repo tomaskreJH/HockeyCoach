@@ -6,7 +6,7 @@
 // ===== Importy =====
 import {REA, ULAB} from "../config/constants.js";
 import {upd} from "../core/actions.js";
-import {curM, liveIds, pl} from "../core/selectors.js";
+import {capName, curM, liveIds, pl} from "../core/selectors.js";
 import {makeDrag} from "../core/drag.js";
 import {S} from "../core/state.js";
 import {Q, clone, mmss, toast} from "../core/utils.js";
@@ -28,7 +28,7 @@ else S.M={k:"P",team:"us",...base,min:2,reason:REA[0],pid:null};modal()}
 function subFb(p,c){const m=curM(),L=m&&m.live;const full=!!L&&!L.ice[c]&&skCount(L)>=sk(L,"us",el_(L));doSub(p,c);if(L)feedback(full?"err":"tap",full?null:`[data-ice="${c}"]`)}
 // Přetahování hráčky z fronty na místo na ledě; klepnutí = střídání na její místo
 function lvDrag(root){makeDrag(root,[...root.querySelectorAll("[data-q]")],{target:"[data-ice]",
-start:b=>({data:b.dataset.q,text:(pl(b.dataset.q)||{}).name||""}),
+start:b=>({data:b.dataset.q,text:capName(pl(b.dataset.q))}),
 drop:(p,b)=>subFb(p,b.dataset.ice),
 click:b=>()=>subFb(b.dataset.q,b.dataset.col)})}
 

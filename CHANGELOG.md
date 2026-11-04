@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.48 (4. 11. 2026) – (C) u kapitánky, spravedlivé nálepky, zaoblené odpovědi, 📣 zpráva od trenéra
+> **Nasazení – kanál 🧪 BETA:** commit „v22.48“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `coachmsg`, dokument `current`) – bez publikace zprávu nejde uložit, zbytek běží. Data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v153`). 🔒 Vyžadovat verzi: ne. Test: kap. 49.
+
+**Změněno / přidáno** (zadání uživatele 4. 11. 2026)
+- **(C):** kapitánka má za přezdívkou „ (C)“ ve všech zobrazeních jména (`capName`, `pn`, `nm`). Záměrně bez (C): export CSV, poznámky auditu a texty ukládané do databáze (⚠️ SAHÁ NA PLATBY: `views/money.js` jen `cap:false` u tří volání `nm`, logika plateb beze změny).
+- **Nálepky:** `packStickers` – vejdou se dva řádky podle priority, co se nevejde, se skryje; zkrátí se jen první příliš dlouhá. `orderMottos` střídá autory po kolech, zvýhodněna je jen kapitánka.
+- **Odpovědi na událost:** zvolená odpověď má zaoblení jako nálepka (pravoúhlý levý spodní roh), i ve vzhledu Čistý.
+- **📣 Zpráva od trenéra:** manager, trenér, asistent zadají (podpis automaticky); okno při startu (do 30 s od spuštění) jednou na zařízení, potom sbalená karta úplně dole v Domů. Nové `domain/coach-msg.js`, `views/coach-msg-view.js`; kolekce `coachmsg` mimo zálohu.
+- **firestore.rules:** `coachmsg/{id}` – čte člen týmu, zapisuje isStaff jen `current` s kontrolou tvaru (`cmsgOk`).
+
+**Beze změny:** živý zápis, střely, góly, časomíra, logika pokladny.
+**Ověřeno:** `npm test` 571 + nové testy zelené, `npm run smoke` všechny role bez chyb.
+
 ## v22.47 (4. 11. 2026) – Čitelné nálepky ve dvou řádcích, kapitánka, Čistý jako výchozí vzhled
 > **Nasazení – kanál 🧪 BETA:** commit „v22.47“ do větve **`beta`**. firestore.rules beze změny (kapitánka = pole `cap` v `players`, zapisuje ho trenér stávajícím právem), data: nové volitelné pole `cap`. Cache `hokej-beta-v152`. 🔒 Vyžadovat verzi: ne.
 

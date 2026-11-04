@@ -2,7 +2,8 @@
 // pod ním „Za N dní“ nebo živý odpočet pod 24 hodin a série se soupeřem v sezóně – motivace chodit na tréninky, klepnutí otevře událost;
 // bez naplánovaného zápasu se nic neukáže) a pod ním události příštích 7 dní (tréninky i zápasy) jako karty z Událostí
 // (event-core.js – cardHtml) s rychlými tlačítky ✅ ❌ ❓ (přihlášení bez dalších kliků),
-// u správce pokladny souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js).
+// u správce pokladny souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js), úplně dole pod pokladnou
+// 📣 zpráva od trenéra (coach-msg-view.js; jako okno se ukáže při startu jednou, pak zůstane sbalená v této kartě).
 // Manager / trenér / asistent: pruh ❔ Chybí odpověď u nejbližší otevřené události – jména a 📲 Připomenout (domain/home-remind.js).
 // Běžící zápas: sport rovnou do živého zápisu, ostatní 👁 náhled (live-watch.js). Výpočty domain/home-summary.js.
 // ===== Importy =====
@@ -22,9 +23,10 @@ import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
 import {cdHtml} from "./countdown-tick.js";
 import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, CSS as EV_CSS, isPl, sheetHtml, shortDay} from "./event-core.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
+import {bindCmsg, cmsgCard} from "./coach-msg-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
 import {bindMoneyWait, econData} from "./payments.js";
-import {mottoLine} from "./motto-view.js";
+import {fitMottos, mottoLine} from "./motto-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -48,6 +50,8 @@ const CSS = `<style>
 #hmw .hmxm{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;padding:3px;box-sizing:border-box;max-height:86px;overflow:hidden}
 #hmw .hmxk{flex:none;box-sizing:border-box;height:36px;max-width:100%;padding:0 12px;border-radius:12px 12px 12px 3px;background:var(--ac);color:var(--ink);border:3px solid var(--cd);outline:1px solid var(--bd);font-weight:600;font-size:15px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hmw .hmxk b{font-family:var(--fh);font-weight:700}
+/* Příliš dlouhé motto (první nálepka): text se zalomí na dva řádky, zkrátí se „…“ až za druhým řádkem (rozmístění: fitMottos v motto-view.js) */
+#hmw .hmxl{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;width:100%;height:auto;min-height:36px;max-height:80px;padding:5px 12px;line-height:21px;white-space:normal;overflow:hidden;text-overflow:clip}
 #hmw .hmxc2{background:#e0b13a;color:#14181d}
 </style>`;
 let missOpen = null;                                                  // id události s rozbaleným seznamem ❔ Chybí odpověď
@@ -170,8 +174,10 @@ export function homeView(a) {
   const team = !HK.can("money") ? "" : HK.money.ok() ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : teamLiteHtml(teamPayLite(S.dt, S.rq, now));
   // ❔ Chybí odpověď jen pro sport (manager, trenér, asistent) – nejbližší událost s otevřeným přihlašováním
   const ne = HK.can("sport") ? nearestOpen(week) : null, M = ne ? {e: ne, miss: missingAnswers(S.pl, S.at, ne.id)} : null;
-  a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextCard}${weekHtml(cards, S.evp ? unanswered(week) : 0)}${absCardHtml()}${team}</div></div>${sheetHtml()}${absModal()}`;
+  a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextCard}${weekHtml(cards, S.evp ? unanswered(week) : 0)}${absCardHtml()}${team}${cmsgCard()}</div></div>${sheetHtml()}${absModal()}`;
   bind(a, L, M);
   bindAbs(a);
   bindMoneyWait(a);
+  bindCmsg(a);
+  fitMottos(a);                                                        // nálepky mott do dvou řádků (po vykreslení, kdy jsou známé šířky)
 }

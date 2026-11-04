@@ -6,7 +6,7 @@
 // ===== Importy =====
 import {COLS, LAYOUT, ULAB} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
-import {baseKey, curM, nomOf, pl, pn, score, shots, slotIds, slotKey} from "../core/selectors.js";
+import {baseKey, capName, curM, nomOf, pl, pn, score, shots, slotIds, slotKey} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, cd, esc, mmss, toast} from "../core/utils.js";
 import {act, el_, ela, logEv, migrate, perMs, periodEndPlan, procExp, shiftMax, sk, skCount} from "../domain/live-engine.js";
@@ -55,14 +55,14 @@ COLS.filter(c=>!shown.includes(c)).forEach(hc=>{const t=(HM[hc]||["C"]).find(x=>
 //    → dole partnerky hráček na ledě; 5) průběh s řádkem upozornění nahoře (jen když nějaké je).
 const tag=`<span class="tag ${us>op?"pp":op>us?"sh":""} lsit">${sit}</span>`,
 // Štítek trestu (kompaktní): naše hráčka číslem (bez čísla jménem), soupeř „Soup.“, odpočet / délka a ✕
-pnum=id=>{const p=pl(id);return p?(p.num?"#"+esc(p.num):esc(p.name)):"?"},
+pnum=id=>{const p=pl(id);return p?(p.num?"#"+esc(p.num):esc(capName(p))):"?"},
 pchips=(L.pen||[]).map(x=>{const tl={min:"2'",maj:"5'",mis:"10'",gm:"DK"}[x.ty],t=x.ty==="gm"?tl:x.end!=null?`<b data-bx="${x.end}">${cd(x.end-now)}</b>`:`čeká ${mmss(x.rem)}`;return`<span class="lchip pen" title="${x.t==="us"?esc((pl(x.p)||{}).name||""):"Soupeř"}">🚫 ${x.t==="us"?pnum(x.p):"Soup."} ${t}<button data-pcx="${x.id}" aria-label="Zrušit trest" title="Zrušit trest">✕</button></span>`}).join(""),
 // Nabídka jednotky při nerovnosti bez režimu PP/OS nebo s jednotkou jiné skupiny; jednotka z minulé nerovnosti → ↩ Řady
 uchips=(grp&&(!uv||!grp.includes(L.unit))?`<button class="lchip ub ${us>op?"pp":"sh"}" data-uask="1">${us>op?"⚡ PP":"🛡 OS"}</button>`:"")+(L.unit&&!uv?`<button class="lchip ub" data-lines="1">↩ Řady</button>`:""),
 chips=pchips+uchips;
 let h=`<div class="lt lt-b"><div class="lt-r1"><div class="lt-left"><div class="lper" id="lchips"><small>${L.per<4?L.per+". třetina":"Prodloužení"}</small>${tag}${chips}</div><div style="display:flex;align-items:center;gap:10px"><button id="tm5" aria-label="Posunout čas o 5 s zpět" title="O 5 s zpět" class="lnud">◀</button><b id="lclk">${cd(perMs(L)-ela(L,now))}</b><button id="tp5" aria-label="Posunout čas o 5 s dopředu" title="O 5 s dopředu" class="lnud">▶</button></div></div><div class="lsc">${g}:${o}<small>střely ${sh.us}:${sh.opp}${fl.n?` · buly ${fl.us}:${fl.opp}`:""}</small></div></div></div>`;
 // Pomocné pro dlaždice: pětka hráčky (barva), číslo, jméno
-const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc((pl(id)||{}).name||"?");
+const lineOf=id=>{const k=Object.keys(m.lineup||{}).find(k=>m.lineup[k]===id&&/^\d/.test(k));return k?+k[0]:0},numOf=id=>((pl(id)||{}).num)||"–",nmOf=id=>esc(capName(pl(id))||"?");
 const firstUp=new Set(shown.map(c=>dq[c][0]).filter(Boolean)),waiting=new Set(COLS.flatMap(c=>dq[c]||[])),lastShift=(L.sh||[]).slice(-1)[0],playerState=id=>`live-player${onIce.has(id)?" on-ice":""}${firstUp.has(id)?" next":""}${lastShift&&lastShift.p===id&&waiting.has(id)?" just-off":""}`;
 // 2) Hřiště: obdélník v barvě ledu – nahoře střela soupeře, tlustá červená středová čára, pod ní hráčky na ledě
 h+=`<div class="lrink"><button class="lgk${run?"":" dd"}" id="lgk">🥅 STŘELA NA NAŠI BRÁNU<br><small style="font-weight:400">${L.G?pn(L.G):"brankářka?"} · střely soupeře: ${sh.opp}${run?"":" · hra je přerušena"}</small></button><div class="ldiv" aria-hidden="true"></div>`;

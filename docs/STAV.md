@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální v betě:** v22.47 (4. 11. 2026) – nálepky ve dvou řádcích, © kapitánka (`players.cap`), výchozí vzhled Čistý; v22.46 (4. 11. 2026) – motto jako nálepka s „#číslo:“; v22.45 (4. 11. 2026) – 💬 banka mott a pokřiků (`mottos`, `domain/mottos.js`, `views/motto-view.js`); **firestore.rules publikovat ručně**. Předchozí: v22.44 (příští zápas, odpočet přihlášení, vzhled Čistý).
+- **Aktuální v betě:** v22.48 (4. 11. 2026) – (C) u jmen kapitánky, spravedlivé pořadí a výběr mott do dvou řádků, zaoblení odpovědí na událost, 📣 zpráva od trenéra (`coachmsg`, `domain/coach-msg.js`, `views/coach-msg-view.js`); **firestore.rules publikovat ručně**; v22.47 (4. 11. 2026) – nálepky ve dvou řádcích, © kapitánka (`players.cap`), výchozí vzhled Čistý; v22.46 (4. 11. 2026) – motto jako nálepka s „#číslo:“; v22.45 (4. 11. 2026) – 💬 banka mott a pokřiků (`mottos`, `domain/mottos.js`, `views/motto-view.js`); **firestore.rules publikovat ručně**. Předchozí: v22.44 (příští zápas, odpočet přihlášení, vzhled Čistý).
 - **Stabilní (`main`):** v22.25 (PR #4 – podle uživatele 31. 10. 2026). v22.26 a novější jen v betě.
-- **Další číslo:** v22.48 (cache `hokej-v153`), opravy v22.45.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Další číslo:** v22.49 (cache `hokej-v154`), opravy v22.45.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
 - **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Po každém vydání (PR) upravit řádek Stabilní.
 - **Pravidla databáze:** **v22.35 – publikovat** (`tract`, `budgetKeep`, `treval` + `isStaff`; obsahuje i blok `seen` z v22.25). Stabilní verze nová pravidla snese (jen přidaná kolekce a zúžení, které stabilní nepoužívá).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a novější nevyžadují. V betě se nenastavuje.
