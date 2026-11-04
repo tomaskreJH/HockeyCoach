@@ -400,3 +400,4 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 4. Náhled role a pruh bety (🧪) jsou nahoře, ne dole. Přepnout vzhled na Klasický / 🏟 Aréna / ❄️ Ledová aréna: záložky se hned vrátí nahoře s textem.
 5. Nález: srozumitelnost ikon (které poznáš hůř), velikost lišty.
 
+6. (v22.41.1) Čerstvě spustit aplikaci (pokladník / manager), otevřít **Moje platby** a **Team → Pokladna**: po „⏳ Načítám pokladnu…“ se obsah zobrazí sám, bez přepnutí záložky.

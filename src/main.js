@@ -153,7 +153,9 @@ function staffData(db) {
 function moneyFull(db) {
   const ec = e => { S.payErr = e.code || e.message; render(); };
   return new Promise(res => {
-    const done = new Set(), got = c => { done.add(c); if (!moneyLeft([...done]).length) { res(); render(); } };
+    // Po splnění slibu se stav pokladny přepne na „načteno“ až v dalším kroku (data/storage.js moneyLoad) – překreslení proto o chvilku později,
+    // jinak by pohled zůstal na „⏳ Načítám pokladnu…“, dokud uživatel nepřepne záložku
+    const done = new Set(), got = c => { done.add(c); if (!moneyLeft([...done]).length) { res(); setTimeout(render, 0); } };
     db.collection("charges").onSnapshot(s => { S.ch = rows(s); S.payErr = null; got("charges"); render(); }, e => { ec(e); got("charges"); });
     db.collection("cash").onSnapshot(s => { S.cs = rows(s); got("cash"); render(); }, e => { ec(e); got("cash"); });
   });

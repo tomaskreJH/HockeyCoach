@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.41.1 (4. 11. 2026) – Oprava: „Načítám pokladnu…“ už nezůstane viset
+> **Nasazení – kanál 🧪 BETA:** commit „v22.41.1“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v145`). 🔒 Vyžadovat verzi: ne. Test: kap. 44, bod 6.
+
+**Opraveno** (nález uživatele 4. 11. 2026)
+- Moje platby, Platby a pokladna u události (📉 pokladna na vyžádání) zůstaly po otevření na „⏳ Načítám pokladnu…“, dokud uživatel nepřepnul záložku. Příčina: po načtení obou kolekcí se obrazovka překreslila o krok dřív, než se stav pokladny přepnul na „načteno“. Překreslení teď běží až poté (`src/main.js`, `moneyFull`); načítání, čtení z databáze ani data se nemění.
+
+**Beze změny:** vše ostatní (jen pořadí kroků po načtení), ⚠️ SAHÁ NA PLATBY jen zobrazením načítání – výpočty a zápisy plateb beze změny.
+
+**Ověřeno:** `npm test`, `npm run smoke`; ruční test v betě (Moje platby a Team → Pokladna po čerstvém spuštění).
+
 ## v22.41 (4. 11. 2026) – Menu dole jen s ikonami (vzhled Čistý)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.41“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v144`). 🔒 Vyžadovat verzi: ne. Test: kap. 44.
 
