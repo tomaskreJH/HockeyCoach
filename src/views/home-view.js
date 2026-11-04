@@ -24,6 +24,7 @@ import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, CSS as EV_CSS, 
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
 import {bindMoneyWait, econData} from "./payments.js";
+import {mottoLine} from "./motto-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -44,6 +45,7 @@ const CSS = `<style>
 #hmw .hmxh{margin:-14px -14px 8px;padding:9px 14px;background:var(--a2);border-bottom:1px solid var(--bd);border-radius:11px 11px 0 0;font-size:17px}
 #hmw .hmxc{font-size:32px;font-weight:800;line-height:1.1;color:var(--ac);font-variant-numeric:tabular-nums}
 #hmw .hmxs{margin-top:4px}
+#hmw .hmxm{margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd);font-style:italic;font-size:16px;line-height:1.35}
 </style>`;
 let missOpen = null;                                                  // id události s rozbaleným seznamem ❔ Chybí odpověď
 let missTxt = "";                                                     // text připomínky k ručnímu zkopírování (bez sdílení i schránky)
@@ -91,7 +93,7 @@ function nextHtml(m, x) {
   const c = matchCountdown(m, td()), r = seriesVs(S.ma, m.opp, m.date);
   const names = m.home ? esc(TEAM_NAME) + " – " + esc(m.opp) : esc(m.opp) + " – " + esc(TEAM_NAME);
   const ser = r.n ? `Série v sezóně: <b>${r.w}</b> V${r.d ? ` · <b>${r.d}</b> R` : ""} · <b>${r.l}</b> P` : "Se soupeřem v sezóně zatím bez zápasu";
-  return `<div class="cd hmc hmx" data-eo="${esc(m.id)}"><div class="hmxh"><b>🆚 ${esc(shortDay(m.date))} · ${names}</b></div><div class="hmxc">${c.live ? cdHtml(c.at, "clock") : esc(c.text)}</div><div class="mu hmxs">${ser}</div></div>`;
+  return `<div class="cd hmc hmx" data-eo="${esc(m.id)}"><div class="hmxh"><b>🆚 ${esc(shortDay(m.date))} · ${names}</b></div><div class="hmxc">${c.live ? cdHtml(c.at, "clock") : esc(c.text)}</div><div class="mu hmxs">${ser}</div>${mottoLine()}</div>`;
 }
 // ❔ Chybí odpověď (manager / trenér / asistent): nejbližší otevřená událost s hráčkami bez odpovědi; rozbalené = jména a 📲 Připomenout
 function missHtml(e, miss) {

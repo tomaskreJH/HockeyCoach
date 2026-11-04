@@ -426,3 +426,13 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 5. Události → **Kalendář**: moderní vzhled, dnešek a vybraný den v barvě akcentu, **dny s mým „Jdu“ zelený přechod**. Pod kalendářem jsou události **od dneška dál**, dřívější dny měsíce až dole; klepnutí na den zúží seznam.
 6. Záhlaví vzhledu Čistý: **STŘELY** šikmým hranatým písmem (Ř správně); porovnat s logem HC Střelci.
 7. Nález: čitelnost, výraznost zeleného přechodu v kalendáři, písmo (případně jiné tučnější).
+
+## 48. v22.45 (beta) – Motta a pokřiky
+Před testem **publikovat firestore.rules** (Firebase → Firestore → Pravidla).
+1. ⚙️ → **💬 Motta a pokřiky** (každý člen týmu): napsat motto („Holky, jedeeeem!“) → ➕ Přidat; objeví se v seznamu. Šesté se nepřidá (hláška o max 5), prázdné ani přes 80 znaků také ne.
+2. 🏠 Domů s naplánovaným zápasem: pod sérií **„motto“ – podpis**. Z jiného účtu se po novém spuštění ukáže (náhodně) některé motto týmu. Bez mott žádný řádek.
+3. Trenér / asistent: ⚙️ → 💬 → **Moderace týmu**: 🙈 Skrýt → motto zmizí z karty; autor ho v seznamu vidí jako „skryto trenérem“ a nemůže ho smazat ani upravit; 👁 Zobrazit vrátí. 🗑 smaže druhým klepnutím.
+4. Hráčka nesmí skrýt ani smazat cizí motto (zkusit přes konzoli → zamítnuto pravidly); host motta nevidí.
+5. Nový účet bez členství: formulář ✋ Žádost má pole **Moje motto**; manager žádost přijme → motto se založí u nové hráčky (⚙️ → 💬 ji vidí v moderaci, podpis = její jméno).
+6. Nález: čitelnost řádku s mottem ve všech vzhledech (Classic, Aréna, Ledová, Čistý), světlý i tmavý režim.
+

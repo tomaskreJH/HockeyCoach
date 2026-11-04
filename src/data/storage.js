@@ -13,6 +13,7 @@ import {BUDGET_COLL} from "../domain/budget.js";
 import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom, winTo} from "../domain/data-window.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
+import {MOTTO_COLL} from "../domain/mottos.js";
 import {BETA_DOC, canUseBeta, isTester} from "../domain/beta.js";
 import {DRILLIMG_COLL, DRILL_COLL} from "../domain/drills.js";
 import {wipePlan} from "../domain/event-cancel.js";
@@ -76,7 +77,8 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // joinreq = žádosti o přijetí do týmu (čte jen manager a uchazeč; výsledek je v members, soupisce a auditu),
 // evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta),
 // trlive = společné hodiny ⏱ živého tréninku (průběžný stav, poslech jen u otevřeného tréninku)
-const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL];
+// mottos = 💬 banka mott a pokřiků (domain/mottos.js; čtou všichni členové týmu, v záloze není)
+const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL, MOTTO_COLL];
 // Kolekce Tréninku, které se v zařízení nečtou celé (plán, ⏲ výsledky měření a ⭐ hodnocení jen u otevřeného tréninku, obrázky cvičení, šablony plánu a ⭐ výkonnost na vyžádání):
 // do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
 const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL, TREVAL_COLL, TRACT_COLL];

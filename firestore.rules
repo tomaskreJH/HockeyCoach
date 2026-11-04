@@ -435,11 +435,12 @@ service cloud.firestore {
     // (zamítnutí, odebraný přístup) smí poslat novou žádost nejdřív 24 h po vyřízení (doneMs). Čte vlastník a manager;
     // vyřizuje (st, reply, doneBy, doneMs, pid / tid) a maže manager, uchazeč smí smazat (zrušit) jen otevřenou žádost.
     function joinForm(email, d) {
-      return d.keys().hasOnly(['email', 'nick', 'num', 'kind', 'note', 'st', 'at'])
+      return d.keys().hasOnly(['email', 'nick', 'num', 'kind', 'note', 'st', 'at', 'motto'])
         && d.email == email && d.st == 'open' && d.at is string
         && d.nick is string && d.nick.size() > 0 && d.nick.size() <= 40
         && d.num is string && d.num.matches('^([1-9][0-9]?)?$')
-        && d.kind in ['hracka', 'staff'] && d.note is string && d.note.size() <= 300;
+        && d.kind in ['hracka', 'staff'] && d.note is string && d.note.size() <= 300
+        && d.get('motto', '') is string && d.get('motto', '').size() <= 80;
     }
     function joinOwner(email) { return signedIn() && email == mail() && !isMember(); }
     match /joinreq/{email} {
@@ -448,6 +449,23 @@ service cloud.firestore {
       allow update: if isMgr() || (joinOwner(email) && resource.data.st in ['no', 'ok']
         && request.time.toMillis() > resource.data.get('doneMs', 0) + 86400000 && joinForm(email, request.resource.data));
       allow delete: if isMgr() || (signedIn() && email == mail() && resource.data.st == 'open');
+    }
+
+    // ===== Banka mott a pokřiků mottos/{id} = {t, mid, by, at, off?} (v22.45) =====
+    // Čte každý člen týmu (kromě hostujících). Zakládá člen sám za sebe (mid = jeho pid / tid, by = jeho e-mail) a manager při přijetí
+    // žádosti (motto z formuláře); autor smí upravit a smazat své (jen dokud ho trenér neskryl). Trenér (sport) smí jen skrýt / zobrazit (pole off) a smazat.
+    // Počet nejvýš 5 na osobu hlídá aplikace (pravidla počty nepočítají).
+    function mottoOk(d) {
+      return d.keys().hasOnly(['t', 'mid', 'by', 'at']) && d.t is string && d.t.size() > 0 && d.t.size() <= 80
+        && d.mid is string && d.by == mail() && d.at is string;
+    }
+    match /mottos/{id} {
+      allow read: if isTeam();
+      allow create: if isTeam() && mottoOk(request.resource.data) && (isMgr() || ownsMid(request.resource.data.mid));
+      allow update: if isTeam() && ((ownsMid(resource.data.mid) && !resource.data.get('off', false) && mottoOk(request.resource.data)
+          && request.resource.data.mid == resource.data.mid)
+        || (isStaff() && chKeys().hasOnly(['off']) && request.resource.data.off is bool));
+      allow delete: if isTeam() && (ownsMid(resource.data.mid) || isStaff());
     }
 
     // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====

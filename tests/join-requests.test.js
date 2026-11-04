@@ -27,8 +27,8 @@ test("joinCheck: přezdívka povinná, číslo 1–99 nebo prázdné, druh, pozn
   assert.equal(joinCheck({nick: "A", kind: "host"}).ok, false);
   assert.equal(joinCheck({nick: "A", kind: "staff", note: "x".repeat(301)}).ok, false);
   assert.equal(joinCheck({nick: "x".repeat(41), kind: "staff"}).ok, false);
-  assert.deepEqual(joinCheck({nick: " Kačka ", num: " 9 ", kind: "hracka", note: " ahoj "}), {ok: true, d: {nick: "Kačka", num: "9", kind: "hracka", note: "ahoj"}});
-  assert.deepEqual(joinCheck({nick: "Jan", kind: "staff"}).d, {nick: "Jan", num: "", kind: "staff", note: ""});
+  assert.deepEqual(joinCheck({nick: " Kačka ", num: " 9 ", kind: "hracka", note: " ahoj "}), {ok: true, d: {nick: "Kačka", num: "9", kind: "hracka", note: "ahoj", motto: ""}});
+  assert.deepEqual(joinCheck({nick: "Jan", kind: "staff"}).d, {nick: "Jan", num: "", kind: "staff", note: "", motto: ""});
 });
 test("joinDoc: jen pole formuláře, e-mail malými písmeny, st open", () => {
   const d = joinDoc("Kacka@X.cz", {nick: "Kačka", num: "12", kind: "hracka", note: ""}, "T");
@@ -100,9 +100,18 @@ test("pravidla joinreq: založení jen vlastní e-mail bez členství, čte vlas
   const i = rules.indexOf("match /joinreq/{email}"), blk = rules.slice(i, rules.indexOf("\n    }", i) + 6);
   assert.ok(i > 0, "pravidlo pro joinreq");
   assert.match(rules, /function joinOwner\(email\) \{ return signedIn\(\) && email == mail\(\) && !isMember\(\); \}/);
-  assert.match(rules, /d\.keys\(\)\.hasOnly\(\['email', 'nick', 'num', 'kind', 'note', 'st', 'at'\]\)\s+&& d\.email == email && d\.st == 'open'/);
+  assert.match(rules, /d\.keys\(\)\.hasOnly\(\['email', 'nick', 'num', 'kind', 'note', 'st', 'at', 'motto'\]\)\s+&& d\.email == email && d\.st == 'open'/);
   assert.match(blk, /allow read: if signedIn\(\) && \(email == mail\(\) \|\| isMgr\(\)\);/);
   assert.match(blk, /allow create: if joinOwner\(email\) && joinForm\(email, request\.resource\.data\);/);
   assert.match(blk, /86400000/);
   assert.match(blk, /allow delete: if isMgr\(\) \|\| \(signedIn\(\) && email == mail\(\) && resource\.data\.st == 'open'\);/);
+});
+
+test("motto v žádosti: joinDoc ho přidá jen vyplněné, joinCheck hlídá délku, přijetí založí motto s pid", () => {
+  const d = joinDoc("a@x.cz", {nick: "A", num: "", kind: "hracka", note: "", motto: "Jedeeem"}, "T");
+  assert.equal(d.motto, "Jedeeem");
+  assert.equal("motto" in joinDoc("a@x.cz", {nick: "A", num: "", kind: "hracka", note: ""}, "T"), false);
+  assert.equal(joinCheck({nick: "A", kind: "hracka", motto: "x".repeat(81)}).ok, false);
+  const p = approvePlan({email: "a@x.cz", nick: "A", num: "", kind: "hracka", st: "open", motto: "Jedeeem"}, {role: "hracka", target: "new"}, {by: "m@x.cz", at: "T", ms: 1, auditId: "au", mottoId: "mt1", newId: "p1"});
+  assert.deepEqual(p.ops.find(o => o[1] === "mottos/mt1"), ["set", "mottos/mt1", {t: "Jedeeem", mid: "p1", by: "m@x.cz", at: "T"}]);
 });

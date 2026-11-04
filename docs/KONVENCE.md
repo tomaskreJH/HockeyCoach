@@ -73,6 +73,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `beta.js` | 🧪 beta testeři `settings/beta`, nabídka bety |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
+| `mottos.js` | 💬 banka mott a pokřiků (`mottos`, výběr náhodného, kontrola); zobrazení `views/motto-view.js` |
 | `countdown.js` | ⏳ text odpočtů (`clockText` HH:MM:SS, `leftText` zbývá do termínu); tikání `views/countdown-tick.js` |
 | `home-summary.js`, `home-remind.js` | 🏠 Domů, ❔ Chybí odpověď a 📲 text připomínky |
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, 🔁 převody `k: "tr"`, dluhy, VS), účty a IBAN |

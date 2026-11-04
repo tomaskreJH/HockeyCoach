@@ -2,6 +2,17 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.45 (4. 11. 2026) – 💬 Banka mott a pokřiků u příštího zápasu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.45“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `mottos`, rozšířené `joinreq` o volitelné `motto`) – bez publikace motta nejdou uložit (karta zůstane bez motta, zbytek běží). Data beze změny (jen přibývá nová kolekce). V betě Načíst novou verzi (cache `hokej-beta-v150`). 🔒 Vyžadovat verzi: ne. Test: kap. 48.
+
+**Přidáno** (zadání uživatele 4. 11. 2026)
+- **💬 Motta a pokřiky:** kolekce `mottos/{id}` = `{t, mid, by, at, off?}` (do 80 znaků, nejvýš 5 na osobu). Na kartě **🆚 Příští zápas** se pod sérií ukáže **náhodné motto** s podpisem autora (vybere se jednou za spuštění, při skrytí nebo smazání se vylosuje jiné). Bez mott se nic neukazuje.
+- **⚙️ → 💬 Motta a pokřiky:** vlastní motta (přidat, smazat); trenér a asistent navíc **moderace** (🙈 Skrýt / 👁 Zobrazit, smazat druhým klepnutím).
+- **✋ Žádost o přijetí:** nepovinné pole „Moje motto nebo pokřik“; při přijetí se založí první motto nové členky / člena (jedna dávka s účtem).
+- Nové `domain/mottos.js` (`mottoCheck`, `mottoDoc`, `pickMotto`, `shownMottos`, `mineMottos`, `mottoBy`), `views/motto-view.js`; testy `tests/mottos.test.js` a rozšíření `join-requests.test.js`.
+- **firestore.rules:** `mottos` – čte člen týmu (ne host); zakládá vlastník (`mid` = jeho pid / tid, `by` = jeho e-mail) a manager; autor upravuje a maže své (dokud je trenér neskryl); trenér jen mění `off` a maže. `joinreq` smí navíc volitelné `motto` (≤ 80). Počet 5 na osobu hlídá jen aplikace.
+- Motta nejsou v záloze (💾); čtení: jednou kolekce při spuštění a změny (desítky dokumentů).
+
 ## v22.44 (4. 11. 2026) – Příští zápas se sérií a odpočtem, dresy a kalendář ve vzhledu Čistý, odpočet přihlášení, písmo STŘELY
 > **Nasazení – kanál 🧪 BETA:** commit „v22.44“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v149`). 🔒 Vyžadovat verzi: ne. Test: kap. 47.
 
