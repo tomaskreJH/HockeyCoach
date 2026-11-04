@@ -51,7 +51,7 @@ test("vzhled Čistý: je v nabídce, v index.html, v offline cache a má styly",
   assert.ok(SKINS.some(([k, n]) => k === "clean" && n === "Čistý"));
   const html = read("index.html"), sw = read("sw.js"), css = read("styles/clean.css");
   assert.match(html, /styles\/clean\.css/);
-  assert.match(html, /k==="clean"\)d\.dataset\.clean="1"/);
+  assert.match(html, /k==="clean"\|\|!k\)d\.dataset\.clean="1"/);
   assert.match(html, /<b>STŘELY<\/b>/);
   assert.match(html, /<img src="logo-strely\.png"/, "oficiální logo v záhlaví");
   assert.ok(sw.includes('"logo-strely.png"'), "logo v offline cache");

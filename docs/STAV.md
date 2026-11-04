@@ -3,9 +3,9 @@
 Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, ne přidávat historii – ta je v `CHANGELOG.md`).
 
 ## Verze
-- **Aktuální v betě:** v22.46 (4. 11. 2026) – motto jako nálepka s „#číslo:“; v22.45 (4. 11. 2026) – 💬 banka mott a pokřiků (`mottos`, `domain/mottos.js`, `views/motto-view.js`); **firestore.rules publikovat ručně**. Předchozí: v22.44 (příští zápas, odpočet přihlášení, vzhled Čistý).
+- **Aktuální v betě:** v22.47 (4. 11. 2026) – nálepky ve dvou řádcích, © kapitánka (`players.cap`), výchozí vzhled Čistý; v22.46 (4. 11. 2026) – motto jako nálepka s „#číslo:“; v22.45 (4. 11. 2026) – 💬 banka mott a pokřiků (`mottos`, `domain/mottos.js`, `views/motto-view.js`); **firestore.rules publikovat ručně**. Předchozí: v22.44 (příští zápas, odpočet přihlášení, vzhled Čistý).
 - **Stabilní (`main`):** v22.25 (PR #4 – podle uživatele 31. 10. 2026). v22.26 a novější jen v betě.
-- **Další číslo:** v22.47 (cache `hokej-v152`), opravy v22.45.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
+- **Další číslo:** v22.48 (cache `hokej-v153`), opravy v22.45.x; čísla verzí i cache jen rostou (jedna řada pro stabilní i betu).
 - **Kanál:** Claude zapisuje každou verzi jako **jeden commit do větve `beta`** (návrat = revert commitu); `main` je chráněná – vydání dělá uživatel PR `beta → main`. Pravidla práce: `docs/KONVENCE.md` kap. 0 a pokyny projektu. Po každém vydání (PR) upravit řádek Stabilní.
 - **Pravidla databáze:** **v22.35 – publikovat** (`tract`, `budgetKeep`, `treval` + `isStaff`; obsahuje i blok `seen` z v22.25). Stabilní verze nová pravidla snese (jen přidaná kolekce a zúžení, které stabilní nepoužívá).
 - **🔒 Vyžadovat verzi:** 22.9 (ruční test v22.9 bez nálezu, 27. 10. 2026). v22.10 a novější nevyžadují. V betě se nenastavuje.
@@ -53,7 +53,7 @@ Krátký vstup pro každé vlákno. Aktualizuje se s každou verzí (nahradit, n
 - **v22.42 (beta) – vzhled Čistý: zápasy, zaoblení, pruh stavu (kap. 45)**.
 - **v22.43 (beta) – Domů: připomínka příštího zápasu, 7 dní s zápasy, hodnocení zavřené, přechod stavu (kap. 46)**.
 - **v22.44 (beta) – příští zápas s odpočtem a sérií, ⏳ odpočet přihlášení, dresy, kalendář, písmo STŘELY (kap. 47)**.
-- **v22.45 (beta) – 💬 banka mott a pokřiků u příštího zápasu (kap. 48); další (v22.47+): notifikace + synchronizace kalendáře, viz `docs/navrh-notifikace-kalendar.md`**.
+- **v22.45 (beta) – 💬 banka mott a pokřiků u příštího zápasu (kap. 48); další (v22.48+): notifikace + synchronizace kalendáře, viz `docs/navrh-notifikace-kalendar.md`**.
 - **📉 D4** (návrh v `docs/plan.md`): rostoucí kolekce realizačního týmu (`evpub`, `lineuppub`, `evcash`, `attnote`, `drills`) – rozhodnout podle čísel z ⚙️ → 💾 Data → 📉.
 - **Rozhodnuto 1. 11. 2026:** přepínač u bloku a plat bez 🚫 (v22.34), ✏️ skutečný průběh podle doporučení a B2 + B3 (v22.35). Zbývá B1 (`settings/beta`, nízké riziko – zatím ponecháno) a B4 (kontrola pravidel v konzoli, App Check).
 - **Návrhy čekající na souhlas:** `docs/navrhy-v22.32.md` – A ✏️ úprava proběhlého tréninku (kolekce `tract`), B pravidla z kontroly v22.18.1 (`settings/beta`, `budgetKeep`, `treval`), C 🚫 člena týmu a plat.

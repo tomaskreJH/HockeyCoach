@@ -2,6 +2,15 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.47 (4. 11. 2026) – Čitelné nálepky ve dvou řádcích, kapitánka, Čistý jako výchozí vzhled
+> **Nasazení – kanál 🧪 BETA:** commit „v22.47“ do větve **`beta`**. firestore.rules beze změny (kapitánka = pole `cap` v `players`, zapisuje ho trenér stávajícím právem), data: nové volitelné pole `cap`. Cache `hokej-beta-v152`. 🔒 Vyžadovat verzi: ne.
+
+**Změněno / přidáno** (zadání uživatele 4. 11. 2026)
+- **Nálepky čitelné** ve světlém i tmavém režimu (barva akcentu + barva textu na akcentu, dřív bílý text na bílém).
+- **Dva řádky nálepek:** na kartě Příští zápas je místo pro dva řádky, vejde se tolik mott, kolik dovolí délka textů (nálepky mají stejnou výšku, delší text se zkrátí „…“). Pořadí je náhodné a platí do zavření aplikace.
+- **© Kapitánka:** v ✏️ Upravit hráče (manager, trenér) přepínač „Kapitánka“ (pole `cap`). **Nejnovější motto kapitánky je vždy první**, zlatá nálepka s ©; změní-li ho (přidá nové), hned je vidět.
+- **🎨 Vzhled:** pořadí Čistý (výchozí), Aréna, Ledová aréna, Klasický (poslední). Kdo si vzhled ještě nezvolil, dostane Čistý; uložená volba zůstává.
+
 ## v22.46 (4. 11. 2026) – Motto jako nálepka s číslem hráčky
 > **Nasazení – kanál 🧪 BETA:** commit „v22.46“ do větve **`beta`**. firestore.rules beze změny proti v22.45 (publikovat jen pokud ještě nejsou), data beze změny. Cache `hokej-beta-v151`. 🔒 Vyžadovat verzi: ne.
 

@@ -57,7 +57,7 @@ a.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{S.pf=b.dataset.pf;rend
 Q2("#add").onclick=()=>{const n=$("#n").value.trim();if(!n)return;const fx=pctToFx($("#pfx").value);if(fx==null)return toast("Zadej koeficient 0–100 %");
 const id=S.db.collection("players").newId();
 S.db.batch().set("players/"+id,{name:n,num:$("#c").value.trim(),pos:$("#p").value,alt:$("#q").value,st:"act",...($("#pgs").checked?{guest:true}:{})}).set(PPAY_COLL+"/"+id,plPayDoc({grp:$("#py").value,fx,ex:$("#pex").checked,note:$("#pnt").value.trim()})).commit()};
-a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),guest:p.guest===true,grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
+a.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{const p=pl(b.dataset.e);S.M={k:"EP",id:p.id,name:p.name||"",num:p.num||"",pos:p.pos||"",alt:p.alt||"",st:stOf(p),guest:p.guest===true,cap:p.cap===true,grp:grpOf(p),ex:exOf(p),pct:String(Math.round(fxOf(p)*1000)/10),note:p.note||""};modal()});
 // Smazání hráčky (jen trenér): s ní i její platební pole v plpay
 a.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const id=b.dataset.d;confirm2(id,()=>{S.db.doc("players/"+id).delete().catch(()=>toast(failMsg("Smazání")));S.db.doc(PPAY_COLL+"/"+id).delete()})});
 // Realizační tým: přidání, úprava a smazání (se smazáním členu zmizí i jeho docházka, důvody a plat ve staffpay)

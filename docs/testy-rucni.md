@@ -434,5 +434,8 @@ Před testem **publikovat firestore.rules** (Firebase → Firestore → Pravidla
 3. Trenér / asistent: ⚙️ → 💬 → **Moderace týmu**: 🙈 Skrýt → motto zmizí z karty; autor ho v seznamu vidí jako „skryto trenérem“ a nemůže ho smazat ani upravit; 👁 Zobrazit vrátí. 🗑 smaže druhým klepnutím.
 4. Hráčka nesmí skrýt ani smazat cizí motto (zkusit přes konzoli → zamítnuto pravidly); host motta nevidí.
 5. Nový účet bez členství: formulář ✋ Žádost má pole **Moje motto**; manager žádost přijme → motto se založí u nové hráčky (⚙️ → 💬 ji vidí v moderaci, podpis = její jméno).
-6. Nález: čitelnost řádku s mottem ve všech vzhledech (Classic, Aréna, Ledová, Čistý), světlý i tmavý režim.
+6. (v22.47) Nálepky jsou **čitelné** ve světlém i tmavém režimu; vejdou se **dva řádky**, víc mott = zbytek se neukáže; delší text končí „…“.
+7. (v22.47) ✏️ Upravit hráče → **© Kapitánka: Ano** → její nejnovější motto je **první, zlatá s ©**; přidá-li nové, je hned první.
+8. (v22.47) ⚙️ → Vzhled: pořadí Čistý, Aréna, Ledová aréna, Klasický; na novém zařízení (bez volby) se otevře Čistý.
+9. Nález: čitelnost řádku s mottem ve všech vzhledech (Classic, Aréna, Ledová, Čistý), světlý i tmavý režim.
 

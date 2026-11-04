@@ -45,9 +45,10 @@ const CSS = `<style>
 #hmw .hmxh{margin:-14px -14px 8px;padding:9px 14px;background:var(--a2);border-bottom:1px solid var(--bd);border-radius:11px 11px 0 0;font-size:17px}
 #hmw .hmxc{font-size:32px;font-weight:800;line-height:1.1;color:var(--ac);font-variant-numeric:tabular-nums}
 #hmw .hmxs{margin-top:4px}
-#hmw .hmxm{margin-top:10px}
-#hmw .hmxk{display:inline-block;max-width:100%;padding:7px 12px;border-radius:12px 12px 12px 3px;background:var(--cd);color:var(--ink);border:2px solid var(--ac);outline:2px solid #fff;outline-offset:-5px;transform:rotate(-1.5deg);font-weight:600;font-size:16px;line-height:1.3}
-#hmw .hmxk b{color:var(--ac);font-family:var(--fh)}
+#hmw .hmxm{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;padding:3px;box-sizing:border-box;max-height:86px;overflow:hidden}
+#hmw .hmxk{flex:none;box-sizing:border-box;height:36px;max-width:100%;padding:0 12px;border-radius:12px 12px 12px 3px;background:var(--ac);color:var(--ink);border:3px solid var(--cd);outline:1px solid var(--bd);font-weight:600;font-size:15px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hmw .hmxk b{font-family:var(--fh);font-weight:700}
+#hmw .hmxc2{background:#e0b13a;color:#14181d}
 </style>`;
 let missOpen = null;                                                  // id události s rozbaleným seznamem ❔ Chybí odpověď
 let missTxt = "";                                                     // text připomínky k ručnímu zkopírování (bez sdílení i schránky)

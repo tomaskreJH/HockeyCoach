@@ -5,7 +5,7 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, pickMotto, shownMottos} from "../src/domain/mottos.js";
+import {MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, orderMottos, isCaptain, mottoDoc, pickMotto, shownMottos} from "../src/domain/mottos.js";
 
 // ===== Kontrola =====
 test("mottoCheck: prázdné ne, příliš dlouhé ne, víc než 5 ne, mezery se slijí", () => {
@@ -51,4 +51,15 @@ test("mottoTag: #číslo hráčky, bez čísla jméno, neznámý autor prázdné
   assert.equal(mottoTag({mid: "p1"}, [{id: "p1", name: "Majda", num: ""}], []), "Majda");
   assert.equal(mottoTag({mid: "t1"}, [], [{id: "t1", name: "Trenér"}]), "Trenér");
   assert.equal(mottoTag({mid: "x"}, [], []), "");
+});
+test("orderMottos: nejnovější motto kapitánky první, ostatní podle stálého pořadí; skrytá se nepočítají", () => {
+  const pl = [{id: "p1", cap: true}, {id: "p2"}, {id: "p3"}];
+  const l = [{id: "a", t: "A", mid: "p1", at: "1"}, {id: "b", t: "B", mid: "p1", at: "3"}, {id: "c", t: "C", mid: "p2", at: "2"}, {id: "d", t: "D", mid: "p3", at: "2", off: true}, {id: "e", t: "E", mid: "p3", at: "0"}];
+  const rank = id => ({a: 0.9, c: 0.8, e: 0.1}[id]);
+  const o = orderMottos(l, pl, rank);
+  assert.deepEqual(o.map(x => x.m.id), ["b", "e", "c", "a"]);
+  assert.deepEqual(o.map(x => x.cap), [true, false, false, true]);
+  assert.deepEqual(orderMottos([], pl), []);
+  assert.equal(isCaptain({cap: true}), true);
+  assert.equal(isCaptain({}), false);
 });

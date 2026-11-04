@@ -8,10 +8,10 @@ import {armed, confirm2} from "../core/actions.js";
 import {S} from "../core/state.js";
 import {esc, failMsg, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {MOTTO_COLL, MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, pickMotto, shownMottos} from "../domain/mottos.js";
+import {MOTTO_COLL, MOTTO_MAX, MOTTO_PER, mineMottos, mottoBy, mottoCheck, mottoTag, mottoDoc, orderMottos} from "../domain/mottos.js";
 
 // ===== Konstanty a stav =====
-let chosen = null;                        // vybrané motto (id) – drží se do zavření aplikace, aby se při překreslení neměnilo
+const ranks = {};                         // náhodné pořadí mott (id → 0–1) – drží se do zavření aplikace, aby se při překreslení nemíchalo
 let draft = "";                           // rozepsané motto v ⚙️
 
 // ===== Pomocné funkce =====
@@ -20,14 +20,15 @@ const me = () => { const u = HK.user(); return ((u && u.email) || "").toLowerCas
 const errTxt = e => (e && (e.code || e.message)) || String(e);
 
 // ===== Řádek na kartě =====
-// Motto vybrané náhodně (jednou za spuštění); zmizí-li z banky (skryto, smazáno), vybere se jiné. Prázdná banka = prázdný řetězec.
+// Nálepky se řadí: nejdřív aktuální motto kapitánky (© zlatě), pak ostatní v náhodném pořadí platném do zavření aplikace.
+// Vejdou se dva řádky, co se nevejde, CSS skryje (stejně vysoké nálepky, víc jich zobrazí kratší texty). Prázdná banka = prázdný řetězec.
 export function mottoLine() {
-  const list = shownMottos(S.mt);
-  let m = chosen && list.find(x => x.id === chosen);
-  if (!m) { m = pickMotto(list); chosen = m ? m.id : null; }
-  if (!m) return "";
-  const tag = mottoTag(m, S.pl, S.tr);
-  return `<div class="hmxm"><span class="hmxk">${tag ? `<b>${esc(tag)}:</b> ` : ""}${esc(m.t)}</span></div>`;
+  const o = orderMottos(S.mt, S.pl, id => (ranks[id] == null ? (ranks[id] = Math.random()) : ranks[id]));
+  if (!o.length) return "";
+  return `<div class="hmxm">${o.map(({m, cap}, i) => {
+    const tag = mottoTag(m, S.pl, S.tr);
+    return `<span class="hmxk${cap ? " hmxc2" : ""}" style="transform:rotate(${i % 2 ? 1.2 : -1.2}deg)">${cap ? "© " : ""}${tag ? `<b>${esc(tag)}:</b> ` : ""}${esc(m.t)}</span>`;
+  }).join("")}</div>`;
 }
 
 // ===== Sekce v ⚙️ =====

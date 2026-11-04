@@ -39,6 +39,22 @@ export function mottoTag(m, players, staff) {
   if (p && str(p.num)) return "#" + str(p.num);
   return mottoBy(m, players, staff);
 }
+// Kapitánka = hráčka s příznakem cap (nastavuje trenér v Upravit hráče)
+export const isCaptain = p => !!(p && p.cap === true);
+// Pořadí nálepek: nejdřív nejnovější motto každé kapitánky (její aktuální text má přednost), pak ostatní v náhodném, ale stálém pořadí
+// (rank(id) vrací stabilní číslo 0–1 pro motto). Vrací [{m, cap}].
+export function orderMottos(list, players, rank) {
+  const caps = new Set((players || []).filter(isCaptain).map(p => p.id));
+  const l = shownMottos(list), first = [], used = new Set();
+  caps.forEach(c => {
+    const mine = l.filter(m => m.mid === c).sort((a, b) => str(b.at).localeCompare(str(a.at)));
+    if (mine.length) { first.push(mine[0]); used.add(mine[0].id); }
+  });
+  first.sort((a, b) => str(b.at).localeCompare(str(a.at)));
+  const rk = typeof rank === "function" ? rank : () => 0.5;
+  const rest = l.filter(m => !used.has(m.id)).sort((a, b) => rk(a.id) - rk(b.id) || str(a.id).localeCompare(str(b.id)));
+  return first.map(m => ({m, cap: true})).concat(rest.map(m => ({m, cap: caps.has(m.mid)})));
+}
 // Podpis pod mottem = jméno autora (hráčka / člen týmu), nebo prázdný, když ho nelze určit
 export function mottoBy(m, players, staff) {
   if (!m) return "";
