@@ -257,10 +257,23 @@ service cloud.firestore {
     function trevalOk(d) {
       return d.keys().hasOnly(['v', 'r', 'by', 'at']) && d.r is map && d.r.size() <= 120 && d.get('by', mail()) == mail();
     }
+    // v22.35: navíc jen realizační tým (isStaff) – hráčka hodnocení trenérů nikdy, ani po omylu v matici práv
     match /treval/{id} {
-      allow read: if can('treval', 'r');
-      allow create, update: if can('treval', 'e') && trevalOk(request.resource.data);
-      allow delete: if can('treval', 'e');
+      allow read: if can('treval', 'r') && isStaff();
+      allow create, update: if can('treval', 'e') && isStaff() && trevalOk(request.resource.data);
+      allow delete: if can('treval', 'e') && isStaff();
+    }
+
+    // ===== ✏️ Skutečný průběh tréninku tract/{eid} (id = id tréninku): délky a vypuštěné bloky proti plánu pro statistiky =====
+    // Čte, kdo smí číst plán (hráčka kvůli Můj trénink), zapisuje, kdo smí plán upravovat. {v: 1, blocks: [{id, dur, skip}], src: live | edit, by, at}
+    function tractOk(d) {
+      return d.keys().hasOnly(['v', 'blocks', 'src', 'by', 'at']) && d.v == 1 && d.blocks is list && d.blocks.size() <= 30
+        && d.src in ['live', 'edit'] && d.get('by', mail()) == mail();
+    }
+    match /tract/{id} {
+      allow read: if can('trplan', 'r');
+      allow create, update: if can('trplan', 'e') && tractOk(request.resource.data);
+      allow delete: if can('trplan', 'e');
     }
 
     // ===== ⭐ Výkonnost hráček plevel/team: jen realizační tým (hráčky ani hostující ji nečtou) =====
@@ -291,8 +304,9 @@ service cloud.firestore {
     function budgetOk(id, d) { return d.keys().hasOnly(['season', 'par', 'items', 'sal', 'other', 'by', 'at', 'approved', 'rev']) && d.season == id && d.par is map && d.items is list && d.sal is list && d.other is list
       && (!('approved' in d) || (d.approved is map && d.approved.keys().hasOnly(['data', 'sum', 'by', 'at']) && d.approved.data is map))
       && (!('rev' in d) || d.rev is list); }
+    // v22.35: starší úpravy rev musí zůstat beze změny (seznam jde jen prodloužit na konci)
     function budgetKeep(o, d) { return (!('approved' in o) || (('approved' in d) && d.approved == o.approved))
-      && (!('rev' in o) || (('rev' in d) && d.rev.size() >= o.rev.size())); }
+      && (!('rev' in o) || (('rev' in d) && d.rev.size() >= o.rev.size() && d.rev[0:o.rev.size()] == o.rev)); }
     match /budget/{id} {
       allow read: if isCash();
       allow create: if isCash() && id.matches('^[0-9]{4}-[0-9]{2}$') && budgetOk(id, request.resource.data);
@@ -421,11 +435,12 @@ service cloud.firestore {
     // (zamítnutí, odebraný přístup) smí poslat novou žádost nejdřív 24 h po vyřízení (doneMs). Čte vlastník a manager;
     // vyřizuje (st, reply, doneBy, doneMs, pid / tid) a maže manager, uchazeč smí smazat (zrušit) jen otevřenou žádost.
     function joinForm(email, d) {
-      return d.keys().hasOnly(['email', 'nick', 'num', 'kind', 'note', 'st', 'at'])
+      return d.keys().hasOnly(['email', 'nick', 'num', 'kind', 'note', 'st', 'at', 'motto'])
         && d.email == email && d.st == 'open' && d.at is string
         && d.nick is string && d.nick.size() > 0 && d.nick.size() <= 40
         && d.num is string && d.num.matches('^([1-9][0-9]?)?$')
-        && d.kind in ['hracka', 'staff'] && d.note is string && d.note.size() <= 300;
+        && d.kind in ['hracka', 'staff'] && d.note is string && d.note.size() <= 300
+        && d.get('motto', '') is string && d.get('motto', '').size() <= 80;
     }
     function joinOwner(email) { return signedIn() && email == mail() && !isMember(); }
     match /joinreq/{email} {
@@ -434,6 +449,37 @@ service cloud.firestore {
       allow update: if isMgr() || (joinOwner(email) && resource.data.st in ['no', 'ok']
         && request.time.toMillis() > resource.data.get('doneMs', 0) + 86400000 && joinForm(email, request.resource.data));
       allow delete: if isMgr() || (signedIn() && email == mail() && resource.data.st == 'open');
+    }
+
+    // ===== Banka mott a pokřiků mottos/{id} = {t, mid, by, at, off?} (v22.45) =====
+    // Čte každý člen týmu (kromě hostujících). Zakládá člen sám za sebe (mid = jeho pid / tid, by = jeho e-mail) a manager při přijetí
+    // žádosti (motto z formuláře); autor smí upravit a smazat své (jen dokud ho trenér neskryl). Trenér (sport) smí jen skrýt / zobrazit (pole off) a smazat.
+    // Počet nejvýš 5 na osobu hlídá aplikace (pravidla počty nepočítají).
+    function mottoOk(d) {
+      return d.keys().hasOnly(['t', 'mid', 'by', 'at']) && d.t is string && d.t.size() > 0 && d.t.size() <= 80
+        && d.mid is string && d.by == mail() && d.at is string;
+    }
+    match /mottos/{id} {
+      allow read: if isTeam();
+      allow create: if isTeam() && mottoOk(request.resource.data) && (isMgr() || ownsMid(request.resource.data.mid));
+      allow update: if isTeam() && ((ownsMid(resource.data.mid) && !resource.data.get('off', false) && mottoOk(request.resource.data)
+          && request.resource.data.mid == resource.data.mid)
+        || (isStaff() && chKeys().hasOnly(['off']) && request.resource.data.off is bool));
+      allow delete: if isTeam() && (ownsMid(resource.data.mid) || isStaff());
+    }
+
+    // ===== Zpráva od trenéra coachmsg/current = {id, t, bn, by, at} (v22.48) =====
+    // Jeden dokument „current“ (nová zpráva nahradí starou). Čte každý člen týmu (kromě hostujících); zadat, upravit a smazat smí manager,
+    // trenér a asistent (isStaff). by = e-mail autora, bn = podpis (jméno trenéra), id = označení zprávy (nové id = členům se ukáže znovu okno).
+    function cmsgOk(d) {
+      return d.keys().hasOnly(['id', 't', 'bn', 'by', 'at']) && d.id is string && d.id.size() > 0 && d.id.size() <= 40
+        && d.t is string && d.t.size() > 0 && d.t.size() <= 600 && d.bn is string && d.bn.size() > 0 && d.bn.size() <= 60
+        && d.by == mail() && d.at is string;
+    }
+    match /coachmsg/{id} {
+      allow read: if isTeam();
+      allow create, update: if isStaff() && id == 'current' && cmsgOk(request.resource.data);
+      allow delete: if isStaff();
     }
 
     // ===== Pokladna: předpisy (události i měsíční příspěvky) čte vlastník (mid = jeho pid / tid) a správci; příjmy, výdaje, platy a audit jen správci =====

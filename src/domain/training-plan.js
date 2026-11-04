@@ -30,6 +30,8 @@ const grpKey = (g, pos) => (g === GK ? GK : pos ? (POS_GRPS.includes(g) ? g : nu
 // Pořadí skupin: pětky vzestupně, útočnice, obránkyně, brankářky na konci
 const grpRank = g => (g === GK ? 9 : g === FW ? 7 : g === DF ? 8 : +g);
 const grpSort = (a, b) => grpRank(a) - grpRank(b);
+// Nehodnotí se blok? (ne: true – přepínač 🚫⭐ u bloku, např. předzápasová rozcvička; ☕ pauza se nehodnotí vždy)
+export const noEvalBlock = b => !!(b && b.ne === true);
 // Je blok ☕ pauza (bez cvičení)?
 export const isBreak = b => !!b && b.brk != null && b.brk !== false;
 // Dělí blok skupiny podle postů?
@@ -139,6 +141,7 @@ export function planDoc(p, drills) {
     const o = {id: str(b.id, 24) || newPid("b"), mode, dur, rot: mode === "st" && rot && rot >= 1 && rot <= dur ? rot : null,
       lanes: (Array.isArray(b.lanes) ? b.lanes : []).slice(0, PLAN_MAX.lanes).map(l => lane(l, mode, pos))};
     if (pos) o.by = "pos";
+    if (noEvalBlock(b)) o.ne = true;                          // ⭐ blok se nehodnotí (např. předzápasová rozcvička)
     return o;
   });
   return {v: PLAN_VER, goal: str(src.goal, PLAN_MAX.goal), blocks};
@@ -282,14 +285,14 @@ export function planIssues(p, ctx = {}) {
     if (!L.length) add("warn", bi, nm + "bez linky.");
     L.forEach((l, li) => {
       const ln = L.length > 1 ? "linka " + (li + 1) + " " : "";
-      if (!l.drill) add("warn", bi, nm + ln + "bez cvičení.");
+      if (!l.drill && !String(l.dn || "").trim()) add("warn", bi, nm + ln + "bez cvičení.");   // 📝 jen do plánu = název bez banky je v pořádku
       else if (D && (!D[l.drill] || D[l.drill].arch)) add("warn", bi, nm + ln + "– cvičení „" + (l.dn || "?") + "“ už v bance není (vyřazené nebo smazané).");
       if (coaches) (l.co || []).filter(c => !coaches.has(c)).forEach(() => add("warn", bi, nm + ln + "– trenér není přihlášený na trénink."));
       // Řada cvičení: musí se vejít do času bloku (blok určuje hlavní trenér, cvičení si linka plánuje sama)
       const seq = laneSeq(b, l), sm = seqMinutes(seq);
       if (seq && sm > b.dur) add("err", bi, nm + ln + "– cvičení řady mají " + sm + " min, blok jen " + b.dur + " min.");
       else if (seq && sm < b.dur) add("warn", bi, nm + ln + "– v řadě zbývá " + (b.dur - sm) + " min volna.");
-      if (seq) seq.slice(1).forEach((x, si) => { if (!x.drill) add("warn", bi, nm + ln + "– " + (si + 2) + ". cvičení řady bez cvičení."); });
+      if (seq) seq.slice(1).forEach((x, si) => { if (!x.drill && !String(x.dn || "").trim()) add("warn", bi, nm + ln + "– " + (si + 2) + ". cvičení řady bez cvičení."); });
     });
     // Kolize trenérů: tentýž člen týmu na dvou linkách téhož bloku
     const seen = {};

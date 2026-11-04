@@ -3,7 +3,7 @@
 // Dokument: {v, r: {klíč "blok_linka" (řada "blok_linka-cvičení"): {d, dn, r, n, pl: {pid: {r, n}}}}, by, at}; staré r linky se nezadává.
 // ===== Importy =====
 import {msKey} from "./stopwatch.js";
-import {MODES, expandLanes, isBreak, isFixedLane, laneTags, rotation} from "./training-plan.js";
+import {MODES, expandLanes, isBreak, isFixedLane, laneTags, noEvalBlock, rotation} from "./training-plan.js";
 import {groupPids, liveAt} from "./training-live.js";
 
 // ===== Konstanty =====
@@ -26,10 +26,11 @@ export const entryOf = (res, key) => (res && res.r && res.r[key]) || null;
 // ===== Linky k hodnocení =====
 // Linky plánu s cvičením v pořadí plánu: {key, bi, li, bid, lid, d, dn, tag (A–D / 🥅 / ""), where ("Blok 2 · Stanoviště A")};
 // linka s řadou cvičení = jedna položka na cvičení (lid = blok_linka-cvičení, li = pořadí linky, where navíc „· 2/4“);
-// drills = banka {id: cvičení} – název z banky, jinak kopie v plánu
+// drills = banka {id: cvičení} – název z banky, jinak kopie v plánu; blok s 🚫⭐ Nehodnotit (noEvalBlock) se vynechá – nehodnotí se a nechybí
 export function evalLanes(plan, drills) {
   const out = [], D = drills || {};
   ((plan && plan.blocks) || []).forEach((b, bi) => {
+    if (noEvalBlock(b)) return;
     const T = laneTags(b), LI = Object.fromEntries((b.lanes || []).map((l, i) => [l.id, i]));
     expandLanes(b).forEach(l => {
       if (!l.drill) return;
@@ -67,6 +68,9 @@ export function unratedCount(lanes, res) {
   (lanes || []).forEach(l => { const pl = (entryOf(res, l.key) || {}).pl || {}; (l.pids || []).forEach(pid => { all++; if (!rateOk((pl[pid] || {}).r)) n++; }); });
   return {n, all};
 }
+
+// Hráčky z pids bez platného hodnocení v záznamu linky (rychlá volba „ostatním 🙂“ označí jen tyto – ručně zadané se nepřepíšou)
+export const unratedPids = (entry, pids) => (pids || []).filter(p => !rateOk((((entry && entry.pl) || {})[p] || {}).r));
 
 // ===== Živý trénink =====
 // Kolo, které právě skončilo (k hodnocení po kole / bloku): poloha těsně před začátkem současného kola, po konci plánu poslední kolo;

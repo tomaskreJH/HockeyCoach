@@ -4,7 +4,7 @@
 // ===== Importy =====
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {flowWarn, goingSplit, homeItems, liveMatch, myAnswer, myPay, nextMatch, regClosed, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
+import {flowWarn, goingSplit, homeItems, liveMatch, matchCountdown, myAnswer, myPay, nextMatch, regClosed, seriesVs, teamPay, unanswered, upcomingEvents, daysRange} from "../src/domain/home-summary.js";
 
 // ===== Konstanty =====
 const TODAY = "2026-10-21";                                      // středa
@@ -35,6 +35,35 @@ test("nextMatch: nejbližší neuzavřený zápas, dnešní jen do svého začá
   assert.equal(nextMatch(items, new Date("2026-10-21T08:00:00").getTime(), TODAY).id, "m0");
   assert.equal(nextMatch(homeItems([], [{...MA[1], live: {per: 1}}, MA[2]]), NOW, TODAY).id, "m2", "zahájený zápas není „příští“");
   assert.equal(nextMatch(homeItems(EV, [MA[3]]), NOW, TODAY), null);
+});
+
+test("matchCountdown: pod 24 hodin živé hodiny HH:MM:SS, jinak Dnes / Zítra / Za N dny (dní) podle kalendářních dnů", () => {
+  const at = (date, time) => matchCountdown({date, time}, TODAY, NOW);
+  assert.deepEqual(at("2026-10-21", "18:00"), {days: 0, text: "06:00:00", at: new Date("2026-10-21T18:00:00").getTime(), live: true});
+  assert.equal(at("2026-10-22", "08:00").text, "20:00:00", "zítra ráno je od teď méně než 24 hodin");
+  assert.equal(at("2026-10-22", "9:00").live, true, "čas bez úvodní nuly");
+  assert.deepEqual(at("2026-10-22", "18:00"), {days: 1, text: "Zítra", at: 0, live: false}, "30 hodin = ještě „Zítra“");
+  assert.deepEqual(at("2026-10-21", ""), {days: 0, text: "Dnes", at: 0, live: false}, "dnešní zápas bez času");
+  assert.equal(at("2026-10-24", "17:30").text, "Za 3 dny");
+  assert.equal(at("2026-10-26", "17:30").text, "Za 5 dní");
+  assert.deepEqual(at("2026-11-02", "10:00"), {days: 12, text: "Za 12 dní", at: 0, live: false});
+  assert.equal(at("2026-10-21", "09:00").live, false, "začátek v minulosti odpočet nespustí");
+});
+
+test("seriesVs: výhry / remízy / prohry se soupeřem jen v sezóně dne a jen z uzavřených zápasů (název bez rozlišení velikosti písmen)", () => {
+  const g = (us, them) => [...Array(us).fill({k: "G", team: "us"}), ...Array(them).fill({k: "G", team: "opp"})];
+  const ma = [
+    {id: "a", opp: "Lvice", date: "2026-09-12", closed: true, events: g(3, 1)},       // výhra
+    {id: "b", opp: " lvice ", date: "2026-10-03", closed: true, events: g(2, 2)},     // remíza
+    {id: "c", opp: "Lvice", date: "2026-10-17", closed: true, events: g(0, 4)},       // prohra
+    {id: "d", opp: "Lvice", date: "2026-05-01", closed: true, events: g(5, 0)},       // minulá sezóna 2025-26
+    {id: "e", opp: "Lvice", date: "2026-10-30", events: g(9, 0)},                     // neuzavřený
+    {id: "f", opp: "Kočky", date: "2026-10-10", closed: true, events: g(4, 0)}        // jiný soupeř
+  ];
+  assert.deepEqual(seriesVs(ma, "Lvice", "2026-11-14"), {w: 1, d: 1, l: 1, n: 3});
+  assert.deepEqual(seriesVs(ma, "Lvice", "2026-05-20"), {w: 1, d: 0, l: 0, n: 1}, "sezóna 2025-26");
+  assert.deepEqual(seriesVs(ma, "Nikdo", "2026-11-14"), {w: 0, d: 0, l: 0, n: 0});
+  assert.deepEqual(seriesVs(null, "Lvice", "2026-11-14"), {w: 0, d: 0, l: 0, n: 0});
 });
 
 test("upcomingEvents: příštích 7 dní bez uplynulých, s mojí odpovědí, počtem Jdu a uzávěrkou; ❓ jen otevřené bez odpovědi", () => {

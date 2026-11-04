@@ -1,10 +1,10 @@
 // ⏱ Živý trénink – upozornění: vibrace a zvuk 60 s a 10 s před koncem kola a při točení (🔔 hk-tl-mute), ⌚ systémové oznámení „co teď / co potom“
 // (hk-tl-ntf; Android ho zrcadlí na hodinky, řídící má akce ⏸ / ⏭ přes sw.js), ohlášení změny od řídícího trenéra (remote) ostatním
-// zařízením a Wake Lock obrazovky (obnova po ztrátě, stav pro ☀ v záhlaví). Stav a pomůcky bere z trlive-view.js.
+// zařízením, ⚠ zdržení (plán přetahuje přes konec tréninku) a Wake Lock obrazovky (obnova po ztrátě, stav pro ☀ v záhlaví). Stav z trlive-view.js.
 
 // ===== Importy =====
 import {toast} from "../core/utils.js";
-import {laneSub, liveAt, liveNote, remoteNote} from "../domain/training-live.js";
+import {delayNote, laneSub, liveAt, liveNote, remoteNote} from "../domain/training-live.js";
 import {clock, grpLabel, isBreak, laneSeq, laneTags, MODES} from "../domain/training-plan.js";
 import {canE, L, liveB, me, mine, muted, NTF_KEY, ntfOn, paint, subAt} from "./trlive-view.js";
 
@@ -32,6 +32,15 @@ function alarm(kind, at) {
 }
 // Změna hodin od řídícího trenéra (kind z remoteKind: start | pause | resume | jump | adj | end) – vibrace, zvuk a ⌚ oznámení
 const remote = (kind, at) => alarm("r:" + kind, at);
+// ⚠ Zdržení o m minut: dvojitá vibrace, nízký tón a ⌚ oznámení s tím, co dělat a co následuje
+function delayAlarm(m, at) {
+  buzz([400, 150, 400]); beep(2, 260, 520);
+  if (!ntfOn()) return;
+  const X = L.getX ? L.getX() : null, B = liveB(X);
+  if (!B.length || !at || at.done) return;
+  const n = liveAt(B, at.b), t = delayNote(m, n && !n.done ? spot(B, n, X) : null, at.total - at.sec);
+  show(t.title, t.body);
+}
 // Kde jsem v kole (pro text oznámení): moje linka (trenér / skupina hráčky), jinak jediná linka bloku, jinak blok
 function spot(B, at, X) {
   if (isBreak(B[at.bi])) return {where: "☕ Pauza", what: B[at.bi].brk || "", who: ""};
@@ -95,4 +104,4 @@ function wakeOff() { try { if (L.wake) L.wake.release(); } catch (e) { /* už uv
 const wakeState = () => (typeof navigator === "undefined" || !navigator.wakeLock ? "na" : L.wake ? "on" : "off");
 
 // ===== Exporty =====
-export {alarm, beep, remote, show, toggleNtf, wakeOff, wakeOn, wakeState};
+export {alarm, beep, delayAlarm, remote, show, toggleNtf, wakeOff, wakeOn, wakeState};

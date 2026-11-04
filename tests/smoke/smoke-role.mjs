@@ -51,6 +51,14 @@ async function homeMiss() {
   snap("home-miss");
   if (await tap("[data-hrm]", 250)) snap("home-remind");
 }
+// 📣 Zpráva od trenéra: okno při startu zavřít „Rozumím“, v Domů rozbalit kartu; trenéři otevřou a zruší úpravu
+async function coachMsg() {
+  if (await tap("#cmpok", 250)) snap("coachmsg-popup");
+  await tap('#nav button[data-t="home"]', 250);
+  if (!(await tap("#cmth", 250))) return;
+  snap("coachmsg-open");
+  if (await tap("#cmed", 250)) { snap("coachmsg-edit"); await tap("#cmcx", 250); }
+}
 // 🏠 Domů – karta události s rychlými tlačítky: ✅ Jdu přímo z Domů, ❌ otevře okno s důvodem (klepnutí na důvod uloží)
 async function homeQuick() {
   await tap('#nav button[data-t="home"]', 250);
@@ -109,10 +117,21 @@ async function events() {
     if (await tap('[data-alv="pers"]', 150)) snap("att-log-pers");
     await tap("#algx", 150);
   }
+  // v22.35: ✏️ Skutečný průběh (realizační tým) – úprava délky bloku a uložení do tract
+  if (await tap("#tred", 300)) {
+    snap("tract-edit");
+    const w0 = globalThis.__fb.writes.length;
+    await tap('[data-trx]', 150);
+    await tap("#trok", 250);
+    if (!globalThis.__fb.writes.slice(w0).some(w => /^tract\//.test(w.path))) throw new Error("✏️ skutečný průběh se nezapsal");
+    snap("tract-saved");
+  }
   if (await tap("#tped", 300)) {
     snap("plan-edit");
     await tap('[data-tpop="1"]', 200);                                // ▸ sbalený blok 2 rozbalit
     if (await tap('[data-tpdu="1|1"]', 250)) snap("plan-edit-dur");
+    // v22.34: 🚫⭐ Nehodnotit u bloku (zapnout a vypnout)
+    if (await tap('[data-tpne="1"]', 200)) { if (!/Nehodnotit ✓/.test(document.body.textContent)) throw new Error("🚫⭐ přepínač se nezapnul"); snap("plan-edit-noeval"); await tap('[data-tpne="1"]', 200); }
     // v22.27: 🎓 trenéři přímo u linky (ne v ⚙ Další volby); nový blok rovnou otevře výběr cvičení, ➕ nové cvičení uloží do banky a vybere
     if ($("details.tpmo [data-tpco]")) throw new Error("📋 trenéři linky jsou pořád v ⚙ Další volby");
     if (await tap('[data-tpadd="all"]', 250)) {
@@ -130,6 +149,16 @@ async function events() {
         snap("plan-edit-newdrill-done");
       } else await tap("#dpx", 150);
     }
+    // v22.33: 📝 cvičení jen do plánu (bez banky) – nic se nezapíše do drills, linka nese jen název
+    if (await tap('[data-tpadd="all"]', 250) && await tap("#dpk [data-dpnew]", 200)) {
+      const n = $("#dpnn"), w0 = globalThis.__fb.writes.length;
+      n.value = "Smoke jen v plánu";
+      await tap("#dpnfree", 250);
+      if ($("#dpk")) throw new Error("📝 jen do plánu: výběr se nezavřel");
+      if (globalThis.__fb.writes.slice(w0).some(w => /^drills\//.test(w.path))) throw new Error("📝 jen do plánu zapsal cvičení do banky");
+      if (!/Smoke jen v plánu \(jen v plánu\)/.test(document.body.textContent)) throw new Error("📝 cvičení jen do plánu se nevložilo do bloku");
+      snap("plan-edit-free");
+    } else await tap("#dpx", 150);
     if (await tap("#tponly", 250)) snap("plan-edit-only");
     // v22.18.1: 💾 Uložit plán musí zapsat trplan (chyběl podpis stamp – uložení tiše padalo)
     const n0 = globalThis.__fb.writes.length;
@@ -139,11 +168,14 @@ async function events() {
     snap("trlive");
     // v22.17: přilepené záhlaví se zbývajícím časem vždy; řídící má pevnou spodní lištu ⏸ / ⏭ / +1 min
     if (!$("#tlv .tltop #tlr")) throw new Error("⏱ chybí zbývající čas v záhlaví");
+    if ($("#tlv #tlc") && !$("#tlv .tltop #tlc")) throw new Error("⏱ odpočet cvičení není v přilepeném záhlaví (v22.38)");
     if ($("#tlv .tlbot")) snap("trlive-bar");
     // v22.28: ▶ Teď (linky) hned pod odpočtem, méně časté ovládání sbalené pod 🎛 až za ním
     const sec = $("#tlv .tlsec"), cd = $("#tlv #tlcd");
     if (!sec) throw new Error("⏱ chybí ▶ Teď pod odpočtem");
     if (cd && !(sec.compareDocumentPosition(cd) & 4)) throw new Error("⏱ 🎛 ovládání je nad ▶ Teď");
+    // v22.33: 📋 Co následuje s hodinami začátků vidí celý realizační tým (upravit jen kdo smí plán)
+    if (!$("#tlv #tlrs .tlck")) throw new Error("⏱ chybí 📋 Co následuje s hodinami začátků");
     // 🔒 Zámek dotyku: zapnout, odemknout dvojitým klepnutím
     if (await tap("#tlk", 200)) {
       snap("trlive-lock");
@@ -161,6 +193,8 @@ async function events() {
     if (await tap('[data-tq="ice"]', 200)) { snap("trlive-ice"); await tap('[data-tq="ice"]', 150); }
     if (await tap('[data-tq="add"]', 250)) {
       if (!$("#tlq #tlqs")) throw new Error("⚡ okno vložení cvičení bez hledání");
+      // v22.33: filtr části tréninku v hledání (klepnutí a zrušení)
+      if (await tap('#tlq [data-tqc="warm"]', 150)) { snap("trlive-quick-cat"); await tap('#tlq [data-tqc="warm"]', 150); }
       const s = $("#tlqs"), n0 = (globalThis.__fb.writes || []).length;
       s.value = "Hra 2 na 2"; s.dispatchEvent(new window.Event("input"));
       await wait(150);
@@ -268,10 +302,43 @@ async function money() {
   }
 }
 
+// 🔴 Živý zápis (v22.37): stojící čas = ▶ Buly naše / soupeř, buly spustí čas a zapíše log fo, ⏸ Přerušit zapíše log stop;
+// 🎯 trestné střílení (v22.38) přes 🚫 Trest
+async function liveMatch() {
+  await tap('#nav button[data-t="home"]', 250);
+  if (!(await tap("[data-hlv]", 400))) return;
+  if (!$("#lv #lfu") || !$("#lv #lfo") || $("#lv #lpl")) throw new Error("🔴 stojící čas: chybí ▶ Buly naše / soupeř");
+  if (!/buly 1:0/.test($("#lv .lsc").textContent)) throw new Error("🔴 lišta neukazuje počet buly");
+  snap("live-stop");
+  const w0 = globalThis.__fb.writes.length;
+  await tap("#lv #lfo", 250);
+  const fo = globalThis.__fb.writes.slice(w0).filter(w => /^matches\/m2/.test(w.path)).pop();
+  if (!fo || !((fo.d || {}).log || []).some(x => x.ty === "fo" && x.team === "opp")) throw new Error("▶ Buly soupeř nezapsalo buly");
+  if (!$("#lv #lpl") || !/Přerušit/.test($("#lv #lpl").textContent)) throw new Error("▶ Buly nespustilo čas");
+  snap("live-run");
+  const w1 = globalThis.__fb.writes.length;
+  await tap("#lv #lpl", 250);
+  const st = globalThis.__fb.writes.slice(w1).filter(w => /^matches\/m2/.test(w.path)).pop();
+  if (!st || ((st.d || {}).log || []).filter(x => x.ty === "stop").length !== 2) throw new Error("⏸ Přerušit nezapsalo přerušení");
+  if (!$("#lv #lfu")) throw new Error("⏸ Přerušit nevrátilo ▶ Buly");
+  snap("live-stopped");
+  // 🎯 Trestné střílení (v22.38): 🚫 Trest → Soupeř → 🎯 → střelkyně → 🥅 Gól = gól s ps do skóre, bez trestu
+  const w2 = globalThis.__fb.writes.length;
+  if (!(await tap("#lv #qp", 200)) || !(await tap('#lv [data-qb="who:opp"]', 150)) || !(await tap('#lv [data-qb="len:ps"]', 150))) throw new Error("🎯 chybí volba Trestné střílení");
+  snap("live-ps-who");
+  if (!(await tap('#lv [data-qb^="pss:"]', 150)) || !(await tap('#lv [data-qb="psr:g"]', 250))) throw new Error("🎯 chybí výběr střelkyně / výsledku");
+  const ps = globalThis.__fb.writes.slice(w2).filter(w => /^matches\/m2/.test(w.path)).pop(), pe = ps && ((ps.d || {}).events || []);
+  if (!pe || !pe.some(e => e.ps && e.k === "G" && e.team === "us" && e.sit === "PS") || pe.some(e => e.k === "P" && e.team === "opp")) throw new Error("🎯 trestné střílení nezapsalo gól");
+  if (((ps.d.live || {}).pen || []).length) throw new Error("🎯 trestné střílení zapsalo trest");
+  snap("live-ps-done");
+  if (await tap("#lv #lmn", 200)) await tap('#lv [data-m="x"]', 250);   // ⋯ → odchod ze živého zápisu
+}
+
 // ===== Hlavní logika =====
 try {
   await start();
   await tabs();
+  await coachMsg();
   await homeMiss();
   await homeQuick();
   await trainStats();
@@ -279,6 +346,7 @@ try {
   await help();
   await events();
   await matchShare();
+  await liveMatch();
   await money();
   await tap('#nav button[data-t="home"]', 250);
   snap("end");

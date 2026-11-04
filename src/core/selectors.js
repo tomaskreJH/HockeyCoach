@@ -17,10 +17,13 @@ export const kindOf=t=>{const k=String((t&&t.kind)||"");return KIND_OLD[k]||k};
 export const goingOf=eid=>[...new Set(S.at.filter(a=>a.eid===eid&&a.st==="yes").map(a=>a.pid))].filter(id=>pl(id));
 // Člen realizačního týmu (trenér, asistent…) podle id
 const trOf=id=>S.tr.find(t=>t.id===id);
-// Jméno osoby jedinou funkcí ve dvou podobách: pn = HTML (číslo, jméno, značka 🎟 hostující, 🤕 zraněná / ⛔ skončila), nm = čistý text (číslo a jméno; CSV, časová osa, hlášky).
-// Volby: staff = najít i člena realizačního týmu (v HTML s 🎓), fb = text pro neznámé id (výchozí „?“).
-export const pn=(id,{staff=false,fb="?"}={})=>{const p=pl(id);if(p)return(p.num?"#"+esc(p.num)+" ":"")+esc(p.name)+(p.guest===true?" 🎟":"")+(stOf(p)==="inj"?" 🤕":stOf(p)==="end"?" ⛔":"");const t=staff&&trOf(id);return t?"🎓 "+esc(t.name):fb};
-export const nm=(id,{staff=false,fb="?"}={})=>{const p=pl(id);if(p)return(p.num?"#"+p.num+" ":"")+(p.name||"");const t=staff&&trOf(id);return t?t.name||"":fb};
+// Kapitánka (pole cap v hráčce) se v zobrazených jménech značí „(C)“ za jménem (hokejový zvyk); capName = jméno hráčky i se značkou (bez čísla), "" pro neznámou
+export const capTag=p=>p&&p.cap===true?" (C)":"";
+export const capName=p=>p?(p.name||"")+capTag(p):"";
+// Jméno osoby jedinou funkcí ve dvou podobách: pn = HTML (číslo, jméno, (C) kapitánka, značka 🎟 hostující, 🤕 zraněná / ⛔ skončila), nm = čistý text (číslo a jméno; CSV, časová osa, hlášky).
+// Volby: staff = najít i člena realizačního týmu (v HTML s 🎓), fb = text pro neznámé id (výchozí „?“), cap = false vynechá „(C)“ (texty zapisované do databáze a CSV pokladny).
+export const pn=(id,{staff=false,fb="?"}={})=>{const p=pl(id);if(p)return(p.num?"#"+esc(p.num)+" ":"")+esc(p.name)+capTag(p)+(p.guest===true?" 🎟":"")+(stOf(p)==="inj"?" 🤕":stOf(p)==="end"?" ⛔":"");const t=staff&&trOf(id);return t?"🎓 "+esc(t.name):fb};
+export const nm=(id,{staff=false,fb="?",cap=true}={})=>{const p=pl(id);if(p)return(p.num?"#"+p.num+" ":"")+(p.name||"")+(cap?capTag(p):"");const t=staff&&trOf(id);return t?t.name||"":fb};
 export const lineIds=(lu,n)=>SL.map(s=>lu[n+s]).filter(Boolean);
 export const luPlayers=lu=>[...new Set(Object.values(lu||{}).filter(Boolean))];
 export const skaters=lu=>[...new Set(LN.flatMap(n=>SL.flatMap(x=>slotIds(lu,n+x))))];

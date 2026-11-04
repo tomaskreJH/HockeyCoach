@@ -13,11 +13,12 @@ import {canNos, isNos, nosPatch, startMs} from "../domain/attendance.js";
 import {costTotal, cxOf, kc} from "../domain/cash.js";
 import {memberBlocked} from "../domain/debtors.js";
 import {cancelText, isCancelled} from "../domain/event-cancel.js";
-import {answerCounts} from "../domain/event-helpers.js";
+import {answerCounts, cardState} from "../domain/event-helpers.js";
 import {pushReason, reasonChips} from "../domain/event-prefill.js";
 import {dlFor, evDefaults, timeParts} from "../domain/event-time.js";
 import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
+import {cdHtml} from "./countdown-tick.js";
 import {statusLine} from "./event-badges.js";
 import {render} from "./shell.js";
 
@@ -42,6 +43,8 @@ const CSS = `<style>
 #evw .evq button.on-maybe{background:var(--wa);color:#fff;border-color:var(--wa)}
 #evw .evq button.evns{border-style:dashed}
 #evw .evq button.evns.on{background:var(--no);color:#fff;border-color:var(--no);border-style:solid}
+/* Zvolená odpověď má tvar nálepky (zaoblené rohy, spodní levý skoro pravoúhlý) – stejný jako motta u příštího zápasu */
+#evw .evq button[class^="on-"],#evw .evq button.evns.on{border-radius:12px 12px 12px 3px}
 #evw .evq button[disabled]{opacity:.4}
 #evw .evq .evqn{display:inline-block;min-width:20px;padding:0 6px;margin-left:2px;border-radius:9px;background:var(--bd);font-size:12px;line-height:18px}
 /* Počet odpovědí v tlačítku: u aktivní volby (zelená, červená, oranžová) bílá pilulka s tmavým textem – čitelné na všech barvách */
@@ -55,6 +58,8 @@ const CSS = `<style>
 #evw .cal button.today{border-color:var(--ac);font-weight:700}
 #evw .cal button.sel{outline:3px solid var(--ac)}
 #evw .cal small{display:block;font-size:9px;color:var(--ac)}
+/* Den, kdy jsem přihlášená / přihlášený („Jdu“): zelený přechod přímo v kalendáři */
+#evw .cal button[data-cy]{border-color:var(--ok);background:linear-gradient(135deg,color-mix(in srgb,var(--ok) 40%,var(--bg)),color-mix(in srgb,var(--ok) 14%,var(--bg)))}
 #evw .evl{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px;margin:0 2px 4px 0}
 #evw .evln{display:flex;gap:4px}
 #evw .evln .chip{padding:8px 0;min-width:38px;text-align:center}
@@ -115,7 +120,9 @@ function roster(ev, AT) {
   return r;
 }
 const rosterLine = r => `Útočnice: <b>${r.u}</b> · Obránkyně: <b>${r.o}</b> · Brankářky: <b>${r.g}</b>${r.n ? ` · Neurčeno: <b>${r.n}</b>` : ""} · Trenéři: <b>${r.t}</b>`;
-const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl(e.dl) + ")" : "Přihlášení do " + fDl(e.dl)) : (lk ? "🔒 Uzavřeno" : "⚠️ Termín nenastaven");
+// ⏳ Odpočet do termínu přihlášení (jen otevřené přihlašování s termínem v budoucnu; tiká sám, bez překreslení)
+const dlLeft = e => { const t = dlMs(e.dl); return t != null && t > Date.now() ? " · ⏳ zbývá " + cdHtml(t, "left") : ""; };
+const dlLine = (e, lk) => e.dl ? (lk ? "🔒 Přihlašování uzavřeno (" + fDl(e.dl) + ")" : "Přihlášení do " + fDl(e.dl) + dlLeft(e)) : (lk ? "🔒 Uzavřeno" : "⚠️ Termín nenastaven");
 // Den, čas od – do (zápas jen začátek), ⏰ sraz a místo; výchozí sraz a délka tréninku ze settings/events
 const defs = () => evDefaults(S.es);
 // Zkrácené datum bez roku („Po 27. 10.“)
@@ -192,7 +199,9 @@ function cardHtml(e, AT, P) {
   const c = counts(e, AT, P), mine = S.evp ? (AT[e.id] || {})[S.evp] : null, cn = isCancelled(e), lk = (isLocked(e) && !staff()) || cn, m = e.raw, g = guest();
   const sc = cn ? ' <span class="tag red">❌ Zrušeno</span>' : e.type === "match" && m.closed ? ` <span class="tag">🔒 ${score(m).join(":")}</span>` : "";
   const cq = g ? {yes: "", no: "", maybe: ""} : c, pL = placeLine(e), tL = timeLine(e);
-  return `<div class="cd evi" data-eo="${e.id}"${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
+  // Atributy pro vzhled „Čistý“ (styles/clean.css): stav = pruh a nádech barvy karty, druh události = zvýrazněný zápas; ostatní vzhledy je nepoužívají
+  const sx = cardState(mine, cn, isLocked(e), !!S.evp);
+  return `<div class="cd evi" data-eo="${e.id}" data-ety="${e.type === "match" ? "match" : "other"}"${sx.k ? ` data-evk="${sx.k}"` : ""}${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
 ${pL ? `<div class="mu">${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
 <div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
 ${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}
@@ -230,4 +239,4 @@ function bindSheet(a) {
 }
 
 // ===== Exporty =====
-export {ANS, CSS, MONTHS, ORD, activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, counts, defDl, defs, dlLine, fDay, guest, isLocked, isPl, myTr, pad, placeLine, roster, rosterLine, saveLines, sheetHtml, staff, timeLine, titleLine, toggleNos, trs};
+export {ANS, CSS, MONTHS, ORD, activePl, allEvents, answer, atMap, bindSheet, cardHtml, cashMgr, counts, defDl, defs, dlLine, fDay, guest, isLocked, isPl, myTr, pad, placeLine, roster, rosterLine, saveLines, sheetHtml, shortDay, staff, timeLine, titleLine, toggleNos, trs};

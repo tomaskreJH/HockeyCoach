@@ -8,6 +8,7 @@ import {HK} from "./data/storage.js";
 import {installDebug} from "./debug.js";
 import {fixClosed, syncOps} from "./core/actions.js";
 import {initNav} from "./core/nav.js";
+import {applySkin} from "./core/skin.js";
 import {S} from "./core/state.js";
 import {initTableSort} from "./core/table-sort.js";
 import {ABS_COLL} from "./domain/absence.js";
@@ -27,6 +28,10 @@ import {initHelp} from "./views/help.js";
 import {openEventSettings, refreshEventSettings} from "./views/event-settings.js";
 import {openSettings} from "./views/settings-view.js";
 import {openJoinWindow, refreshJoin} from "./views/join-view.js";
+import {refreshMotto} from "./views/motto-view.js";
+import {MOTTO_COLL} from "./domain/mottos.js";
+import {CMSG_COLL, CMSG_ID} from "./domain/coach-msg.js";
+import {cmsgSnap} from "./views/coach-msg-view.js";
 import {leaveLive} from "./views/live-events.js";
 import {liveTick} from "./views/live-view.js";
 import {render} from "./views/shell.js";
@@ -57,6 +62,8 @@ function readyGate(keys) {
 }
 
 // ===== Spuštění =====
+// 🎨 Vzhled a režim z tohoto zařízení (barva lišty prohlížeče; atributy nastavil už index.html)
+applySkin();
 if (new URLSearchParams(location.search).has("debug")) installDebug();
 // Řazení tabulek kliknutím na hlavičku (sleduje změny DOM, funguje i po překreslení)
 initTableSort();
@@ -113,6 +120,11 @@ function teamData(db, ok) {
   db.collection("events").onSnapshot(s => { S.ev = rows(s); ok("e"); upd(); }, erX("e"));
   db.collection("attendance").onSnapshot(s => { R.at = rows(s); joinAt(); ok("a"); upd(); }, erX("a"));
   db.collection("staff").onSnapshot(s => { R.tr = rows(s); joinTr(); upd(); refreshJoin(); }, erX("t"));
+  // 💬 Banka mott a pokřiků (v22.45): čtou všichni členové týmu; chyba (nepublikovaná pravidla) jen vypne motto na kartě Příští zápas
+  db.collection(MOTTO_COLL).onSnapshot(s => { S.mt = rows(s); render(); refreshMotto(); }, erP(MOTTO_COLL));
+  // 📣 Zpráva od trenéra (v22.48): jeden dokument, čtou všichni členové týmu; nová zpráva krátce po spuštění otevře okno (views/coach-msg-view.js),
+  // chyba (nepublikovaná pravidla) jen vypne zprávu
+  db.doc(CMSG_COLL + "/" + CMSG_ID).onSnapshot(s => { S.cm = s.exists ? s.data() : null; render(); cmsgSnap(); }, erP(CMSG_COLL));
   // Souhrn dlužníků bez částek: čtou všichni členové; chyba = nepublikovaná pravidla (Docházka pak ukáže upozornění, zbytek aplikace běží)
   db.collection("debtors").onSnapshot(s => { S.dt = rows(s); S.dtErr = null; render(); }, e => { S.dtErr = e.code || e.message; render(); });
   // Ceny uzavřených událostí na hlavu: všichni členové; chyba (nepublikovaná pravidla) jen vypne porovnání v Moje platby
@@ -150,7 +162,9 @@ function staffData(db) {
 function moneyFull(db) {
   const ec = e => { S.payErr = e.code || e.message; render(); };
   return new Promise(res => {
-    const done = new Set(), got = c => { done.add(c); if (!moneyLeft([...done]).length) { res(); render(); } };
+    // Po splnění slibu se stav pokladny přepne na „načteno“ až v dalším kroku (data/storage.js moneyLoad) – překreslení proto o chvilku později,
+    // jinak by pohled zůstal na „⏳ Načítám pokladnu…“, dokud uživatel nepřepne záložku
+    const done = new Set(), got = c => { done.add(c); if (!moneyLeft([...done]).length) { res(); setTimeout(render, 0); } };
     db.collection("charges").onSnapshot(s => { S.ch = rows(s); S.payErr = null; got("charges"); render(); }, e => { ec(e); got("charges"); });
     db.collection("cash").onSnapshot(s => { S.cs = rows(s); got("cash"); render(); }, e => { ec(e); got("cash"); });
   });

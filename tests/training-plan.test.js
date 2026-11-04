@@ -99,7 +99,9 @@ test("planIssues: přetečení, kolize trenérů, skupina na dvou linkách, skup
   assert.ok(I.some(x => /^err:Blok 1: Modrá je na dvou linkách/.test(x)));
   assert.ok(I.some(x => /^warn:Blok 1: Zelená není na žádném stanovišti/.test(x)));
   assert.ok(I.some(x => /trenér není přihlášený/.test(x)));
-  assert.ok(txt({blocks: [{...ALL, lanes: [lane("X", [], {drill: ""})]}]}, {}).some(x => /bez cvičení/.test(x)));
+  assert.ok(txt({blocks: [{...ALL, lanes: [lane("X", [], {drill: "", dn: ""})]}]}, {}).some(x => /bez cvičení/.test(x)));
+  // 📝 Cvičení jen do plánu (název bez banky) není „bez cvičení“
+  assert.ok(!txt({blocks: [{...ALL, lanes: [lane("X", [], {drill: "", dn: "Hra 3 na 3"})]}]}, {}).some(x => /bez cvičení/.test(x)));
   assert.ok(txt({blocks: [{...ALL, lanes: [lane("X", [], {drill: "d2", dn: "Střelba"})]}]}, {drills: D}).some(x => /už v bance není/.test(x)));
   assert.ok(txt({blocks: [{...ST, rot: 5, dur: 10}]}, {groups: [1, 2, 3, GK]}).some(x => /neprojdou všechna stanoviště/.test(x)));
   assert.ok(txt({blocks: [ST]}, {groups: [1, 2, 3]}).some(x => /žádná brankářka není přihlášená/.test(x)));

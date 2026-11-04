@@ -1,6 +1,6 @@
 // 📚 Výběr cvičení z banky přes celou obrazovku (úprava plánu tréninku): 🔍 hledání v názvu, pomůckách a popisu, část tréninku, dovednost,
-// ⭐ oblíbená (toto zařízení); klepnutí cvičení vybere. ➕ Nové cvičení (právo drills e): krátký formulář (název, kategorie, délka, popis,
-// volitelně 📷 / ▶ / 📄), uloží do 📚 banky (writeDrill z drills-view.js) a hned ho vybere – plán zůstane otevřený na stejném místě.
+// ⭐ oblíbená (toto zařízení); klepnutí cvičení vybere. ➕ Nové cvičení: krátký formulář (název, kategorie, délka; s právem drills e i popis,
+// 📷 / ▶ / 📄) – 💾 uloží do 📚 banky (writeDrill z drills-view.js) a vybere, nebo 📝 jen do plánu (název a délka bez banky, smí každý, kdo plánuje).
 // Okno #dpk se vkládá do body, ✕ ho zavře. Stav filtru S.dpk, filtr domain/drills.js (drillFilter), výchozí dovednost quickDrill.
 
 // ===== Importy =====
@@ -34,7 +34,7 @@ const CSS = `<style>
 // ===== Pomocné funkce =====
 const favs = () => { try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); } catch (e) { return new Set(); } };
 const F = () => (S.dpk = S.dpk || {q: "", cat: "", sk: "", fav: false});
-const canNew = () => HK.perm("drills", "e");
+const canNew = () => HK.perm("drills", "e");            // 💾 do banky; 📝 jen do plánu smí každý, kdo upravuje plán
 // Nové cvičení: název z hledání, kategorie z filtru (jinak dovednosti), délka 10 min
 const ndBlank = () => { const f = F(); return {name: String(f.q || "").trim().slice(0, DRILL_MAX.name), cat: CATS[f.cat] ? f.cat : "skill", dur: 10, desc: "", url: "", pdf: "", more: false, nw: []}; };
 // Přenese vstupy formuláře nového cvičení do P.nd (před překreslením)
@@ -55,12 +55,17 @@ function listHtml() {
   const f = F(), fv = favs(), L = drillFilter(S.dr, {...f, arch: false}, fv);
   return L.length ? L.slice(0, 120).map(d => `<button class="dpi ${d.id === P.cur ? "on" : ""}" data-dpi="${esc(d.id)}">${fv.has(d.id) ? "⭐ " : ""}<b>${esc(d.name)}</b><small>${esc(CATS[d.cat] || "")} · ${+d.dur || "?"} min · ${LEVELS[d.lvl] || ""}${d.meas ? " · ⏲ měření" : ""}${d.img && d.img.length ? " · 📷" : ""}${d.url || d.pdf ? " · ▶" : ""}</small></button>`).join("")
     + (L.length > 120 ? `<div class="mu">… a dalších ${L.length - 120} – upřesni hledání.</div>` : "")
-    : `<div class="mu" style="margin:10px 0">Nic nenalezeno – zkus jiné hledání nebo zruš filtr.</div>${canNew() ? '<button class="p w" data-dpnew="1" style="min-height:52px">➕ Nové cvičení</button>' : ""}`;
+    : `<div class="mu" style="margin:10px 0">Nic nenalezeno – zkus jiné hledání nebo zruš filtr.</div><button class="p w" data-dpnew="1" style="min-height:52px">➕ Nové cvičení</button>`;
 }
-// ➕ Formulář nového cvičení: povinně název, kategorie a délka; popis a ▸ obrázek / video / PDF volitelně (dovednosti doplní banka)
+// ➕ Formulář nového cvičení: povinně název, kategorie a délka; popis a ▸ obrázek / video / PDF volitelně (dovednosti doplní banka).
+// Bez práva upravovat banku jen název a délka – cvičení se vloží 📝 jen do plánu.
 function newHtml() {
-  const n = P.nd, img = n.nw.map((x, i) => `<div style="position:relative"><img src="${x.d}" alt="" style="height:72px;border-radius:8px;border:1px solid var(--bd)"><button class="d" data-dpni="${i}" style="position:absolute;top:2px;right:2px;padding:2px 8px;min-height:0">✕</button></div>`).join("");
-  return CSS + `<div class="dph"><button class="s" id="dpnx" style="flex:none;min-height:46px">← Zpět</button><b style="flex:1">➕ Nové cvičení do 📚 banky</b></div>
+  const n = P.nd, bank = canNew(), img = n.nw.map((x, i) => `<div style="position:relative"><img src="${x.d}" alt="" style="height:72px;border-radius:8px;border:1px solid var(--bd)"><button class="d" data-dpni="${i}" style="position:absolute;top:2px;right:2px;padding:2px 8px;min-height:0">✕</button></div>`).join("");
+  const free = `<button class="${bank ? "s" : "p"} w" id="dpnfree" style="min-height:50px;margin-top:8px">📝 Jen do plánu (bez banky)</button><div class="mu" style="font-size:12px;margin-top:4px">Jen do plánu = jednorázové cvičení (jen název a délka) – nehodnotí se a v 📚 bance nebude.</div>`;
+  if (!bank) return CSS + `<div class="dph"><button class="s" id="dpnx" style="flex:none;min-height:46px">← Zpět</button><b style="flex:1">➕ Cvičení jen do plánu</b></div>
+<div class="dpn"><input id="dpnn" maxlength="${DRILL_MAX.name}" value="${esc(n.name)}" placeholder="Název cvičení" autocomplete="off">
+<div class="dpq"><span class="mu" style="align-self:center">⏱</span>${QUICK_DUR.map(m => `<button class="${n.dur === m ? "p" : "s"}" data-dpnm="${m}">${m}</button>`).join("")}<input id="dpnd" type="number" inputmode="numeric" min="${DUR_MIN}" max="${DUR_MAX}" value="${esc(n.dur)}" style="width:70px;margin:0;text-align:center"><span class="mu" style="align-self:center">min</span></div>${free}</div>`;
+  return CSS + `<div class="dph"><button class="s" id="dpnx" style="flex:none;min-height:46px">← Zpět</button><b style="flex:1">➕ Nové cvičení</b></div>
 <div class="dpn"><input id="dpnn" maxlength="${DRILL_MAX.name}" value="${esc(n.name)}" placeholder="Název cvičení" autocomplete="off">
 <select id="dpnc">${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${n.cat === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
 <div class="dpq"><span class="mu" style="align-self:center">⏱</span>${QUICK_DUR.map(m => `<button class="${n.dur === m ? "p" : "s"}" data-dpnm="${m}">${m}</button>`).join("")}<input id="dpnd" type="number" inputmode="numeric" min="${DUR_MIN}" max="${DUR_MAX}" value="${esc(n.dur)}" style="width:70px;margin:0;text-align:center"><span class="mu" style="align-self:center">min</span></div>
@@ -70,13 +75,13 @@ ${n.more ? `<input id="dpnu" maxlength="${DRILL_MAX.url}" inputmode="url" value=
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${img}</div>${n.nw.length < IMG_MAX ? '<input id="dpnf" type="file" accept="image/*">' : ""}`
     : '<button class="s w" id="dpnmo" style="margin-bottom:6px">▸ 📷 Obrázek, ▶ video, 📄 PDF</button>'}
 <div class="mu" style="font-size:12px;margin-bottom:8px">Dovednosti, úroveň a pomůcky doplníš později v 📚 bance.</div>
-<button class="p w" id="dpnok" style="min-height:56px">💾 Uložit do banky a vybrat</button></div>`;
+<button class="p w" id="dpnok" style="min-height:56px">💾 Uložit do banky a vybrat</button>${free}</div>`;
 }
 function screenHtml() {
   if (P.nd) return newHtml();
   const f = F();
   return CSS + `<div class="dph"><button class="s" id="dpx" style="flex:none;min-height:46px">✕</button><input id="dpq" type="search" placeholder="🔍 Hledat cvičení" value="${esc(f.q)}" autocomplete="off"></div>
-<div class="chips">${canNew() ? '<button class="chip" data-dpnew="1">➕ Nové cvičení</button>' : ""}<button class="chip ${f.fav ? "on" : ""}" id="dpf">⭐ Oblíbená</button>${P.cur ? '<button class="chip" id="dp0">✕ Bez cvičení</button>' : ""}${f.q || f.cat || f.sk || f.fav ? '<button class="chip" id="dpr">↺ Zrušit filtr</button>' : ""}</div>
+<div class="chips"><button class="chip" data-dpnew="1">➕ Nové cvičení</button><button class="chip ${f.fav ? "on" : ""}" id="dpf">⭐ Oblíbená</button>${P.cur ? '<button class="chip" id="dp0">✕ Bez cvičení</button>' : ""}${f.q || f.cat || f.sk || f.fav ? '<button class="chip" id="dpr">↺ Zrušit filtr</button>' : ""}</div>
 <div class="row" style="margin:4px 0 8px"><select id="dpc" style="margin:0"><option value="">Část tréninku – vše</option>${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${f.cat === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
 <select id="dps" style="margin:0"><option value="">Dovednost – vše</option>${Object.entries(SKILLS).map(([k, t]) => `<option value="${k}" ${f.sk === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></div>
 <div id="dpl">${listHtml()}</div>`;
@@ -110,7 +115,17 @@ function bindNew() {
     catch (e) { toast((e && e.message) || "Obrázek se nepodařilo přidat"); }
     if (P && P.nd === n) paint();
   };
-  el.querySelector("#dpnok").onclick = () => {
+  // 📝 Jen do plánu: bez zápisu do banky – výběr dostane prázdné id a {name, dur, free} (linka si nese jen název)
+  el.querySelector("#dpnfree").onclick = () => {
+    readNew();
+    const name = String(n.name || "").trim().slice(0, DRILL_MAX.name), dur = Math.max(DUR_MIN, Math.min(DUR_MAX, parseInt(n.dur, 10) || 10));
+    if (!name) return toast("Napiš název cvičení");
+    const fn = P.pick;
+    close();
+    fn("", {name, dur, img: [], free: true});
+  };
+  const ok = el.querySelector("#dpnok");
+  if (ok) ok.onclick = () => {
     readNew();
     // Základ z ⚡ improvizace (výchozí dovednost podle kategorie), popis od trenéra, jinak poznámka „doplň popis“
     const base = quickDrill(n.name, n.cat, n.dur), dur = Math.max(DUR_MIN, Math.min(DUR_MAX, parseInt(n.dur, 10) || base.dur));
@@ -145,7 +160,8 @@ function close() {
 }
 
 // ===== Exporty =====
-// Otevře výběr: cur = id vybraného cvičení, pick(id, doc?) = po výběru (prázdné id = bez cvičení; doc = právě založené ➕ nové cvičení)
+// Otevře výběr: cur = id vybraného cvičení, pick(id, doc?) = po výběru (prázdné id bez doc = bez cvičení; doc = právě založené ➕ nové cvičení,
+// prázdné id s doc.free = 📝 cvičení jen do plánu {name, dur})
 export function openDrillPicker(cur, pick) {
   close();
   const el = document.createElement("div");

@@ -96,13 +96,13 @@ test("práva treval: hodnocení čte jen realizační tým (pevně), hodnotit jd
     assert.equal(actOf(r, cash, a, false, F), actOf(r, cash, a, false, {}), r + " " + a);
   }
 });
-test("pravidla: treval čte treval r, zapisuje a maže treval e, dokument jen se známými poli a zapisující = přihlášený", () => {
+test("pravidla: treval čte treval r, zapisuje a maže treval e – vždy jen realizační tým (isStaff), dokument jen se známými poli a zapisující = přihlášený", () => {
   const R = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   const m = R.match(new RegExp("match /" + TREVAL_COLL + "/\\{id\\} \\{([\\s\\S]*?)\\n    \\}"));
   assert.ok(m, "chybí treval");
-  assert.match(m[1], /allow read: if can\('treval', 'r'\);/);
-  assert.match(m[1], /allow create, update: if can\('treval', 'e'\) && trevalOk\(request\.resource\.data\);/);
-  assert.match(m[1], /allow delete: if can\('treval', 'e'\);/);
+  assert.match(m[1], /allow read: if can\('treval', 'r'\) && isStaff\(\);/);
+  assert.match(m[1], /allow create, update: if can\('treval', 'e'\) && isStaff\(\) && trevalOk\(request\.resource\.data\);/);
+  assert.match(m[1], /allow delete: if can\('treval', 'e'\) && isStaff\(\);/);
   assert.match(R, /function trevalOk\(d\) \{\s+return d\.keys\(\)\.hasOnly\(\['v', 'r', 'by', 'at'\]\) && d\.r is map && d\.r\.size\(\) <= 120 && d\.get\('by', mail\(\)\) == mail\(\);/);
 });
 

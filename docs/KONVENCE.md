@@ -29,6 +29,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `sw.js` | offline cache `hokej-vNN` (beta `hokej-beta-vNN`, kanál podle adresy), klepnutí na ⌚ oznámení živého tréninku |
 | `.github/workflows/pages.yml` | 🧪 nasazení na GitHub Pages: větev `main` do kořene, `beta` do `beta/` |
 | `styles/main.css` | všechny styly, barvy jako proměnné (`--ac`, `--ok`, `--no`, `--wa`, `--a2`) pro světlý i tmavý režim |
+| `styles/arena.css`, `styles/fonts/` | 🎨 vzhled 🏟 Aréna (jen při `data-skin="arena"`: barvy, písmo Barlow Condensed, povrch prvků – rozměry z `main.css`); nové styly piš do `main.css` přes proměnné, Aréna je převezme |
 | `firestore.rules` | pravidla databáze – jediná skutečná ochrana dat (publikuje se ručně) |
 | `src/main.js` | spuštění: přihlášení, poslech kolekcí podle role, první vykreslení, Zpět |
 | `src/debug.js` | ruční ladění (`?debug` → `window.__hk`) |
@@ -40,6 +41,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `drill-starter.js` | 📥 základní sada cvičení |
 | **core/** | stav a pomůcky bez domény |
 | `app-version.js` | **jediné místo s číslem verze** (`APP_VERSION`, `APP_DATE`), brána verze |
+| `skin.js` | 🎨 vzhled a režim zařízení (`hk-skin`, `hk-mode`, `applySkin`, `setSkin`); první nastavení v `index.html` |
 | `channel.js` | 🧪 kanál stabilní / beta podle adresy, cesty pro přepnutí, předpona cache |
 | `state.js` | sdílený stav `S` |
 | `utils.js` | DOM, formát, čas, hlášky, `csv`, `clone`, `clamp`, `ceil` (Kč nahoru), `reqWord` |
@@ -59,6 +61,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `live-engine.js` | jádro živého zápisu (čas, střídání, tresty IIHF, jednotky) |
 | `lineup.js`, `corrections.js`, `shift-edit.js`, `timeline.js` | sestava zápasu, opravy zápisu, editace střídání, časová osa a skóre po gólech |
 | `player-stats.js` | statistiky hráček `playerStats` (zápas i souhrn) |
+| `penalty-shot.js` | 🎯 trestné střílení `psEvent` (gól `k: "G"` / pokus `k: "S"`, vždy `ps: true`, gól `sit: "PS"`, `on: []`), `isPS`, `psText`; zápis `live-quick.js` a `editor.js`, gól z trestného střílení neukončí trest |
+| `game-flow.js` | ⚪ buly a ⏸ přerušení hry z `m.log` (`ty: "fo"` s `team`, `ty: "stop"`) – zápas `flowStats`, sezóna `flowTotals`; zápis `doFaceoff` / `doStop` v `live-engine.js` |
 | `match-share.js` | ⧉ sestava „Jako minule“ (`lastLineupMatch`, `lineupLike`, `unitsLike`), 📤 souhrn zápasu ke sdílení (`matchSummary`) |
 | `watch-feed.js` | 👁 náhled živého zápasu pro členy |
 | `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
@@ -69,6 +73,9 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `beta.js` | 🧪 beta testeři `settings/beta`, nabídka bety |
 | `absence.js`, `att-requests.js`, `requests.js`, `join-requests.js` | 🏖 nepřítomnost, ✋ žádosti o účast, o změnu placení, o přijetí |
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
+| `coach-msg.js` | 📣 zpráva od trenéra (`coachmsg/current`, kontrola, okno při startu); zobrazení `views/coach-msg-view.js` |
+| `mottos.js` | 💬 banka mott a pokřiků (`mottos`, výběr náhodného, kontrola); zobrazení `views/motto-view.js` |
+| `countdown.js` | ⏳ text odpočtů (`clockText` HH:MM:SS, `leftText` zbývá do termínu); tikání `views/countdown-tick.js` |
 | `home-summary.js`, `home-remind.js` | 🏠 Domů, ❔ Chybí odpověď a 📲 text připomínky |
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, 🔁 převody `k: "tr"`, dluhy, VS), účty a IBAN |
 | `bank-match.js` | ⚠️ 🏦 čtení výpisu z banky (CSV) a párování plateb s předpisy |
@@ -76,7 +83,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `tariff-detail.js` | ⚖️ detail tarifu hráčky (měsíce, události, využití ledu, dopad na pokladnu) |
 | `block-exc.js` | 🔓 hromadné výjimky z blokace (dlužníci po osobách, výběr předpisů) |
 | `cost-check.js` | ⚠️ 🧾 kontrola nákladů událostí (očekávané náklady po kategorii a příjemci proti výdajům, měsíc výdaje `pym`) |
-| `data-window.js` | 📉 okno poslechu událostí a docházky (`WIN`, `winFrom`, `winTo` – hráčka 15 dní dopředu, `archNeed`, `mergeBand`, datum docházky `attDate` / `attDateFix`, `dayAdd`) |
+| `data-window.js` | 📉 okno poslechu událostí, zápasů a docházky (`WIN`, `winFrom`, `winTo` – hráčka 15 dní dopředu, `archNeed`, `mergeBand`, datum docházky `attDate` / `attDateFix`, `dayAdd`) |
 | `read-cost.js` | 📉 odhad čtení databáze na jedno spuštění (`readCost`, limit `READ_LIMIT`) |
 | `money-load.js` | 📉 pokladna na vyžádání (`lazyMoney`, `LAZY_COLLS` = `charges`, `cash`; stav `HK.money` ve `storage.js`, poslech `moneyFull` v `main.js`) |
 | `presence.js` | 🟢 aktivita členů `seen/{e-mail}` = `{at, v, ch}` (`seenState`, `pingDue`, `onlineCount`); zápis `HK.seenStart` ve `storage.js`, čtení `seenMap` v `cfg-api.js` (jen manager) |
@@ -86,14 +93,16 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `training-plan.js` | 📋 plán tréninku (bloky, linky, ☕ pauza, řada cvičení `seq` / `expandLanes`, časy, točení, kontrola, `mergePlan`; kopie podrobností cvičení pro hráčky `dx` – `planDetails`, `planDxStale`) |
 | `plan-reuse.js`, `skill-coverage.js` | ⧉ kopie a 📑 šablony plánu, 📊 pokrytí dovedností (`groupDrills` / `groupSkills` = minuty skupiny podle plánu) |
 | `line-split.js` | rozdělení do pětek, ⭐ výkonnost |
-| `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, upozornění, ⌚ text oznámení, `laneSub`) |
-| `training-impro.js` | ⚡ improvizace na ledě (hledání v bance, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
-| `training-eval.js` | ⭐ hodnocení hráček |
+| `training-live.js` | ⏱ živý trénink (hodiny, poloha v plánu, úpravy průběhu, 📋 co následuje `liveQueue` / `atClock`, ⚠ zdržení `delayDue` / `delayLevel`, upozornění, ⌚ text oznámení, `laneSub`) |
+| `training-impro.js` | ⚡ improvizace na ledě (hledání v bance podle textu a části tréninku, nový blok, kam vložit, nové cvičení do banky, počty na ledě) |
+| `training-actual.js` | ✏️ skutečný průběh tréninku `tract` (`tractFromLive` při ⏹ Konec, `actualPlan` pro statistiky a pokrytí, úpravy `tractRows` / `tractEdit`) |
+| `training-eval.js` | ⭐ hodnocení hráček (nepovinné; blok s 🚫⭐ `ne: true` – `noEvalBlock` z `training-plan.js` – se nehodnotí, `unratedPids` pro 🙂 Ostatním) |
 | `stopwatch.js`, `relay.js` | ⏲ stopky a výsledky měření, 🏃 štafeta |
 | `training-stats.js` | 📈 přehled Tréninku (období, měření po cvičeních se zlepšením a pořadím, zátěž hráček, hodnocení hráčky, CSV) |
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
 | `shell.js` | záložky a hlavní vykreslení |
 | `help.js` | ❓ nápověda – jediný uživatelský návod; kapitoly (`v`) a body (`data-v`) podle role (`VIS`) |
+| `countdown-tick.js` | ⏳ tikající odpočty bez překreslení (`cdHtml`) |
 | `home-view.js`, `absence-view.js` | 🏠 Domů, 🏖 nepřítomnost |
 | `events.js` | Události: seznam, kalendář, režimy pokladny v Team (`cashPanel`) |
 | `event-core.js` | společný základ Událostí: styly, seznam `allEvents`, odpovědi `atMap`, karta události `cardHtml` (Události i 🏠 Domů), zápis odpovědi a důvodu, okno s důvodem |
@@ -124,6 +133,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `trplan-reuse.js` | ⧉ kopie, 📑 šablony, 📊 pokrytí dovedností, ✨ příprava |
 | `line-split-view.js` | rozdělení do pětek, okno ⭐ výkonnosti |
 | `trlive-view.js` | ⏱ živý trénink (karta, obrazovka, přilepené záhlaví se zbývajícím časem, spodní lišta řídícího, 🔒 zámek dotyku, zbytek plánu) |
+| `tract-view.js` | ✏️ skutečný průběh v kartě plánu (souhrn, úprava délek a vypuštění bloků) |
 | `trlive-quick.js` | ⚡ improvizace v živém tréninku (➕ cvičení / ☕ pauza do plánu, trénink bez plánu, 👥 Na ledě s 🚫) |
 | `trlive-alerts.js` | ⏱ vibrace, zvuk, ⌚ oznámení (i změna od řídícího), Wake Lock s obnovou a stavem ☀ |
 | `stopwatch-view.js`, `treval-view.js` | ⏲ stopky a výsledky, ⭐ hodnocení |
@@ -160,7 +170,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 ## 3. Data a databáze
 - Zápis jen přes `S.db` (`collection`, `doc`, `batch`) ze `storage.js` (strážce `blocked()` – náhled role, starší verze). Přímé volání Firestore SDK mimo `storage.js` se nepoužívá. Čtení na vyžádání: `S.db.doc().get()`, `S.db.collection().getAll()`, poslech jednoho dokumentu `collection().part`.
 - **📉 Šetření čtení (tarif Spark = 50 000 čtení denně):** každé spuštění aplikace po pauze delší než 30 min přečte **všechny dokumenty poslouchaných kolekcí** znovu. Kolekce, která roste s časem (audit, historie, plány, výsledky), se **nesmí poslouchat celá** – čte se po dokumentech nebo dotazem `where` jen pro to, co je na obrazovce (`audit` přes `views/audit-feed.js`, stav tréninků v `views/event-badges.js`). Odhad pro aktuální data: ⚙️ → 💾 Data → 📉 Čtení databáze.
-- **📉 Okno poslechu** (`storage.js` – `listenWin`, `domain/data-window.js`): `events` (pole `date`) a `attendance` (pole `d`) se živě poslouchají od `winFrom` (realizační tým 45 dní, ostatní 8 dní) – u hráčky / hostující jen do `winTo` (dnes + 15 dní), dál až po `HK.farListen()` (⬇ Načíst další v Událostech), starší z paměti zařízení (`getDocsFromCache`), ze serveru celý archiv jednou na zařízení, pak pás 60 dní před oknem (`ttl`). `data[c]` = archiv + živá část, aplikace vidí vše. Docházka v okně až od brány verze ≥ `ATT_D_VER` (22.9). **Docházka musí mít `d`** – doplňuje ho `withD` v `storage.js` při každém `set`, změnu data události propíše `attMoves`; ruční zápis docházky mimo `S.db` se nepoužívá.
+- **📉 Okno poslechu** (`storage.js` – `listenWin`, `domain/data-window.js`): `events` a `matches` (pole `date`, zápasy od v22.37 – pás archivu jednou týdně, 🔄 Aktualizovat zápasy ve Statistikách = `HK.archRefresh("matches")`) a `attendance` (pole `d`) se živě poslouchají od `winFrom` (realizační tým 45 dní, ostatní 8 dní) – u hráčky / hostující jen do `winTo` (dnes + 15 dní), dál až po `HK.farListen()` (⬇ Načíst další v Událostech), starší z paměti zařízení (`getDocsFromCache`), ze serveru celý archiv jednou na zařízení, pak pás 60 dní před oknem (`ttl`). `data[c]` = archiv + živá část, aplikace vidí vše. Zápis / smazání dokumentu z archivu (oprava staršího zápasu) obnoví archiv z paměti zařízení (`archTouch`), dávky (`batch`, `commitOps`) to nedělají. Docházka v okně až od brány verze ≥ `ATT_D_VER` (22.9). **Docházka musí mít `d`** – doplňuje ho `withD` v `storage.js` při každém `set`, změnu data události propíše `attMoves`; ruční zápis docházky mimo `S.db` se nepoužívá.
 - Úpravy existujícího dokumentu přes `merge`: `S.db.doc(cesta).merge({pole})` (vnořený objekt nahradí, `"__del"` smaže pole, `"__now"` = čas serveru); v dávce `batch().merge` = hluboké sloučení. `set` jen pro nový dokument nebo celý vlastněný (zápas, `evcash`, plán).
 - Data jen **přidávat**; stará pole mazat nejdřív o verzi později. Pravidla: **rozšířit → převést → zúžit**. Převody dat = tlačítko v ⚙️ → 💾 Data s náhledem, idempotentní, se zálohou; po potvrzení se v další verzi odstraní.
 - **Brána verze** `settings/app = {minVer, minBy, minAt}` (⚙️ → 👤 Účet → 🔒 Vyžadovat verzi, jen manager). Klient pod minimem nezapisuje.
@@ -173,9 +183,10 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | Kolekce | Obsah | Čte / zapisuje |
 |---|---|---|
 | `drills/{id}`, `drillimg/{id}` | banka cvičení, obrázek (≤ 700 000 znaků) | `drills r` / `e`, `d`; obrázky čte `isTeam` |
-| `trplan/{eid}` | `{v, goal, blocks: [{id, mode, dur, rot, by, brk, lanes: [{id, drill, dn, di, co, grp, seq}]}]}`; `seq: [{id, drill, dn, di, dur}]` jen u linky, která se netočí | `trplan r` / `e` |
+| `trplan/{eid}` | `{v, goal, blocks: [{id, mode, dur, rot, by, brk, ne, lanes: [{id, drill, dn, di, co, grp, seq}]}]}`; `seq: [{id, drill, dn, di, dur}]` jen u linky, která se netočí | `trplan r` / `e` |
 | `trtpl/{id}` | šablona plánu | `trplan e` |
 | `trlive/{eid}` | hodiny `{st, e0, wAt, sAt == request.time, ctl, adj, skip}` | `trplan r` / `e` |
+| `tract/{eid}` | ✏️ skutečný průběh `{v, blocks: [{id, dur, skip}], src: live \| edit}` – statistiky přes `actualPlan` | `trplan r` / `e` |
 | `plevel/team` | ⭐ výkonnost `{lv: {pid: 1–5}}` | `isStaff` |
 | `trms/{eid}` | měření `{r: {klíč: {d, dn, u, low, ms: {pid: [pokusy]}, rl}}}` – vidí celý tým | `trplan r` / `treval e` |
 | `treval/{eid}` | hodnocení `{r: {klíč: {d, dn, r, n, pl: {pid: {r, n}}}}}` – **hráčka nikdy** | `treval r` / `e` |

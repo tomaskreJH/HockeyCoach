@@ -5,7 +5,7 @@
 
 // ===== Importy =====
 import {armed, confirm2} from "../core/actions.js";
-import {isG, kindOf, PG, pl, pn, pri, score} from "../core/selectors.js";
+import {capName, isG, kindOf, PG, pl, pn, pri, score} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -35,7 +35,7 @@ let attOpen = null;                                                     // id ud
 // 🎽 Rozdělení do dresů (jen trénink, skupiny = pětky v lines): zkráceně „Modrá: Hanča, Bětka“; kdo smí měnit dresy, otevře ✏️ Upravit dresy
 // (S.lse = id události) – přihlášené hráčky (bez brankářek) a realizační tým, barevné volby, panel automatického rozdělení a ⭐ výkonnosti
 // (views/line-split-view.js). Člen týmu má v lines klíč "t:" + id (vede stanoviště / jde se skupinou).
-const short = id => { const p = pl(id); return p ? esc(p.name) : "?"; };
+const short = id => { const p = pl(id); return p ? esc(capName(p)) : "?"; };
 function linesHtml(ev, A, P, T, ro) {
   const going = P.filter(p => A[p.id] && A[p.id].st === "yes" && !isG(p)), goT = T.filter(t => A[t.id] && A[t.id].st === "yes"), L = ev.raw.lines || {};
   const c = lineCounts(L, going.map(p => p.id), goT.map(t => t.id)), edit = !ro && S.lse === ev.id, lk = lokState(ev.raw);

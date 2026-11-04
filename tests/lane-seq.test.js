@@ -66,7 +66,7 @@ test("laneSub: odpočet podle cvičení mé linky, nejvýš do konce kola", () =
 test("planIssues: řada delší než blok = chyba, kratší = volno, cvičení bez výběru = upozornění", () => {
   const p = plan();
   p.blocks[0].lanes[1].seq[2].dur = 9;
-  p.blocks[0].lanes[0].seq[1].drill = "";
+  Object.assign(p.blocks[0].lanes[0].seq[1], {drill: "", dn: ""});
   const I = planIssues(p, {total: 15, groups: ["G"]}).map(x => x.lvl + ":" + x.t);
   assert.ok(I.some(t => t.startsWith("err:") && t.includes("16 min, blok jen 15")));
   assert.ok(I.some(t => t.startsWith("warn:") && t.includes("2. cvičení řady bez cvičení")));

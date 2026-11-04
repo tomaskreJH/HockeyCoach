@@ -13,6 +13,7 @@ export const JOIN_KINDS = {hracka: "Hráčka", staff: "Realizační tým"};  // 
 export const JOIN_ROLES = {hracka: "Hráčka", asistent: "Asistent", trener: "Trenér", manager: "Manager"};   // role při přijetí (určuje manager)
 export const RESEND_MS = 24 * 60 * 60 * 1000;                          // nová žádost po vyřízení nejdřív za 24 h
 export const NICK_MAX = 40, NOTE_MAX = 300;
+export const MOTTO_JOIN_MAX = 80;                                     // motto z formuláře (stejně jako MOTTO_MAX v domain/mottos.js)
 // Funkce člena realizačního týmu (pole kind v staff) podle role při přijetí – stejné názvy jako role
 const STAFF_KIND = {manager: "Manager", trener: "Trenér", asistent: "Asistent", hracka: "Jiný"};
 
@@ -31,16 +32,18 @@ function linked(members) {
 // Kontrola formuláře uchazeče: přezdívka povinná (max 40), číslo dresu 1–99 nebo prázdné, druh, poznámka max 300.
 // Vrací {ok: true, d} s očištěnými poli, nebo {ok: false, err} s hláškou.
 export function joinCheck(f) {
-  const nick = str(f && f.nick), num = str(f && f.num), kind = str(f && f.kind), note = str(f && f.note);
+  const nick = str(f && f.nick), num = str(f && f.num), kind = str(f && f.kind), note = str(f && f.note), motto = str(f && f.motto);
   if (!nick) return {ok: false, err: "Vyplň přezdívku"};
   if (nick.length > NICK_MAX) return {ok: false, err: "Přezdívka je moc dlouhá (max " + NICK_MAX + " znaků)"};
   if (num && !/^[1-9]\d?$/.test(num)) return {ok: false, err: "Číslo dresu musí být 1–99 (nebo nech prázdné)"};
   if (!JOIN_KINDS[kind]) return {ok: false, err: "Vyber, zda jsi hráčka, nebo člen realizačního týmu"};
   if (note.length > NOTE_MAX) return {ok: false, err: "Poznámka je moc dlouhá (max " + NOTE_MAX + " znaků)"};
-  return {ok: true, d: {nick, num, kind, note}};
+  if (motto.length > MOTTO_JOIN_MAX) return {ok: false, err: "Motto je moc dlouhé (max " + MOTTO_JOIN_MAX + " znaků)"};
+  return {ok: true, d: {nick, num, kind, note, motto}};
 }
 // Dokument nové žádosti: jen pole formuláře (stejně vynucují pravidla databáze); e-mail vždy z přihlášení, malými písmeny
-export const joinDoc = (email, d, at) => ({email: str(email).toLowerCase(), nick: d.nick, num: d.num, kind: d.kind, note: d.note, st: "open", at});
+// Motto je nepovinné: do dokumentu se přidá jen vyplněné
+export const joinDoc = (email, d, at) => Object.assign({email: str(email).toLowerCase(), nick: d.nick, num: d.num, kind: d.kind, note: d.note, st: "open", at}, d.motto ? {motto: d.motto} : {});
 // Smí uchazeč poslat (novou) žádost? Bez žádosti ano; otevřená ne; vyřízená (zamítnutá / odebraný přístup) až 24 h po vyřízení.
 // Vrací {ok, from} – from = čas (ms), od kdy to půjde.
 export function canResend(req, now) {
@@ -85,6 +88,9 @@ export function approvePlan(req, ch, ctx) {
     member.tid = tid; link = "tid"; who = target === "new" ? "nový člen týmu" : "člen týmu " + (ctx.label || tid);
   }
   ops.push(["set", "members/" + email, member]);
+  // Motto z žádosti se založí jako první motto nové členky / člena (mid = její pid nebo tid)
+  const mid = member.pid || member.tid || "", mt = str(req.motto);
+  if (mt && mid && ctx.mottoId) ops.push(["set", "mottos/" + ctx.mottoId, {t: mt, mid, by: ctx.by, at: ctx.at}]);
   const done = {st: "ok", reply: "", doneBy: ctx.by, doneMs: ctx.ms};
   if (link) done[link] = member[link];
   ops.push(["merge", JOIN_COLL + "/" + email, done]);

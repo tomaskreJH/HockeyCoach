@@ -1,5 +1,6 @@
 // Opravy zápisu: úprava událostí, třetin, konce zápasu, základních údajů zápasu a střídání.
-import {REA, SIT} from "../config/constants.js";
+// 🎯 Trestné střílení se ve formuláři upravuje jako druh „X“ (tým, střelkyně / brankářka, výsledek) a ukládá přes psEvent (gól k "G" / pokus k "S", ps: true).
+import {GSIT, REA, SIT} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, ensureOp, upd} from "../core/actions.js";
 import {curM, isG, nm, nomOf, pl, pri} from "../core/selectors.js";
@@ -7,31 +8,37 @@ import {S} from "../core/state.js";
 import {$, MSG, clone, esc, failMsg, fd, mmss, toast, uid} from "../core/utils.js";
 import {clearEnd, lastPer, moveBoundary, parseClock, periodEnd, removeOvertime, setEnd} from "../domain/corrections.js";
 import {eventText, perLabel, periodStart} from "../domain/timeline.js";
+import {psEvent} from "../domain/penalty-shot.js";
 import {bindShifts, shiftFormHtml, shiftsHtml} from "./shift-editor.js";
 
 const chip = (k, v, label, on, attr = "data-ef") => `<button class="chip ${on ? "on" : ""}" ${attr}="${k}" data-v="${esc(v)}">${label}</button>`;
 const pool = (m, f, goalie) => [...new Set([...nomOf(m), f.scorer, f.a1, f.a2, f.pid, f.shooter, f.gk, ...(f.on || [])].filter(Boolean))]
   .filter(id => pl(id) && isG(pl(id)) === goalie).sort((x, y) => pri(pl(x)) - pri(pl(y)) || pl(x).name.localeCompare(pl(y).name, "cs"));
 const pc = (m, f, k, sel, goalie = false, ex = []) => `<div class="chips">${pool(m, f, goalie).filter(id => !ex.includes(id)).map(id => chip(k, id, esc(nm(id)), sel === id)).join("") || '<span class="mu">Nikdo.</span>'}</div>`;
-const KT = f => ({G: f.team === "us" ? "gól " + TEAM_NAME : "gól soupeře", P: "vyloučení", S: f.team === "us" ? "střela" : "střela soupeře"})[f.k];
+const KT = f => ({G: f.team === "us" ? "gól " + TEAM_NAME : "gól soupeře", P: "vyloučení", S: f.team === "us" ? "střela" : "střela soupeře", X: f.team === "us" ? "trestné střílení " + TEAM_NAME : "trestné střílení soupeře"})[f.k];
 
 function formHtml(m, f) {
   let h = `<h3>${f.isNew ? "Nová událost" : "Úprava události"}: ${KT(f)}</h3><label>Třetina</label><div class="chips">${[1, 2, 3, 4].filter(n => n < 4 || m.ot !== false || f.per === 4).map(n => chip("per", n, n < 4 ? n + "." : "Prodl.", f.per === n)).join("")}</div><label>Čas v třetině (mm:ss)</label><input id="edt" value="${esc(f.time || "")}" placeholder="12:35" style="max-width:160px">`;
   if (f.k === "G") {
-    h += `<label>Situace</label><div class="chips">${Object.entries(SIT).map(([k, t]) => chip("sit", k, t, (f.sit || "E") === k)).join("")}</div>`;
+    h += `<label>Situace</label><div class="chips">${GSIT.map(k => chip("sit", k, SIT[k], (f.sit || "E") === k)).join("")}</div>`;
     if (f.team === "us") h += `<label>Střelkyně</label>${pc(m, f, "scorer", f.scorer)}<label>Asistence 1</label>${pc(m, f, "a1", f.a1, false, [f.scorer, f.a2])}<label>Asistence 2</label>${pc(m, f, "a2", f.a2, false, [f.scorer, f.a1])}`;
     h += `<label>Na ledě (určuje +/−)</label><div class="chips">${[...pool(m, f, false), ...pool(m, f, true)].map(id => chip("on", id, esc(nm(id)), (f.on || []).includes(id))).join("")}</div>`;
   } else if (f.k === "P") {
     h += `<label>Tým</label><div class="chips">${chip("team", "us", TEAM_NAME, f.team === "us")}${chip("team", "opp", "Soupeř", f.team === "opp")}</div>`;
     if (f.team === "us") h += `<label>Hráčka</label>${pc(m, f, "pid", f.pid)}`;
     h += `<label>Délka</label><div class="chips">${[[2, "2"], [4, "2+2"], [5, "5"], [10, "10"], [20, "Do konce"]].map(([v, t]) => chip("min", v, t, f.min === v)).join("")}</div><label>Důvod</label><div class="chips">${REA.map(r => chip("reason", r, r, f.reason === r)).join("")}</div>`;
+  } else if (f.k === "X") {
+    // 🎯 Trestné střílení: kdo střílí, výsledek (gól se počítá do skóre a statistik, bez asistencí a +/-)
+    h += `<label>Střílí</label><div class="chips">${chip("team", "us", TEAM_NAME, f.team === "us")}${chip("team", "opp", "Soupeř", f.team === "opp")}</div>`;
+    h += f.team === "us" ? `<label>Střelkyně</label>${pc(m, f, "shooter", f.shooter)}` : `<label>Brankářka</label>${pc(m, f, "gk", f.gk, true)}`;
+    h += `<label>Výsledek</label><div class="chips">${chip("res", "g", "🥅 Gól", f.res === "g")}${chip("res", "m", f.team === "us" ? "❌ Neproměněno" : "🧤 Chyceno", f.res !== "g")}</div>`;
   } else h += f.team === "us" ? `<label>Střelkyně</label>${pc(m, f, "shooter", f.shooter)}` : `<label>Brankářka</label>${pc(m, f, "gk", f.gk, true)}`;
   return h + `<div class="row" style="margin-top:14px"><button class="p" id="efs" style="min-height:52px">Uložit</button><button class="s" id="efc" style="min-height:52px">Zrušit</button></div>`;
 }
 function eventsHtml(m) {
-  const evs = (m.events || []).map((e, i) => ({e, i})).filter(x => S.ed.shots || x.e.k !== "S")
+  const evs = (m.events || []).map((e, i) => ({e, i})).filter(x => S.ed.shots || x.e.k !== "S" || x.e.ps)
     .sort((a, b) => a.e.per - b.e.per || (a.e.time || "").localeCompare(b.e.time || "") || a.i - b.i);
-  return `<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><button class="s" data-add="Gus">+ Gól ${TEAM_NAME}</button><button class="s" data-add="Gopp">+ Gól soupeře</button><button class="s" data-add="Pus">+ Vyloučení</button><button class="s" data-add="Sus">+ Střela</button><button class="s" data-add="Sopp">+ Střela soupeře</button></div>
+  return `<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><button class="s" data-add="Gus">+ Gól ${TEAM_NAME}</button><button class="s" data-add="Gopp">+ Gól soupeře</button><button class="s" data-add="Pus">+ Vyloučení</button><button class="s" data-add="Sus">+ Střela</button><button class="s" data-add="Sopp">+ Střela soupeře</button><button class="s" data-add="Xus">+ 🎯 Trestné střílení</button></div>
 <div class="chips"><button class="chip ${S.ed.shots ? "on" : ""}" data-eshots>Zobrazit střely</button></div>
 ${evs.length ? evs.map(({e}) => `<div class="ev" style="align-items:center"><div class="t">${perLabel(e.per)} ${esc(e.time || "")}</div><div class="b">${esc(eventText(e))}</div><button class="s" data-ee="${e.id}" style="padding:10px 12px">✏️</button><button class="d" data-ed="${e.id}" style="padding:10px 12px;${S.cf === "e" + e.id ? "background:var(--no);color:#fff" : ""}">${S.cf === "e" + e.id ? "Smazat?" : "🗑"}</button></div>`).join("") : '<div class="msg">Žádné události.</div>'}`;
 }
@@ -53,7 +60,7 @@ function baseHtml(m) {
   const b = S.ed.b;
   return `<label>Soupeř</label><input id="bo" value="${esc(S.ed.o != null ? S.ed.o : m.opp)}"><label>Datum</label><input type="date" id="bd" value="${S.ed.d || m.date}"><label>Doma / venku</label><div class="chips">${chip("home", "1", "Doma", b.home, "data-bf")}${chip("home", "0", "Venku", !b.home, "data-bf")}</div><label>Délka třetiny (min)</label><input id="bl" type="number" min="1" max="30" value="${S.ed.l || m.perLen || 20}" style="max-width:120px"><label>Prodloužení</label><div class="chips">${chip("ot", "1", "Ano (5 min)", b.ot, "data-bf")}${chip("ot", "0", "Ne", !b.ot, "data-bf")}</div><button class="p w" id="bsv" style="min-height:52px;margin-top:6px">Uložit základní údaje</button>`;
 }
-const blank = (m, t) => ({isNew: true, k: t[0], team: t.slice(1), per: m.live ? Math.min(m.live.per, m.ot === false ? 3 : 4) : 1, time: "", sit: "E", on: [], min: 2, reason: REA[0]});
+const blank = (m, t) => ({isNew: true, k: t[0], team: t.slice(1), per: m.live ? Math.min(m.live.per, m.ot === false ? 3 : 4) : 1, time: "", sit: "E", on: [], min: 2, reason: REA[0], res: "g"});
 
 export function renderEditor() {
   const e = $("#ed");
@@ -76,7 +83,12 @@ function bind(e, m) {
   // události
   q("[data-eshots]").forEach(b => b.onclick = () => { ed.shots = !ed.shots; renderEditor(); });
   q("[data-add]").forEach(b => b.onclick = () => { ed.f = blank(m, b.dataset.add); renderEditor(); });
-  q("[data-ee]").forEach(b => b.onclick = () => { ed.f = {...clone((m.events || []).find(x => x.id === b.dataset.ee)), on: clone(((m.events || []).find(x => x.id === b.dataset.ee).on) || [])}; renderEditor(); });
+  // Úprava události; 🎯 trestné střílení jako druh „X“ (výsledek podle k, střelkyně ze scorer / shooter)
+  q("[data-ee]").forEach(b => b.onclick = () => {
+    const x = (m.events || []).find(y => y.id === b.dataset.ee);
+    ed.f = x.ps ? {...clone(x), k: "X", res: x.k === "G" ? "g" : "m", shooter: x.scorer || x.shooter || null} : {...clone(x), on: clone(x.on || [])};
+    renderEditor();
+  });
   q("[data-ed]").forEach(b => b.onclick = () => {
     const id = b.dataset.ed;
     confirm2("e" + id, () => { const n = clone(m); n.events = n.events.filter(x => x.id !== id); upd(n); }, renderEditor);
@@ -95,9 +107,10 @@ function bind(e, m) {
     if (ms == null) return toast("Čas zadej jako mm:ss, např. 12:35");
     if (f.k === "G" && f.team === "us" && !f.scorer) return toast("Vyber střelkyni");
     if (f.k === "P" && f.team === "us" && !f.pid) return toast("Vyber hráčku");
-    if (f.k === "S" && f.team === "us" && !f.shooter) return toast("Vyber střelkyni");
-    const ev = {id: f.id || uid(), k: f.k, team: f.team, per: f.per, time: mmss(ms)};
-    if (f.k === "G") { ev.sit = f.sit || "E"; if (f.team === "us") { ev.scorer = f.scorer; ev.a1 = f.a1 || null; ev.a2 = f.a2 || null; ev.on = [...new Set([f.scorer, f.a1, f.a2, ...f.on].filter(Boolean))]; } else ev.on = f.on; }
+    if ((f.k === "S" || f.k === "X") && f.team === "us" && !f.shooter) return toast("Vyber střelkyni");
+    let ev = {id: f.id || uid(), k: f.k, team: f.team, per: f.per, time: mmss(ms)};
+    if (f.k === "X") ev = psEvent({id: ev.id, team: f.team, per: f.per, time: ev.time, shooter: f.team === "us" ? f.shooter : null, gk: f.team === "opp" ? f.gk : null, pf: f.team === "opp" ? f.pf : null, goal: f.res === "g"});
+    else if (f.k === "G") { ev.sit = f.sit || "E"; if (f.team === "us") { ev.scorer = f.scorer; ev.a1 = f.a1 || null; ev.a2 = f.a2 || null; ev.on = [...new Set([f.scorer, f.a1, f.a2, ...f.on].filter(Boolean))]; } else ev.on = f.on; }
     else if (f.k === "P") { ev.min = f.min; ev.reason = f.reason; if (f.team === "us") ev.pid = f.pid; }
     else if (f.team === "us") ev.shooter = f.shooter; else ev.gk = f.gk || null;
     const n = clone(m);

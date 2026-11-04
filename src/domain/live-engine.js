@@ -1,8 +1,9 @@
 // Jádro živého zápisu bez DOM: čas, střídání, tresty podle IIHF, jednotky, formace.
 // Hráčka je NA LEDĚ (L.ice[sloupec]), VE FRONTĚ (L.q[sloupec], na místo nejvýš jedna) nebo ZAPARKOVANÁ (partnerka z rotace).
 // L.ri[místo] = index hráčky rotace na ledě / další na řadě; L.unit = aktivní jednotka PP/OS.
-// Každý příchod na led volá claimSlot, každá akce končí settle (kontrola invariantů).
+// Každý příchod na led volá claimSlot, každá akce končí settle (kontrola invariantů). ▶ Buly spouští čas, ⏸ Přerušit ho zastaví (záznamy v n.log).
 import {COLS, LAYOUT, POS} from "../config/constants.js";
+import {TEAM_NAME} from "../config/team-config.js";
 import {upd} from "../core/actions.js";
 import {activeId, baseKey, curM, isG, nomOf, ownCol, pl, score, slotIds, slotKey} from "../core/selectors.js";
 import {S} from "../core/state.js";
@@ -83,6 +84,12 @@ export function act(label,fn){const m=curM();if(!m||!m.live||m.closed)return;con
 export const doSub=(p,c)=>{const m=curM();if(!m||!m.live)return;const L=m.live,now=el_(L);if(!L.ice[c]&&skCount(L)>=sk(L,"us",now)){toast("Na ledě už je největší povolený počet hráček (trest).");return}act("Střídání: "+(pl(p)||{}).name,(L2,n,ids,t)=>putOn(L2,p,c,t,n))};
 export const doShot=p=>act("Střela: "+(pl(p)||{}).name,(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"us",per:L.per,time:mmss(ela(L,now)),shooter:p,at:now};n.events=[...(n.events||[]),e];ids.push(e.id)});
 export const doOShot=()=>act("Střela soupeře",(L,n,ids,now)=>{const e={id:uid(),k:"S",team:"opp",per:L.per,time:mmss(ela(L,now)),gk:L.G||null,at:now};n.events=[...(n.events||[]),e];ids.push(e.id)});
+// ===== Přerušení a buly =====
+// ⏸ Přerušení hry: zastaví čas a zapíše přerušení do podrobného zápisu (log ty "stop"); jako dřív bez kroku ↩ Zpět
+export const doStop=()=>act(false,(L,n,ids,t)=>{if(!L.running)return;L.acc=t;L.running=false;L.t0=0;logEv(n,{ty:"stop",per:L.per,at:t})});
+// ▶ Buly: vhazování spustí čas a zapíše, kdo buly vyhrál (log ty "fo", team "us" / "opp").
+// Je to krok ↩ Zpět: vrácení smaže jen záznam buly, čas běží dál (doUndo nechává running, t0 a acc z aktuálního stavu).
+export const doFaceoff=team=>act("Buly: "+(team==="us"?TEAM_NAME:"soupeř"),(L,n,ids,t)=>{if(L.running)return;logEv(n,{ty:"fo",team:team==="us"?"us":"opp",per:L.per,at:t});L.running=true;L.t0=Date.now()});
 export function doUndo(){const m=curM();if(!m||!m.live)return;const L=m.live,u=(L.u||[]).slice(-1)[0];if(!u)return;const n=clone(m);n.live={...u.l,u:L.u.slice(0,-1),running:L.running,t0:L.t0,acc:L.acc};n.events=(n.events||[]).filter(e=>!u.ids.includes(e.id));n.log=(n.log||[]).filter(x=>!u.ids.includes(x.id));if("end0" in u){if(u.end0)n.end=u.end0;else delete n.end}upd(n)}
 
 // ===== Tresty =====

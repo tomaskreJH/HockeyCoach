@@ -6,7 +6,7 @@
 import {REA, SIT, UGRP, UK, ULAB, USLOT, slab} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
 import {confirm2, save, upd} from "../core/actions.js";
-import {PG, compactRot, goingOf, nm, nomOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
+import {PG, capName, compactRot, goingOf, nm, nomOf, pl, pn, pri, score, stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, dlText, esc, failMsg, fd, Q, shareText, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
@@ -15,6 +15,7 @@ import {benchM, fillDef, readiness, signupState} from "../domain/lineup.js";
 import {initLive} from "../domain/live-engine.js";
 import {lastLineupMatch, lineupLike, matchSummary, unitsLike} from "../domain/match-share.js";
 import {goalScores} from "../domain/timeline.js";
+import {psText} from "../domain/penalty-shot.js";
 import {benchGrouped, bindLu, luEditor, matchDrag} from "./lineup-editor.js";
 import {renderEditor} from "./editor.js";
 import {liveRender} from "./live-view.js";
@@ -25,7 +26,7 @@ import {matchStatsHtml, renderReport} from "./report.js";
 import {render} from "./shell.js";
 
 // Text souhrnu zápasu ke sdílení (domain/match-share.js) se jmény hráček a názvem týmu
-const summaryOf=m=>matchSummary(m,{team:TEAM_NAME,name:id=>(pl(id)||{}).name||nm(id),fd});
+const summaryOf=m=>matchSummary(m,{team:TEAM_NAME,name:id=>capName(pl(id))||nm(id),fd});
 export function matches(a){if(S.mid){const m=S.ma.find(x=>x.id===S.mid);if(m){S.mt=0;return detail(a,m)}if(!S.mt)S.mt=Date.now();if(Date.now()-S.mt<4000){a.innerHTML='<div class="msg">Načítám zápas…</div>';setTimeout(render,500);return}S.mid=null;S.mt=0}
 const l=[...S.ma].sort((x,y)=>y.date.localeCompare(x.date));
 a.innerHTML=`<button class="p w" id="nw" style="margin-bottom:12px">+ Nový zápas</button><div class="cd">${l.length?l.map(m=>{const[g,o]=score(m);return`<div class="it" data-id="${m.id}"><div><b>${esc(m.opp)}</b><div class="mu">${fd(m.date)} · ${m.home?"doma":"venku"}</div></div><div><b style="font-size:20px">${m.closed?"🔒 ":""}${g}:${o}</b> <span class="tag ${g>o?"pp":g<o?"red":""}">${g>o?"V":g<o?"P":"R"}</span></div></div>`}).join(""):'<div class="msg">Žádné zápasy.</div>'}</div>`;
@@ -48,7 +49,7 @@ ${startCard(1)}
 ${startCard(3)}
 <div class="sc" data-s="3">${g} : ${o}</div>
 ${lk?`<div class="cd" data-s="3" id="mshc"><h2>📤 Souhrn zápasu</h2><div class="mu" style="margin-bottom:8px">Výsledek, třetiny, góly s asistencemi, střely a tresty jedním textem – pošli ho do skupiny týmu.</div><button class="p w" data-msh style="min-height:56px">📤 Sdílet souhrn</button>${S.mshT===m.id?`<textarea readonly rows="8" style="margin-top:8px">${esc(summaryOf(m))}</textarea>`:""}</div>`:""}
-<div class="cd" data-s="3"><h2>Průběh</h2>${ev.length?ev.map(e=>e.k==="G"?`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>${e.team==="us"?"🥅 "+(e.scorer?pn(e.scorer):"?"):"🥅 Gól soupeře"}</b> <span class="tag">Stav ${gs.get(e)||"–"}</span> <span class="tag ${e.sit==="PP"?"pp":e.sit==="SH"?"sh":""}">${SIT[e.sit]||SIT.E}</span>${e.team==="us"?`<div class="mu">Asistence: ${[e.a1,e.a2].filter(Boolean).map(pn).join(", ")||"bez asistence"}</div>`:""}<div class="mu">Na ledě: ${(e.on||[]).map(pn).join(", ")||"–"}</div></div></div>`:e.k==="S"?`<div class="ev"><div class="t">${tm(e)}</div><div class="b">${e.team==="us"?"🏒 Střela: <b>"+(e.shooter?pn(e.shooter):"?")+"</b>":"🏒 Střela soupeře"+(e.gk&&pl(e.gk)?'<div class="mu">Brankářka: '+pn(e.gk)+"</div>":"")}</div></div>`:`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>🚫 ${e.team==="us"?(e.pid?pn(e.pid):"?"):"Soupeř"}</b> <span class="tag red">${e.min} min</span><div class="mu">${esc(e.reason||"")}</div></div></div>`).join(""):'<div class="msg">Zatím nic nezapsáno.</div>'}</div>
+<div class="cd" data-s="3"><h2>Průběh</h2>${ev.length?ev.map(e=>e.ps?`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>${esc(psText(e,id=>nm(id)))}</b>${e.k==="G"?` <span class="tag">Stav ${gs.get(e)||"–"}</span>`:""}</div></div>`:e.k==="G"?`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>${e.team==="us"?"🥅 "+(e.scorer?pn(e.scorer):"?"):"🥅 Gól soupeře"}</b> <span class="tag">Stav ${gs.get(e)||"–"}</span> <span class="tag ${e.sit==="PP"?"pp":e.sit==="SH"?"sh":""}">${SIT[e.sit]||SIT.E}</span>${e.team==="us"?`<div class="mu">Asistence: ${[e.a1,e.a2].filter(Boolean).map(pn).join(", ")||"bez asistence"}</div>`:""}<div class="mu">Na ledě: ${(e.on||[]).map(pn).join(", ")||"–"}</div></div></div>`:e.k==="S"?`<div class="ev"><div class="t">${tm(e)}</div><div class="b">${e.team==="us"?"🏒 Střela: <b>"+(e.shooter?pn(e.shooter):"?")+"</b>":"🏒 Střela soupeře"+(e.gk&&pl(e.gk)?'<div class="mu">Brankářka: '+pn(e.gk)+"</div>":"")}</div></div>`:`<div class="ev"><div class="t">${tm(e)}</div><div class="b"><b>🚫 ${e.team==="us"?(e.pid?pn(e.pid):"?"):"Soupeř"}</b> <span class="tag red">${e.min} min</span><div class="mu">${esc(e.reason||"")}</div></div></div>`).join(""):'<div class="msg">Zatím nic nezapsáno.</div>'}</div>
 <div class="cd" data-s="3">${matchStatsHtml(m)}</div>
 ${m.live||(m.events||[]).length?`<div class="cd" data-s="3"><h2>Zápis utkání</h2><div class="mu" style="margin-bottom:8px">Souhrn pro trenéry a hráčky: výsledek, sestava, průběh, tresty a statistiky. Jde vytisknout nebo uložit.</div><button class="p w" data-rpt style="min-height:56px">📄 Otevřít zápis utkání</button></div>`:""}
 ${m.live||(m.events||[]).length?`<div class="cd" data-s="3"><h2>Opravy zápisu</h2>${lk?'<div class="mu">Zápas je uzavřený. Pro opravy ho nejdřív znovu otevři.</div>':`<div class="mu" style="margin-bottom:8px">Oprava jmen, časů, konců třetin a konce zápasu.</div><button class="s w" data-edt style="min-height:56px">✏️ Opravit zápis</button>`}</div>`:""}

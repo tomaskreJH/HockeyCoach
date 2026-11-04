@@ -1,4 +1,4 @@
-// Živý zápis – obsluha klepnutí na obrazovce: start / přerušení, posun času, ↩ Zpět, střely, rychlý zápis gólů a trestů,
+// Živý zápis – obsluha klepnutí na obrazovce: ▶ Buly naše / soupeř (start), ⏸ přerušení, posun času, ↩ Zpět, střely, rychlý zápis gólů a trestů,
 // pětky a jednotky, štítky trestů (✕), rotující partnerky, střídání klepnutím i přetažením; odchod ze živého zápisu.
 // Struktura: Importy -> Gól / trest přes okno (openLive) -> Střídání s odezvou (subFb) -> Přetahování (lvDrag)
 //            -> Obsluha obrazovky (bindLive) -> Odchod (leaveLive) -> Nabídka po trestu (askUnit) -> Posun času (nudgeT).
@@ -6,11 +6,11 @@
 // ===== Importy =====
 import {REA, ULAB} from "../config/constants.js";
 import {upd} from "../core/actions.js";
-import {curM, liveIds, pl} from "../core/selectors.js";
+import {capName, curM, liveIds, pl} from "../core/selectors.js";
 import {makeDrag} from "../core/drag.js";
 import {S} from "../core/state.js";
 import {Q, clone, mmss, toast} from "../core/utils.js";
-import {act, afterRemove, applyLine, applyUnit, doOShot, doShot, doSub, doUndo, el_, ela, logEv, sk, skCount, swapRot, toLines, toff} from "../domain/live-engine.js";
+import {act, afterRemove, applyLine, applyUnit, doFaceoff, doOShot, doShot, doStop, doSub, doUndo, el_, ela, logEv, sk, skCount, swapRot, toLines, toff} from "../domain/live-engine.js";
 import {matchDrag} from "./lineup-editor.js";
 import {qaClick, qaStart} from "./live-quick.js";
 import {feedback, haptic} from "./live-feedback.js";
@@ -28,7 +28,7 @@ else S.M={k:"P",team:"us",...base,min:2,reason:REA[0],pid:null};modal()}
 function subFb(p,c){const m=curM(),L=m&&m.live;const full=!!L&&!L.ice[c]&&skCount(L)>=sk(L,"us",el_(L));doSub(p,c);if(L)feedback(full?"err":"tap",full?null:`[data-ice="${c}"]`)}
 // Přetahování hráčky z fronty na místo na ledě; klepnutí = střídání na její místo
 function lvDrag(root){makeDrag(root,[...root.querySelectorAll("[data-q]")],{target:"[data-ice]",
-start:b=>({data:b.dataset.q,text:(pl(b.dataset.q)||{}).name||""}),
+start:b=>({data:b.dataset.q,text:capName(pl(b.dataset.q))}),
 drop:(p,b)=>subFb(p,b.dataset.ice),
 click:b=>()=>subFb(b.dataset.q,b.dataset.col)})}
 
@@ -38,7 +38,10 @@ export function bindLive({e,m,L,run,ended}){
 const Q2=x=>e.querySelectorAll(x);if(S.lmenu&&S.lsub==="lineup"&&!m.closed)matchDrag(e,m);
 // Sestava po zranění: vyznačit místo zraněné hráčky (dočasně – její místo, trvale – prázdné místo po ní)
 if(S.lmenu&&S.lsub==="lineup"&&S.lgap)S.lgap.keys.forEach(k=>Q2(`[data-sl="m:${k}"]`).forEach(b=>b.classList.add("lu-gap")));
-e.querySelector("#lpl").onclick=()=>{if(ended)return toast("Zápas je ukončen (zrušit konec: menu ⋯)");act(false,(L,n,i,t)=>{if(L.running){L.acc=t;L.running=false;L.t0=0}else{L.running=true;L.t0=Date.now()}})};
+// ⏸ Přerušit (běžící čas) zapíše přerušení; ▶ Buly naše / soupeř spustí čas a zapíše vyhrané buly (domain/live-engine.js)
+Q("#lpl").onclick=()=>{if(ended)return toast("Zápas je ukončen (zrušit konec: menu ⋯)");if(L.running)doStop()};
+Q("#lfu").onclick=()=>doFaceoff("us");
+Q("#lfo").onclick=()=>doFaceoff("opp");
 e.querySelector("#tm5").onclick=()=>nudgeT(-5000);e.querySelector("#tp5").onclick=()=>nudgeT(5000);
 // ↩ Zpět s odezvou (jen když bylo co vrátit)
 e.querySelector("#lun").onclick=()=>{const had=(L.u||[]).length>0;doUndo();if(had)feedback("undo","#lun")};

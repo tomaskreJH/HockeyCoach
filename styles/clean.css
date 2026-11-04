@@ -1,0 +1,188 @@
+/* ==========================================================
+   VZHLED „ČISTÝ“ (přepínatelný, ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika → Čistý; src/core/skin.js)
+   Plochý a střídmý: žádné přechody, záře ani stíny, lehké zaoblení (6 px), jedna neutrální základna a jeden akcent
+   (týmová tmavě modrá, ve tmavém režimu týmová zlatá). Barva se používá jen jako STAV: zelená = jdu, žlutá = nejsem jistý,
+   červená = nejdu / dluh, šedá = bez odpovědi nebo zrušeno (užší pruh a jemný nádech karty). Zápasy mají zvýrazněné záhlaví karty. Ikony (emoji) jsou černobílé (src/core/emoji-clean.js).
+   Platí jen při <html data-clean="1">; rozměry a rozložení zůstávají z styles/main.css, formace (L1–L4) a živý zápis mají barvy beze změny.
+   ========================================================== */
+
+/* ==========================================================
+   1. BARVY – SVĚTLÝ REŽIM (výchozí)
+   --hd = záhlaví, --stx = text na barvě stavu, --ink = text na akcentu, --fh = písmo nadpisů (Barlow Condensed z arena.css)
+   ========================================================== */
+:root[data-clean] {
+  --bg: #f2f3f4; --cd: #ffffff; --tx: #15191e; --mu: #5c6670;
+  --ac: #1b3a66; --a2: #e9edf1; --bd: #d3d9df;
+  --ok: #2e7d4f; --no: #b23b2e; --wa: #98631a;
+  --ink: #ffffff; --stx: #ffffff; --hd: #1b3a66; --hdt: #ffffff; --lg: #e0b13a;
+  --fh: "HC Board", "Arial Narrow", system-ui, sans-serif;
+  --rd: 6px; --rs: 4px;                       /* lehké zaoblení: karty, tlačítka, pole / malé štítky */
+  color-scheme: light;
+}
+
+/* ==========================================================
+   2. BARVY – TMAVÝ REŽIM (podle telefonu nebo volba 🌙 Tmavý)
+   ========================================================== */
+@media (prefers-color-scheme: dark) {
+  :root[data-clean]:not([data-theme="light"]) {
+    --bg: #0f1215; --cd: #171b20; --tx: #e7eaed; --mu: #98a1ab;
+    --ac: #e0b13a; --a2: #20262d; --bd: #2b323a;
+    --ok: #4fb37c; --no: #e5675a; --wa: #d9a03a;
+    --ink: #14181d; --stx: #10151a; --hd: #171b20; --hdt: #e7eaed; --lg: #e0b13a;
+    color-scheme: dark;
+  }
+}
+:root[data-clean][data-theme="dark"] {
+  --bg: #0f1215; --cd: #171b20; --tx: #e7eaed; --mu: #98a1ab;
+  --ac: #e0b13a; --a2: #20262d; --bd: #2b323a;
+  --ok: #4fb37c; --no: #e5675a; --wa: #d9a03a;
+  --ink: #14181d; --stx: #10151a; --hd: #171b20; --hdt: #e7eaed; --lg: #e0b13a;
+  color-scheme: dark;
+}
+
+/* ==========================================================
+   3. ZÁHLAVÍ – značka týmu (logo + STŘELY); ostatní vzhledy ukazují původní nápis
+   ========================================================== */
+.hb-new { display: none; }
+:root[data-clean] .hb-old { display: none; }
+:root[data-clean] .hb-new { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
+:root[data-clean] .hb-new img { width: 44px; height: 44px; flex: none; display: block; }
+/* Písmo značky: Russo One (SIL OFL, styles/fonts/OFL-russo-one.txt) ve šikmém řezu – široké hranaté tahy nejblíž písmu loga HC Střelci;
+   latin-ext obsahuje české znaky (Ř, Č…). Šikmost doplní prohlížeč (font-style: italic). */
+@font-face { font-family: "HC Logo"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/russo-one-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "HC Logo"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/russo-one-latin-ext-400-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+:root[data-clean] .hb-new b { font-family: "HC Logo", var(--fh); font-style: italic; font-size: 25px; font-weight: 400; letter-spacing: .06em; line-height: 1; }
+:root[data-clean] header { background: var(--hd); color: var(--hdt); padding: 10px 14px; border-bottom: 1px solid var(--bd); }
+:root[data-clean] header #ver { color: var(--hdt); opacity: .65 !important; font-family: system-ui, sans-serif; letter-spacing: 0; }
+:root[data-clean] header button { color: var(--hdt) !important; }
+:root[data-clean] header .em { filter: grayscale(1) brightness(1.9); opacity: 1; }
+
+/* ==========================================================
+   4. ZÁLOŽKY A NADPISY
+   ========================================================== */
+:root[data-clean] body { background: var(--bg); }
+:root[data-clean] h2 { font-family: var(--fh); font-weight: 700; font-size: 21px; letter-spacing: .01em; }
+:root[data-clean] h3 { font-family: var(--fh); font-weight: 600; font-size: 16px; letter-spacing: .02em; color: var(--mu); }
+:root[data-clean] nav { background: var(--cd); border-bottom: 1px solid var(--bd); box-shadow: none; }
+:root[data-clean] nav button[data-t] { font-family: var(--fh); font-size: 17px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+:root[data-clean] nav button[data-t="home"] { font-size: 18px !important; }
+:root[data-clean] nav button.on { color: var(--tx); border-color: var(--ac); }
+:root[data-clean] :focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+
+/* ==========================================================
+   5. KARTY, TLAČÍTKA, POLE, ŠTÍTKY – ostré hrany, bez stínů
+   ========================================================== */
+:root[data-clean] .cd { border-radius: var(--rd); box-shadow: none; }
+:root[data-clean] .cd > h2:first-child,
+:root[data-clean] .cd > .row:first-child:has(> h2) { border-radius: 5px 5px 0 0; background: var(--a2); }
+:root[data-clean] .p, :root[data-clean] .s, :root[data-clean] .d { border-radius: var(--rd); box-shadow: none; }
+:root[data-clean] .p { background: var(--ac); border-color: var(--ac); color: var(--ink); }
+:root[data-clean] .s { background: transparent; color: var(--tx); border-color: var(--bd); }
+:root[data-clean] .d { background: transparent; }
+:root[data-clean] input, :root[data-clean] select, :root[data-clean] textarea { border-radius: var(--rd); background: var(--cd); border-color: var(--bd); }
+:root[data-clean] .chip { border-radius: var(--rd); background: var(--cd); }
+:root[data-clean] .chip.on { background: var(--ac); color: var(--ink); border-color: var(--ac); }
+:root[data-clean] .chip.no.on { background: var(--no); color: var(--stx); border-color: var(--no); }
+:root[data-clean] .stat { border-radius: var(--rd); }
+:root[data-clean] .stat b { color: var(--tx); }
+/* Štítky: neutrální, stavové jen jemným podbarvením barvy stavu */
+:root[data-clean] .tag { border-radius: var(--rs); background: var(--a2); color: var(--tx); }
+:root[data-clean] .tag.pp { background: color-mix(in srgb, var(--ok) 16%, var(--cd)); color: var(--ok); }
+:root[data-clean] .tag.sh { background: color-mix(in srgb, var(--wa) 16%, var(--cd)); color: var(--wa); }
+:root[data-clean] .tag.red { background: color-mix(in srgb, var(--no) 16%, var(--cd)); color: var(--no); }
+/* Okna: zaoblené horní rohy */
+:root[data-clean] .mb, :root[data-clean] .lmb { border-radius: 12px 12px 0 0; border-top: 1px solid var(--bd); }
+@media (min-width: 700px) { :root[data-clean] .mb { border-radius: 12px; } }
+
+/* ==========================================================
+   6. IKONY – černobílé (emoji obalená v <span class="em">, viz src/core/emoji-clean.js)
+   pointer-events: none = klepnutí projde na tlačítko pod ikonou, obsluha zůstává stejná
+   ========================================================== */
+:root[data-clean] .em { filter: grayscale(1); opacity: .75; pointer-events: none; }
+:root[data-clean] .p .em, :root[data-clean] .chip.on .em { opacity: .95; }
+
+/* ==========================================================
+   7. KARTA UDÁLOSTI – stav = užší pruh vlevo (bez textu) a jemný nádech barvy celé karty (atribut data-evk z cardHtml);
+   zápas (data-ety="match") má záhlaví v barvě akcentu, ostatní události neutrální záhlaví
+   ========================================================== */
+:root[data-clean] .evi[data-evk="yes"] { --evc: var(--ok); }
+:root[data-clean] .evi[data-evk="no"] { --evc: var(--no); }
+:root[data-clean] .evi[data-evk="maybe"] { --evc: var(--wa); }
+:root[data-clean] .evi[data-evk="none"] { --evc: var(--mu); }
+:root[data-clean] .evi[data-evk="off"] { --evc: color-mix(in srgb, var(--mu) 55%, var(--cd)); }
+/* Nádech barvy stavu je plynulý přechod: u pruhu nejsytější, doprava se vytrácí do barvy karty (stejně v záhlaví karty) */
+:root[data-clean] .evi { border-left: 5px solid var(--evc, var(--bd)); background: var(--cd) linear-gradient(90deg, color-mix(in srgb, var(--evc, var(--cd)) 20%, var(--cd)) 0%, color-mix(in srgb, var(--evc, var(--cd)) 7%, var(--cd)) 45%, var(--cd) 100%); }
+:root[data-clean] #evw .evi > .evh { border-radius: 0 5px 0 0; background: var(--a2) linear-gradient(90deg, color-mix(in srgb, var(--evc, var(--a2)) 30%, var(--a2)) 0%, color-mix(in srgb, var(--evc, var(--a2)) 10%, var(--a2)) 55%, var(--a2) 100%); }
+/* Zápas: záhlaví v barvě akcentu s velkým nadpisem – hned je vidět, co je zápas a co trénink */
+:root[data-clean] #evw .evi[data-ety="match"] > .evh { background: var(--ac); color: var(--ink); border-bottom-color: var(--ac); }
+:root[data-clean] #evw .evi[data-ety="match"] > .evh b { font-family: var(--fh); font-size: 20px; letter-spacing: .03em; text-transform: uppercase; }
+:root[data-clean] #evw .evi[data-ety="match"] > .evh .tag { background: var(--ink); color: var(--ac); }
+:root[data-clean] #evw .evi[data-ety="match"] > .evh .em { opacity: .95; }
+
+/* Rychlá tlačítka Jdu / Nejdu / Nejsem jistý: zvolená odpověď obrysem v barvě stavu, ne plnou výplní */
+:root[data-clean] #evw .evq button { border-radius: var(--rd); background: var(--cd); }
+:root[data-clean] #evw .evq button.on-yes { background: color-mix(in srgb, var(--ok) 14%, var(--cd)); color: var(--tx); border: 2px solid var(--ok); }
+:root[data-clean] #evw .evq button.on-no { background: color-mix(in srgb, var(--no) 14%, var(--cd)); color: var(--tx); border: 2px solid var(--no); }
+:root[data-clean] #evw .evq button.on-maybe { background: color-mix(in srgb, var(--wa) 14%, var(--cd)); color: var(--tx); border: 2px solid var(--wa); }
+:root[data-clean] #evw .evq button.evns.on { background: var(--no); color: var(--stx); }
+/* Zvolená odpověď má tvar nálepky: zaoblené rohy, spodní levý skoro pravoúhlý (jako motta u příštího zápasu) */
+:root[data-clean] #evw .evq button[class^="on-"], :root[data-clean] #evw .evq button.evns.on { border-radius: 12px 12px 12px 3px; }
+:root[data-clean] #evw .evq .evqn { border-radius: var(--rd); background: var(--a2); color: var(--tx); }
+:root[data-clean] #evw .evq button[class^="on-yes"] .evqn { background: var(--ok); color: var(--stx); }
+:root[data-clean] #evw .evq button[class^="on-no"] .evqn { background: var(--no); color: var(--stx); }
+:root[data-clean] #evw .evq button[class^="on-maybe"] .evqn { background: var(--wa); color: var(--stx); }
+:root[data-clean] #evw .cal button { border-radius: var(--rd); }
+:root[data-clean] #evw .evl { border-radius: var(--rd); }
+
+/* ==========================================================
+   8. MENU DOLE – jen ikony (dolní lišta #tabbar naplněná z views/shell.js; pruhy staré verze, náhledu a bety zůstávají nahoře v #nav)
+   Text záložek je jen pro čtečky (title a aria-label mají stejný název); v ostatních vzhledech se #tabbar ani ikony nezobrazují
+   ========================================================== */
+.ti { display: none; }
+#tabbar { display: none; }
+:root[data-clean] #nav:empty { display: none; }
+:root[data-clean] #tabbar {
+  display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+  background: var(--cd); border-top: 1px solid var(--bd); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root[data-clean] #nav[style*="none"] ~ #tabbar { display: none; }
+:root[data-clean] #tabbar button {
+  flex: 1 !important; display: flex; align-items: center; justify-content: center; height: 56px; padding: 0; position: relative;
+  border: 0; border-top: 3px solid transparent; background: none; color: var(--mu); font-size: inherit !important;
+}
+:root[data-clean] #tabbar button.on { color: var(--ac); border-top-color: var(--ac); }
+:root[data-clean] #tabbar .ti { display: block; width: 26px; height: 26px; }
+:root[data-clean] #tabbar .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:root[data-clean] main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+
+/* ==========================================================
+   9. DRESY – přechod v barvě dresu s pevně čitelným textem (světlý i tmavý režim).
+   Důvod: `.chip` výše přebíjí plné pozadí `.L1–.L4` z main.css, ale text zůstával bílý (nečitelný na světlém podkladu)
+   ========================================================== */
+:root[data-clean] .chip.L1, :root[data-clean] .evl.L1 { background: linear-gradient(135deg, #4b8de6 0%, #1e5bb8 55%, #143f82 100%); color: #fff !important; }
+:root[data-clean] .chip.L2, :root[data-clean] .evl.L2 { background: linear-gradient(135deg, #ffe066 0%, #f9c80e 55%, #d9a800 100%); color: #111 !important; }
+:root[data-clean] .chip.L3, :root[data-clean] .evl.L3 { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 55%, #1f5a23 100%); color: #fff !important; }
+:root[data-clean] .chip.L4, :root[data-clean] .evl.L4 { background: linear-gradient(135deg, #f08cb8 0%, #d94f8a 55%, #a82d61 100%); color: #fff !important; }
+:root[data-clean] .chip.L0, :root[data-clean] .evl.L0 { background: linear-gradient(135deg, #939daa 0%, #6b7480 55%, #4b525b 100%); color: #fff !important; }
+
+/* ==========================================================
+   10. KALENDÁŘ – moderní vzhled v barvách značky; dny, kdy jsem přihlášený („Jdu“), mají zelený přechod (data-cy z views/events.js)
+   ========================================================== */
+:root[data-clean] #evw .calh b { font-family: var(--fh); font-size: 21px; letter-spacing: .05em; text-transform: uppercase; }
+:root[data-clean] #evw .cal { gap: 6px; }
+:root[data-clean] #evw .cal .dh { font-family: var(--fh); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+:root[data-clean] #evw .cal button { min-height: 52px; border-radius: 10px; border: 1px solid var(--bd); background: var(--cd); color: var(--tx); font-family: var(--fh); font-size: 18px; font-weight: 600; }
+:root[data-clean] #evw .cal button.today { border: 2px solid var(--ac); }
+:root[data-clean] #evw .cal button.sel { outline: none; background: var(--ac); border-color: var(--ac); color: var(--ink); }
+:root[data-clean] #evw .cal small { color: var(--ac); letter-spacing: 1px; }
+:root[data-clean] #evw .cal button.sel small { color: var(--ink); }
+:root[data-clean] #evw .cal button[data-cy] { border-color: var(--ok); background: linear-gradient(135deg, color-mix(in srgb, var(--ok) 42%, var(--cd)) 0%, color-mix(in srgb, var(--ok) 14%, var(--cd)) 100%); }
+:root[data-clean] #evw .cal button[data-cy].sel { border-color: var(--ok); background: linear-gradient(135deg, var(--ok) 0%, color-mix(in srgb, var(--ok) 60%, var(--cd)) 100%); color: var(--stx); }
+:root[data-clean] #evw .cal button[data-cy].sel small { color: var(--stx); }
+
+/* ==========================================================
+   11. 🏠 DOMŮ – karta příštího zápasu (připomínka): nadpis jako u zápasu v Událostech, velký odpočet písmem značky
+   ========================================================== */
+:root[data-clean] #hmw .hmx > .hmxh { background: var(--ac); border-bottom-color: var(--ac); color: var(--ink); border-radius: 0 5px 0 0; }
+:root[data-clean] #hmw .hmx > .hmxh b { font-family: var(--fh); font-size: 20px; letter-spacing: .03em; text-transform: uppercase; }
+:root[data-clean] #hmw .hmxc { font-family: var(--fh); letter-spacing: .02em; }

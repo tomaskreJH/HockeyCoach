@@ -36,6 +36,8 @@ export function sortEvents(evs, mode) {
   const out = [...(evs || [])];
   return mode === "up" ? out.sort(evAsc) : out.sort((x, y) => evAsc(y, x));
 }
+// 📅 Pořadí pod kalendářem: od dneška dál vzestupně (nejbližší nahoře), pod tím dřívější dny od nejnovějšího (měsíc v minulosti tedy sestupně)
+export const sortCal = (evs, today) => [...sortEvents((evs || []).filter(e => e.date >= today), "up"), ...sortEvents((evs || []).filter(e => e.date < today), "past")];
 
 // ===== Rozdělení do pětek =====
 // Rozdělení hráček podle základní formace (lu = {"1C": id, "1C+": id, …}); going = id přihlášených hráček (bez brankářek).
@@ -77,4 +79,15 @@ export function selfMember(pid, tid, plIds, trIds, ownOnly) {
   if (pid && (plIds || []).includes(pid)) return pid;
   if (ownOnly) return null;
   return tid && (trIds || []).includes(tid) ? tid : null;
+}
+
+// ===== Stav karty události (pruh na boku karty ve vzhledu „Čistý“) =====
+// k = klíč barvy pruhu: yes / no / maybe (moje odpověď), none (bez odpovědi), off (zrušeno nebo uzavřeno); t = krátký text stavu.
+// Jen zobrazení – nic se nezapisuje a nic se podle toho nerozhoduje. Bez propojeného člena (evp) se stav neukazuje (k = "").
+export const CARD_TEXT = {yes: "Jdu", no: "Nejdu", maybe: "Nejsem jistý", none: "Bez odpovědi", off: "Uzavřeno"};
+export function cardState(mine, cancelled, locked, hasMember) {
+  if (cancelled) return {k: "off", t: "Zrušeno"};
+  if (!hasMember) return {k: "", t: ""};
+  if (mine && CARD_TEXT[mine.st] && mine.st !== "none" && mine.st !== "off") return {k: mine.st, t: CARD_TEXT[mine.st]};
+  return locked ? {k: "off", t: CARD_TEXT.off} : {k: "none", t: CARD_TEXT.none};
 }

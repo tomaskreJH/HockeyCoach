@@ -1,6 +1,9 @@
-// 🏠 Domů (výchozí záložka, všichni): nahoře 💳 Moje platby jen při dluhu, běžící zápas, 🆚 příští zápas a pod ním tréninky a další akce
-// příštích 7 dní (bez zápasů) jako karty z Událostí (event-core.js – cardHtml) s rychlými tlačítky ✅ ❌ ❓ (přihlášení bez dalších kliků),
-// u správce pokladny souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js).
+// 🏠 Domů (výchozí záložka, všichni): nahoře 💳 Moje platby jen při dluhu, běžící zápas, 🆚 příští zápas jako jen připomínka (v nadpisu datum a zápas,
+// pod ním „Za N dní“ nebo živý odpočet pod 24 hodin a série se soupeřem v sezóně – motivace chodit na tréninky, klepnutí otevře událost;
+// bez naplánovaného zápasu se nic neukáže) a pod ním události příštích 7 dní (tréninky i zápasy) jako karty z Událostí
+// (event-core.js – cardHtml) s rychlými tlačítky ✅ ❌ ❓ (přihlášení bez dalších kliků),
+// u správce pokladny souhrn týmu a varování cashflow, u managera ✋ žádosti o přijetí (join-view.js), 🏖 nepřítomnost (absence-view.js), úplně dole pod pokladnou
+// 📣 zpráva od trenéra (coach-msg-view.js; jako okno se ukáže při startu jednou, pak zůstane sbalená v této kartě).
 // Manager / trenér / asistent: pruh ❔ Chybí odpověď u nejbližší otevřené události – jména a 📲 Připomenout (domain/home-remind.js).
 // Běžící zápas: sport rovnou do živého zápisu, ostatní 👁 náhled (live-watch.js). Výpočty domain/home-summary.js.
 // ===== Importy =====
@@ -15,12 +18,15 @@ import {cashCfg, fmtDue, kc, ymLabel} from "../domain/cash.js";
 import {selfMember} from "../domain/event-helpers.js";
 import {evDefaults, timeParts} from "../domain/event-time.js";
 import {dayShort, missingAnswers, nearestOpen, reminderText} from "../domain/home-remind.js";
-import {DAYS_AHEAD, flowWarn, homeItems, liveMatch, myPay, nextMatch, teamPay, teamPayLite, unanswered, upcomingEvents} from "../domain/home-summary.js";
+import {DAYS_AHEAD, flowWarn, homeItems, liveMatch, matchCountdown, myPay, nextMatch, seriesVs, teamPay, teamPayLite, unanswered, upcomingEvents} from "../domain/home-summary.js";
 import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
-import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, CSS as EV_CSS, isPl, sheetHtml} from "./event-core.js";
+import {cdHtml} from "./countdown-tick.js";
+import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, CSS as EV_CSS, isPl, sheetHtml, shortDay} from "./event-core.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
+import {bindCmsg, cmsgCard} from "./coach-msg-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
 import {bindMoneyWait, econData} from "./payments.js";
+import {fitMottos, mottoLine} from "./motto-view.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty a stav =====
@@ -37,6 +43,16 @@ const CSS = `<style>
 #hmw .hmn{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 #hmw .hmt{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:16px 2px 8px}
 #hmw .hmt h2{margin:0}
+#hmw .hmx{border-left:5px solid var(--ac);margin-top:16px}
+#hmw .hmxh{margin:-14px -14px 8px;padding:9px 14px;background:var(--a2);border-bottom:1px solid var(--bd);border-radius:11px 11px 0 0;font-size:17px}
+#hmw .hmxc{font-size:32px;font-weight:800;line-height:1.1;color:var(--ac);font-variant-numeric:tabular-nums}
+#hmw .hmxs{margin-top:4px}
+#hmw .hmxm{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;padding:3px;box-sizing:border-box;max-height:86px;overflow:hidden}
+#hmw .hmxk{flex:none;box-sizing:border-box;height:36px;max-width:100%;padding:0 12px;border-radius:12px 12px 12px 3px;background:var(--ac);color:var(--ink);border:3px solid var(--cd);outline:1px solid var(--bd);font-weight:600;font-size:15px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hmw .hmxk b{font-family:var(--fh);font-weight:700}
+/* Příliš dlouhé motto (první nálepka): text se zalomí na dva řádky, zkrátí se „…“ až za druhým řádkem (rozmístění: fitMottos v motto-view.js) */
+#hmw .hmxl{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;width:100%;height:auto;min-height:36px;max-height:80px;padding:5px 12px;line-height:21px;white-space:normal;overflow:hidden;text-overflow:clip}
+#hmw .hmxc2{background:#e0b13a;color:#14181d}
 </style>`;
 let missOpen = null;                                                  // id události s rozbaleným seznamem ❔ Chybí odpověď
 let missTxt = "";                                                     // text připomínky k ručnímu zkopírování (bez sdílení i schránky)
@@ -71,13 +87,21 @@ function liveHtml(L) {
   return `<div class="cd hml${HK.can("sport") ? "" : ' hmc" data-hwt="1'}"><div class="hmh"><b style="color:var(--no)">🔴 Zápas právě běží</b><span class="tag">${esc(L.perText)}${L.ended ? "" : L.running ? " · ▶" : " · ⏸"}</span></div>
 <div style="text-align:center;margin-top:6px"><b>${names}</b></div><div class="hms">${sc}</div>${act}</div>`;
 }
-// 📅 Příštích 7 dní (dnes až dnes + 6, jen nadcházející, bez zápasů – ty má 🆚 Příští zápas): stejné karty jako v Událostech, s rychlými tlačítky
+// 📅 Příštích 7 dní (dnes až dnes + 6, jen nadcházející, tréninky i zápasy): stejné karty jako v Událostech, s rychlými tlačítky
 function weekHtml(cards, q) {
-  const head = `<div class="hmt"><h2>📅 Tréninky – příštích ${DAYS_AHEAD} dní</h2>${q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>`;
-  return head + (cards || `<div class="cd mu">V příštích ${DAYS_AHEAD} dnech nejsou žádné tréninky.</div>`);
+  const head = `<div class="hmt"><h2>📅 Příštích ${DAYS_AHEAD} dní</h2>${q ? `<span class="tag sh">❔ ${q} bez odpovědi</span>` : ""}</div>`;
+  return head + (cards || `<div class="cd mu">V příštích ${DAYS_AHEAD} dnech nejsou žádné události.</div>`);
 }
-// 🆚 Příští zápas (nahoře nad tréninky): stejná karta jako v Událostech
-const nextHtml = card => (card ? `<div class="hmt"><h2>🆚 Příští zápas</h2></div>${card}` : "");
+// 🆚 Příští zápas = jen připomínka bez tlačítek přihlášení (zápas v příštích 7 dnech je dole jako běžná karta): v nadpisu datum a zápas,
+// pod ním „Za N dní“ / „Zítra“, do začátku méně než 24 hodin živý odpočet HH:MM:SS, a série se soupeřem v sezóně (V výhry · R remízy · P prohry).
+// Místo a čas se nezobrazují. Klepnutí otevře událost (data-eo); běžící zápas má kartu 🔴 a připomínka se pak týká dalšího zápasu.
+function nextHtml(m, x) {
+  if (!m || !x) return "";
+  const c = matchCountdown(m, td()), r = seriesVs(S.ma, m.opp, m.date);
+  const names = m.home ? esc(TEAM_NAME) + " – " + esc(m.opp) : esc(m.opp) + " – " + esc(TEAM_NAME);
+  const ser = r.n ? `Série v sezóně: <b>${r.w}</b> V${r.d ? ` · <b>${r.d}</b> R` : ""} · <b>${r.l}</b> P` : "Se soupeřem v sezóně zatím bez zápasu";
+  return `<div class="cd hmc hmx" data-eo="${esc(m.id)}"><div class="hmxh"><b>🆚 ${esc(shortDay(m.date))} · ${names}</b></div><div class="hmxc">${c.live ? cdHtml(c.at, "clock") : esc(c.text)}</div><div class="mu hmxs">${ser}</div>${mottoLine()}</div>`;
+}
 // ❔ Chybí odpověď (manager / trenér / asistent): nejbližší otevřená událost s hráčkami bez odpovědi; rozbalené = jména a 📲 Připomenout
 function missHtml(e, miss) {
   if (!e || !miss.length) return "";
@@ -143,15 +167,17 @@ export function homeView(a) {
   setSelf(P);
   const now = Date.now(), today = td(), items = homeItems(S.ev, S.ma), L = liveMatch(S.ma);
   const week = upcomingEvents(items, S.at, S.evp, now, today), nm = nextMatch(items, now, today);
-  // 🆚 Příští zápas nahoře, pod ním karty týdne bez zápasů (tréninky a další akce)
+  // 🆚 Příští zápas nahoře jen jako připomínka, pod ním karty příštích 7 dní (tréninky i zápasy)
   const card = e => { const x = byId.get(e.id); return x ? cardHtml(x, AT, P) : ""; };
-  const tw = week.filter(e => e.type !== "match"), cards = tw.map(card).join(""), nextCard = nm ? card(nm) : "";
+  const cards = week.map(card).join(""), nextCard = nm ? nextHtml(nm, byId.get(nm.id)) : "";
   const ids = [HK.pid(), HK.tid()].filter(Boolean), mp = ids.length ? myPay(S.ch, ids, now) : null;
   const team = !HK.can("money") ? "" : HK.money.ok() ? teamHtml(teamPay(S.ch, S.rq, now), flowOf()) : teamLiteHtml(teamPayLite(S.dt, S.rq, now));
   // ❔ Chybí odpověď jen pro sport (manager, trenér, asistent) – nejbližší událost s otevřeným přihlašováním
   const ne = HK.can("sport") ? nearestOpen(week) : null, M = ne ? {e: ne, miss: missingAnswers(S.pl, S.at, ne.id)} : null;
-  a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextHtml(nextCard)}${weekHtml(cards, S.evp ? unanswered(tw) : 0)}${absCardHtml()}${team}</div></div>${sheetHtml()}${absModal()}`;
+  a.innerHTML = EV_CSS + CSS + `<div id="evw"><div id="hmw">${payHtml(mp)}${joinBanner()}${S.evErr ? `<div class="cd mu">⚠️ Události se nenačetly (${esc(S.evErr)}).</div>` : ""}${liveHtml(L)}${M ? missHtml(M.e, M.miss) : ""}${nextCard}${weekHtml(cards, S.evp ? unanswered(week) : 0)}${absCardHtml()}${team}${cmsgCard()}</div></div>${sheetHtml()}${absModal()}`;
   bind(a, L, M);
   bindAbs(a);
   bindMoneyWait(a);
+  bindCmsg(a);
+  fitMottos(a);                                                        // nálepky mott do dvou řádků (po vykreslení, kdy jsou známé šířky)
 }

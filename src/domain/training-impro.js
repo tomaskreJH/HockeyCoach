@@ -12,6 +12,7 @@ import {clamp} from "../core/utils.js";
 export const QUICK_DUR = [3, 5, 8, 10, 15, 20];          // nabídka délky (min) jedním klepnutím
 export const QUICK_DEF = 10;                             // výchozí délka nového cvičení bez banky
 export const QUICK_HITS = 8;                             // nejvýš tolik cvičení z banky ve výsledku hledání
+export const QUICK_CAT_HITS = 15;                        // nejvýš tolik cvičení při procházení jen podle části tréninku (bez textu)
 export const WHEN = {now: "▶ Hned", next: "⏭ Po tomto bloku", end: "⤓ Na konec"};
 export const GK_DN = "🥅 Brankářky – vlastní cvičení";    // název linky brankářek, když jim cvičení vybere jejich trenér
 // Nové cvičení založené na ledě: dovednost podle zvolené kategorie (doplní se později v 📚 bance)
@@ -27,13 +28,14 @@ export const started = live => !!(live && LIVE_ST[live.st]);
 export const qDur = v => clamp(Math.round(num(+v) || QUICK_DEF), BLK_DUR_MIN, BLK_DUR_MAX);
 
 // ===== Hledání v bance =====
-// Aktivní cvičení banky podle textu (bez diakritiky, začátek názvu dřív), nejvýš QUICK_HITS; prázdný text = nic
-export function quickHits(list, q) {
-  const t = fold(q).trim();
-  if (!t) return [];
-  return (list || []).filter(d => d && !d.arch && fold(d.name).includes(t))
+// Aktivní cvičení banky podle textu (bez diakritiky, začátek názvu dřív) a části tréninku cat, nejvýš QUICK_HITS;
+// prázdný text i bez části tréninku = nic, jen část tréninku = celá část (nejvýš QUICK_CAT_HITS, abecedně)
+export function quickHits(list, q, cat) {
+  const t = fold(q).trim(), c = cat || "";
+  if (!t && !c) return [];
+  return (list || []).filter(d => d && !d.arch && (!c || d.cat === c) && (!t || fold(d.name).includes(t)))
     .sort((a, b) => (fold(a.name).startsWith(t) ? 0 : 1) - (fold(b.name).startsWith(t) ? 0 : 1) || String(a.name || "").localeCompare(String(b.name || ""), "cs"))
-    .slice(0, QUICK_HITS);
+    .slice(0, t ? QUICK_HITS : QUICK_CAT_HITS);
 }
 // Nové cvičení do banky z názvu a kategorie (doplní se později); vrací pole pro drillDoc
 export function quickDrill(name, cat, dur) {

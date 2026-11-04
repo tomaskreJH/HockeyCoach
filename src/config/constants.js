@@ -3,8 +3,9 @@
 export const POS=["Útočnice","Obránkyně","Brankářka"];
 export const LN=[1,2,3,4];
 export const SL=["LK","C","PK","LO","PO"];
-export const REA=["Hákování","Držení","Podražení","Vysoká hůl","Hrubost","Zdržování hry","Příliš mnoho hráčů","Nesportovní chování","Jiné"];
-export const SIT={E:"5 na 5",PP:"Přesilovka",SH:"Oslabení"};
+export const REA=["Hákování","Držení","Podražení","Vysoká hůl","Hrubost","Zdržování hry","Příliš mnoho hráčů","Nesportovní chování","Krosček","Jiné"];
+export const SIT={E:"5 na 5",PP:"Přesilovka",SH:"Oslabení",PS:"Trestné střílení"};
+export const GSIT=["E","PP","SH"];                                      // situace běžného gólu k výběru (PS = jen 🎯 trestné střílení)
 export const ST={act:"Aktivní",inj:"Zraněný",end:"Ukončil"};
 // Funkce člena realizačního týmu (kolekce staff); trenéři a asistenti se zapisují do docházky, neplatí a nenominují se
 export const KIND=["Manager","Trenér","Asistent","Jiný"];                 // funkce člena realizačního týmu (staff.kind) – názvy jako role

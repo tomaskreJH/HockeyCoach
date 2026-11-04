@@ -1,7 +1,7 @@
 // Datová vrstva: Firebase (Firestore, přihlášení Google), oprávnění HK.can / HK.perm (jediné místo, z domain/permissions.js a settings/perm),
 // 👁 náhled role vývojáře (sessionStorage, výchozí jen ke čtení), strážce zápisu blocked() (náhled, starší verze pod settings/app.minVer).
 // Rozhraní db: collection(c) – onSnapshot, where(pole, hodnota), one(id), part(id), add, newId, getAll, getWhere; doc(cesta) – set, merge, delete, get,
-// onSnapshot; batch() – set / merge / delete / commit; tx(cesty, fn) – transakce nad aktuálním stavem serveru (úhrady předpisů). 📉 Události a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
+// onSnapshot; batch() – set / merge / delete / commit; tx(cesty, fn) – transakce nad aktuálním stavem serveru (úhrady předpisů). 📉 Události, zápasy a docházka s oknem (listenWin; hráčka 15 dní dopředu, dál farListen; domain/data-window.js). Okno ⚙️: data/cfg-api.js, zálohy: data/backup.js.
 // Účet bez členství → ✋ žádost o přijetí (views/join-view.js); neplatná role (např. stará kustod) nemá přístup. 📉 Pokladna na vyžádání: HK.money (domain/money-load.js). 🟢 Aktivita účtu: HK.seenPing (domain/presence.js).
 
 // ===== Importy =====
@@ -13,6 +13,8 @@ import {BUDGET_COLL} from "../domain/budget.js";
 import {ATT_D_VER, WIN, archNeed, attDate, countFrom, dayAdd, mergeBand, winFrom, winTo} from "../domain/data-window.js";
 import {DEBT_COLL, debtorPlanFor, debtorRebuild} from "../domain/debtors.js";
 import {ABS_COLL} from "../domain/absence.js";
+import {MOTTO_COLL} from "../domain/mottos.js";
+import {CMSG_COLL} from "../domain/coach-msg.js";
 import {BETA_DOC, canUseBeta, isTester} from "../domain/beta.js";
 import {DRILLIMG_COLL, DRILL_COLL} from "../domain/drills.js";
 import {wipePlan} from "../domain/event-cancel.js";
@@ -30,6 +32,7 @@ import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {PLEVEL_COLL} from "../domain/line-split.js";
 import {TRMS_COLL} from "../domain/stopwatch.js";
 import {TREVAL_COLL} from "../domain/training-eval.js";
+import {TRACT_COLL} from "../domain/training-actual.js";
 import {TRLIVE_COLL} from "../domain/training-live.js";
 import {backupApi} from "./backup.js";
 import {cfgApi} from "./cfg-api.js";
@@ -75,10 +78,12 @@ const listening = new Set();           // kolekce, které se právě poslouchaj�
 // joinreq = žádosti o přijetí do týmu (čte jen manager a uchazeč; výsledek je v members, soupisce a auditu),
 // evpub / lineuppub = veřejné hlavičky a formace událostí pro hostující (odvozují se z událostí, zapisuje je aplikace managera / trenéra / asistenta),
 // trlive = společné hodiny ⏱ živého tréninku (průběžný stav, poslech jen u otevřeného tréninku)
-const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL];
+// mottos = 💬 banka mott a pokřiků (domain/mottos.js; čtou všichni členové týmu, v záloze není),
+// coachmsg = 📣 zpráva od trenéra (domain/coach-msg.js; jeden dokument, čtou všichni členové týmu, v záloze není)
+const EXTRA = [DEBT_COLL, PRICE_COLL, REQ_COLL, JOIN_COLL, EVPUB_COLL, LUPUB_COLL, TRLIVE_COLL, MOTTO_COLL, CMSG_COLL];
 // Kolekce Tréninku, které se v zařízení nečtou celé (plán, ⏲ výsledky měření a ⭐ hodnocení jen u otevřeného tréninku, obrázky cvičení, šablony plánu a ⭐ výkonnost na vyžádání):
 // do zálohy se načtou při stažení (manager / trenér / asistent), obnova je jen doplní / přepíše (nemaže)
-const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL, TREVAL_COLL];
+const FETCH = [TRPLAN_COLL, DRILLIMG_COLL, TRTPL_COLL, PLEVEL_COLL, TRMS_COLL, TREVAL_COLL, TRACT_COLL];
 [...COLL, ...EXTRA, ...FETCH].forEach(c => { data[c] = {}; subs[c] = []; });
 
 // ===== Pomocné funkce =====
@@ -165,7 +170,7 @@ function listen(c) {
     fire(c);
   }, err => subs[c].forEach(s => s.er && s.er(err)));
 }
-// ===== Data: 📉 okno poslechu (události, docházka) =====
+// ===== Data: 📉 okno poslechu (události, zápasy, docházka) =====
 // win[c] = {from, to, live, arch, far, farOn, liveOk, at, st, err}: živě se poslouchá pole >= from (u hráčky < to), starší dokumenty
 // (archiv) z paměti zařízení; vzdálenější budoucnost hráčky (far, >= to) až po farListen() – tlačítko Načíst další v Událostech;
 // ze serveru se archiv načte celý jen jednou na zařízení (nebo ručně v ⚙️), pak po WIN[c].ttl jen pás BAND dní před oknem.
@@ -235,10 +240,21 @@ async function archLoad(c, force) {
   } catch (e) { W.st = "err"; W.err = errTxt(e); console.warn("Archiv " + c + " se nenačetl ze serveru:", W.err); }
   winMerge(c);
 }
+// Zápis do dokumentu mimo živé okno (starší zápas / událost – oprava zápisu, změna data): archiv se znovu vezme z paměti zařízení,
+// kde už zápis je (zdarma), jinak by další snímek okna vrátil starou kopii. d = nová data (null = smazání).
+function archTouch(c, id, d) {
+  const W = win[c];
+  if (!W || !W.liveOk || id in W.live) return;
+  const f = WIN[c].f, old = d && typeof d[f] === "string" && d[f] < W.from;
+  if (!(id in W.arch) && !old) return;
+  archCache(c).then(() => winMerge(c));
+}
 // Stav oken pro ⚙️ → 💾 Data: [{c, from, live, arch, at, st, err}]
 const winInfo = () => Object.entries(win).map(([c, W]) => ({c, from: W.from, to: W.to, live: Object.keys(W.live).length, arch: Object.keys(W.arch).length, far: W.farOn ? Object.keys(W.far).length : null, at: W.at, st: W.st, err: W.err}));
-// Ruční obnova archivu ze serveru (čte všechny starší dokumenty)
-const archRefresh = () => Promise.all(Object.keys(win).filter(c => win[c].liveOk).map(c => archLoad(c, true)));
+// Ruční obnova archivu ze serveru (čte všechny starší dokumenty); c = jen jedna kolekce (🔄 Aktualizovat zápasy ve Statistikách)
+const archRefresh = c => Promise.all(Object.keys(win).filter(k => win[k].liveOk && (!c || k === c)).map(k => archLoad(k, true)));
+// Stav archivu jedné kolekce pro obrazovky: {arch = počet starších z paměti, at = kdy ověřeno se serverem, st} nebo null (bez okna)
+const archInfo = c => { const W = win[c]; return W ? {arch: Object.keys(W.arch).length, at: W.at, st: W.st, err: W.err} : null; };
 
 // ===== Data: 📉 datum události v docházce (d) =====
 // Nový dokument docházky dostane datum své události (okno docházky); změna data události se propíše do její docházky
@@ -299,7 +315,7 @@ function subscribe(c, cb, er) {
   if (first[c]) setTimeout(() => cb(view(c)), 0);
 }
 // Zápis se projeví lokálně hned (i offline), na server odejde po připojení; chyba (např. práva) se zobrazí hláškou
-function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(withD(c, d))).catch(e => say(failMsg("Uložení", errTxt(e)))); moveAtt(c, id, d); offNote(); }
+function writeDoc(c, id, d) { if (blocked()) return; setDoc(fsDoc(fs, c, id), clone(withD(c, d))).catch(e => say(failMsg("Uložení", errTxt(e)))); moveAtt(c, id, d); archTouch(c, id, d); offNote(); }
 // Hodnoty pro částečný zápis: "__del" smaže pole, "__now" = čas serveru (serverTimestamp), ostatní se zkopírují;
 // undefDel = i undefined smaže pole (jinak se vynechá)
 const mergeVals = (d, undefDel) => { const o = {}; Object.entries(d).forEach(([k, v]) => { if (v === undefined && !undefDel) return; o[k] = v === "__now" ? serverTimestamp() : v === "__del" || v === undefined ? deleteField() : clone({v}).v; }); return o; };
@@ -310,6 +326,7 @@ function mergeDoc(c, id, d) {
   const o = mergeVals(d, true);
   setDoc(fsDoc(fs, c, id), o, {mergeFields: Object.keys(o)}).catch(e => say(failMsg("Uložení", errTxt(e))));
   moveAtt(c, id, d);
+  archTouch(c, id, d);
   offNote();
 }
 // Kontrola mazání události / zápasu s vyúčtováním:
@@ -340,6 +357,7 @@ function removeDoc(c, id) {
   // Cena události na hlavu pro hráčky (evprice) také
   if ((c === "matches" || c === "events") && isCash() && data[PRICE_COLL][id]) deleteDoc(fsDoc(fs, PRICE_COLL, id)).catch(() => {});
   deleteDoc(fsDoc(fs, c, id)).catch(e => say(failMsg("Smazání", errTxt(e))));
+  archTouch(c, id, null);
   offNote();
 }
 // Předpisy jako seznam {id, ...data} a test člena realizačního týmu (pro souhrn dlužníků)
@@ -634,6 +652,8 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   wipeEvent, wipePreview, syncOps,
   // 📉 Vzdálená budoucnost hráčky: farInfo() = {to} dokud není načtená, farListen() = načíst (Události → Načíst další)
   farInfo, farListen,
+  // 📉 Starší zápasy z paměti zařízení: archInfo("matches") = {arch, at, st, err}, archRefresh("matches") = 🔄 načíst ze serveru (Statistiky)
+  archInfo, archRefresh,
   // Účty members [{email, role, pid, tid, cash}] – okno žádostí o přijetí (manager)
   listMembers: async () => (await getDocs(fsCol(fs, "members"))).docs.map(d => ({email: d.id, ...d.data()})),
   // Náhled role: preview() = null nebo {label, write}; ro() = jen ke čtení; blocked() = strážce zápisu s hláškou

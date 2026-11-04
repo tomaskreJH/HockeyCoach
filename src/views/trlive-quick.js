@@ -1,5 +1,5 @@
 // ⚡ Improvizace na ledě (v22.18) – součást obrazovky ⏱ Živý trénink (trlive-view.js), jen kdo smí upravovat plán (trplan e).
-// ➕ Cvičení: hledání v 📚 bance nebo nové cvičení názvem (volitelně 💾 i do banky), délka klepnutím, 🥅 brankářky zvlášť,
+// ➕ Cvičení: hledání v 📚 bance (text i část tréninku) nebo nové cvičení názvem mimo banku (volitelně 💾 i do banky), délka, 🥅 brankářky zvlášť,
 // kdy: ▶ Hned (současné cvičení skončí, hodiny skočí na nové) / ⏭ po tomto bloku / ⤓ na konec. ☕ Pauza stejně.
 // Bez plánu: první ➕ vytvoří plán a spustí hodiny. 👥 Na ledě: počty po dresech, 🚫 nedorazila (zmizí z linek) a ↩ vrácení.
 // Zápis jednou dávkou: (nové cvičení drills) + plán trplan/{eid} + (hodiny trlive/{eid} u ▶ Hned / prvního spuštění).
@@ -18,7 +18,8 @@ import {toggleNos} from "./event-core.js";
 import {L, canE, liveB, me, paint, planB, skew} from "./trlive-view.js";
 
 // ===== Konstanty a stav =====
-// L.q = rozpracované vložení {brk, txt (hledání / název), drill (id z banky), dur, gk, when, bank (💾 do banky), cat} | null; L.ice = 👥 otevřené
+// L.q = rozpracované vložení {brk, txt (hledání / název), drill (id z banky), dur, gk, when, bank (💾 do banky), cat, fc (filtr části tréninku)} | null;
+// L.ice = 👥 otevřené
 const BRK_DURS = [2, 3, 5];
 const CSS = `<style>
 #tlv .tlqb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
@@ -30,6 +31,8 @@ const CSS = `<style>
 #tlq .tlqc{display:flex;flex-wrap:wrap;gap:6px}
 #tlq .tlqc button{min-height:46px;min-width:52px;padding:4px 12px;font-size:16px}
 #tlq .tlqr button{display:block;width:100%;text-align:left;min-height:46px;margin-bottom:4px;font-size:16px}
+#tlq .tlqf{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;margin-bottom:4px}
+#tlq .tlqf button{flex:none;min-height:40px;padding:4px 10px;font-size:14px;border-radius:99px}
 #tlq .tlqok{min-height:60px;font-size:19px;font-weight:700;margin-top:14px}
 #tlv .tlice{border:1px solid var(--bd);border-radius:12px;padding:8px 10px;margin:8px 0}
 #tlv .tlice .tlir{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid var(--bd)}
@@ -53,19 +56,21 @@ function where() {
 // Nové rozpracované vložení (☕ pauza nebo cvičení); bez plánu / nespuštěný trénink začíná ▶ Hned
 function fresh(brk) {
   const {B} = where();
-  return {brk: !!brk, txt: brk ? BRK_DEF : "", drill: "", dur: brk ? BRK_DUR : 10, gk: false, when: B.length && started(L.live) ? "now" : B.length ? "end" : "now", bank: false, cat: "skill"};
+  return {brk: !!brk, txt: brk ? BRK_DEF : "", drill: "", dur: brk ? BRK_DUR : 10, gk: false, when: B.length && started(L.live) ? "now" : B.length ? "end" : "now", bank: false, cat: "skill", fc: ""};
 }
 
 // ===== Vykreslení =====
+// Filtr části tréninku (🔥 rozcvička, 🎯 dovednosti …) – jedním klepnutím, druhým zrušit; bez textu ukáže celou část
+const filterHtml = q => `<div class="tlqf">${Object.entries(CATS).map(([k, v]) => `<button class="${q.fc === k ? "p" : "s"}" data-tqc="${k}">${esc(v)}</button>`).join("")}</div>`;
 // Výsledky hledání v bance + nové cvičení názvem (překresluje se samostatně, aby psaní neztratilo kurzor)
 function resHtml() {
   const q = L.q;
   if (!q || q.brk) return "";
   const sel = q.drill ? drillById(q.drill) : null;
   if (sel) return `<div class="msg">✅ <b>${esc(sel.name)}</b> · ${+sel.dur || "?"} min <button class="s" data-tqx="clr" style="min-height:40px;margin-left:6px">✕ jiné</button></div>`;
-  const hits = quickHits(drills(), q.txt), t = String(q.txt || "").trim();
-  return `<div class="tlqr">${hits.map(d => `<button class="s" data-tqd="${esc(d.id)}">📚 ${esc(d.name)} <span class="mu">· ${+d.dur || "?"} min</span></button>`).join("")}</div>
-${t ? `<div class="mu" style="margin:6px 0">${hits.length ? "Nebo nové cvičení:" : "V bance nic – nové cvičení:"} <b>„${esc(t)}“</b> (vloží se tímto názvem)</div>` : '<div class="mu">Piš název – najde se v bance, nebo vznikne nové cvičení.</div>'}
+  const hits = quickHits(drills(), q.txt, q.fc), t = String(q.txt || "").trim();
+  return `${filterHtml(q)}<div class="tlqr">${hits.map(d => `<button class="s" data-tqd="${esc(d.id)}">📚 ${esc(d.name)} <span class="mu">· ${+d.dur || "?"} min</span></button>`).join("")}</div>
+${t ? `<div class="mu" style="margin:6px 0">${hits.length ? "Nebo nové cvičení:" : "V bance nic – nové cvičení:"} <b>„${esc(t)}“</b> (vloží se tímto názvem, jen do dnešního plánu)</div>` : q.fc && !hits.length ? '<div class="mu">V této části tréninku banka nic nemá – napiš název nového cvičení.</div>' : q.fc ? "" : '<div class="mu">Piš název nebo vyber část tréninku – najde se v bance, nebo vznikne nové cvičení.</div>'}
 ${t && canBank() ? `<div class="tlqc"><button class="${q.bank ? "p" : "s"}" data-tqx="bank">${q.bank ? "💾 Uložit i do banky ✓" : "💾 Uložit i do banky"}</button></div>
 ${q.bank ? `<select id="tlqcat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${k === q.cat ? "selected" : ""}>${esc(v)}</option>`).join("")}</select><div class="mu" style="font-size:13px">Popis a dovednosti doplníš v 📚 bance po tréninku.</div>` : ""}` : ""}`;
 }
@@ -140,10 +145,13 @@ function apply(guarded) {
 // Výsledky hledání: výběr cvičení z banky (délka podle banky)
 function bindRes(el) {
   el.querySelectorAll("[data-tqd]").forEach(b => b.onclick = () => { const d = drillById(b.dataset.tqd); if (!d) return; Object.assign(L.q, {drill: d.id, txt: d.name, dur: qDur(d.dur), bank: false}); paint(); });
+  // Filtr části tréninku: nové cvičení do banky pak dostane stejnou kategorii
+  el.querySelectorAll("[data-tqc]").forEach(b => b.onclick = () => { const k = b.dataset.tqc; L.q.fc = L.q.fc === k ? "" : k; if (L.q.fc) L.q.cat = L.q.fc; const r = el.id === "tlqr" ? el : el.querySelector("#tlqr"); if (r) { r.innerHTML = resHtml(); bindRes(r); bindQuickX(r, L.qg); } });
   const c = el.querySelector("#tlqcat");
   if (c) c.onchange = () => { L.q.cat = c.value; };
 }
 export function bindQuick(el, guarded) {
+  L.qg = guarded;                                        // převzetí řízení pro tlačítka po překreslení výsledků (filtr části tréninku)
   el.querySelectorAll("[data-tq]").forEach(b => b.onclick = () => {
     const k = b.dataset.tq;
     if (k === "ice") L.ice = !L.ice; else L.q = fresh(k === "brk");

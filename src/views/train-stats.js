@@ -1,7 +1,8 @@
 // Záložka Statistiky: přepínač 📊 Zápasy (stats.js beze změny) / 🏒 Trénink – 📈 přehled tréninků za 30 / 60 / 90 / 180 dní (výchozí 60).
 // Výsledky měření vidí celý tým (motivace), karta hráčky (tréninky, minuty, výsledky s grafem), ⭐ hodnocení trenérů jen HK.perm("treval", "r") – hráčka nikdy.
 // Tým × dovednosti a 🔍 kdo netrénoval jen s bankou cvičení (HK.perm("drills", "r")); hráčka vidí jen svou kartu. ⬇️ CSV pro Excel.
-// Dokumenty trplan / trms / treval se čtou jednorázově po jednom na trénink v období a drží se v S.tst nejvýš TST_TTL. Výpočty domain/training-stats.js.
+// Dokumenty trplan / tract / trms / treval se čtou jednorázově po jednom na trénink v období a drží se v S.tst nejvýš TST_TTL. Minuty podle
+// ✏️ skutečného průběhu (actualPlan), bez něj podle plánu. Výpočty domain/training-stats.js.
 // Struktura: Importy -> Konstanty a stav -> Pomocné funkce -> Načtení -> Vykreslení -> Eventy -> Exporty.
 
 // ===== Importy =====
@@ -13,9 +14,10 @@ import {HK} from "../data/storage.js";
 import {TRMS_COLL, fmtVal} from "../domain/stopwatch.js";
 import {RATE, RATES, TREVAL_COLL} from "../domain/training-eval.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
+import {TRACT_COLL, actualPlan} from "../domain/training-actual.js";
 import {TS_DAYS, TS_DEF, drillList, loadRows, loadSkills, measExercises, measRows, measTable, missSkill, playerEvals, playerLoad, playerMeas, statWindow} from "../domain/training-stats.js";
 import {render} from "./shell.js";
-import {stats} from "./stats.js";
+import {stats, statsArch} from "./stats.js";
 
 // ===== Konstanty a stav =====
 // S.stv = "m" | "t" (podzáložka), S.tst = {days, st: "load" | "ok" | "err", at, T, plans, ms, ev, err}, S.tsx = id cvičení v tabulce měření,
@@ -69,8 +71,9 @@ function ensure(days, force) {
   if (!force && t && t.days === days && (t.st === "load" || Date.now() - t.at < TST_TTL)) return;
   const T = statWindow(S.ev, td(), days), ev = canEval();
   const R = S.tst = {days, st: "load", at: Date.now(), T, plans: {}, ms: {}, ev: {}};
-  Promise.all(T.map(e => Promise.all([one(TRPLAN_COLL, e.id), one(TRMS_COLL, e.id), ev ? one(TREVAL_COLL, e.id) : null]).then(([p, m, v]) => {
-    R.plans[e.id] = p; R.ms[e.id] = m; if (v) R.ev[e.id] = v;
+  // Plán upravený podle ✏️ skutečného průběhu (tract); bez něj (starší tréninky, nepublikovaná pravidla) plán jako dřív
+  Promise.all(T.map(e => Promise.all([one(TRPLAN_COLL, e.id), one(TRACT_COLL, e.id), one(TRMS_COLL, e.id), ev ? one(TREVAL_COLL, e.id) : null]).then(([p, t, m, v]) => {
+    R.plans[e.id] = actualPlan(p, t); R.ms[e.id] = m; if (v) R.ev[e.id] = v;
   }))).then(() => { if (S.tst !== R) return; R.st = "ok"; R.at = Date.now(); if (S.tab === "st") render(); })
     .catch(e => { if (S.tst !== R) return; R.st = "err"; R.err = errTxt(e); if (S.tab === "st") render(); });
 }
@@ -167,11 +170,11 @@ function bind(a) {
 // ===== Exporty =====
 // Záložka Statistiky: přepínač Zápasy / Trénink (Trénink jen s právem číst plán tréninku); zápasové statistiky vykreslí stats.js beze změny
 export function statsView(a) {
-  if (!HK.perm("trplan", "r") || HK.can("guest")) { stats(a); return; }
+  if (!HK.perm("trplan", "r") || HK.can("guest")) { stats(a); statsArch(a); return; }
   const v = S.stv === "t" ? "t" : "m";
   a.innerHTML = `<div class="chips"><button class="chip ${v === "m" ? "on" : ""}" data-stv="m">📊 Zápasy</button><button class="chip ${v === "t" ? "on" : ""}" data-stv="t">🏒 Trénink</button></div><div id="stb"></div>`;
   const box = a.querySelector("#stb");
-  if (v === "m") stats(box);
+  if (v === "m") { stats(box); statsArch(box); }
   else { ensure((S.tst && S.tst.days) || TS_DEF); box.innerHTML = trainHtml(); }
   bind(a);
 }

@@ -7,7 +7,8 @@ import {S} from "../core/state.js";
 import {esc, fd, td} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {WIN_DAYS, dayAdd} from "../domain/data-window.js";
-import {selfMember, sortEvents} from "../domain/event-helpers.js";
+import {isCancelled} from "../domain/event-cancel.js";
+import {selfMember, sortCal, sortEvents} from "../domain/event-helpers.js";
 import {attReqBanner, attReqModal, bindAttReqAdmin} from "./att-request-view.js";
 import {attHtml, bindAtt} from "./attendance.js";
 import {bindBudget, budgetHtml} from "./budget-view.js";
@@ -29,15 +30,20 @@ import {render} from "./shell.js";
 const CASH_MODES = [["pay", "💰 Platby"], ["cash", "🏦 Pokladna"], ["cost", "🧾 Náklady"], ["mon", "📅 Měsíce"], ["bud", "📊 Rozpočet"]];
 
 // ===== Vykreslení: kalendář a seznam =====
-function calHtml(evs, today) {
-  const {y, m} = S.evc, off = (new Date(y, m, 1).getDay() + 6) % 7, n = new Date(y, m + 1, 0).getDate(), by = {};
-  evs.forEach(e => { by[e.date] = (by[e.date] || 0) + 1; });
+// Kalendář měsíce: tečky = počet událostí dne, zelený přechod (data-cy) = den, kdy jsem přihlášený („Jdu“ na nezrušenou událost) za S.evp
+function calHtml(evs, today, AT) {
+  const {y, m} = S.evc, off = (new Date(y, m, 1).getDay() + 6) % 7, n = new Date(y, m + 1, 0).getDate(), by = {}, going = {};
+  evs.forEach(e => {
+    by[e.date] = (by[e.date] || 0) + 1;
+    const a = S.evp ? (AT[e.id] || {})[S.evp] : null;
+    if (a && a.st === "yes" && !isCancelled(e)) going[e.date] = true;
+  });
   let cells = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"].map(d => `<div class="dh">${d}</div>`).join("") + "<div></div>".repeat(off);
   for (let d = 1; d <= n; d++) {
     const k = y + "-" + pad(m + 1) + "-" + pad(d);
-    cells += `<button class="${k === today ? "today " : ""}${k === S.evd ? "sel" : ""}" data-cd="${k}">${d}${by[k] ? `<small>${"●".repeat(Math.min(by[k], 3))}</small>` : ""}</button>`;
+    cells += `<button class="${k === today ? "today " : ""}${k === S.evd ? "sel" : ""}"${going[k] ? " data-cy=\"1\"" : ""} data-cd="${k}">${d}${by[k] ? `<small>${"●".repeat(Math.min(by[k], 3))}</small>` : ""}</button>`;
   }
-  return `<div class="cd"><div class="evh" style="margin-bottom:8px"><button class="s" data-cn="-1">◀</button><b>${MONTHS[m]} ${y}</b><button class="s" data-cn="1">▶</button></div><div class="cal">${cells}</div></div>`;
+  return `<div class="cd"><div class="evh calh" style="margin-bottom:8px"><button class="s" data-cn="-1">◀</button><b>${MONTHS[m]} ${y}</b><button class="s" data-cn="1">▶</button></div><div class="cal">${cells}</div></div>`;
 }
 // 📉 Hráčka: tlačítko pro vzdálenější budoucnost (poslech až na vyžádání) a pro starší minulé události (jen z paměti, bez čtení)
 const farBtn = f => (f ? `<button class="s w" id="evfar" style="margin:4px 0 12px">⬇ Načíst další události (od ${fd(f.to)})</button>` : "");
@@ -57,7 +63,7 @@ function list(a) {
   let shown, more = "";
   // 📉 Hráčka: nadcházející jen do far.to (15 dní, dál po Načíst další), minulé jen posledních WIN_DAYS.other dní (starší tlačítkem)
   const far = pl_ && HK.farInfo ? HK.farInfo() : null, oldFrom = pl_ && !S.evOld ? dayAdd(today, -WIN_DAYS.other) : "";
-  // Nadcházející vzestupně (nejbližší nahoře), Minulé a Kalendář sestupně (nejnovější nahoře)
+  // Nadcházející vzestupně (nejbližší nahoře), Minulé sestupně (nejnovější nahoře); Kalendář: od dneška dál vzestupně, pod tím dřívější dny měsíce od nejnovějšího
   if (mode === "up") { shown = sortEvents(evs.filter(e => e.date >= today && (!far || e.date < far.to)), "up"); more = farBtn(far); }
   else if (mode === "past") {
     const past = evs.filter(e => e.date < today);
@@ -67,7 +73,7 @@ function list(a) {
   else if (mode === "att") shown = [];
   else {
     const pre = S.evc.y + "-" + pad(S.evc.m + 1);
-    shown = sortEvents(evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)), "cal");
+    shown = sortCal(evs.filter(e => S.evd ? e.date === S.evd : e.date.startsWith(pre)), today);
     if (far && pre + "-31" >= far.to) more = farBtn(far);                // zobrazený měsíc sahá za načtené období
   }
   ensureTrainStatus(shown);   // 🏒 stav jen zobrazených tréninků pro trenéry (📉 čtení po dokumentech, překreslí se samo)
@@ -80,7 +86,7 @@ ${mineBanner()}
 ${attReqBanner()}
 ${head}
 ${chipsH}
-${mode === "cal" ? calHtml(evs, today) : ""}
+${mode === "cal" ? calHtml(evs, today, AT) : ""}
 ${mode === "att" ? attHtml() : shown.length ? shown.map(e => cardHtml(e, AT, P)).join("") : '<div class="msg">Žádné události.</div>'}${more}</div>` + sheetHtml() + attReqModal();
   // Eventy seznamu
   const nt = a.querySelector("#evnt"), nm = a.querySelector("#evnm");

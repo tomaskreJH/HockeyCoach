@@ -2,6 +2,238 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.48 (4. 11. 2026) – (C) u kapitánky, spravedlivé nálepky, zaoblené odpovědi, 📣 zpráva od trenéra
+> **Nasazení – kanál 🧪 BETA:** commit „v22.48“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `coachmsg`, dokument `current`) – bez publikace zprávu nejde uložit, zbytek běží. Data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v153`). 🔒 Vyžadovat verzi: ne. Test: kap. 49.
+
+**Změněno / přidáno** (zadání uživatele 4. 11. 2026)
+- **(C):** kapitánka má za přezdívkou „ (C)“ ve všech zobrazeních jména (`capName`, `pn`, `nm`). Záměrně bez (C): export CSV, poznámky auditu a texty ukládané do databáze (⚠️ SAHÁ NA PLATBY: `views/money.js` jen `cap:false` u tří volání `nm`, logika plateb beze změny).
+- **Nálepky:** `packStickers` – vejdou se dva řádky podle priority, co se nevejde, se skryje; zkrátí se jen první příliš dlouhá. `orderMottos` střídá autory po kolech, zvýhodněna je jen kapitánka.
+- **Odpovědi na událost:** zvolená odpověď má zaoblení jako nálepka (pravoúhlý levý spodní roh), i ve vzhledu Čistý.
+- **📣 Zpráva od trenéra:** manager, trenér, asistent zadají (podpis automaticky); okno při startu (do 30 s od spuštění) jednou na zařízení, potom sbalená karta úplně dole v Domů. Nové `domain/coach-msg.js`, `views/coach-msg-view.js`; kolekce `coachmsg` mimo zálohu.
+- **firestore.rules:** `coachmsg/{id}` – čte člen týmu, zapisuje isStaff jen `current` s kontrolou tvaru (`cmsgOk`).
+
+**Beze změny:** živý zápis, střely, góly, časomíra, logika pokladny.
+**Ověřeno:** `npm test` 571 + nové testy zelené, `npm run smoke` všechny role bez chyb.
+
+## v22.47 (4. 11. 2026) – Čitelné nálepky ve dvou řádcích, kapitánka, Čistý jako výchozí vzhled
+> **Nasazení – kanál 🧪 BETA:** commit „v22.47“ do větve **`beta`**. firestore.rules beze změny (kapitánka = pole `cap` v `players`, zapisuje ho trenér stávajícím právem), data: nové volitelné pole `cap`. Cache `hokej-beta-v152`. 🔒 Vyžadovat verzi: ne.
+
+**Změněno / přidáno** (zadání uživatele 4. 11. 2026)
+- **Nálepky čitelné** ve světlém i tmavém režimu (barva akcentu + barva textu na akcentu, dřív bílý text na bílém).
+- **Dva řádky nálepek:** na kartě Příští zápas je místo pro dva řádky, vejde se tolik mott, kolik dovolí délka textů (nálepky mají stejnou výšku, delší text se zkrátí „…“). Pořadí je náhodné a platí do zavření aplikace.
+- **© Kapitánka:** v ✏️ Upravit hráče (manager, trenér) přepínač „Kapitánka“ (pole `cap`). **Nejnovější motto kapitánky je vždy první**, zlatá nálepka s ©; změní-li ho (přidá nové), hned je vidět.
+- **🎨 Vzhled:** pořadí Čistý (výchozí), Aréna, Ledová aréna, Klasický (poslední). Kdo si vzhled ještě nezvolil, dostane Čistý; uložená volba zůstává.
+
+## v22.46 (4. 11. 2026) – Motto jako nálepka s číslem hráčky
+> **Nasazení – kanál 🧪 BETA:** commit „v22.46“ do větve **`beta`**. firestore.rules beze změny proti v22.45 (publikovat jen pokud ještě nejsou), data beze změny. Cache `hokej-beta-v151`. 🔒 Vyžadovat verzi: ne.
+
+**Změněno:** motto na kartě 🆚 Příští zápas má místo jména před textem **„#číslo hráčky:“** a vzhled **nálepky** (zaoblený štítek v barvě akcentu, lehce nakloněný). Bez čísla dresu (členové týmu) se zobrazí jméno. Nové `mottoTag` v `domain/mottos.js`.
+
+## v22.45 (4. 11. 2026) – 💬 Banka mott a pokřiků u příštího zápasu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.45“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `mottos`, rozšířené `joinreq` o volitelné `motto`) – bez publikace motta nejdou uložit (karta zůstane bez motta, zbytek běží). Data beze změny (jen přibývá nová kolekce). V betě Načíst novou verzi (cache `hokej-beta-v150`). 🔒 Vyžadovat verzi: ne. Test: kap. 48.
+
+**Přidáno** (zadání uživatele 4. 11. 2026)
+- **💬 Motta a pokřiky:** kolekce `mottos/{id}` = `{t, mid, by, at, off?}` (do 80 znaků, nejvýš 5 na osobu). Na kartě **🆚 Příští zápas** se pod sérií ukáže **náhodné motto** s podpisem autora (vybere se jednou za spuštění, při skrytí nebo smazání se vylosuje jiné). Bez mott se nic neukazuje.
+- **⚙️ → 💬 Motta a pokřiky:** vlastní motta (přidat, smazat); trenér a asistent navíc **moderace** (🙈 Skrýt / 👁 Zobrazit, smazat druhým klepnutím).
+- **✋ Žádost o přijetí:** nepovinné pole „Moje motto nebo pokřik“; při přijetí se založí první motto nové členky / člena (jedna dávka s účtem).
+- Nové `domain/mottos.js` (`mottoCheck`, `mottoDoc`, `pickMotto`, `shownMottos`, `mineMottos`, `mottoBy`), `views/motto-view.js`; testy `tests/mottos.test.js` a rozšíření `join-requests.test.js`.
+- **firestore.rules:** `mottos` – čte člen týmu (ne host); zakládá vlastník (`mid` = jeho pid / tid, `by` = jeho e-mail) a manager; autor upravuje a maže své (dokud je trenér neskryl); trenér jen mění `off` a maže. `joinreq` smí navíc volitelné `motto` (≤ 80). Počet 5 na osobu hlídá jen aplikace.
+- Motta nejsou v záloze (💾); čtení: jednou kolekce při spuštění a změny (desítky dokumentů).
+
+## v22.44 (4. 11. 2026) – Příští zápas se sérií a odpočtem, dresy a kalendář ve vzhledu Čistý, odpočet přihlášení, písmo STŘELY
+> **Nasazení – kanál 🧪 BETA:** commit „v22.44“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v149`). 🔒 Vyžadovat verzi: ne. Test: kap. 47.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- **🏠 Příští zápas:** v nadpisu datum a zápas (pořadí názvů podle doma / venku), pod ním „Za N dní“ / „Zítra“ a při méně než 24 hodinách do začátku **živý odpočet HH:MM:SS**; **série se soupeřem v sezóně** (V · R · P z odehraných zápasů, `seriesVs`); místo a čas se nezobrazují; bez zápasu se nezobrazí nic. Výpočty `matchCountdown`, `seriesVs` (`domain/home-summary.js`).
+- **⏳ Odpočet do uzávěrky přihlášení** v kartě události (Domů, Události) i v Podrobnostech detailu: „zbývá 1 den 5 h“, tiká sám bez překreslení a bez čtení databáze. Nové `domain/countdown.js`, `views/countdown-tick.js`.
+- **🎽 Dresy ve vzhledu Čistý** (opraveno): zvolený dres v řádku hráčky i štítky dresů mají přechod v barvě dresu a čitelný text ve světlém i tmavém režimu (dřív zmizelo pozadí a zůstal bílý text).
+- **📅 Kalendář ve vzhledu Čistý:** moderní vzhled ve značce (písmo, zaoblené dny, dnešek a vybraný den v barvě akcentu); **dny, kdy jsem přihlášená „Jdu“, mají zelený přechod** (v ostatních vzhledech jednodušší zelené podbarvení). **Události pod kalendářem** jsou od dneška dál vzestupně, dřívější dny měsíce pod nimi (`sortCal`).
+- **STŘELY v záhlaví:** písmo **Russo One** (SIL OFL, `styles/fonts/OFL-russo-one.txt`) ve šikmém řezu – nejblíž písmu loga HC Střelci s českými znaky.
+
+**Návrh (nezapsáno, čeká na souhlas):** `docs/navrhy-v22.44.md` – A banka mott a pokřiků hráček (nová kolekce + pravidla), B synchronizace kalendáře (.ics, předplatné).
+
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, data, pravidla Firestore, ostatní vzhledy (kromě zeleného dne v kalendáři a odpočtu přihlášení).
+
+**Ověřeno:** `npm test` (546 ✓, nové testy odpočtů, série, řazení kalendáře), `npm run smoke`, vizuální kontrola dresů, kalendáře, karty zápasu a záhlaví ve světlém i tmavém režimu.
+
+## v22.43 (4. 11. 2026) – Domů: příští zápas jako připomínka, hodnocení tréninku zavřené, přechodové podbarvení stavu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.43“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v148`). 🔒 Vyžadovat verzi: ne. Test: kap. 46.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- **🏠 Domů – 🆚 Příští zápas je jen připomínka** (psychologický moment pro tréninky): velký odpočet („Za 9 dní“, „Zítra“, „Dnes v 18:00“), soupeř (doma / venku podle pořadí názvů), den, 🕔 čas, ⏰ sraz a 📍 místo. Bez tlačítek přihlášení; klepnutí otevře událost (← Domů vrátí). Při běžícím zápase zůstává karta 🔴 (živý zápis / 👁 náhled) a připomínka ukazuje další zápas. Výpočet odpočtu: `matchCountdown` v `domain/home-summary.js`.
+- **📅 Příštích 7 dní** ukazuje zase **tréninky i zápasy** jako běžné karty s ✅ ❌ ❓ (dřívější „bez zápasů“ zrušeno); počet ❔ bez odpovědi zahrnuje i zápasy.
+- **⭐ Hodnocení hráček** v kartě plánu tréninku je **výchozně vždy zavřené** (dřív bylo u dnešního a proběhlého tréninku rozbalené). Rozbalení si pamatuje do zavření aplikace; `evalCardHtml` už nepřebírá datum tréninku.
+- **Vzhled Čistý – podbarvení stavu přihlášení je plynulý přechod**: u pruhu nejsytější, doprava se vytrácí do barvy karty; stejně v záhlaví karty (zápas má záhlaví v barvě akcentu jako dřív). Test `clean-skin` povoluje přechod jen u karty události (`.evi`, `--evc`), jinde zůstává zakázán.
+
+**Beze změny:** živý zápis, střely, góly, časomíra, živý trénink, pokladna, data, pravidla Firestore, ostatní vzhledy.
+
+**Ověřeno:** `npm test` (542 ✓, nový test `matchCountdown`), `npm run smoke`.
+
+## v22.42.1 (4. 11. 2026) – Oficiální logo v záhlaví (vzhled Čistý)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.42.1“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v147`). 🔒 Vyžadovat verzi: ne. Test: kap. 45, bod 6.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- Záhlaví vzhledu Čistý ukazuje **oficiální logo týmu** (`logo-strely.png`, dodané logo bez bílého pozadí, 144 × 144 px) místo zjednodušené kresby; vedle něj zůstává nápis **STŘELY**. Soubor je v offline cache (`sw.js`). Ostatní vzhledy logo nepoužívají.
+
+**Beze změny:** veškerá funkčnost, vzhledy, data, pravidla; ikona aplikace na ploše telefonu (`icon-192.png`, `icon-512.png`).
+
+**Ověřeno:** `npm test`, `npm run smoke`, kontrola loga na tmavě modrém i bílém podkladu.
+
+## v22.42 (4. 11. 2026) – Vzhled Čistý: zápasy, zaoblení, jemnější pruh stavu
+> **Nasazení – kanál 🧪 BETA:** commit „v22.42“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v146`). 🔒 Vyžadovat verzi: ne. Test: kap. 45.
+
+**Změněno** (zadání uživatele 4. 11. 2026, jen vzhled Čistý)
+- **Zápasy zvýrazněné** proti ostatním událostem: záhlaví karty zápasu je v barvě akcentu (modrá / ve tmavém zlatá) s velkým nadpisem; tréninky a další události mají neutrální záhlaví. Karta nese atribut `data-ety` (`views/event-core.js`).
+- **Lehké zaoblení** (6 px) karet, tlačítek, polí a chipů, štítky 4 px, okna se zaoblenými horními rohy (proměnné `--rd`, `--rs` v `styles/clean.css`).
+- **Pruh stavu** na kartě události je **užší (5 px) a bez textu**; stav navíc dává celé kartě jemný nádech barvy (zelená Jdu, žlutá Nejsem jistý, červená Nejdu, šedá bez odpovědi / uzavřeno / zrušeno) a záhlaví mírně barvu stavu. Atribut s textem stavu (`data-evt`) z karty zmizel.
+
+**Beze změny:** veškerá funkčnost a ovládání, ostatní vzhledy, menu dole jen s ikonami, živý zápis a trénink, data, pravidla.
+
+**Ověřeno:** `npm test`, `npm run smoke`, vizuální kontrola karet (zápas, trénink, stavy) ve světlém i tmavém režimu na šířce telefonu.
+
+## v22.41.1 (4. 11. 2026) – Oprava: „Načítám pokladnu…“ už nezůstane viset
+> **Nasazení – kanál 🧪 BETA:** commit „v22.41.1“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v145`). 🔒 Vyžadovat verzi: ne. Test: kap. 44, bod 6.
+
+**Opraveno** (nález uživatele 4. 11. 2026)
+- Moje platby, Platby a pokladna u události (📉 pokladna na vyžádání) zůstaly po otevření na „⏳ Načítám pokladnu…“, dokud uživatel nepřepnul záložku. Příčina: po načtení obou kolekcí se obrazovka překreslila o krok dřív, než se stav pokladny přepnul na „načteno“. Překreslení teď běží až poté (`src/main.js`, `moneyFull`); načítání, čtení z databáze ani data se nemění.
+
+**Beze změny:** vše ostatní (jen pořadí kroků po načtení), ⚠️ SAHÁ NA PLATBY jen zobrazením načítání – výpočty a zápisy plateb beze změny.
+
+**Ověřeno:** `npm test`, `npm run smoke`; ruční test v betě (Moje platby a Team → Pokladna po čerstvém spuštění).
+
+## v22.41 (4. 11. 2026) – Menu dole jen s ikonami (vzhled Čistý)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.41“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v144`). 🔒 Vyžadovat verzi: ne. Test: kap. 44.
+
+**Změněno** (zadání uživatele 4. 11. 2026)
+- Ve vzhledu **Čistý** jsou záložky v **dolní liště** a **jen jako obrysové ikony** (Domů, Události, Team, Statistiky, Soupeři, Moje platby); zvolená záložka má ikonu v barvě akcentu a linku nahoře. Text záložek zůstává pro čtečky obrazovky (`title`, `aria-label`).
+- Pruhy staré verze, náhledu role a bety zůstávají nahoře. Změna vzhledu v ⚙️ přesune záložky hned (událost `hk-skin`, `core/skin.js` → `views/shell.js`).
+- Ostatní vzhledy (Klasický, 🏟 Aréna, ❄️ Ledová aréna) mají záložky nahoře jako dřív; ikony i dolní lišta se v nich nezobrazují.
+
+**Beze změny:** veškerá funkčnost a ovládání (jen jiné umístění a podoba záložek), živý zápis a trénink (překryvná obrazovka je nad lištou), data, pravidla.
+
+**Ověřeno:** `npm test`, `npm run smoke`, vizuální kontrola lišty ve světlém i tmavém režimu na šířce telefonu.
+
+## v22.40 (4. 11. 2026) – Vzhled Čistý
+> **Nasazení – kanál 🧪 BETA:** commit „v22.40“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v143`). 🔒 Vyžadovat verzi: ne. Test: kap. 43.
+
+**Přidáno** (zadání uživatele 4. 11. 2026 – „méně AI vzhledu“, čistší, barva jen jako stav)
+- **Čistý** v ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika (`styles/clean.css`, `src/core/skin.js`): plochý styl bez přechodů, záře a stínů, ostré hrany (2 px), jedna neutrální základna a jeden akcent (světlý režim týmová tmavě modrá, tmavý týmová zlatá). Staví na Klasickém (rozměry a rozložení z `main.css`), režim Podle telefonu / Světlý / Tmavý funguje jako u ostatních vzhledů. Písmo nadpisů a záložek Barlow Condensed (už v aplikaci).
+- **Pruh stavu na kartě události** (Domů i Události): levý okraj s ostrou hranou, barva = stav přihlášeného účtu (zelená Jdu, žlutá Nejsem jistý, červená Nejdu, šedá Bez odpovědi, světle šedá Uzavřeno / Zrušeno) a nenápadný svislý text stavu. Čistá funkce `cardState` v `domain/event-helpers.js`, karta (`views/event-core.js`) jen přidá atributy `data-evk` a `data-evt`; ostatní vzhledy je nepoužívají. Zvolená odpověď v rychlých tlačítkách je obrysem v barvě stavu, ne plnou výplní.
+- **Černobílé ikony** (`core/emoji-clean.js`): ve vzhledu Čistý se emoji v textech zešedí (obalí se `<span class="em">`), ✅ ❌ ❓ se zobrazí jako ✓ ✕ ?. Text, tlačítka a data se nemění (`textContent` zůstává, ikona nezachytává klepnutí); mimo vzhled Čistý modul nic nedělá.
+- **Záhlaví se značkou týmu** (`index.html`): zjednodušené logo (kruh, zkřížené hole, puk – jednobarevné SVG) a nápis **STŘELY**; ostatní vzhledy ukazují původní „🏒 HockeyCoach“. Verze zůstává vedle značky.
+- `styles/clean.css` v offline cache (`sw.js`), nápověda ⚙️ (`views/help.js`), testy `tests/clean-skin.test.js`.
+
+**Beze změny:** veškerá funkčnost a ovládání (střely, góly, časomíra, trénink, pokladna), barvy formací a živého zápisu, vzhledy Klasický, 🏟 Aréna a ❄️ Ledová aréna; odpočet přihlášení na kartě (zatím bez změny, čeká na rozhodnutí).
+
+**Ověřeno:** `npm test`, `npm run smoke`, vizuální kontrola karet, záhlaví a tlačítek ve světlém i tmavém režimu na šířce telefonu.
+
+## v22.39 (4. 11. 2026) – ❄️ Vzhled Ledová aréna
+> **Nasazení – kanál 🧪 BETA:** commit „v22.39“ do větve **`beta`**. firestore.rules beze změny, data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v142`). 🔒 Vyžadovat verzi: ne. Test: kap. 42.
+
+**Přidáno** (zadání uživatele 4. 11. 2026 – vybraná varianta náhledu „Ledová aréna“, jen styl zobrazení)
+- **❄️ Ledová aréna** v ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika (`src/core/skin.js`, nový `styles/led.css`): tmavě modrá plocha s reflektorem nahoře, ledově modrý akcent, karty bez rámečků, štítky jako pilulky, záhlaví splývá s plochou s ledovou linkou. Staví na 🏟 Aréně (`data-skin="arena"` + `data-led`), proto písmo, rozměry a rozložení zůstávají stejné. Výchozí tmavý režim i při „Podle telefonu“, světlý při ☀ Světlý.
+- První nastavení bez probliknutí v `index.html`, `styles/led.css` v offline cache (`sw.js`), nápověda ⚙️ (`views/help.js`).
+
+**Beze změny:** veškerá funkčnost a ovládání (žádná změna JavaScriptu mimo přepínač vzhledu), vzhledy Klasický a 🏟 Aréna, živý zápis, trénink, pokladna.
+
+**Ověřeno:** `npm test` (534 testů), `npm run smoke` bez chyb, vizuální kontrola Ledové arény (tmavá i světlá) na šířce telefonu.
+
+## v22.38 (4. 11. 2026) – 🎯 Trestné střílení, krosček, ⏱ ukotvený odpočet tréninku
+> **Nasazení – kanál 🧪 BETA:** commit „v22.38“ do větve **`beta`**. firestore.rules beze změny. **Data:** nové volitelné pole události zápasu `ps: true` (a u trestného střílení soupeře `pf` = naše faulující hráčka) v existujícím poli `events` – pravidla události nekontrolují; stabilní verze ukáže proměněné trestné střílení jako běžný gól (skóre i statistiky sedí, situace „5 na 5“) a neproměněné jako střelu. V betě Načíst novou verzi (cache `hokej-beta-v141`). 🔒 Vyžadovat verzi: ne. Test: kap. 41.
+
+**Přidáno** (zadání uživatele 3. 11. 2026)
+- **🎯 Trestné střílení** (`domain/penalty-shot.js` – `psEvent`, `isPS`, `psText`): zvláštní událost s `ps: true`. Proměněné = gól `k: "G"`, `sit: "PS"` (SIT „Trestné střílení“) – počítá se do skóre, gólů a střel střelkyně, bez asistencí a bez +/- (`on: []`), u soupeře gól brankářce; neproměněné = `k: "S"` (střela / zákrok brankářky). Trest se nezapisuje (trestné střílení ho nahrazuje) a gól z trestného střílení neukončí probíhající trest (IIHF).
+- Živý zápis (`views/live-quick.js`): 🚫 Trest → kdo faulovala → **🎯 Trestné střílení** (místo délky) → faulovala soupeřka: kdo z našich střílí (nejdřív hráčky na ledě, pak ostatní nominované bruslařky) / faulovala naše: střílí soupeř na brankářku v bráně → **🥅 Gól** / neproměněno. ↩ Zpět vrací „Trestné střílení“.
+- ✏️ Opravy zápisu (`views/editor.js`): **+ 🎯 Trestné střílení**, úprava (tým, střelkyně / brankářka, výsledek); neproměněné je v seznamu i bez „Zobrazit střely“.
+- Průběh (živý zápis, 👁 náhled, karta zápasu, zápis utkání – i neproměněné v „Průběh (góly a tresty)“), 📤 souhrn „(trestné střílení)“ u gólu.
+- **Krosček** v důvodech trestu (`config/constants.js` `REA`) – živý zápis, okno trestu i opravy zápisu. Délky trestů podle IIHF beze změny (krosček = 2 min, případně 5 + do konce).
+
+**Změněno**
+- **⏱ Živý trénink:** odpočet cvičení je menší (48 px, v Aréně 54 px) a je součástí přilepeného záhlaví vedle bloku a „do konce bloku“ spolu s pruhem průběhu – zůstává vidět při posouvání. 🔒 zámek dotyku a „✅ Plán skončil“ beze změny (`views/trlive-view.js`, `styles/arena.css`).
+- Výběr situace běžného gólu (okno gólu, opravy zápisu) nabízí jen 5 na 5 / přesilovku / oslabení (`GSIT`).
+
+**Beze změny:** střely, góly, tresty a jejich délky, ukončení trestu gólem, střídání, časomíra, buly, ↩ Zpět ostatních kroků; statistiky (`playerStats` beze změny – trestné střílení je gól / střela), zápasy bez trestného střílení (`tests/d1-baseline.test.js` beze změny); odpočet a upozornění živého tréninku (jen přesun a velikost).
+
+**📉 Čtení databáze** (analýza, bez změny kódu): zbývající rostoucí kolekce poslouchané celé realizačním týmem – `evpub`, `lineuppub`, `evcash`, `attnote`, `drills` – návrh D4 v `docs/plan.md`, rozhodnout podle čísel z ⚙️ → 💾 Data → 📉.
+
+**Ověřeno:** `npm test` (534 testů, nově `tests/penalty-shot.test.js` – událost, statistiky hráček a brankářek, text, krosček), `npm run smoke` bez chyb pro všechny role (nově 🎯 trestné střílení v živém zápisu: gól s `ps` bez trestu; odpočet živého tréninku v přilepeném záhlaví).
+
+## v22.37 (3. 11. 2026) – ⚪ Buly a ⏸ přerušení hry, 📉 starší zápasy z paměti zařízení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.37“ do větve **`beta`**. firestore.rules beze změny (čtení zápasů dotazem povoluje stávající `isTeam()`). **Data:** nové záznamy v existujícím poli zápasu `log` (`ty: "fo"` / `"stop"`) – bez nového pole, pravidla `log` nekontrolují, stabilní verze je ignoruje (zobrazí jako „↩ Návrat z trestu: ?“ v kompletním vývoji – kosmetické, jen u zápasů zapsaných v betě). V betě Načíst novou verzi (cache `hokej-beta-v140`). 🔒 Vyžadovat verzi: ne. Test: kap. 40.
+
+**Přidáno** (zadání uživatele 3. 11. 2026)
+- **▶ Buly náš tým / soupeř** místo ▶ Start (`views/live-view.js`, `live-events.js`; `doFaceoff` v `domain/live-engine.js`): stojící čas = dvě tlačítka podle vítěze vhazování (název týmu z `TEAM_NAME`); klepnutí spustí čas a zapíše `{ty: "fo", team, per, at}` do `m.log`. Krok ↩ Zpět smaže jen záznam buly, čas běží dál.
+- **⏸ Přerušit** zapíše přerušení hry `{ty: "stop", per, at}` (`doStop`). Odchod ze živého zápisu a konec třetiny přerušení nezapisují (nejde o přerušení hry).
+- **Statistika buly a přerušení** (`domain/game-flow.js` – `flowStats`, `flowTotals`): v liště živého zápisu „buly X:Y“; v zápisu utkání u skóre buly s procentem a počet přerušení, v souhrnu po třetinách sloupce Buly a Přerušení; v kompletním vývoji „⚪ Buly – vyhrál …“ a „⏸ Přerušení hry“ (čip Buly a přerušení ve vývoji, CSV typ Buly / Přerušení); v 📤 souhrnu ke sdílení ⚪ Buly; ve Statistikách → Tým sloupce Buly a % buly (jen zápasy se zapsanými buly, Ø přerušení na zápas). Zápasy bez buly beze změny.
+- **📉 Starší zápasy z paměti zařízení** (`domain/data-window.js` – `WIN.matches`, `data/storage.js`): `matches` v okně poslechu jako události (realizační tým 45 dní zpět, hráčka 8 dní zpět a 15 dopředu); starší zápasy z paměti zařízení, ze serveru jednou na zařízení a pak týdně pás 60 dní před oknem. Ve Statistikách řádek „📱 Starší zápasy (N) z paměti zařízení · ověřeno …“ a **🔄 Aktualizovat zápasy** (`HK.archRefresh("matches")`, stojí čtení = počet starších zápasů). Úspora: při každém spuštění po pauze se nečtou odehrané zápasy (každý zápas = 1 čtení na zařízení).
+
+**Opraveno**
+- Zápis, oprava nebo smazání dokumentu mimo živé okno (starší událost, nově i zápas) se hned projeví v zařízení – archiv se znovu vezme z paměti zařízení (`archTouch`), dřív mohla další změna okna vrátit starou kopii až do nového spuštění.
+
+**Beze změny:** střely, góly, tresty, střídání, časomíra (běh a posun času), ↩ Zpět ostatních kroků, uzavření zápasu, pokladna; výstup Statistik a zápisu utkání u zápasů bez buly (`tests/d1-baseline.test.js` beze změny).
+
+**Ověřeno:** `npm test` (529 testů, nově `tests/game-flow.test.js` – buly, přerušení, ↩ Zpět, pořadí ve vývoji a na hranici třetin, souhrny, 📤 souhrn), `npm run smoke` bez chyb pro všechny role (nově 🔴 živý zápis: ▶ Buly soupeř → čas běží a zápis buly, ⏸ Přerušit → zápis přerušení; hráčka vidí starší zápas z paměti).
+
+## v22.36 (3. 11. 2026) – 🎨 Přepínatelná grafika „Aréna“
+> **Nasazení – kanál 🧪 BETA:** commit „v22.36“ do větve **`beta`**. firestore.rules ani data beze změny (volba vzhledu jen v `localStorage` zařízení – nové klíče `hk-skin`, `hk-mode`). V betě Načíst novou verzi (cache `hokej-beta-v139`). 🔒 Vyžadovat verzi: ne. Test: kap. 39.
+
+**Přidáno** (zadání uživatele 3. 11. 2026 – moderní, přehledný vzhled s prvky hokeje, funkce beze změny)
+- **🎨 Vzhled** v ⚙️ → 👤 Účet (všechny role, `src/core/skin.js`): Grafika **Klasický / 🏟 Aréna**, Režim **Podle telefonu / ☀ Světlý / 🌙 Tmavý** (režim platí i pro klasický vzhled). Změna hned, bez načtení stránky; první nastavení už v `index.html` (bez probliknutí). Výchozí zůstává Klasický.
+- **🏟 Aréna** (`styles/arena.css`, platí jen při `data-skin="arena"`): záhlaví jako tmavá tabule nad ledem s čarami kluziště (modrá – červená – modrá), stejný motiv u zvolené záložky; nadpisy, záložky a čísla (skóre, časomíra, odpočet tréninku, statistiky) písmem Barlow Condensed (`styles/fonts/`, licence SIL OFL, latinka i čeština, offline přes cache); karty se zaoblením mantinelu, modální okna jako spodní list s úchytem; štítky čitelné i v tmavém režimu. Barvy: kontrast textu proti pozadí ≥ 5,9 : 1 ve světlém i tmavém režimu; bílý text na barevných tlačítkách a pruzích se v tmavém režimu mění na tmavý (`--ink`).
+- Rozměry, rozložení a ovládání zůstávají z `styles/main.css` (užší písmo záložek šetří místo – „Moje platby“ se vejde na šířku telefonu).
+
+**Beze změny:** všechny funkce a obrazovky, barvy pětek L1–L4, hřiště živého zápisu, data, pravidla; živý zápis, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test`, `npm run smoke` bez chyb pro všechny role; náhled Arény ve světlém i tmavém režimu (šířka 390 px).
+
+## v22.35 (1. 11. 2026) – ✏️ Skutečný průběh tréninku a pravidla
+> **Nasazení – kanál 🧪 BETA:** commit „v22.35“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (Firebase Console → Firestore → Rules → Publish; schváleno uživatelem 1. 11. 2026) – nová kolekce `tract`, zpřísněné `budgetKeep` a `treval`. Stabilní verze pravidla snese (`tract` nepoužívá, hodnocení čte jen realizační tým, revize rozpočtu jen přidává). Do publikace se průběh neuloží (⚠️ hláška u ⏹ Konec / 💾) a statistiky počítají s plánem. V betě Načíst novou verzi (cache `hokej-beta-v138`). 🔒 Vyžadovat verzi: ne. Test: kap. 38.
+
+**Přidáno** (návrh A – schváleno 1. 11. 2026 podle doporučení)
+- **✏️ Skutečný průběh** `tract/{eid}` = `{v, blocks: [{id, dur, skip}], src, by, at}` (`domain/training-actual.js`, `views/tract-view.js`): při ⏹ Konec živého tréninku se zapíše automaticky (`tractFromLive`: zkrácené / vypuštěné bloky z úprav průběhu, rozběhnutý blok do konce hodin, nezačaté vypuštěné) – samostatný zápis, chyba nezastaví konec hodin. V kartě plánu dnešního / proběhlého tréninku řádek „skutečně N min z M“ a **✏️ Upravit** (délky −/+, ⏭ vypustit, ↺ podle plánu, 💾 Uložit průběh) pro toho, kdo smí upravovat plán. „↺ Spustit znovu“ záznam nemaže (přepíše ho až další ⏹ Konec).
+- **Statistiky podle skutečnosti** (`actualPlan`): 📈 Statistiky → 🏒 Trénink (i hráčka v Můj trénink) a 📊 Pokrytí dovedností počítají minuty z plánu upraveného skutečným průběhem; ⧉ kopie, ✨ příprava a 📑 šablony berou dál plán (záměr). Bez záznamu (starší tréninky) beze změny.
+- 📉 Čtení: +1 dokument na trénink v období při otevření 📈 přehledu a 📊 pokrytí, +1 při otevření detailu dnešního / proběhlého tréninku (jen realizační tým); žádný trvalý poslech. Záloha JSON obsahuje `tract`.
+
+**Změněno – pravidla** (návrh B2, B3)
+- `budgetKeep`: starší úpravy rozpočtu (`rev`) musí zůstat beze změny, seznam jde jen prodloužit.
+- `treval`: čtení i zápis navíc jen realizační tým (`isStaff()`) – hráčka hodnocení trenérů nikdy, ani po omylu v matici práv.
+- Nápověda: ✏️ Skutečný průběh.
+
+**Beze změny:** plán a jeho úprava, živý trénink (kromě zápisu průběhu při ⏹ Konec), hodnocení, měření, štafeta, dresy, pokladna; živý zápis, střely, góly, časomíra. B1 (`settings/beta`) zůstává podle návrhu ponecháno.
+
+**Ověřeno:** `npm test` (522 testů, nově `tests/training-actual.test.js`; `tests/training-eval.test.js` – pravidla `treval` s `isStaff`), `npm run smoke` bez chyb pro všechny role (nově ✏️ Skutečný průběh: úprava a zápis `tract`).
+
+## v22.34 (1. 11. 2026) – 🚫⭐ Nehodnotit u bloku a plat bez 🚫
+> **Nasazení – kanál 🧪 BETA:** commit „v22.34“ do větve **`beta`**. firestore.rules beze změny. **Data: nové volitelné pole bloku `ne: true` v `trplan/{eid}`** (schváleno uživatelem 1. 11. 2026; pravidla bloky nekontrolují, starší verze pole ignoruje a při uložení plánu ho zahodí). V betě Načíst novou verzi (cache `hokej-beta-v137`). 🔒 Vyžadovat verzi: ne. Test: kap. 37.
+
+**⚠️ SAHÁ NA PLATBY – jen výpočet platu za událost** (`domain/cash.js` – `salaryRows`).
+
+**Změněno** (rozhodnutí uživatele 1. 11. 2026)
+- **🚫⭐ Nehodnotit u bloku** (`views/trplan-edit.js`, `noEvalBlock` v `domain/training-plan.js`, `planDoc` pole zachová): přepínač přímo u bloku v ✏️ úpravě plánu (např. předzápasová rozcvička), sbalený blok ukazuje „🚫⭐ nehodnotí se“. Takový blok nemá výzvu k hodnocení na ledě ani řádek v ⭐ Hodnocení hráček (`evalLanes`). **Nahrazuje pravidlo z v22.33** (nehodnotila se celá část 🔥 Rozbruslení a rozcvička) – běžná rozcvička se zase hodnotí.
+- **Plat za událost jen za skutečnou účast:** člen realizačního týmu s „Jdu“ a 🚫 Nedorazil(a) událost do platu nedostane (dřív se počítala podle „Jdu“). Měsíční plat beze změny. Nápověda: 🚫 u realizačního týmu.
+
+**Beze změny:** ostatní výpočty pokladny, předpisy, úhrady, rozpočet; živý trénink, stopky, štafeta, dresy; živý zápis, střely, góly, časomíra.
+
+**Ověřeno:** `npm test` (517 testů; `tests/training-flex.test.js` – `noEvalBlock`, `evalLanes`, `planDoc` s `ne`, `salaryRows` s 🚫), `npm run smoke` bez chyb pro všechny role (nově přepínač 🚫⭐ v úpravě plánu).
+
+## v22.33 (1. 11. 2026) – ⏱ Variabilní trénink
+> **Nasazení – kanál 🧪 BETA:** commit „v22.33“ do větve **`beta`**. Pravidla databáze ani struktura dat se nemění (📝 cvičení jen do plánu je linka s názvem `dn` bez `drill` – stejně jako dosud ⚡ improvizace; volba 🔕 jen v `localStorage` zařízení `hk-tev-off`). V betě Načíst novou verzi (cache `hokej-beta-v136`). 🔒 Vyžadovat verzi: ne. Test: kap. 36 (nejlépe na ledě).
+
+**Přidáno / změněno** (zadání uživatele 1. 11. 2026 – plán je doporučení, trénink se mění za běhu)
+- **📋 Co následuje** (`views/trlive-view.js`, dřív 📋 Zbytek plánu jen pro řídícího): vidí celý realizační tým; současný blok „teď“ se zbývajícím časem a další bloky s **hodinami začátku podle skutečného průběhu** (`liveQueue`, `atClock` v `domain/training-live.js`), nahoře „Konec plánu v … · konec tréninku …“. Kdo smí upravovat plán, má dál ▶ Teď, −/+ 1 min, ⏭ vypustit, ↩ vrátit (logika `adjPatch` / `jumpPatch` beze změny).
+- **⚠ Zdržení:** když plán přetahuje přes konec tréninku o 2, 5 a 10 min (`DELAY_AT`, `delayDue`, `delayLevel`), každá hranice jednou vibrace, tón a ⌚ oznámení „⚠ Zdržení N min · Zkrať / vypusť cvičení · plán ještě … · pak …“ (`delayNote`, `delayAlarm` v `trlive-alerts.js`) a pruh nad linkami s **📋 Upravit** (rozbalí Co následuje). Zdržení, které už bylo při otevření obrazovky, se jen ukáže.
+- **⭐ Nepovinné hodnocení** (`views/treval-view.js`): výzva po kole má **🙂 Ostatním (N)** (označí „v pohodě“ jen hráčky bez hodnocení, `unratedPids`), **⏰ Později** (schová výzvu, doplní se v detailu) a **🔕 Dnes nehodnotit** (výzvy vypnuté pro trénink v tomto zařízení, v ⭐ Hodnocení hráček 🔔 Zapnout). Texty „nepovinné“, „bez hodnocení N z M“ místo „neohodnoceno“.
+- **🔥 Rozcvička se nehodnotí nikdy** (`NO_EVAL_CATS`, `noEval` v `domain/training-eval.js`): cvičení z části „Rozbruslení a rozcvička“ (i předzápasové) nemají výzvu ani řádek v ⭐ Hodnocení hráček a nepočítají se jako chybějící. Dříve uložená hodnocení zůstávají v datech i v 📈 přehledu.
+- **📝 Cvičení jen do plánu** (`views/drill-picker.js`, `views/trplan-edit.js`): ve výběru cvičení ➕ Nové cvičení → **📝 Jen do plánu (bez banky)** – název a délka, linka „📝 Název (jen v plánu)“, délka bloku z formuláře; smí každý, kdo upravuje plán (bez práva na banku jen tato volba). Kontrola plánu (`planIssues`) linku s názvem nehlásí jako „bez cvičení“. V ⚡ improvizaci je nové cvičení názvem dál jen do plánu (💾 do banky volitelně).
+- **⚡ Hledání podle části tréninku** (`views/trlive-quick.js`, `quickHits(list, text, část)`): v ➕ Cvičení řádek částí tréninku – bez psaní ukáže až 15 cvičení části, s textem hledá jen v ní; nové cvičení do banky dostane zvolenou část. Výběr cvičení v plánu měl hledání a filtr už dřív (beze změny).
+- Nápověda: plán jako doporučení, Co následuje, ⚠ zdržení, nepovinné hodnocení a rozcvička, 📝 jen do plánu, tabulka „Kde co najdu“.
+
+**K rozhodnutí:** nehodnotí se celá část 🔥 Rozbruslení a rozcvička. Pokud se běžná rozcvička hodnotit má, je potřeba přepínač „nehodnotit“ u bloku = nové pole bloku v `trplan` (pravidla to dovolují, data jen přidaná) – až po souhlasu. ✏️ Úprava proběhlého tréninku dál čeká na souhlas (`docs/navrhy-v22.32.md`, A).
+
+**Zachováno beze změny:** 🎽 rozdělení do dresů, ⏲ stopky, 🏃 štafeta, příprava na trénink pro hráčky, ⏹ Konec jen ručně, převzetí řízení, upozornění 60 / 10 s, ⌚ oznámení kol; data a pravidla; živý zápis zápasu, střely, góly, časomíra, pokladna.
+
+**Ověřeno:** `npm test` (516 testů, nově `tests/training-flex.test.js`; `tests/training-plan.test.js` a `tests/lane-seq.test.js` – „bez cvičení“ = bez cvičení i bez názvu), `npm run smoke` bez chyb pro všechny role (nově: 📝 jen do plánu nic nezapíše do `drills`, 📋 Co následuje s hodinami začátků, filtr části tréninku v ⚡).
+
 ## v22.32.1 (1. 11. 2026) – Oprava kouřového testu (nasazení v22.32 neproběhlo)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.32.1“ do větve **`beta`**. Aplikace beze změny funkcí proti v22.32, jen číslo verze a cache `hokej-beta-v135`. Pravidla ani data se nemění. 🔒 Vyžadovat verzi: ne. Ruční test: kap. 35 (platí pro v22.32.1).
 

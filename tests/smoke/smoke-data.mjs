@@ -41,7 +41,12 @@ export function teamData() {
     // v22.29: uzavřený zápas se sestavou a góly (⧉ Jako minule pro m1, 📤 souhrn ke sdílení)
     m0: {opp: "Lvice", date: "2026-10-12", time: "17:00", home: false, place: "Hala Lvic", closed: true, nom: ["p1", "p2", "p4", "p5", "p6", "p7"],
       lineup: {"1C": "p1", "1LW": "p2", "1RW": "p6", "1LD": "p4", "1RD": "p5", G1: "p7"},
-      events: [{id: "g1", k: "G", team: "us", per: 1, time: "04:10", scorer: "p1", a1: "p2", sit: "E", on: []}, {id: "g2", k: "G", team: "opp", per: 2, time: "11:00", sit: "E", on: []}, {id: "g3", k: "G", team: "us", per: 3, time: "15:30", scorer: "p6", sit: "PP", on: []}]}};
+      events: [{id: "g1", k: "G", team: "us", per: 1, time: "04:10", scorer: "p1", a1: "p2", sit: "E", on: []}, {id: "g2", k: "G", team: "opp", per: 2, time: "11:00", sit: "E", on: []}, {id: "g3", k: "G", team: "us", per: 3, time: "15:30", scorer: "p6", sit: "PP", on: []}]},
+    // v22.37: rozehraný živý zápis (čas stojí, jedno buly a přerušení) – ▶ Buly naše / soupeř, ⏸ Přerušit
+    m2: {opp: "Rysice", date: TODAY, time: "19:00", home: true, place: "Zimní stadion", nom: ["p1", "p2", "p4", "p5", "p6", "p7"],
+      lineup: {"1C": "p1", "1LK": "p2", "1PK": "p6", "1LO": "p4", "1PO": "p5", G1: "p7"}, events: [],
+      log: [{id: "fo1", ty: "fo", team: "us", per: 1, at: 0}, {id: "st1", ty: "stop", per: 1, at: 45000}],
+      live: {running: false, t0: 0, acc: 45000, per: 1, pst: 0, ice: {C: "p1", LK: "p2", PK: "p6", LO: "p4", PO: "p5"}, q: {LK: [], C: [], PK: [], LO: [], PO: []}, since: {p1: 0, p2: 0, p6: 0, p4: 0, p5: 0}, sh: [], pen: [], seq: 0, u: [], ri: {}, G: "p7"}}};
   const attendance = {};
   ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"].forEach(p => { attendance["e1_" + p] = {eid: "e1", pid: p, st: "yes"}; attendance["e0_" + p] = {eid: "e0", pid: p, st: p === "p3" ? "no" : "yes"}; });
   ["t1", "t2", "t3"].forEach(t => { attendance["e1_" + t] = {eid: "e1", pid: t, st: "yes"}; });
@@ -93,6 +98,7 @@ export function teamData() {
   const plevel = {team: {v: 1, lv: {p1: 4, p2: 3, p3: 3, p4: 2, p5: 3, p6: 2, p8: 3}}};
   const evpub = {e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", type: "training"}};
   return {players, staff, events, matches, attendance, attlog, drills, trplan, trlive, trms, treval, settings, charges, plpay, plevel, evpub,
+    coachmsg: {current: {id: "m1", t: "Ve čtvrtek trénink od 18:30.", bn: "Petr", by: "trener1@smoke.cz", at: "2026-10-25T10:00:00.000Z"}},
     opponents: {}, series: {}, cash: {k1: {d: "2026-10-01", k: "in", amt: 3000, cat: "Vklady / dary", note: "", acc: "main", by: "manager@smoke.cz"}, k2: {d: "2026-10-02", k: "tr", amt: 1000, from: "main", to: "op", note: "na led", by: "manager@smoke.cz"},
       k3: {d: "2026-10-05", k: "out", amt: 400, cat: "Pronájem ledu", payee: "Zimní stadion", pym: "2026-09", note: "", acc: "op", by: "manager@smoke.cz"}},
     evcash: {e0: {tpl: "train", cost: [{cat: "Pronájem ledu", payee: "Zimní stadion", amt: 1050}], who: {}, settle: {cost: [{cat: "Pronájem ledu", payee: "Zimní stadion", amt: 1050}], total: 1050, n: 7, who: {}, at: "2026-10-20T10:00:00Z", by: "manager@smoke.cz"}}}, evprice: {e0: {ym: "2026-10", date: PAST, tpl: "train", head: {monthly: 150, single: 150, exempt: 0}}}, debtors: {}, attnote: {}, staffpay: {}, requests: {}, absence: {}, budget: {}, audit: {}, joinreq: {}, lineuppub: {}, drillimg: {}, trtpl: {}};

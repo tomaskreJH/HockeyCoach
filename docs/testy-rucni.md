@@ -239,6 +239,60 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 24.6 Systémové Zpět v okně opravy = zavřít bez uložení. Hráčka tlačítko ✏️ nevidí.
 - [ ] 24.7 (v22.19.1) Živý trénink nechat doběhnout přes konec plánu → v ovládání je **⏹ Konec tréninku**; druhé klepnutí → karta „Skončil“ (u tréninku 30. 10. ukončit takto).
 
+## 41. v22.38 (beta) – 🎯 Trestné střílení, krosček, ⏱ odpočet tréninku
+- [ ] 41.1 V betě je v záhlaví **v22.38**. Živý zápis, přerušená hra: 🚫 Trest → hráčka / soupeř → v délkách je **🎯 Trestné střílení**; v důvodech trestu **Krosček**.
+- [ ] 41.2 🚫 Trest → Soupeř → 🎯 → vybrat naši střelkyni → **🥅 Gól**: skóre +1, v průběhu „🎯 Trestné střílení – gól: …“, žádný štítek trestu, situace se nezmění. ↩ Zpět vrátí vše.
+- [ ] 41.3 🚫 Trest → naše hráčka → 🎯 → **🧤 Chyceno**: skóre beze změny, střely soupeře +1, naše hráčka zůstává na ledě; v průběhu „… soupeře – chyceno (brankářka …) · faul: …“.
+- [ ] 41.4 Probíhá náš trest (oslabení) a soupeř promění trestné střílení → trest běží dál (gól ho neukončí).
+- [ ] 41.5 Po zápase: zápis utkání „Průběh (góly a tresty)“ ukazuje obě trestná střílení; Statistiky zápasu – střelkyně G +1, střely +1, +/- beze změny, asistence žádné; brankářka zásahy / góly. 📤 Sdílet souhrn: „(trestné střílení)“ u gólu.
+- [ ] 41.6 ✏️ Opravit zápis → **+ 🎯 Trestné střílení** → uložit; ✏️ u něj → změna výsledku Gól ↔ Neproměněno se promítne do skóre.
+- [ ] 41.7 ⏱ Živý trénink: odpočet cvičení je menší, vpravo v horním záhlaví vedle bloku; při posunu obrazovky dolů zůstává nahoře i s pruhem průběhu. Barvy upozornění (poslední minuta žlutě, 10 s červeně) fungují; 🔒 zámek má dál velký odpočet. Vyzkoušet i v Aréně.
+
+## 40. v22.37 (beta) – ⚪ Buly, ⏸ přerušení, 📉 starší zápasy z paměti
+- [ ] 40.1 V betě je v záhlaví **v22.37**. Živý zápis se stojícím časem: místo ▶ Start dvě tlačítka **▶ Buly** (náš tým plné zelené / soupeř zelený obrys), vedle ↩ Zpět; v Aréně i v tmavém režimu čitelné.
+- [ ] 40.2 ▶ Buly náš tým → čas běží, v liště pod skóre „buly 1:0“, v průběhu „⚪ Buly – vyhrál …“. ⏸ Přerušit → čas stojí, v průběhu „⏸ Přerušení hry“. ▶ Buly soupeř → „buly 1:1“.
+- [ ] 40.3 Omyl: po ▶ Buly klepnout ↩ Zpět → záznam buly zmizí, čas běží dál (správné buly už nejde doplnit – počítá se bez něj).
+- [ ] 40.4 Gól v přerušení: ⏸ → 🥅 Gól → ▶ Buly: v průběhu pořadí přerušení → gól → buly. Konec třetiny (⋯) → ▶ Buly otevře další třetinu (buly patří do nové třetiny 00:00).
+- [ ] 40.5 Zápis utkání: u skóre „Buly X : Y (Z %) · Přerušení N“, v souhrnu po třetinách sloupce Buly a Přerušení; čip „Buly a přerušení ve vývoji“ je skryje / ukáže; CSV vývoje s typem Buly / Přerušení. 📤 Sdílet souhrn obsahuje ⚪ Buly. Starší zápas bez buly vypadá jako dřív.
+- [ ] 40.6 Statistiky → Tým: sloupce Buly a % buly a řádek „Buly a přerušení ze N zápasů …“ – až po uzavření zápasu s buly.
+- [ ] 40.7 Statistiky dole „📱 Starší zápasy (N) z paměti zařízení · ověřeno …“ a **🔄 Aktualizovat zápasy** → hláška, datum ověření se změní. Hráčka vidí ve Statistikách i Soupeřích všechny odehrané zápasy jako dřív (i starší než 8 dní).
+- [ ] 40.8 Oprava staršího uzavřeného zápasu (⋯ opravy zápisu) na jednom telefonu se hned projeví; na druhém po 🔄 Aktualizovat zápasy.
+- [ ] 40.9 ⚙️ → 💾 Data → 📉 Čtení databáze: u zápasů „živě od … starší N z paměti zařízení“; odhad čtení menší o starší zápasy.
+
+## 39. v22.36 (beta) – 🎨 Grafika Aréna
+- [ ] 39.1 V betě je v záhlaví **v22.36**. Bez změny nastavení vypadá aplikace jako dřív (Klasický).
+- [ ] 39.2 ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **🏟 Aréna**: hned tmavá tabule nahoře s čarami modrá – červená – modrá, záložky užším písmem, „Moje platby“ na jednom řádku.
+- [ ] 39.3 Režim ☀ Světlý / 🌙 Tmavý / Podle telefonu se přepne hned; platí i pro Klasický. Po zavření a novém spuštění aplikace volba zůstane (bez probliknutí klasického vzhledu).
+- [ ] 39.4 Tmavý režim: tlačítka ✅ ❌ ❓ u události, zvolené čipy, ⚠️ pruhy a potvrzení „Klepni znovu“ mají čitelný (tmavý) text; štítky (pozdě, dluh) čitelné.
+- [ ] 39.5 🔴 Živý zápis v Aréně: časomíra a skóre čitelné, hřiště, pětky a tlačítka na stejném místě jako dřív (nic se neposune, scrollování stejné). Gól, střela, trest, start / stop fungují.
+- [ ] 39.6 ⏱ Živý trénink a 🔒 zámek: velký odpočet čitelný. Venku na slunci (světlý) i večer (tmavý) – čitelnost všech textů.
+- [ ] 39.7 Rychlá kontrola z kap. 1 v Aréně.
+
+## 38. v22.35 (beta) – ✏️ Skutečný průběh, pravidla (po publikaci pravidel)
+- [ ] 38.1 Pravidla publikovaná ručně (Firebase Console → Firestore → Rules → Publish); v betě je v záhlaví **v22.35**.
+- [ ] 38.2 Dnešní trénink s plánem: v kartě plánu řádek **✏️ Skutečný průběh** „zapíše se při ⏹ Konec“. ⏱ Živý trénink → vypustit blok, ⏹ Konec → řádek ukáže „skutečně N min z M · vypuštěno 1 · ⏹ z živého tréninku“.
+- [ ] 38.3 **✏️ Upravit** → −/+ u bloku, ⏭ vypustit, ↺ podle plánu → 💾 Uložit průběh → souhrn „✏️ upraveno ručně“; plán (✏️ Upravit plán) beze změny.
+- [ ] 38.4 Statistiky → 🏒 Trénink: minuty hráčky odpovídají skutečnosti (vypuštěný blok se nepočítá); hráčka v Můj trénink vidí stejné minuty, ⭐ hodnocení dál ne.
+- [ ] 38.5 ✏️ Plán → 📊 Pokrytí dovedností počítá se skutečností.
+- [ ] 38.6 👁 Náhled role hráčka: ⭐ hodnocení nikde; 📊 Rozpočet (pokladník): úprava schváleného rozpočtu přidá revizi, starší revize zůstanou.
+
+## 37. v22.34 (beta) – 🚫⭐ Nehodnotit u bloku, plat bez 🚫
+- [ ] 37.1 V betě je v záhlaví **v22.34**.
+- [ ] 37.2 Plán: ✏️ Upravit → blok (např. předzápasová rozcvička) → **🚫⭐ Nehodnotit** → 💾 Uložit; sbalený blok ukazuje „🚫⭐ nehodnotí se“.
+- [ ] 37.3 ⏱ Živý trénink: po tomto bloku žádná výzva „Jak šlo hráčkám?“; v ⭐ Hodnocení hráček blok chybí. Rozcvička **bez** přepínače se hodnotí normálně.
+- [ ] 37.4 💰 Pokladna → Měsíce → Platy: člen realizačního týmu s platem za událost a 🚫 Nedorazil(a) u jedné události – ta se do počtu ani částky nepočítá.
+
+## 36. v22.33 (beta) – ⏱ Variabilní trénink (nejlépe na ledě)
+- [ ] 36.1 V betě je v záhlaví **v22.33**.
+- [ ] 36.2 ⏱ Živý trénink (běžící): pod ovládáním **📋 Co následuje** – současný blok „teď“ se zbývajícím časem, další bloky s hodinami začátku (např. 17:42), nahoře „Konec plánu v … · konec tréninku …“. Asistent bez práva upravovat plán vidí seznam bez tlačítek.
+- [ ] 36.3 Řídící: u dalšího bloku − / + (zkrátit / prodloužit o minutu), ⏭ vypustit, ↩ vrátit, ▶ Teď – hodiny začátků se přepočítají; uložený plán (✏️ Upravit) beze změny.
+- [ ] 36.4 ⚠ Zdržení: ⏸ Pauza na 2–3 min (nebo +1 min několikrát), až plán přetahuje přes konec tréninku o 2 min → vibrace, tón, ⌚ oznámení „⚠ Zdržení 2 min“ a oranžový pruh; další upozornění až při 5 a 10 min. **📋 Upravit** v pruhu otevře Co následuje. Po vypuštění bloku pruh zmizí.
+- [ ] 36.5 ⭐ Po kole „Jak šlo hráčkám? · nepovinné“: označit dvě hráčky, **🙂 Ostatním (N)** označí jen zbylé; **⏰ Později** výzvu schová (další kolo ukáže novou); **🔕 Dnes nehodnotit** – výzvy zmizí, v detailu tréninku ⭐ Hodnocení hráček je „🔔 Zapnout“.
+- [ ] 36.6 (od v22.34 nahrazeno přepínačem u bloku – kap. 37.2–37.3)
+- [ ] 36.7 ⚡ ➕ Cvičení: řádek částí tréninku (🔥 / 🎯 / ⚡ …) – klepnutí ukáže cvičení té části i bez psaní, druhé klepnutí filtr zruší; s textem hledá jen v části.
+- [ ] 36.8 Plán: ✏️ Upravit → 📚 Vybrat cvičení → ➕ Nové cvičení → název, délka → **📝 Jen do plánu (bez banky)** → linka „📝 Název (jen v plánu)“, délka bloku podle formuláře, v 📚 bance nové cvičení není, kontrola plánu nehlásí „bez cvičení“. Trenér bez práva upravovat banku vidí jen tuto volbu.
+- [ ] 36.9 Beze změny: 🎽 rozdělení do dresů, ⏲ stopky, 🏃 štafeta, příprava pro hráčky (👁 náhled hráčky – plán s popisem a videem).
+
 ## 35. v22.32 (beta) – 🧹 Úklid drobností
 - [ ] 35.1 V betě je v záhlaví **v22.32.1** (v22.32 se nenasadila).
 - [ ] 35.2 Detail tréninku po začátku → 👥 Docházka → Realizační tým: u člena s „Jdu“ tlačítko 🚫; klepnutí = „🚫 Nedorazil(a)“, další klepnutí zruší. 📊 Docházka ukáže člena v 🚫. 🕘 Historie přihlášek má záznam. Plat za událost (📅 Měsíce) se nemění.
@@ -324,3 +378,74 @@ Před testem publikovaná **firestore.rules** z v22.7 (jinak se historie nezapis
 - [ ] 25.3 👁 Náhled role hráčka (nebo účet hráčky): 📋 Plán → klepnout na cvičení → kategorie, úroveň, délka, pomůcky, popis, ▶ video a 📄 PDF se zobrazí a přehrají.
 - [ ] 25.4 Změnit popis cvičení v 📚 bance → u plánu se znovu ukáže 👀 upozornění; 💾 Uložit plán nebo 📤 ho vyřeší.
 - [ ] 25.5 Hráčka dál nevidí 📚 banku cvičení ani ⭐ hodnocení trenérů.
+
+## 42. v22.39 (beta) – ❄️ Vzhled Ledová aréna
+1. ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **❄️ Ledová aréna**: aplikace hned ztmavne (tmavě modrá plocha, ledově modrý akcent), po znovunačtení bez probliknutí jiného vzhledu.
+2. Režim **Podle telefonu** i **🌙 Tmavý** = tmavý; **☀ Světlý** = světlá varianta. Texty čitelné, štítky jako pilulky.
+3. Projít Domů, detail události (Jdu / Nejdu), Team, Statistiky, ⚙️, živý zápis (lišta, skóre, čas) a živý trénink – rozložení a tlačítka na stejném místě jako v 🏟 Aréně, vše funguje stejně.
+4. Přepnout zpět na Klasický a 🏟 Aréna – beze změny proti v22.38.
+
+## 43. v22.40 (beta) – Vzhled Čistý
+1. ⚙️ → 👤 Účet → 🎨 Vzhled → Grafika **Čistý**: aplikace se hned zploští, ostré hrany, záhlaví se značkou a nápisem **STŘELY**, ikony černobílé (✓ ✕ ? místo barevných emoji).
+2. Domů a Události: každá karta má vlevo pruh stavu s textem (Jdu / Nejdu / Nejsem jistý / Bez odpovědi / Uzavřeno / Zrušeno). Klepnout na **Jdu**, **Nejdu**, **Nejsem jistý**: pruh i tlačítko změní barvu a odpověď se uloží stejně jako dřív (i klepnutím přímo na ikonu uvnitř tlačítka).
+3. Režim **Podle telefonu**, **☀ Světlý**, **🌙 Tmavý**: texty čitelné, žlutý akcent ve tmavém, tmavě modrý ve světlém.
+4. Projít detail události, Team, Statistiky, ⚙️, 🔴 živý zápis (klepnutí na hráčky, ikony na tlačítkách) a ⏱ živý trénink – vše funguje stejně, formace mají své barvy.
+5. Znovu načíst aplikaci: vzhled zůstane bez probliknutí. Přepnout na Klasický / 🏟 Aréna / ❄️ Ledová aréna – beze změny proti v22.39 (barevná emoji, původní záhlaví).
+6. Napsat nález: co ještě působí „moc“ (barvy, ikony, rozměry), případně které ikony nahradit vlastními.
+
+## 44. v22.41 (beta) – Menu dole jen s ikonami
+1. Vzhled **Čistý**: záložky jsou dole v liště a jsou jen ikony (domek, kalendář, lidé, sloupce, štít, peněženka); zvolená má barvu akcentu a linku nahoře. Klepnutí přepíná obrazovky jako dřív.
+2. Dole nic nezakrývá poslední kartu (dá se doposouvat); lišta je nad spodním okrajem telefonu.
+3. 🔴 Živý zápis a ⏱ živý trénink: překryvná obrazovka je nad lištou, ovládání beze změny.
+4. Náhled role a pruh bety (🧪) jsou nahoře, ne dole. Přepnout vzhled na Klasický / 🏟 Aréna / ❄️ Ledová aréna: záložky se hned vrátí nahoře s textem.
+5. Nález: srozumitelnost ikon (které poznáš hůř), velikost lišty.
+
+6. (v22.41.1) Čerstvě spustit aplikaci (pokladník / manager), otevřít **Moje platby** a **Team → Pokladna**: po „⏳ Načítám pokladnu…“ se obsah zobrazí sám, bez přepnutí záložky.
+
+## 45. v22.42 (beta) – Vzhled Čistý: zápasy, zaoblení, pruh stavu
+1. Vzhled **Čistý**, Domů a Události: karta **zápasu** má záhlaví v barvě akcentu s velkým nadpisem, tréninky mají neutrální záhlaví – zápas je hned vidět.
+2. Karty mají lehce zaoblené rohy; tlačítka, pole a okna také. Nic se nepřekrývá a nic neuřezává.
+3. Pruh stavu vlevo je užší a **bez textu**; celá karta má jemný nádech barvy stavu. Klepnout na Jdu / Nejdu / Nejsem jistý: pruh, nádech i obrys tlačítka změní barvu, odpověď se uloží jako dřív.
+4. Světlý i tmavý režim, zrušená a uzavřená událost (šedá).
+5. Nález: je zápas dost výrazný? Je nádech karty dost vidět (nebo moc)? Případně šířka pruhu a míra zaoblení.
+6. (v22.42.1) Vzhled Čistý: v záhlaví je oficiální logo týmu (modrý kruh se zlatým lemem, zkřížené hole, puk) a vedle něj nápis STŘELY; logo je ostré a bez bílého okraje ve světlém i tmavém režimu.
+
+## 46. v22.43 (beta) – Domů: připomínka příštího zápasu, hodnocení zavřené, přechod stavu
+1. 🏠 Domů: nad seznamem je **🆚 Příští zápas** jako karta s odpočtem („Za N dní“ / „Zítra“ / „Dnes v 18:00“), soupeřem, dnem, časem, srazem a místem; **bez tlačítek** ✅ ❌ ❓. Klepnutí otevře událost, ← Domů vrátí zpět.
+2. Pod ní **📅 Příštích 7 dní**: tréninky **i zápasy** jako běžné karty s ✅ ❌ ❓ (zápas do 7 dní je tedy vidět dvakrát – připomínka a karta). Počet ❔ bez odpovědi vpravo nahoře zahrnuje i zápasy. Zápas za více než 7 dní je jen v připomínce.
+3. Během běžícího zápasu: karta 🔴 (trenér ▶ Do živého zápisu, ostatní 👁 náhled); připomínka ukazuje další zápas, nebo zmizí, žádný další není.
+4. Trenér: detail dnešního i proběhlého tréninku s plánem → karta **⭐ Hodnocení hráček** je **zavřená**; klepnutím se rozbalí, po překreslení (např. označení smajlíku) zůstane rozbalená. Budoucí trénink: také zavřená.
+5. Vzhled **Čistý**, Domů a Události: podbarvení karty podle stavu (Jdu / Nejdu / Nejsem jistý / bez odpovědi / uzavřeno) je **plynulý přechod** – u barevného pruhu nejsytější, doprava se vytrácí; stejně záhlaví karty (zápas má záhlaví v barvě akcentu). Světlý i tmavý režim; změna odpovědi přechod přebarví.
+6. Nález: je přechod dost vidět (nebo moc)? Je připomínka zápasu dost výrazná, nebo naopak ruší?
+
+## 47. v22.44 (beta) – Příští zápas, odpočet přihlášení, dresy, kalendář, písmo
+1. 🏠 Domů: karta příštího zápasu má v nadpisu **datum a zápas**, pod ním „Za N dní“ / „Zítra“; **bez místa a času**. Dole „Série v sezóně: V · R · P“ (sedí s odehranými zápasy proti soupeři v této sezóně); bez předchozího zápasu „zatím bez zápasu“.
+2. Zápas začíná za méně než 24 hodin: místo textu **tikají hodiny HH:MM:SS**. Bez naplánovaného zápasu se karta vůbec neukáže. Klepnutí otevře událost.
+3. Karta události (Domů i Události) a Podrobnosti: u otevřeného přihlašování **„⏳ zbývá …“** (např. 1 den 5 h, pod hodinu minuty), mění se samo; po uzávěrce 🔒 bez odpočtu.
+4. Vzhled **Čistý**, trénink → 🎽 ✏️ Upravit dresy: zvolená barva (M / Ž / Z / R) má **přechod v barvě dresu a čitelné písmeno** ve světlém i tmavém režimu; štítky „Modrá: 4…“ také.
+5. Události → **Kalendář**: moderní vzhled, dnešek a vybraný den v barvě akcentu, **dny s mým „Jdu“ zelený přechod**. Pod kalendářem jsou události **od dneška dál**, dřívější dny měsíce až dole; klepnutí na den zúží seznam.
+6. Záhlaví vzhledu Čistý: **STŘELY** šikmým hranatým písmem (Ř správně); porovnat s logem HC Střelci.
+7. Nález: čitelnost, výraznost zeleného přechodu v kalendáři, písmo (případně jiné tučnější).
+
+## 48. v22.45 (beta) – Motta a pokřiky
+Před testem **publikovat firestore.rules** (Firebase → Firestore → Pravidla).
+1. ⚙️ → **💬 Motta a pokřiky** (každý člen týmu): napsat motto („Holky, jedeeeem!“) → ➕ Přidat; objeví se v seznamu. Šesté se nepřidá (hláška o max 5), prázdné ani přes 80 znaků také ne.
+2. 🏠 Domů s naplánovaným zápasem: pod sérií **nálepka „#číslo: motto“** (v22.46; člen bez čísla dresu = jméno). Z jiného účtu se po novém spuštění ukáže (náhodně) některé motto týmu. Bez mott žádný řádek.
+3. Trenér / asistent: ⚙️ → 💬 → **Moderace týmu**: 🙈 Skrýt → motto zmizí z karty; autor ho v seznamu vidí jako „skryto trenérem“ a nemůže ho smazat ani upravit; 👁 Zobrazit vrátí. 🗑 smaže druhým klepnutím.
+4. Hráčka nesmí skrýt ani smazat cizí motto (zkusit přes konzoli → zamítnuto pravidly); host motta nevidí.
+5. Nový účet bez členství: formulář ✋ Žádost má pole **Moje motto**; manager žádost přijme → motto se založí u nové hráčky (⚙️ → 💬 ji vidí v moderaci, podpis = její jméno).
+6. (v22.47) Nálepky jsou **čitelné** ve světlém i tmavém režimu; vejdou se **dva řádky**, víc mott = zbytek se neukáže; delší text končí „…“.
+7. (v22.47) ✏️ Upravit hráče → **© Kapitánka: Ano** → její nejnovější motto je **první, zlatá s ©**; přidá-li nové, je hned první.
+8. (v22.47) ⚙️ → Vzhled: pořadí Čistý, Aréna, Ledová aréna, Klasický; na novém zařízení (bez volby) se otevře Čistý.
+9. Nález: čitelnost řádku s mottem ve všech vzhledech (Classic, Aréna, Ledová, Čistý), světlý i tmavý režim.
+
+## 49. v22.48 (beta) – (C), nálepky, zaoblení odpovědí, zpráva od trenéra
+Před testem **publikovat firestore.rules** (nová kolekce `coachmsg`).
+1. Hráčka s příznakem Kapitánka má všude za jménem **(C)** (Domů, událost, zápas, sestava, platby); v exportech CSV a auditu bez (C).
+2. Nálepky mott: nejdřív se vynechají ty, co se nevejdou do dvou řádků, text se zkrátí jen u jediné příliš dlouhé; pořadí střídá autory (nikdo není zvýhodněn, kromě kapitánky).
+3. Události: zvolené ✅ Jdu / ❌ Nejdu / ❓ má **pravoúhlý levý spodní roh** (i ve vzhledu Čistý).
+4. Trenér / asistent / manager: úplně dole v Domů **📣 Zadat zprávu týmu** → uložit. Z jiného účtu po novém spuštění okno **📣 Zpráva od trenéra** → Rozumím; po dalším spuštění už ne.
+5. V Domů dole sbalená karta (🆕 u nepřečtené); klepnutím rozbalit. Trenér: ✏️ Upravit (s volbou znovu ukázat), 🗑 smazat druhým klepnutím. Hráčka nemá tlačítka zadání.
+6. Zpráva zadaná za běhu aplikace okno nevyvolá (jen kartu).
+7. Nález: čitelnost okna, (C) ve všech výskytech.
+

@@ -1,5 +1,5 @@
 // Doména: úplná časová osa zápasu a statistika střídání (bez DOM).
-// Položka gólu nese kind "G" a team (podsvícení v živém průběhu), ikona gólu 🥅.
+// Položka gólu nese kind "G" a team (podsvícení v živém průběhu), ikona gólu 🥅. ⚪ Buly (kind "fo") a ⏸ přerušení (kind "stop") z m.log, volba flow.
 // Struktura: Importy -> Pomocné funkce -> Třetiny a čas -> Střídání (shiftsOf, shiftList, shiftStats) -> Časová osa (timeline, goalScores) -> Exporty.
 // Společné pravidlo střídání – shiftList(m) používají všechny přehledy (statistiky zápasu, Čas na ledě v živém zápisu,
 // Střídání hráček v rozboru, celkové statistiky, vývoj zápasu):
@@ -8,9 +8,11 @@
 //      (návrat do řad po PP/OS, „Sestava znovu“, změna jednotky nebo pozice).
 // Uložená data (live.sh) ani editace střídání (shift-edit.js) se nemění – pravidlo platí jen pro výpočty a zobrazení.
 import {COLS, SIT} from "../config/constants.js";
+import {TEAM_NAME} from "../config/team-config.js";
 import {nm} from "../core/selectors.js";
 import {mmss} from "../core/utils.js";
 import {el_} from "./live-engine.js";
+import {psText} from "./penalty-shot.js";
 
 const perLabel = n => (n < 4 ? n + ". tř." : "prodl.");
 
@@ -72,6 +74,7 @@ export function shiftStats(m, limit) {
 }
 
 const evText = (e) => {
+  if (e.ps) return psText(e, id => nm(id));                       // 🎯 trestné střílení (gól i neproměněné)
   if (e.k === "G") {
     const sit = SIT[e.sit] || SIT.E;
     return e.team === "us"
@@ -93,11 +96,12 @@ export function goalScores(m) {
 }
 
 // Časová osa: góly, tresty, střely, střídání, zranění, jednotky, konce třetin, návraty z trestů
-export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
+// flow = false vynechá ⚪ buly a ⏸ přerušení hry (výchozí ukázat)
+export function timeline(m, {shots = true, subs = true, flow = true, limit = 120000} = {}) {
   const E = [], push = (t, ord, o) => E.push({t, ord, ...o});
   (m.events || []).forEach((e, i) => {
-    if (e.k === "S" && !shots) return;
-    push(estimate(m, e), e.k === "S" ? 3 : 1, {kind: e.k, per: e.per, el: e.time || "", team: e.team, text: evText(e), idx: i});
+    if (e.k === "S" && !shots && !e.ps) return;                  // neproměněné trestné střílení je vidět i bez střel
+    push(estimate(m, e), e.k === "S" && !e.ps ? 3 : 1, {kind: e.k, per: e.per, el: e.time || "", team: e.team, text: evText(e), idx: i});
   });
   (m.injLog || []).forEach(x => {
     const t = x.at != null ? x.at : estimate(m, x);
@@ -105,7 +109,15 @@ export function timeline(m, {shots = true, subs = true, limit = 120000} = {}) {
     push(t, 2, {kind: "inj", per: x.per, el: x.time || "", text: `${txt}: ${nm(x.id)}`});
   });
   (m.log || []).forEach(x => {
+    if ((x.ty === "fo" || x.ty === "stop") && !flow) return;
     const t = x.at != null ? x.at : 0, pa = periodAt(m, t);
+    // ⏸ přerušení je první ve svém okamžiku (gól / trest se zapisuje až po něm); ⚪ buly až za vším, co se stalo v přerušení
+    // (o půl ms později – i za koncem třetiny, když buly otevírá další třetinu). Čas v třetině podle per záznamu.
+    if (x.ty === "stop" || x.ty === "fo") {
+      const per = x.per || pa.per, text = x.ty === "stop" ? "⏸ Přerušení hry" : "⚪ Buly – vyhrál " + (x.team === "us" ? TEAM_NAME : "soupeř");
+      push(x.ty === "stop" ? t : t + 0.5, x.ty === "stop" ? 0.5 : 2, {kind: x.ty, per, el: mmss(Math.max(0, t - periodStart(m, per))), team: x.team, text});
+      return;
+    }
     const text = x.ty === "per" ? `⏱ Konec ${x.per < 4 ? x.per + ". třetiny" : "prodloužení"}`
       : x.ty === "unit" ? `⚡ ${x.label}`
       : x.ty === "gk" ? `🧤 Brankářka v bráně: ${nm(x.p)}`

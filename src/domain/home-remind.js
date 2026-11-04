@@ -7,6 +7,8 @@ const DAYS = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
 
 // ===== Pomocné funkce =====
 const stOf = p => p.st || "act";
+// Jméno hráčky pro seznam a text připomínky; kapitánka s „(C)“ (stejně jako core/selectors.js capName)
+const shownName = p => (p.name || "?") + (p.cap === true ? " (C)" : "");
 // Krátké datum „Út 28. 10.“
 export function dayShort(s) {
   const d = new Date(s + "T12:00:00");
@@ -20,7 +22,7 @@ export const nearestOpen = list => (list || []).find(e => !e.locked && !e.cancel
 export function missingAnswers(players, at, eid) {
   const done = new Set((at || []).filter(a => a.eid === eid && a.st).map(a => a.pid));
   return (players || []).filter(p => stOf(p) !== "end" && !done.has(p.id))
-    .map(p => ({id: p.id, name: p.name || "?"})).sort((a, b) => a.name.localeCompare(b.name, "cs"));
+    .map(p => ({id: p.id, name: shownName(p)})).sort((a, b) => a.name.localeCompare(b.name, "cs"));
 }
 // Text připomínky: událost (den, čas, sraz, místo), termín přihlášení, kdo chybí a odkaz do aplikace.
 // e = položka z homeItems, when = hotový řádek času a srazu („17:00–18:30 · ⏰ sraz 16:40“), dl = text termínu, url = adresa aplikace

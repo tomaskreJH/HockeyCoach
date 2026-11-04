@@ -9,7 +9,7 @@ import {kindOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {esc, failMsg, reqWord, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
-import {JOIN_KINDS, JOIN_ROLES, NICK_MAX, NOTE_MAX, approvePlan, canResend, defaultRole, freePlayers, freeStaff, joinCheck, joinDoc, numTaken, openJoins, rejectPlan} from "../domain/join-requests.js";
+import {JOIN_KINDS, JOIN_ROLES, MOTTO_JOIN_MAX, NICK_MAX, NOTE_MAX, approvePlan, canResend, defaultRole, freePlayers, freeStaff, joinCheck, joinDoc, numTaken, openJoins, rejectPlan} from "../domain/join-requests.js";
 
 // ===== Konstanty a stav =====
 const WIN_ID = "jrw";                       // kontejner okna trenéra (vkládá se do body)
@@ -31,10 +31,10 @@ const reqInfo = r => `<div class="mu" style="text-align:left;line-height:1.6">E-
 // Vrací Promise: "ok" (trenér právě schválil – aplikace znovu ověří roli) nebo "out" (odhlásit).
 export function joinScreen(app, api) {
   return new Promise(res => {
-    let req, err = null, first = true, draft = {nick: "", num: "", kind: "hracka", note: ""}, un = () => {}, sending = false;
+    let req, err = null, first = true, draft = {nick: "", num: "", kind: "hracka", note: "", motto: ""}, un = () => {}, sending = false;
     const key = "join:cancel:" + api.email, finish = g => { try { un(); } catch (e) {} res(g); };
     // Rozepsaný formulář se při překreslení (změna žádosti v databázi) neztratí
-    const keep = () => { const v = id => { const e = app.querySelector("#" + id); return e ? e.value : null; }; ["nick", "num", "kind", "note"].forEach(k => { const x = v("jf" + k); if (x != null) draft[k] = x; }); };
+    const keep = () => { const v = id => { const e = app.querySelector("#" + id); return e ? e.value : null; }; ["nick", "num", "kind", "note", "motto"].forEach(k => { const x = v("jf" + k); if (x != null) draft[k] = x; }); };
     function draw() {
       keep();
       const out = `<button class="s w" data-jg="out" style="margin-top:8px;min-height:52px">Odhlásit jiným účtem</button>`;
@@ -51,6 +51,7 @@ export function joinScreen(app, api) {
 <label class="mu">Přezdívka *</label><input id="jfnick" maxlength="${NICK_MAX}" value="${esc(draft.nick)}" placeholder="např. Kačka">
 <label class="mu">Číslo dresu (1–99, nepovinné)</label><input id="jfnum" inputmode="numeric" maxlength="2" value="${esc(draft.num)}">
 <label class="mu">Jsem</label><select id="jfkind">${Object.entries(JOIN_KINDS).map(([k, t]) => `<option value="${k}"${draft.kind === k ? " selected" : ""}>${t}</option>`).join("")}</select>
+<label class="mu">Moje motto nebo pokřik (nepovinné, ukáže se týmu u příštího zápasu)</label><input id="jfmotto" maxlength="${MOTTO_JOIN_MAX}" value="${esc(draft.motto)}" placeholder="např. Holky, jedeeeem!">
 <label class="mu">Poznámka pro trenéra (nepovinné)</label><textarea id="jfnote" maxlength="${NOTE_MAX}" rows="2">${esc(draft.note)}</textarea></div>
 <button class="p w" data-jg="send" style="margin-top:8px;min-height:52px"${sending ? " disabled" : ""}>✋ Požádat o přijetí do týmu</button>`
           : `<div class="mu">Novou žádost můžeš poslat od <b>${esc(fTime(rs.from))}</b>.</div>`);
@@ -138,7 +139,7 @@ function commit(plan, ok) {
   b.commit().then(() => { busy = false; members = null; loadMembers(); });
   toast(ok);
 }
-const ctxOf = () => ({by: me(), at: new Date().toISOString(), ms: Date.now(), auditId: uid(), newId: ""});
+const ctxOf = () => ({by: me(), at: new Date().toISOString(), ms: Date.now(), auditId: uid(), mottoId: uid(), newId: ""});
 function bindWin(el, r) {
   const q = s => el.querySelector(s), close = () => { el.remove(); };
   q("#jrz").onclick = close;

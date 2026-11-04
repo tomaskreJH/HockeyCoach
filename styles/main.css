@@ -285,6 +285,9 @@ th { color: var(--mu); font-size: 12px; }
 /* Horní lišta (sticky): řádek třetiny se situací a štítky trestů (.lper), pod ním čas; vpravo skóre */
 .lt-b { display: block; position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 0 4px; margin-bottom: 6px; }
 .lt-r1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+/* ▶ Buly naše / soupeř (stojící čas): vhazování spustí čas; barvy inline (naše plné zelené, soupeř zelený obrys) – přebijí .lb button i Arénu */
+.lb .lfo { flex: 1.2; min-width: 0; font-size: 18px; line-height: 1.1; }
+.lfo small { display: block; font-size: 12px; font-weight: 600; opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lnud { min-width: 52px; min-height: 48px; border-radius: 10px; border: 1px solid var(--bd); background: var(--cd); color: var(--tx); font-weight: 700; font-size: 16px; }
 .lchip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px; border-radius: 19px; font-size: 13px; box-sizing: border-box; }
 /* Řádek třetiny: třetina, situace a malé štítky trestů / jednotky v jednom řádku, posun do strany */
