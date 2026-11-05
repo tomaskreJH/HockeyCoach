@@ -6,7 +6,7 @@
 import {GSIT,KIND,LN,POS,REA,SIT,ST} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
 import {ensureOp,save} from "../core/actions.js";
-import {capName,compactRot,isG,lineIds,liveIds,luPlayers,pl,pn} from "../core/selectors.js";
+import {capName,compactRot,isG,lineIds,liveIds,luPlayers,nm,pl,pn,stOf} from "../core/selectors.js";
 import {S} from "../core/state.js";
 import {$, clone, dlBeforeStart, esc, failMsg, norm, td, toast, uid} from "../core/utils.js";
 import {dlFor,evDefaults} from "../domain/event-time.js";
@@ -83,15 +83,16 @@ S.db.doc("players/"+M.id).merge(d).then(done).catch(()=>toast(failMsg("Uložení
 
 // --- Člen realizačního týmu (kolekce staff): jméno, funkce, plat ---
 // Jméno a funkci mění jen trenér; správce pokladny (pokladník) jen plat
-if(M.k==="ES"){const payOnly=!HK.can("roster");el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>${payOnly?"Plat – "+esc(M.name):"Upravit člena realizačního týmu"}</h2>${payOnly?`<div class="mu" style="margin-bottom:8px">${esc(M.kind||"")}</div>`:`<label>Jméno</label><input id="sn" value="${esc(M.name)}"><label>Funkce</label><div class="chips">${KIND.map(k=>`<button class="chip ${M.kind===k?"on":""}" data-sk="${k}">${k}</button>`).join("")}</div>`}<label>Plat</label><div class="chips">${Object.entries(STAFF_PAY).map(([k,t])=>`<button class="chip ${((M.pay||{}).m||"none")===k?"on":""}" data-sm="${k}">${t}</button>`).join("")}</div><label>Částka (Kč za měsíc / za událost)</label><input id="sa" type="number" min="0" value="${(M.pay||{}).amt||""}" style="max-width:160px"><div class="row"><button class="p" id="ok">Uložit</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
+if(M.k==="ES"){const payOnly=!HK.can("roster");el.innerHTML=`<div class="md" id="bg"><div class="mb"><h2>${payOnly?"Plat – "+esc(M.name):"Upravit člena realizačního týmu"}</h2>${payOnly?`<div class="mu" style="margin-bottom:8px">${esc(M.kind||"")}</div>`:`<label>Jméno</label><input id="sn" value="${esc(M.name)}"><label>Funkce</label><div class="chips">${KIND.map(k=>`<button class="chip ${M.kind===k?"on":""}" data-sk="${k}">${k}</button>`).join("")}</div>
+<label>Zároveň hráčka</label><select id="spid"><option value="">— není hráčka —</option>${S.pl.filter(p=>p.guest!==true&&(stOf(p)!=="end"||p.id===M.pid)).sort((x,y)=>(x.name||"").localeCompare(y.name||"","cs")).map(p=>`<option value="${esc(p.id)}" ${M.pid===p.id?"selected":""}>${esc(nm(p.id,{cap:false}))}</option>`).join("")}</select><div class="mu" style="margin-bottom:8px">Propojená hráčka se v docházce hlásí jen jako hráčka (řádek člena týmu se nezobrazí), plat za událost se počítá z její odpovědi.</div>`}<label>Plat</label><div class="chips">${Object.entries(STAFF_PAY).map(([k,t])=>`<button class="chip ${((M.pay||{}).m||"none")===k?"on":""}" data-sm="${k}">${t}</button>`).join("")}</div><label>Částka (Kč za měsíc / za událost)</label><input id="sa" type="number" min="0" value="${(M.pay||{}).amt||""}" style="max-width:160px"><div class="row"><button class="p" id="ok">Uložit</button><button class="s" id="cl">Zrušit</button></div></div></div>`;
 $("#cl").onclick=()=>{S.M=null;modal()};$("#bg").onclick=e=>{if(e.target.id==="bg"){S.M=null;modal()}};
-const rs=()=>{if($("#sn"))M.name=$("#sn").value;M.pay=M.pay||{m:"none",amt:0};M.pay.amt=+$("#sa").value||0};
+const rs=()=>{if($("#sn"))M.name=$("#sn").value;if($("#spid"))M.pid=$("#spid").value;M.pay=M.pay||{m:"none",amt:0};M.pay.amt=+$("#sa").value||0};
 el.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{rs();M.kind=b.dataset.sk;modal()});
 el.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{rs();M.pay.m=b.dataset.sm;modal()});
-// Uložení: plat do staffpay/{tid} (pokladník jen plat), jméno a funkce přes merge do staff (ostatní pole dokumentu zůstanou)
+// Uložení: plat do staffpay/{tid} (pokladník jen plat), jméno, funkce a propojení s hráčkou (pid, "" = žádné) přes merge do staff (ostatní pole dokumentu zůstanou)
 $("#ok").onclick=()=>{rs();const sp=staffPayDoc(M.pay),close=()=>{S.M=null;modal()};
 if(payOnly){if(!S.tr.some(t=>t.id===M.id))return;S.db.batch().set(SPAY_COLL+"/"+M.id,sp).commit().then(close);return}
-const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.batch().merge("staff/"+M.id,{name:n,kind:M.kind||KIND[0]}).set(SPAY_COLL+"/"+M.id,sp).commit().then(close)};return}
+const n=M.name.trim();if(!n)return toast("Zadej jméno");S.db.batch().merge("staff/"+M.id,{name:n,kind:M.kind||KIND[0],pid:M.pid||""}).set(SPAY_COLL+"/"+M.id,sp).commit().then(close)};return}
 
 // --- Gól / vyloučení (ruční zadání do zápasu) ---
 const m=S.ma.find(x=>x.id===S.mid);if(!m){S.M=null;el.innerHTML="";return}

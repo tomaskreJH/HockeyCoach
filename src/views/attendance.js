@@ -6,6 +6,7 @@ import {S} from "../core/state.js";
 import {esc, fd, td} from "../core/utils.js";
 import {ATT_KINDS, attEvents, attSummary, hasAnswer, isDayStr, pastEvents, seasonOf} from "../domain/attendance.js";
 import {debtorState} from "../domain/debtors.js";
+import {visibleStaff} from "../domain/dual-member.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -47,7 +48,8 @@ export function attHtml() {
   const o = opts(), evs = pastEvents(attEvents(S.ev, S.ma), o.from, o.to, Date.now());
   // Hráčky: aktivní a zraněné vždy, ukončené jen s odpovědí v období; řazení jako v soupisce (brankářky, obránkyně, útočnice)
   const P = S.pl.filter(p => stOf(p) !== "end" || hasAnswer(evs, S.at, p.id)).sort((x, y) => pri(x) - pri(y) || x.name.localeCompare(y.name, "cs"));
-  const T = [...S.tr].sort((x, y) => (x.name || "").localeCompare(y.name || "", "cs"));
+  // Realizační tým bez členů, které zastupuje aktivní hráčka (staff.pid, v22.53) – jejich účast je v tabulce hráček
+  const T = visibleStaff([...S.tr], S.pl).sort((x, y) => (x.name || "").localeCompare(y.name || "", "cs"));
   const sum = attSummary(evs, S.at, [...P.map(p => p.id), ...T.map(t => t.id)]), k = o.kind;
   const nOf = kk => evs.filter(e => kk === "all" || e.kind === kk).length;
   // Přepínač období a typu událostí

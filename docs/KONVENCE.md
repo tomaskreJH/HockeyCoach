@@ -66,6 +66,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `match-share.js` | ⧉ sestava „Jako minule“ (`lastLineupMatch`, `lineupLike`, `unitsLike`), 📤 souhrn zápasu ke sdílení (`matchSummary`) |
 | `watch-feed.js` | 👁 náhled živého zápasu pro členy |
 | `event-helpers.js` | řazení událostí `sortEvents`, pětky tréninku, `selfMember` (za koho se účet hlásí) |
+| `dual-member.js` | člen týmu zároveň hráčka (`staff.pid`): `visibleStaff` (skrytí v docházce), `mirrorStaffAt` (odpověď a plat podle hráčky) |
 | `event-prefill.js` | 🖐 předvyplnění nového tréninku / zápasu z posledního stejného druhu, poslední důvody omluv |
 | `event-time.js`, `event-cancel.js`, `recurrence.js` | konec a ⏰ sraz události, zrušení / smazání, série tréninků |
 | `attendance.js`, `debtors.js` | docházka a 🚫 nedorazila, veřejný souhrn dlužníků |

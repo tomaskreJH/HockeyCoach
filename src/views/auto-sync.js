@@ -7,6 +7,7 @@ import {S} from "../core/state.js";
 import {td} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {absAuto} from "../domain/absence.js";
+import {visibleStaff} from "../domain/dual-member.js";
 import {pubPlan} from "../domain/guests.js";
 import {NOTE_COLL, attDoc, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
@@ -41,7 +42,7 @@ function plan() {
   const ops = [], now = Date.now(), today = td();
   logs = [];
   if (HK.can("sport") && S.pubOk.evpub && S.pubOk.lineuppub) {
-    const p = pubPlan(S.ev, S.ma, S.pl, S.tr, S.pubMap, today);
+    const p = pubPlan(S.ev, S.ma, S.pl, visibleStaff(S.tr, S.pl), S.pubMap, today);   // člen týmu zastoupený hráčkou se ve formaci pro hostující neuvádí dvakrát
     p.set.forEach(x => { if (fresh("s:" + x.c + "/" + x.id + ":" + JSON.stringify(x.d))) ops.push(["set", x.c, x.id, x.d]); });
     p.del.forEach(x => { if (fresh("d:" + x.c + "/" + x.id)) ops.push(["del", x.c, x.id]); });
   }
