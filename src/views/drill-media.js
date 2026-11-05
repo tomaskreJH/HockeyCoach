@@ -48,7 +48,7 @@ export async function shrinkImage(file) {
 export function loadImgs(ids, done) {
   (ids || []).filter(id => id && !cache.has(id) && !loading.has(id)).forEach(id => {
     loading.add(id);
-    S.db.doc(DRILLIMG_COLL + "/" + id).get()
+    S.db.doc(DRILLIMG_COLL + "/" + id).getCached()
       .then(x => { cache.set(id, x && x.d ? x.d : "err"); })
       .catch(() => { cache.set(id, "err"); })
       .finally(() => { loading.delete(id); if (done) done(); });

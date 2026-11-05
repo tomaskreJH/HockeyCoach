@@ -24,11 +24,11 @@ export function backupApi(C) {
     COLL.forEach(c => { if (first[c] && c !== "audit") out[c] = data[c]; });
     // Plány tréninků a obrázky cvičení se načtou celé až teď (bez chyby zálohy, když je pravidla nepustí)
     if (can("sport")) for (const c of FETCH) {
-      try { const s = await getDocs(fsCol(C.fs(), c)); out[c] = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez " + c + ":", errTxt(e)); }
+      try { const s = await getDocs(fsCol(C.fs(), c)); C.readNote(c + " (záloha)", s.docs.length); out[c] = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez " + c + ":", errTxt(e)); }
     }
     // 📉 Audit (jen správce pokladny): jednorázové načtení celé kolekce až při stažení zálohy
     if (can("money")) {
-      try { const s = await getDocs(fsCol(C.fs(), "audit")); out.audit = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez audit:", errTxt(e)); }
+      try { const s = await getDocs(fsCol(C.fs(), "audit")); C.readNote("audit (záloha)", s.docs.length); out.audit = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); } catch (e) { console.warn("Záloha bez audit:", errTxt(e)); }
     }
     downloadFile("hokej-zaloha-" + stamp() + ".json", JSON.stringify({app: "hokej-zapasy", version: 1, exported: new Date().toISOString(), data: out}, null, 1), "application/json");
   }

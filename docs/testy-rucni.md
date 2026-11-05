@@ -475,3 +475,12 @@ Předpoklad: pravidla publikována, funkce nasazeny, klíč VAPID vložen (`docs
 7. Odhlásit → zařízení zmizí z `devices` (Firebase konzole); sdílený telefon cizí oznámení nedostává.
 8. iPhone: bez přidání na plochu aplikace vysvětlí, proč notifikace nejdou. Zamítnuté povolení: sekce to řekne.
 9. Nález: čitelnost sekce, rychlost doručení, texty oznámení, baterie.
+
+## 53. v22.52 (beta) – 📊 Měřič čtení a obrázky cvičení
+Bez změny databáze a pravidel.
+1. ⚙️ → 💾 Data → **📊 Naměřeno v tomto zařízení**: ukáže dnešní čtení (součet, nejvíc kolekcí) a počet spuštění; po obnovení stránky se spuštění zvýší o 1.
+2. Otevři ➕ 📚 Cvičení s obrázky: poprvé se obrázky načtou, po dalším spuštění už se v měřiči „banka cvičení / drillimg“ nezvyšuje (čtou se z paměti zařízení).
+3. Stáhni zálohu (JSON): v měřiči přibydou řádky „(záloha)“ (např. drillimg, trplan) – ukazuje, kolik čtení záloha stojí.
+4. 🧹 Vynulovat měřič (druhé klepnutí) → dnes 0.
+5. Porovnej dnešní součet s grafem Usage ve Firebase konzoli (Firestore → Usage): konzole je vyšší o čtení pravidel, funkcí a ostatních zařízení.
+6. Nález: čitelnost bloku, zda čísla odpovídají tvému očekávání.
