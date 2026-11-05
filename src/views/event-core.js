@@ -12,6 +12,7 @@ import {HK} from "../data/storage.js";
 import {canNos, isNos, nosPatch, startMs} from "../domain/attendance.js";
 import {costTotal, cxOf, kc} from "../domain/cash.js";
 import {memberBlocked} from "../domain/debtors.js";
+import {isDual, mirrorStaffAt} from "../domain/dual-member.js";
 import {cancelText, isCancelled} from "../domain/event-cancel.js";
 import {answerCounts, cardState} from "../domain/event-helpers.js";
 import {pushReason, reasonChips} from "../domain/event-prefill.js";
@@ -104,8 +105,9 @@ function allEvents() {
   const m = S.ma.map(x => ({id: x.id, type: "match", title: "Zápas – " + x.opp, date: x.date || "", time: x.time || "", meet: x.meet, place: x.place || "", dl: x.dl || "", note: "", raw: x, cx: cx(x.id)}));
   return [...t, ...m].filter(e => e.date);
 }
-// Odpovědi podle události a člena: AT[eventId][memberId]
-function atMap() { const M = {}; S.at.forEach(a => { (M[a.eid] = M[a.eid] || {})[a.pid] = a; }); return M; }
+// Odpovědi podle události a člena: AT[eventId][memberId]. Člen týmu, který je zároveň aktivní hráčkou (staff.pid), má odpověď své hráčky
+// (domain/dual-member.js) – plán tréninku a plat tak vidí jeho účast, i když se hlásí jen jako hráčka.
+function atMap() { const M = {}; mirrorStaffAt(S.at, S.tr, S.pl).forEach(a => { (M[a.eid] = M[a.eid] || {})[a.pid] = a; }); return M; }
 // Počty odpovědí aktivních hráček (✅ / ❌ / ❓ / bez odpovědi) – domain/event-helpers.js
 const counts = (ev, AT, P) => answerCounts(AT[ev.id], P.map(p => p.id));
 // Přihlášení (odpověď „Jdu“) podle rolí: útočnice, obránkyně, brankářky, neurčeno a trenéři (realizační tým)
@@ -115,7 +117,7 @@ function roster(ev, AT) {
     if (a.st !== "yes") return;
     const p = pl(a.pid);
     if (p) { if (stOf(p) === "end") return; if (isG(p)) r.g++; else if (p.pos === POS[1]) r.o++; else if (p.pos === POS[0]) r.u++; else r.n++; }
-    else if (isTr(a.pid)) r.t++;
+    else if (isTr(a.pid) && !isDual(S.tr.find(t => t.id === a.pid), S.pl)) r.t++;   // člen týmu zastoupený hráčkou se počítá jen jako hráčka
   });
   return r;
 }

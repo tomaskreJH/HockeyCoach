@@ -10,6 +10,7 @@ import {csv, downloadFile, esc, fd, td, toast, uid} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {CAT_SALARY, STAFF_PAY, TR, accName, forYm, isDay, trFrom, trTo, accOf, cashAcc, chargeMsg, payMsg, cashCfg, cashOfMonth, catSums, chargesOfMonth, contribEid, contribPlan, contribRows, contribYm, csvNum, fmtDue, fxPct, isContrib, kc, monthRows, overdue, r2, restOf, salaryDay, salaryRows, ymAdd, ymLabel, ymNow, ymOk, ymShort} from "../domain/cash.js";
 import {applyDebtors, debtorPlanFor} from "../domain/debtors.js";
+import {mirrorStaffAt} from "../domain/dual-member.js";
 import {monthEconomy} from "../domain/economy.js";
 import {econData} from "./payments.js";
 import {render} from "./shell.js";
@@ -120,7 +121,8 @@ ${todo.length ? `<button class="p w" data-mci style="margin-top:10px;min-height:
 
 // ===== Vykreslení: platy =====
 function salaryHtml() {
-  const rows = salaryRows(S.tr, ym, allEv(), S.at, S.cs, td());
+  // Plat za událost členky týmu, která je zároveň hráčkou (staff.pid), se počítá z odpovědi hráčky (v22.53)
+  const rows = salaryRows(S.tr, ym, allEv(), mirrorStaffAt(S.at, S.tr, S.pl), S.cs, td());
   const open = rows.filter(r => !r.paid).map(r => ({r, amt: amtOf(samt, r.tid, r.amt)})).filter(o => o.amt > 0);
   const keyA = "msa" + ym, paidSum = rows.filter(r => r.paid).reduce((s, r) => s + (+r.paid.amt || 0), 0);
   const list = rows.length ? rows.map(r => {
@@ -249,7 +251,7 @@ export function bindMoney(a) {
     if (x) confirm2("mcd" + x.id, () => { deleteContrib(x); render(); });
   });
   // Platy: jednotlivě a vše najednou
-  const salRows = () => salaryRows(S.tr, ym, allEv(), S.at, S.cs, td());
+  const salRows = () => salaryRows(S.tr, ym, allEv(), mirrorStaffAt(S.at, S.tr, S.pl), S.cs, td());
   q("[data-msp]").forEach(b => b.onclick = () => {
     sync();
     const r = salRows().find(x => x.tid === b.dataset.msp);

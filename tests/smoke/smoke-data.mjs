@@ -27,7 +27,7 @@ export function teamData() {
     p9: {name: "Iva", num: "21", pos: "Útočnice", st: "act", guest: true}
   };
   const staff = {t0: {name: "Marek", kind: "Manager"}, t1: {name: "Petr", kind: "Trenér"}, t2: {name: "Jana", kind: "Asistent"},
-    t3: {name: "Hana", kind: "Asistent"}, t4: {name: "Karel", kind: "Trenér"}};
+    t3: {name: "Hana", kind: "Asistent", pid: "p8"}, t4: {name: "Karel", kind: "Trenér"}};
   const lines = {p1: 1, p2: 1, p3: 2, p4: 1, p5: 2, p6: 2, p8: 1, "t:t1": 1, "t:t2": 2};
   const events = {
     e1: {title: "Trénink", date: TODAY, time: "17:00", end: "18:30", place: "Zimní stadion", dl: "2026-10-25T18:00", lines, grp: 2},

@@ -10,6 +10,7 @@ import {S} from "../core/state.js";
 import {esc, failMsg, toast} from "../core/utils.js";
 import {HK} from "../data/storage.js";
 import {canNos, isNos, nosCount, startMs, strict} from "../domain/attendance.js";
+import {visibleStaff} from "../domain/dual-member.js";
 import {cancelBlock, cancelPatch, cancelText, isCancelled, isEmptyEvent, uncancelPatch, wipeText} from "../domain/event-cancel.js";
 import {dressName, LINE_NOS, lineCounts, lokDoc, lokState, setLine, trKey} from "../domain/event-helpers.js";
 import {defEnd, endOk, meetOf, okTime} from "../domain/event-time.js";
@@ -104,7 +105,8 @@ function detail(a, ev) {
   const myP = me ? P.find(p => p.id === me) : null;                   // vlastní řádek hráčky (i člena týmu, který je zároveň hráčka)
   // Realizační tým: odpovědi mění jen manager, trenér a asistent, hráčka je vidí jen ke čtení (bez důvodů)
   // 🚫 i u realizačního týmu (v22.32): nedorazil(a) bez omluvy – stejně jako u hráček (plat za událost se počítá dál podle „Jdu“)
-  const trRows = T.map((t, i) => {
+  // v22.53: člen týmu, který je zároveň aktivní hráčkou (staff.pid), se tu nezobrazuje – hlásí se jen jako hráčka (řádek výše); plán tréninku (tpCtx) dostává všechny
+  const trRows = visibleStaff(T, S.pl).map((t, i) => {
     const x = A[t.id], ok = can && !ownP, showReason = x && x.reason && !ownP, nos = isNos(x);
     const nb = !ownP && !cn && canNos(x, st0, now) ? `<button class="evns ${nos ? "on" : ""}" data-nos="${t.id}" title="Nedorazil(a) bez omluvy">🚫</button>` : "";
     return (i === 0 ? '<div class="lnl">Realizační tým</div>' : "") +
@@ -131,7 +133,7 @@ ${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}${myP ? `<d
 ${attReqBanner()}
 ${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${HK.perm("stats", "r") ? '<button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>' + matchStatsHtml(ev.raw) : ""}</div>` : ""}
 ${tpOn ? planCardHtml(tpCtx) : ""}
-${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, T, ownP)}
+${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, visibleStaff(T, S.pl), ownP)}
 <details class="cd evx"><summary><b>ℹ️ Podrobnosti</b> <span class="mu">místo, čas a sraz, termín, kdo jde</span></summary><div style="margin-top:8px">
 ${pL ? `<div>${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
 <div class="mu" style="margin-top:4px;font-size:13px">${cn ? "🔒 Přihlašování zamčené (zrušeno)" : dlLine(ev, lk)}</div>

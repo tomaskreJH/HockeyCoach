@@ -2,6 +2,21 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.53 (5. 11. 2026) – 🏒 Členka týmu, která je zároveň hráčka, se v docházce hlásí jen jako hráčka
+> **Nasazení – kanál 🧪 BETA:** commit „v22.53“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**). **Data:** přidané nepovinné pole `staff.pid` (id hráčky; schváleno uživatelem 5. 11. 2026), zapisuje se jen v ✏️ člena týmu (manager, trenér); starší stabilní verze pole ignoruje. Cache `hokej-beta-v158`. 🔒 Vyžadovat verzi: ne. Test: kap. 54. Bez dalších nákladů.
+
+**Přidáno** (zadání uživatele 5. 11. 2026: asistentka a pokladnice je zároveň hráčka a při přihlašování ji matou dva řádky)
+- **Zároveň hráčka** (👥 Team → Realizační tým → ✏️): výběr aktivní hráčky (bez hostujících), uloží se `staff.pid` (`""` = žádné propojení). V seznamu člena týmu štítek „🏒 také hráčka Jméno“.
+- Nový `domain/dual-member.js` (čisté funkce, `tests/dual-member.test.js`): `dualPid`, `isDual`, `visibleStaff`, `mirrorStaffAt`.
+**Změněno**
+- **Propojený člen týmu se nezobrazuje** v detailu události (👥 docházka, 🎽 dresy), ve statistice 📊 Docházka (tabulka Realizační tým) ani ve formaci pro hostující (`lineuppub`); hlásí se jen jako hráčka. Počet „Trenéři“ na kartě ho nepočítá podruhé.
+- **Jeho odpověď se bere z odpovědi hráčky** (`mirrorStaffAt` při sestavení docházky): 📋 plán tréninku (trenér u linky „přihlášený“) a **plat za událost** (🚫 nedorazila se nepočítá) tak dál fungují, i když se nehlásí jako člen týmu. Starý vlastní záznam člena týmu se u propojeného člena nepoužije; do databáze se nic dalšího nezapisuje.
+- Když propojená hráčka skončí (stav ⛔), řádek člena týmu se vrátí a odpovídá sám za sebe.
+- Rychlá tlačítka, 🏠 Domů a notifikace už dřív braly hráčku jako první (v21.9.1, v22.51) – beze změny.
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna (kromě zdroje odpovědí pro plat), nepřítomnost, databázová pravidla, účty `members`.
+**Poznámka:** propojení je potřeba jednou nastavit u každé takové členky (propojení účtu v `members` o něm ostatní uživatele neinformuje). Řádky se skryjí hned po uložení, nic se nemaže.
+**Ověřeno:** `npm test` (648 testů), `npm run smoke` (8 rolí bez chyb); v kouřovém testu má asistentka s propojenou hráčkou v docházce o jeden řádek „Asistent“ méně než dřív.
+
 ## v22.52 (5. 11. 2026) – 📊 Měřič čtení databáze + obrázky cvičení z paměti zařízení
 > **Nasazení – kanál 🧪 BETA:** commit „v22.52“ do větve **`beta`**. firestore.rules beze změny, data beze změny (měřič ukládá jen do `localStorage` zařízení, klíč `hk-reads-v1`). Cache `hokej-beta-v157`. 🔒 Vyžadovat verzi: ne. Test: kap. 53. Bez dalších nákladů.
 

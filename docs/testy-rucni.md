@@ -484,3 +484,15 @@ Bez změny databáze a pravidel.
 4. 🧹 Vynulovat měřič (druhé klepnutí) → dnes 0.
 5. Porovnej dnešní součet s grafem Usage ve Firebase konzoli (Firestore → Usage): konzole je vyšší o čtení pravidel, funkcí a ostatních zařízení.
 6. Nález: čitelnost bloku, zda čísla odpovídají tvému očekávání.
+
+## 54. v22.53 (beta) – 🏒 Členka týmu, která je zároveň hráčka
+**Změna databáze:** nepovinné pole `staff.pid` (pravidla beze změny). Starší stabilní verze pole ignoruje.
+1. Manager / trenér: 👥 Team → Realizační tým → ✏️ u členky (asistentka a pokladnice) → **Zároveň hráčka** → vybrat ji v seznamu → Uložit. V seznamu je pod jménem „🏒 také hráčka …“.
+2. Detail tréninku (🎓 docházka sbalená rozbalit): členka je **jen jednou**, mezi hráčkami; v bloku Realizační tým už není. Ostatní členové týmu (Manager, Trenér) tam jsou beze změny.
+3. 🎽 Dresy → ✏️ Upravit dresy: členka je jen mezi hráčkami (pokud jde); 🎓 řádek s jejím jménem se nenabízí.
+4. Přihlas se jako ona: rychlá tlačítka na kartě, v 🏠 Domů i v detailu mění **jen její hráčský řádek**; odhlášení (Nejdu / zrušení Jdu) taky. Počet „Trenéři“ na kartě ji nepočítá podruhé.
+5. 📊 Docházka (Události → Docházka): v tabulce Realizační tým už není, v tabulce Hráčky ano.
+6. 💰 Platby → platy (pokud má plat **za událost**): počet událostí odpovídá jejím odpovědím ✅ Jdu jako hráčky; událost s 🚫 Nedorazila se nepočítá.
+7. 📋 Plán tréninku: přihlášená členka jde zvolit jako 🎓 trenér u linky bez varování „trenér není přihlášený“.
+8. Vrať propojení na „— není hráčka —“ → řádek člena týmu se v docházce vrátí. Totéž když hráčku označíš ⛔ Ukončila.
+9. Nález: čitelnost nové volby v ✏️, zda ji manager najde, jestli někde zůstal druhý řádek (např. v poznámce k události nebo v nepřítomnosti – ta se v této verzi nemění).
