@@ -29,6 +29,8 @@ const okW = (w, x) => !w || w.every(q => { const v = x && x[q.f]; return q.op ==
 // Čtení dotazu z paměti / ze serveru: dokumenty __fb.data[kolekce] podle podmínek
 const qDocs = ref => { const f = fb(), d = f && ref && ref.c ? (f.data || {})[ref.c] : null; return {docs: Object.entries(d || {}).filter(([, x]) => okW(ref.w, x)).map(([id, x]) => ({id, data: () => x}))}; };
 export const getDocsFromCache = async ref => qDocs(ref);
+// Dokument z paměti zařízení: v zástupci vždy „není v paměti“ (výjimka jako ve skutečném SDK) – aplikace sáhne po getDoc
+export const getDocFromCache = async () => { throw new Error("není v paměti"); };
 export const getDocsFromServer = async ref => qDocs(ref);
 export const collection = (fs, c) => ({c});
 export const doc = (fs, c, id) => ({c, id});

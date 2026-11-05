@@ -36,6 +36,7 @@ export const deleteField = () => "__del";
 export const serverTimestamp = () => Date.now();
 export const getDocs = async ref => ({docs: docsOf(ref)});
 export const getDocsFromCache = async ref => ({docs: docsOf(ref)}), getDocsFromServer = async ref => ({docs: docsOf(ref)});
+export const getDocFromCache = async () => { throw new Error("není v paměti"); };
 // Dokument members/{email} z __fb.members, ostatní z __fb.data
 export const getDoc = async ref => {
   const d = col(ref.c)[ref.id];

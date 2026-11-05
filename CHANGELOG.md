@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.52 (5. 11. 2026) – 📊 Měřič čtení databáze + obrázky cvičení z paměti zařízení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.52“ do větve **`beta`**. firestore.rules beze změny, data beze změny (měřič ukládá jen do `localStorage` zařízení, klíč `hk-reads-v1`). Cache `hokej-beta-v157`. 🔒 Vyžadovat verzi: ne. Test: kap. 53. Bez dalších nákladů.
+
+**Přidáno** (zadání uživatele 5. 11. 2026: nezvyklý nárůst čtení databáze při 4–5 uživatelích; kontrola aplikace)
+- **📊 Naměřeno v tomto zařízení** (⚙️ → 💾 Data): skutečný počet dokumentů přečtených tímto zařízením dnes (podle kolekcí, včetně „(archiv)“ = starší data ze serveru a „(záloha)“ = stažení zálohy), počet spuštění aplikace a součty za posledních 7 dní; 🧹 Vynulovat měřič. Nový `domain/read-meter.js` (čisté funkce, `tests/read-meter.test.js`) a `data/meter-store.js` (odložený zápis do localStorage).
+- **Co se počítá:** první snímek každého poslechu ze serveru celý (horní mez – po pauze do 30 min se čtou jen změny), další snímky jen změněné dokumenty; snímky z paměti zařízení a vlastní zápisy ne; jednorázová čtení (`get`, `getAll`, `getWhere`, transakce, archiv, záloha, seznam členů a aktivity, účet `members`, brána verze). **Nepočítá** čtení pravidel databáze (`members`, `settings/perm`), Cloud Functions, ostatní zařízení ani prohlížení konzole Firebase.
+**Změněno**
+- **📉 Obrázky cvičení** (`drillimg`) se čtou nejdřív z paměti zařízení (`getCached` = `getDocFromCache`, ze serveru jen když tam nejsou). Obrázek se nikdy nepřepisuje (nový obrázek = nové id, odebraný se maže), takže zastaralá kopie nehrozí. Dřív stál každý obrázek jedno čtení ze serveru při každém spuštění.
+- Stavy tréninků na kartách a Statistiky → 🏒 Trénink se z paměti záměrně **nečtou**: plán a skutečný průběh jdou i po tréninku upravit z jiného zařízení.
+**Nález při kontrole (bez opravy, podklad pro D3 / D4):** v kódu není smyčka ani zápis ve smyčce, které by čtení nafukovaly. Čtení tvoří hlavně spuštění po pauze > 30 min (všechny poslouchané kolekce), nové zařízení nebo vyčištěná paměť prohlížeče (archiv událostí, zápasů a docházky celý ze serveru), stažení zálohy a rostoucí kolekce bez okna (`charges`, `cash`, `evcash`, `evprice`, `attnote`, `evpub`, `lineuppub`). Okno docházky platí jen při 🔒 minimální verzi ≥ 22.9, jinak se čte celá `attendance`.
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, docházka, databáze a pravidla.
+**Ověřeno:** `npm test`, `npm run smoke`.
+
 ## v22.51 (4. 11. 2026) – 🔔 Push notifikace (zrušení / změna času, uzávěrka bez odpovědi) + ⛔ STOP
 > **Nasazení – kanál 🧪 BETA:** commit „v22.51“ do větve **`beta`**. ⚠️ **firestore.rules změněno – schválit a publikovat ručně** (`settings/notif`, kolekce `devices`; kolekce `pushLog` bez pravidla). **Cloud Functions se nasazují ručně** (`docs/notifikace-nasazeni.md`); bez toho a bez zapnutí v ⚙️ → 🔔 se nic neděje (výchozí stav VYPNUTO). Cache `hokej-beta-v156`. 🔒 Vyžadovat verzi: ne. Test: kap. 52.
 

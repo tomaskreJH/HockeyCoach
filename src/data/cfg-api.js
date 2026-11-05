@@ -52,11 +52,11 @@ export function cfgApi(C) {
   // 🟢 Aktivita členů {e-mail: {at, v, ch}} – jen manager (pravidla jinak čtení odmítnou); chyba = prázdné (nepublikovaná pravidla)
   async function seenMap() {
     if (!can("admin")) return {};
-    try { const s = await getDocs(fsCol(C.fs(), SEEN_COLL)); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
+    try { const s = await getDocs(fsCol(C.fs(), SEEN_COLL)); C.readNote(SEEN_COLL, s.docs.length); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
     catch (e) { console.warn("Aktivita členů se nenačetla:", (e && (e.code || e.message)) || e); return null; }
   }
   // Všechny dokumenty members jako {e-mail: data}
-  async function memberDocs() { const s = await getDocs(fsCol(C.fs(), "members")); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
+  async function memberDocs() { const s = await getDocs(fsCol(C.fs(), "members")); C.readNote("members", s.docs.length); return Object.fromEntries(s.docs.map(d => [d.id, d.data()])); }
   function rowsOf(docs) {
     memCache = Object.entries(docs).map(([email, d]) => ({email, role: d.role, rv: d.rv || null, pid: d.pid, tid: d.tid, cash: d.cash === true})).sort((a, b) => a.email.localeCompare(b.email));
     return memCache;

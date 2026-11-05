@@ -88,6 +88,16 @@ function readHtml() {
   return `<h3>📉 Čtení databáze</h3><div class="mu" style="margin-bottom:8px">Spuštění aplikace po pauze delší než 30 min přečte v tomto zařízení asi <b>${n(r.total)}</b> dokumentů${top ? ` (nejvíc ${top})` : ""}; u hráčky asi <b>${n(r.player)}</b>. Denní limit zdarma je ${n(READ_LIMIT)} čtení (obnova ráno) – do limitu se vejde asi ${n(r.starts)} takových spuštění tohoto zařízení. Každé obnovení stránky, nová verze a 👁 náhled role je nové spuštění.</div>`
     + (W ? `<div class="mu" style="margin-bottom:8px">${W}<div style="margin-top:4px">Starší události a docházka se ze serveru ověřují samy (události denně, docházka týdně – posledních 60 dní před oknem). Změnu starších dat z jiného zařízení načte hned ↻.</div></div><button class="s w" id="carf">↻ Obnovit starší data ze serveru</button>` : "");
 }
+// 📊 Měřič čtení (v22.52): kolik dokumentů toto zařízení dnes skutečně přečetlo (odhad podle kolekcí), počet spuštění a poslední dny
+function meterHtml() {
+  const m = C().readMeter(), n = v => v.toLocaleString("cs-CZ");
+  const dm = s => { const x = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return x ? +x[3] + ". " + +x[2] + "." : s || "–"; };
+  // Kolekce s příponou „ (archiv)“ / „ (záloha)“ se zobrazí česky i s ní
+  const lab = c => { const x = /^(.*?)( \(.*\))?$/.exec(c); return collLabel(x[1]) + (x[2] || ""); };
+  const top = m.top.map(([c, v]) => `${esc(lab(c))} ${n(v)}`).join(" · ");
+  const days = m.days.map(d => `${dm(d.day)}: ${n(d.total)} (${d.starts}× spuštěno)`).join(" · ");
+  return `<h3>📊 Naměřeno v tomto zařízení</h3><div class="mu" style="margin-bottom:8px">Dnes <b>${n(m.total)}</b> přečtených dokumentů, aplikace spuštěna <b>${n(m.starts)}×</b>${top ? ` (nejvíc ${top})` : ""}.${days ? `<div style="margin-top:4px">Poslední dny: ${days}</div>` : ""}<div style="margin-top:4px">Je to odhad z tohoto zařízení: nezahrnuje čtení pravidel databáze, Cloud Functions, ostatní zařízení ani prohlížení konzole Firebase – ty se v konzoli přičtou navíc. První načtení poslechu je započítané celé (horní mez).</div></div><button class="s w" id="crm">🧹 Vynulovat měřič</button>`;
+}
 // 📉 Pokladna na vyžádání (správce pokladny): volba tohoto zařízení a stav načtení předpisů a pohybů pokladny
 function moneyLazyHtml() {
   if (!HK.can("money")) return "";
@@ -98,7 +108,7 @@ function moneyLazyHtml() {
 function dataHtml(coach) {
   let body = `<h3 style="margin-top:4px">Záloha dat</h3><div class="row"><button class="s" id="ce">Stáhnout zálohu (JSON)</button><button class="s" id="cc">Soupiska (CSV)</button></div>`;
   if (coach) body += `<h3>Obnovit ze zálohy</h3><input type="file" id="cf" accept=".json,application/json"><div class="mu" id="ci" style="margin-bottom:8px"></div><div class="row"><button class="s" id="cm">Sloučit s daty</button><button class="d" id="cr">Nahradit vším</button></div>`;
-  body += readHtml() + moneyLazyHtml();
+  body += readHtml() + meterHtml() + moneyLazyHtml();
   return sec("data", "💾 Data", body);
 }
 // 🎨 Vzhled (všechny role, jen v tomto zařízení): Klasický / Aréna a režim Podle telefonu / Světlý / Tmavý
@@ -169,6 +179,7 @@ function openSettings() {
   if (cashier) bindTeam(el, q, close, coach);
   if (staff) bindData(q, close, coach);
   if (staff && q("#cml")) q("#cml").onchange = () => { HK.money.setLazy(q("#cml").checked); toast(q("#cml").checked ? "Pokladna se načte až při otevření (od dalšího spuštění)" : "Pokladna se bude načítat hned při spuštění"); };
+  if (q("#crm")) q("#crm").onclick = () => arm2(q("#crm"), "meter", "Smaže naměřená čtení tohoto zařízení – klepni znovu", () => { C().readMeterReset(); toast("Měřič vynulován"); close(); });
   if (staff && q("#carf")) q("#carf").onclick = () => arm2(q("#carf"), "arch", "Načte všechny starší dokumenty (stojí čtení) – klepni znovu", async () => { await C().archRefresh(); toast("Starší data obnovena ze serveru"); close(); });
   if (cashier) bindCash(q, close);
   if (coach && q("#cmv")) q("#cmv").onclick = () => arm2(q("#cmv"), "minver", "Opravdu? Starší verze přestanou zapisovat – klepni znovu", () => C().raiseMinVer(close));
