@@ -75,6 +75,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `guests.js` | 🎟 hostující, veřejné `evpub` / `lineuppub` |
 | `coach-msg.js` | 📣 zpráva od trenéra (`coachmsg/current`, kontrola, okno při startu); zobrazení `views/coach-msg-view.js` |
 | `mottos.js` | 💬 banka mott a pokřiků (`mottos`, výběr náhodného, kontrola); zobrazení `views/motto-view.js` |
+| `notif.js` | 🔔 notifikace v aplikaci (`globalOf` – vypínač, `needsSync`, `deviceDoc`, `pushSupport`, texty stavu); posílání řeší `functions/` |
+| `ical.js` | 📅 export událostí do kalendáře `.ics` (`icsCalendar`, `icsEvent`, `mineForCalendar`): jen název a čas, `CLASS:PRIVATE`, připomínky, čas Europe/Prague → UTC, stálé UID a rostoucí `SEQUENCE`; zobrazení `views/calendar-export.js` |
 | `countdown.js` | ⏳ text odpočtů (`clockText` HH:MM:SS, `leftText` zbývá do termínu); tikání `views/countdown-tick.js` |
 | `home-summary.js`, `home-remind.js` | 🏠 Domů, ❔ Chybí odpověď a 📲 text připomínky |
 | `cash.js`, `bank-account.js` | ⚠️ pokladna (předpisy, úhrady, zůstatek, 🔁 převody `k: "tr"`, dluhy, VS), účty a IBAN |
@@ -102,6 +104,8 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | **views/** | jen vykreslení a obsluha, výpočty volají z `domain/` |
 | `shell.js` | záložky a hlavní vykreslení |
 | `help.js` | ❓ nápověda – jediný uživatelský návod; kapitoly (`v`) a body (`data-v`) podle role (`VIS`) |
+| `notif-view.js` | 🔔 sekce ⚙️ → Notifikace: stav týmu, zařízení, ⛔ STOP, klíč VAPID (data: `data/notif-api.js`) |
+| `calendar-export.js` | 📅 tlačítka „Do kalendáře“ (detail události) a „Moje události do kalendáře“ (Nadcházející), stažení `.ics` |
 | `countdown-tick.js` | ⏳ tikající odpočty bez překreslení (`cdHtml`) |
 | `home-view.js`, `absence-view.js` | 🏠 Domů, 🏖 nepřítomnost |
 | `events.js` | Události: seznam, kalendář, režimy pokladny v Team (`cashPanel`) |

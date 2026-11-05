@@ -2,6 +2,39 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.51 (4. 11. 2026) – 🔔 Push notifikace (zrušení / změna času, uzávěrka bez odpovědi) + ⛔ STOP
+> **Nasazení – kanál 🧪 BETA:** commit „v22.51“ do větve **`beta`**. ⚠️ **firestore.rules změněno – schválit a publikovat ručně** (`settings/notif`, kolekce `devices`; kolekce `pushLog` bez pravidla). **Cloud Functions se nasazují ručně** (`docs/notifikace-nasazeni.md`); bez toho a bez zapnutí v ⚙️ → 🔔 se nic neděje (výchozí stav VYPNUTO). Cache `hokej-beta-v156`. 🔒 Vyžadovat verzi: ne. Test: kap. 52.
+
+**Přidáno** (zadání uživatele 4. 11. 2026: notifikace jen zrušení / změna času a uzávěrka bez odpovědi hodinu předem; STOP tlačítko)
+- **Cloud Functions** (`functions/`, Node 22, Firebase Functions v2, oblast `europe-west1`, `maxInstances: 1`): `notifyEventChange`, `notifyMatchChange` (změna dokumentu události / zápasu) a `notifyDeadlines` (plánovač každých 15 min + nočně úklid `pushLog`). Logika `logic.js` (čistá) a `core.js` (rozhodování nad rozhraním úložiště / odesílání), `store.js` (Firestore + FCM přes Admin SDK).
+- **Příjemci:** zrušení / změna času jen přihlášeným (Jdu / Nejsem jistý) na události do 30 dní; uzávěrka jen těm, kdo neodpověděli (hráčka, jinak člen týmu).
+- **⛔ STOP:** ⚙️ → 🔔 Notifikace (manager, vývojář): červené tlačítko vypne vše jedním klepnutím (`settings/notif.on = false`); zapnutí druhým klepnutím. Chybějící dokument = vypnuto.
+- **Pojistky:** živý zápis zápasu nic nečte, denní strop 200, hodinový limit 3 na zařízení (4. souhrn), dedupe `pushLog`, mazání neplatných tokenů, odhlášení smaže zařízení.
+- **Aplikace:** `domain/notif.js`, `data/notif-api.js` (messaging SDK se načte až při zapnutí zařízení; tichá obnova nejvýš 1× týdně), `views/notif-view.js`; `sw.js` dostal obsluhu `push`.
+- Nápověda doplněna, `docs/notifikace-nasazeni.md` (kroky, vypnutí, náklady).
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, docházka.
+**Ověřeno:** `npm test`, `npm run smoke`, `node --check functions/*.js`.
+
+## v22.50 (4. 11. 2026) – 📅 Export událostí do kalendáře (.ics)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.50“ do větve **`beta`**. firestore.rules beze změny, data beze změny (nic se nezapisuje, soubor vzniká v zařízení). Cache `hokej-beta-v155`. 🔒 Vyžadovat verzi: ne. Test: kap. 51. Bez dalších nákladů (žádný server).
+
+**Přidáno** (zadání uživatele 4. 11. 2026: kalendář k uživatelům, soukromě, jen název a čas)
+- **📅 Do kalendáře** v detailu události (ℹ️ Podrobnosti) a **📅 Moje události do kalendáře (N)** pod seznamem Nadcházejících: stáhne se soubor `.ics` (události od dneška, na které je člen „Jdu“ nebo „Nejsem jistý“).
+- **Obsah:** jen název a čas (trénink začátek a konec, zápas začátek + 90 min), řádek „Sraz HH:MM“, `CLASS:PRIVATE`, připomínky 24 h a 2 h předem. Místo, poznámky, jména a důvody zrušení v souboru nejsou.
+- **Aktualizace:** stálé UID `id@hockeycoach`, `SEQUENCE` roste s každým exportem → opětovné otevření souboru událost přepíše; zrušená má `STATUS:CANCELLED` a „ZRUŠENO –“ v názvu. Čas je přepočtený z pražského času na UTC (bez VTIMEZONE, funguje v Outlooku M365, Google i Apple).
+- Nové `domain/ical.js` (čisté funkce, 14 testů v `tests/ical.test.js`), `views/calendar-export.js`; nápověda doplněna.
+**Příprava dalších kroků:** stejný generátor použije později automatický odběr kalendáře (ICS feed) a push notifikace – vyžadují plán Blaze a nová pravidla, nejdřív se schválí (viz `docs/plan.md`, kap. N).
+**Beze změny:** živý zápis, střely, góly, časomíra, pokladna, docházka, databáze a pravidla.
+**Kouřový test opraven:** záložky ve vzhledu Čistý jsou v dolní liště `#tabbar`, test hledal jen `#nav` a od v22.47 klepal naprázdno (procházel kolem 20 obrazovek). Selektory doplněny o `#tabbar`, test teď projde 25 – 83 obrazovek na roli (včetně Událostí a detailu) a hlídá i 📅 tlačítka.
+**Ověřeno:** `npm test` 585 zelené, `npm run smoke` všechny role bez chyb.
+
+## v22.49 (4. 11. 2026) – ✍️ Ruční zadání času ve stopkách
+> **Nasazení – kanál 🧪 BETA:** commit „v22.49“ do větve **`beta`**. firestore.rules beze změny, data beze změny (stejný tvar `trms`). Cache `hokej-beta-v154`. 🔒 Vyžadovat verzi: ne. Test: kap. 50.
+
+**Přidáno** (zadání uživatele 4. 11. 2026): v okně ⏲ Stopek u měření času třetí režim **✍️ Ručně** – hotový čas se napíše do pole u jména (např. 16,71) a ✓ zapíše jako pokus. Slouží ke vstupnímu měření (časy z loňska zapsané k tréninku na začátku sezony); Statistiky ukážou ▲ / ▼ zlepšení proti němu.
+**Beze změny:** stopky klepnutím, 🏃 štafeta, živý zápis, pokladna.
+**Ověřeno:** `npm test` 571 zelené.
+
 ## v22.48 (4. 11. 2026) – (C) u kapitánky, spravedlivé nálepky, zaoblené odpovědi, 📣 zpráva od trenéra
 > **Nasazení – kanál 🧪 BETA:** commit „v22.48“ do větve **`beta`**. **firestore.rules: PUBLIKOVAT RUČNĚ** (schváleno uživatelem 4. 11. 2026; nová kolekce `coachmsg`, dokument `current`) – bez publikace zprávu nejde uložit, zbytek běží. Data beze změny. V betě Načíst novou verzi (cache `hokej-beta-v153`). 🔒 Vyžadovat verzi: ne. Test: kap. 49.
 

@@ -36,6 +36,7 @@ import {TRACT_COLL} from "../domain/training-actual.js";
 import {TRLIVE_COLL} from "../domain/training-live.js";
 import {backupApi} from "./backup.js";
 import {cfgApi} from "./cfg-api.js";
+import {notifApi} from "./notif-api.js";
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {GoogleAuthProvider, getAuth, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -642,6 +643,8 @@ async function commitOps(ops) {
 const C = {data, first, COLL, FETCH, APP_DOC, PERM_DOC, BETA_DOC, ROLES, PID_ROLES, STAFF, RO_MSG, OLD_MSG,
   user: () => user, role: () => role, pid: () => pid, tid: () => tid, cash: () => cash, stored: () => stored, pv: () => pv, real: () => real, fs: () => fs, auth: () => auth,
   can, isStaff, isCash, blocked, ro, outdated, minVer, say, errTxt, stamp, pvLabel, pvWrite, startPreview, permRaw, perms, commitOps, plMerged, rebuildDebtors, isDev, betaRaw, tester, moneyLoad};
+const NOTIF = notifApi(C);
+C.notifLeave = NOTIF.leave;                                             // odhlášení smaže zařízení tohoto účtu (cfg-api.js logout)
 const CFG = cfgApi(C), {exportJSON, exportCSV, importData} = backupApi(C);
 
 // ===== Exporty a spuštění =====
@@ -665,6 +668,8 @@ export const HK = {version: VERSION, refresh, outdated, ready: () => readyP || (
   money: {init: moneyInit, ok: monOk, load: moneyLoad, st: () => monSt, lazy: () => lazyMoney(monPref(), can("sport"), can("money")), setLazy: moneySetPref},
   // 🧪 Beta kanál: tester() = nabídka bety a přístup do ní, betaOk() = smí pracovat v betě (tester nebo manager)
   tester, betaOk,
+  // 🔔 Notifikace (data/notif-api.js): info() = stav pro ⚙️, setGlobal(bool) = hlavní vypínač / STOP, setVapid, enable(z, u), disable(), sync() = tichá obnova po spuštění
+  notif: NOTIF,
   // Okno ⚙️ (views/settings-view.js): údaje a zápisy bez vykreslení
   cfg: {...CFG, isDev, endPreview, rebuildDebtors, rebuildPrices, roleLabel, online: () => navigator.onLine, readCounts, readCountsPlayer, winInfo, archRefresh}};
 window.HK = HK;

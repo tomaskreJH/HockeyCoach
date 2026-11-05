@@ -137,12 +137,12 @@ function rowHtml(pid, now) {
   const ku = "swu" + pid, undo = vals.length ? `<button class="swu" data-swu="${esc(pid)}" style="${armed(ku) ? "background:var(--wa);color:#fff" : ""}" title="Smazat poslední pokus">${armed(ku) ? "Smazat?" : "↩"}</button>` : "";
   const info = vals.length ? vals.length + "× · " + vals.slice(-4).map(v => fmtVal(v, m.u).replace(/ (s|ks|b)$/, "")).join(" · ") + (best != null ? " · ⭐ " + fmtVal(best, m.u) : "") : "bez pokusu";
   const name = `<span class="swnm"><b>${esc(nm(pid))}</b><small>${esc(info)}</small></span>`;
-  if (m.u === "s") {
+  if (m.u === "s" && W.mode !== "man") {
     const t = run ? swText(swSec(W.run, pid, now)) : last != null ? fmtVal(last, "s").replace(" s", "") : "–";
     return `<div class="swr ${run ? "on" : ""}"><button class="swn" data-sw="${esc(pid)}">${run ? "⏹" : "▶"} ${name}<span class="swt" data-swt="${esc(pid)}">${esc(t)}</span></button>${undo}</div>`;
   }
   const v = W.val[pid] != null ? W.val[pid] : "";
-  return `<div class="swr"><div class="swn" style="cursor:default">${name}</div><div class="swc"><button class="s" data-swm="${esc(pid)}|-1">−</button><input type="text" inputmode="decimal" data-swv="${esc(pid)}" value="${esc(v)}" placeholder="0"><button class="s" data-swm="${esc(pid)}|1">+</button><button class="p" data-swok="${esc(pid)}">✓</button></div>${undo}</div>`;
+  return `<div class="swr"><div class="swn" style="cursor:default">${name}</div><div class="swc">${m.u === "s" ? "" : `<button class="s" data-swm="${esc(pid)}|-1">−</button>`}<input type="text" inputmode="decimal" data-swv="${esc(pid)}" value="${esc(v)}" placeholder="${m.u === "s" ? "16,71" : "0"}">${m.u === "s" ? "" : `<button class="s" data-swm="${esc(pid)}|1">+</button>`}<button class="p" data-swok="${esc(pid)}">✓</button></div>${undo}</div>`;
 }
 // 🏃 Štafeta: příprava skupin (nasazení klepnutím), běh (velké tlačítko skupiny = předávka) a výsledek
 function relayHtml(now) {
@@ -169,14 +169,15 @@ ${free.length ? `<div class="mu" style="font-size:13px">Nezařazené – klepnut
 function screenHtml() {
   const m = W.m, now = Date.now(), nRun = Object.keys(W.run).length, rest = W.all.filter(p => !W.pids.includes(p));
   const kx = "swx" + W.eid, rl = W.mode === "rl", busy = nRun || (W.rl.st && !relayDone(W.rl.st));
-  const modes = m.u === "s" ? `<div class="swmo"><button class="${rl ? "s" : "p"}" data-swmo="one" ${busy ? "disabled" : ""}>⏱ Jednotlivě</button><button class="${rl ? "p" : "s"}" data-swmo="rl" ${busy ? "disabled" : ""}>🏃 Štafeta</button></div>` : "";
+  const mb = (k, t) => `<button class="${W.mode === k ? "p" : "s"}" data-swmo="${k}" ${busy ? "disabled" : ""}>${t}</button>`;
+  const modes = m.u === "s" ? `<div class="swmo">${mb("one", "⏱ Jednotlivě")}${mb("rl", "🏃 Štafeta")}${mb("man", "✍️ Ručně")}</div>` : "";
   const add = rest.length && !(rl && W.rl.st) ? `<label>+ Přidat hráčku</label><select id="tswp"><option value="">— vyber —</option>${rest.map(p => `<option value="${esc(p)}">${esc(nm(p))}</option>`).join("")}</select>` : "";
   const head = `<div class="swh"><button class="s" id="tswx" style="flex:none;min-height:48px;${armed(kx) ? "background:var(--wa);color:#fff" : ""}">${armed(kx) ? "Běží stopky – zavřít?" : "✕ Hotovo"}</button><h2>⏲ ${esc(m.dn)}</h2></div>${modes}`;
   if (rl) return CSS + head + (M.err ? `<div class="msg">Výsledky se nepodařilo načíst (${esc(M.err)}) – uložení nejspíš neprojde.</div>` : "") + relayHtml(now) + add;
   return CSS + head + `
-<div class="mu" style="margin-bottom:6px;font-size:13px">${esc(UNITS[m.u] || "")} · ${m.low ? "nižší je lepší" : "vyšší je lepší"} · ${m.u === "s" ? "klepnutí na jméno = start / stop, každé zastavení je pokus" : "zadej číslo a ✓"} · nejvýš ${MS_MAX} pokusů</div>
+<div class="mu" style="margin-bottom:6px;font-size:13px">${esc(UNITS[m.u] || "")} · ${m.low ? "nižší je lepší" : "vyšší je lepší"} · ${m.u === "s" && W.mode !== "man" ? "klepnutí na jméno = start / stop, každé zastavení je pokus" : m.u === "s" ? "✍️ zadej hotový čas (např. 16,71) a ✓" : "zadej číslo a ✓"} · nejvýš ${MS_MAX} pokusů</div>
 ${M.err ? `<div class="msg">Výsledky se nepodařilo načíst (${esc(M.err)}) – uložení nejspíš neprojde.</div>` : ""}
-${m.u === "s" && W.pids.length ? `<div class="row" style="margin-bottom:6px"><button class="p" id="tswa" style="min-height:48px">▶ Start všech (${W.pids.length - nRun})</button><button class="d" id="tswz" style="min-height:48px" ${nRun ? "" : "disabled"}>⏹ Stop všech (${nRun})</button></div>` : ""}
+${m.u === "s" && W.mode !== "man" && W.pids.length ? `<div class="row" style="margin-bottom:6px"><button class="p" id="tswa" style="min-height:48px">▶ Start všech (${W.pids.length - nRun})</button><button class="d" id="tswz" style="min-height:48px" ${nRun ? "" : "disabled"}>⏹ Stop všech (${nRun})</button></div>` : ""}
 ${W.pids.map(p => rowHtml(p, now)).join("") || '<div class="mu">Na lince teď nikdo není – přidej hráčku.</div>'}
 ${add}`;
 }

@@ -449,3 +449,29 @@ Před testem **publikovat firestore.rules** (nová kolekce `coachmsg`).
 6. Zpráva zadaná za běhu aplikace okno nevyvolá (jen kartu).
 7. Nález: čitelnost okna, (C) ve všech výskytech.
 
+## 50. v22.49 (beta) – Ruční zadání času
+1. Trénink s datem začátku sezony a plánem s cvičením s měřením času (bank. cvičení s ⏲ čas) → ⏲ Měřit → přepínač **✍️ Ručně**.
+2. U jména pole „16,71“; zapsat čas a ✓ → pokus se uloží (řádek ukáže ⭐ nejlepší). Neplatné (0, text) → „Zadej platné číslo“.
+3. Zpět na ⏱ Jednotlivě: stopky fungují jako dřív, 🏃 Štafeta také.
+4. Statistiky → 🏒 Trénink → období 90 / 180 dní → ⏲ Výsledky měření: pořadí a nejlepší čas; po dalším měření ▲ / ▼ oproti vstupnímu.
+
+## 51. v22.50 (beta) – 📅 export do kalendáře
+Bez změny databáze, nic se neukládá.
+1. Detail události → ℹ️ Podrobnosti → **📅 Do kalendáře**: stáhne se soubor `.ics`; otevřít v kalendáři telefonu (Android) a v Outlooku na PC (M365) → událost má správný den a čas (trénink od – do, zápas začátek + 90 min), název, řádek „Sraz …“, **žádné místo ani poznámku**, je soukromá a má dvě připomínky (24 h a 2 h předem).
+2. 🏠 / Události → Nadcházející: úplně dole **📅 Moje události do kalendáře (N)**; N = počet nadcházejících, kde jsi ✅ Jdu nebo ❓ Nejsem jistý. Bez takových událostí blok není. Soubor se po otevření uloží všechny najednou.
+3. Změň čas události (✏️), stáhni soubor znovu a otevři → událost se v kalendáři **přepíše**, nevznikne duplicita (v Outlooku případně ověřit, zda se přepsala – nález zapsat).
+4. Zruš událost (❌) a stáhni znovu → v kalendáři „ZRUŠENO – …“ bez připomínek.
+5. Čas kolem změny času (přelom března a října): událost v kalendáři ve stejnou hodinu jako v aplikaci.
+6. Nález: čitelnost tlačítka a textu pod seznamem, název souboru, chování stahování na telefonu (otevře se kalendář, nebo jen uloží do Stažených?).
+
+## 52. v22.51 (beta) – 🔔 Notifikace a ⛔ STOP
+Předpoklad: pravidla publikována, funkce nasazeny, klíč VAPID vložen (`docs/notifikace-nasazeni.md`). **Změna databáze: `settings/notif`, `devices`, `pushLog`.**
+1. ⚙️ → 🔔 Notifikace: bez zapnutého týmu stav „🔴 vypnuto“; zapnout na zařízení ještě jde (zapíše se), ale nic nepřijde.
+2. Manager: **▶️ Zapnout notifikace týmu** (druhé klepnutí) → „🟢 zapnuto“. Člen: **🔔 Zapnout na tomto zařízení**, povolit oznámení → „Zapnuto na tomto zařízení“.
+3. Testovací událost za několik dní, člen ✅ Jdu. Trenér změní začátek → do pár vteřin přijde „🕒 Změna: …“ jen přihlášeným. Zrušení → „❌ Zrušeno“, obnovení → „↩️ Obnoveno“.
+4. Změna jen názvu / místa / poznámky nebo živý zápis zápasu → žádné oznámení.
+5. Událost s uzávěrkou za ~1 h, člen bez odpovědi → do 15 min přijde „⏳ Hodina do uzávěrky“ jen jemu (ne těm, co odpověděli); podruhé už ne.
+6. **⛔ STOP** (manager): změna času události → nepřijde nic. Zapnout znovu → zase chodí.
+7. Odhlásit → zařízení zmizí z `devices` (Firebase konzole); sdílený telefon cizí oznámení nedostává.
+8. iPhone: bez přidání na plochu aplikace vysvětlí, proč notifikace nejdou. Zamítnuté povolení: sekce to řekne.
+9. Nález: čitelnost sekce, rychlost doručení, texty oznámení, baterie.

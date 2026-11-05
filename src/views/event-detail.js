@@ -16,6 +16,7 @@ import {defEnd, endOk, meetOf, okTime} from "../domain/event-time.js";
 import {bindLog, logBtn, logModal} from "./att-log-view.js";
 import {attReqBanner, attReqBox, attReqModal, bindAttReqAdmin, bindAttReqBox} from "./att-request-view.js";
 import {debtTag} from "./attendance.js";
+import {bindIcsOne, icsOneBtn} from "./calendar-export.js";
 import {activePl, ANS, answer, atMap, bindSheet, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, myTr, ORD, placeLine, roster, rosterLine, saveLines, sheetHtml, staff, timeLine, titleLine, toggleNos, trs} from "./event-core.js";
 import {bindSerDel, serDelBtn, serLine} from "./event-series.js";
 import {bindSplit, splitHtml} from "./line-split-view.js";
@@ -134,7 +135,7 @@ ${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, T, ownP)}
 <details class="cd evx"><summary><b>ℹ️ Podrobnosti</b> <span class="mu">místo, čas a sraz, termín, kdo jde</span></summary><div style="margin-top:8px">
 ${pL ? `<div>${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
 <div class="mu" style="margin-top:4px;font-size:13px">${cn ? "🔒 Přihlašování zamčené (zrušeno)" : dlLine(ev, lk)}</div>
-${stats}${mt ? "" : serLine(ev)}</div></details>
+${stats}${mt ? "" : serLine(ev)}${icsOneBtn}</div></details>
 <details class="cd evx" id="evatt" ${attOpen === ev.id ? "open" : ""}><summary><b>👥 Docházka</b> <span class="mu">✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}${nn ? " · 🚫 " + nn : ""}</span></summary><div style="margin-top:8px">${lk && !cn ? `<div class="mu" style="margin-bottom:6px">${staff() ? "Termín vypršel – jako trenér můžeš odpovědi stále měnit." + (st0 <= now ? " 🚫 = přihlášená hráčka nedorazila bez omluvy (klepni znovu pro zrušení)." : "") : "Přihlašování je uzavřeno." + (reqMid && st0 > now ? " O změnu můžeš požádat níže." : "")}</div>` : ""}${ownP && !g ? '<div class="mu" style="margin-bottom:6px">Měnit můžeš jen svůj řádek.</div>' : ""}${rows || '<div class="msg">Žádné hráčky.</div>'}${trRows}${ownP || g ? "" : logBtn(ev)}</div></details>
 ${cn ? "" : attReqBox(ev, reqMid)}
 ${payHtml(ev)}
@@ -154,6 +155,7 @@ ${cancelHtml(ev, mt)}</div>` + sheetHtml() + attReqModal() + (ownP || g ? "" : l
   // Zápis utkání uzavřeného zápasu: stejné okno jako v záložce Soupeři (pro všechny role, jen čtení a export)
   const rp = a.querySelector("#evrp");
   if (rp) rp.onclick = () => { S.rp = ev.id; renderReport(); };
+  bindIcsOne(a, ev);                                                  // 📅 Do kalendáře (.ics)
   bindSheet(a);
   bindPay(a, ev);
   bindAttReqAdmin(a);

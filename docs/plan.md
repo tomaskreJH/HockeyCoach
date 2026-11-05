@@ -47,10 +47,13 @@ Původní zadání: průchod hlavních toků na Androidu (události a docházka,
 
 **Sebrané připomínky k detailu události (25. 10. 2026):** výraznější záhlaví bloků (hotovo v21.7), hlavička datum / čas a sraz / místo (hotovo v21.7). Další připomínky zapisuje Claude a sám rozhodne, kdy je jich dost na verzi.
 
-## N – 🔔 notifikace
-- Druhy: blíží se událost (přihlášeným), uzávěrka přihlašování (bez odpovědi), nová / zrušená událost, nový předpis (bez částky na zamčené obrazovce), žádosti (účast, placení) a jejich vyřízení, nepřítomnost zasahující do uzavřené události, zápas začal, rozpočet ve ztrátě.
-- Řešení: Web Push (FCM), token zařízení v `pushTokens/{token}` (zapisuje jen vlastník), odesílání Cloud Functions → **vyžaduje tarif Blaze** – nejdřív ověřit levnou cestu; deduplikace `pushLog`; nastavení druhů u člena v ⚙️.
-- Otevřené otázky: souhlas s Blaze a kdo nasadí funkce; předstihy (událost 3 h, uzávěrka 24 h a 2 h); částka v textu předpisu; smí si člen druhy vypnout sám.
+## N – 🔔 notifikace a automatický kalendář
+- **Rozhodnuto 4. 11. 2026:** plán **Blaze schválen** (karta; nastavit rozpočtové upozornění v Google Cloudu – tvrdý strop nákladů neexistuje); notifikace jen **zrušení / změna času** (přihlášeným) a **uzávěrka bez odpovědi – 1 hodinu před uzávěrkou** (členům bez odpovědi); do kalendáře jen název a čas; Cloud Functions **nasazuje uživatel ručně** (`firebase deploy --only functions`). Změny `firestore.rules` a nové kolekce nejdřív schválit (nejdou vrátit přes Git).
+- **Hotovo:** v22.50 – 📅 export `.ics` (jedna událost i „Moje události“, bez serveru, bez nákladů; generátor `domain/ical.js` použije i feed).
+- **Hotovo:** v22.51 – 🔔 push notifikace: `functions/` (změna času / zrušení, uzávěrka bez odpovědi hodinu předem), `settings/notif` s ⛔ STOP, `devices`; nasazení a vypnutí: `docs/notifikace-nasazeni.md`.
+- **Dál (návrh, nic není implementováno):** v22.52 – ICS feed s tokenem (`calfeeds`) pro automatický odběr kalendáře. Podrobnosti a architektura: `docs/navrh-notifikace-kalendar.md`.
+- **Hlídání nákladů při návrhu:** žádné plošné čtení kolekcí ve funkcích (jen dotaz na okno událostí), omezení počtu instancí funkcí, deduplikace odeslaných pushů (`pushLog`), před nasazením ověřit aktuální bezplatné limity Blaze, Cloud Scheduleru a FCM.
+- Otevřené otázky: soukromí e-mailů ve feedu; tiché hodiny; kdo smí ručně poslat „📣 Připomenout“ (dnes text 📲 Připomenout v Domů).
 
 ## P2 – ⭐ jistota plateb
 1. Hráčka si účet týmu uloží jednou **opsáním** (nahradí „Ověřila jsem účet“ – `bank-account.js`, `mine.js`).

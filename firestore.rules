@@ -109,6 +109,28 @@ service cloud.firestore {
         && request.resource.data.by == mail();
     }
 
+    // ===== 🔔 Push notifikace (settings/notif): {on, vapid, by, at} – hlavní vypínač a veřejný klíč VAPID =====
+    // on = true zapne rozesílání z Cloud Functions, on = false je STOP (chybějící dokument = vypnuto). Mění manager nebo vývojář (isDevAcct);
+    // by = jeho e-mail, at = text s datem; vapid = veřejný klíč pro webový push (prázdný nebo 60–140 znaků A–Z a–z 0–9 - _). Dokument nejde smazat.
+    function notifSettingsOk() {
+      return (isMgr() || isDevAcct()) && request.resource.data.keys().hasOnly(['on', 'vapid', 'by', 'at'])
+        && request.resource.data.on is bool && request.resource.data.by == mail() && request.resource.data.at is string
+        && (!('vapid' in request.resource.data) || (request.resource.data.vapid is string
+          && (request.resource.data.vapid == '' || request.resource.data.vapid.matches('^[A-Za-z0-9_-]{60,140}$'))));
+    }
+    // ===== 🔔 Zařízení pro notifikace (devices/{e-mail}__{kód}): jedno zařízení jednoho účtu =====
+    // Zapisuje si je sám člen týmu (ne hostující) pro svůj e-mail; pid a tid musí odpovídat jeho členství (nejde se vydávat za jiného);
+    // at = čas zápisu serveru. Čte vlastník a manager. Funkce Cloud Functions čtou přes Admin SDK mimo pravidla; pushLog klient nevidí vůbec.
+    function memStr(k) { return get(memberPath()).data.get(k, '') is string ? get(memberPath()).data.get(k, '') : ''; }
+    function deviceOk(id) {
+      let d = request.resource.data;
+      return isTeam() && d.keys().hasOnly(['tok', 'email', 'pid', 'tid', 'ch', 'z', 'u', 'at'])
+        && d.email == mail() && id[0:d.email.size() + 2] == d.email + '__' && id.size() > d.email.size() + 2 && id.size() <= d.email.size() + 40
+        && d.tok is string && d.tok.size() >= 20 && d.tok.size() <= 500
+        && d.pid is string && d.pid == memStr('pid') && d.tid is string && d.tid == memStr('tid')
+        && d.ch in ['stable', 'beta'] && d.z is bool && d.u is bool && d.at == request.time;
+    }
+
     // ===== Členové týmu: role, propojení (pid, tid) a příznak pokladníka (cash) =====
     // Manager spravuje všechny členy, převádí role a zapisuje rv. Pokladník jen členy s rolí hracka – před změnou i po ní –
     // a nikdy vlastní dokument (jinak by si mohl dát roli asistent a získat sportovní zápis). Posledního managera hlídá aplikace.
@@ -156,12 +178,20 @@ service cloud.firestore {
 
     // ===== Nastavení: základní formace manager, trenér a asistent, settings/cash (šablony, kategorie) správce pokladny; účty jen přes návrh a potvrzení;
     // settings/app (brána verze) jen manager; settings/perm (matice práv) jen manager; čtou členové týmu (ne hostující),
-    // hostující jen cash (účet pro QR), events (sraz) a app; settings/beta (🧪 testeři) manager nebo vývojář. settings/cash, app ani beta nejde smazat =====
+    // hostující jen cash (účet pro QR), events (sraz) a app; settings/beta (🧪 testeři) a settings/notif (🔔 vypínač notifikací) manager nebo vývojář. settings/cash, app, beta ani notif nejde smazat =====
     match /settings/{id} {
       allow read: if isTeam() || (isHost() && id in ['cash', 'events', 'app']);
-      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : (id == 'beta' ? betaSettingsOk() : isStaff())));
-      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : (id == 'beta' ? betaSettingsOk() : isStaff())));
-      allow delete: if id != 'cash' && id != 'app' && id != 'beta' && (id == 'perm' ? isMgr() : isStaff());
+      allow create: if id == 'cash' ? cashSettingsCreate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : (id == 'beta' ? betaSettingsOk() : (id == 'notif' ? notifSettingsOk() : isStaff()))));
+      allow update: if id == 'cash' ? cashSettingsUpdate() : (id == 'app' ? appSettingsOk() : (id == 'perm' ? permSettingsOk() : (id == 'beta' ? betaSettingsOk() : (id == 'notif' ? notifSettingsOk() : isStaff()))));
+      allow delete: if id != 'cash' && id != 'app' && id != 'beta' && id != 'notif' && (id == 'perm' ? isMgr() : isStaff());
+    }
+
+    // ===== 🔔 Zařízení pro notifikace: zakládá a mění si je vlastník (deviceOk), maže vlastník nebo manager; čte vlastník a manager =====
+    match /devices/{id} {
+      allow read: if isTeam() && (resource.data.email == mail() || isMgr());
+      allow create: if deviceOk(id);
+      allow update: if deviceOk(id) && resource.data.email == mail();
+      allow delete: if isTeam() && (resource.data.email == mail() || isMgr());
     }
 
     // ===== Tréninky (události): čtou členové týmu, spravuje se podle matice práv (výchozí trenér a asistent); pokladník jen příznak ss =====
