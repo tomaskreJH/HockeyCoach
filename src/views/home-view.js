@@ -22,6 +22,7 @@ import {DAYS_AHEAD, flowWarn, homeItems, liveMatch, matchCountdown, myPay, nextM
 import {absCardHtml, absModal, bindAbs} from "./absence-view.js";
 import {cdHtml} from "./countdown-tick.js";
 import {activePl, allEvents, answer, atMap, bindSheet, cardHtml, CSS as EV_CSS, isPl, sheetHtml, shortDay} from "./event-core.js";
+import {lineupTag} from "./lineup-card.js";
 import {joinBanner, openJoinWindow} from "./join-view.js";
 import {bindCmsg, cmsgCard} from "./coach-msg-view.js";
 import {liveWatchView, watchable} from "./live-watch.js";
@@ -99,8 +100,9 @@ function nextHtml(m, x) {
   if (!m || !x) return "";
   const c = matchCountdown(m, td()), r = seriesVs(S.ma, m.opp, m.date);
   const names = m.home ? esc(TEAM_NAME) + " – " + esc(m.opp) : esc(m.opp) + " – " + esc(TEAM_NAME);
+  const lt = lineupTag(x.raw);                                          // 📋 Sestava k dispozici (uzavřená sestava příštího zápasu)
   const ser = r.n ? `Série v sezóně: <b>${r.w}</b> V${r.d ? ` · <b>${r.d}</b> R` : ""} · <b>${r.l}</b> P` : "Se soupeřem v sezóně zatím bez zápasu";
-  return `<div class="cd hmc hmx" data-eo="${esc(m.id)}"><div class="hmxh"><b>🆚 ${esc(shortDay(m.date))} · ${names}</b></div><div class="hmxc">${c.live ? cdHtml(c.at, "clock") : esc(c.text)}</div><div class="mu hmxs">${ser}</div>${mottoLine()}</div>`;
+  return `<div class="cd hmc hmx" data-eo="${esc(m.id)}"><div class="hmxh"><b>🆚 ${esc(shortDay(m.date))} · ${names}</b></div><div class="hmxc">${c.live ? cdHtml(c.at, "clock") : esc(c.text)}</div><div class="mu hmxs">${ser}</div>${lt ? `<div class="hmxs">${lt}</div>` : ""}${mottoLine()}</div>`;
 }
 // ❔ Chybí odpověď (manager / trenér / asistent): nejbližší otevřená událost s hráčkami bez odpovědi; rozbalené = jména a 📲 Připomenout
 function missHtml(e, miss) {

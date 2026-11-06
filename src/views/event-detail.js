@@ -20,6 +20,7 @@ import {debtTag} from "./attendance.js";
 import {bindIcsOne, icsOneBtn} from "./calendar-export.js";
 import {activePl, ANS, answer, atMap, bindSheet, counts, CSS, defDl, defs, dlLine, guest, isLocked, isPl, myTr, ORD, placeLine, roster, rosterLine, saveLines, sheetHtml, staff, timeLine, titleLine, toggleNos, trs} from "./event-core.js";
 import {bindSerDel, serDelBtn, serLine} from "./event-series.js";
+import {lineupCardHtml} from "./lineup-card.js";
 import {bindSplit, splitHtml} from "./line-split-view.js";
 import {bindPay, payHtml} from "./payments.js";
 import {matchStatsHtml, renderReport} from "./report.js";
@@ -127,11 +128,15 @@ function detail(a, ev) {
   const stats = g ? "" : `<div class="evs"><span>✅ <b>${c.yes}</b> jdou</span><span>❓ <b>${c.maybe}</b></span><span>❌ <b>${c.no}</b></span>${c.none ? `<span class="mu">${lk && strict(ev) ? "⌛ bez odpovědi = nejde" : "bez odpovědi"} ${c.none}</span>` : ""}${nn ? `<span class="mu">🚫 ${nn}</span>` : ""}</div><div style="margin-top:4px;font-size:14px">${rosterLine(roster(ev, AT))}</div>`;
   const pL = placeLine(ev, false), tL = timeLine(ev);                // 📍 místo (bez nákladů – pokladna je níž), 🕔 čas a ⏰ sraz
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
+  // 📋 Sestava zápasu (jen čtení, jen uzavřená): vidí ji všichni členové týmu, hostující mají formaci z lineuppub
+  const luCard = mt && !g && !cn ? lineupCardHtml(ev.raw) : "";
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
 <div class="cd evhd"><div class="evh"><span class="evt">${titleLine(ev, cn)}</span>${cn ? '<span class="tag red">❌ Zrušeno</span>' : ""}</div>
 ${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}${myP ? `<div style="margin-top:6px">${pRow(myP)}</div>` : ""}${openM}</div>
 ${attReqBanner()}
+${luCard && !ev.raw.closed ? luCard : ""}
 ${mt && ev.raw.closed ? `<div class="cd"><div class="sc">${score(ev.raw).join(" : ")}</div>${HK.perm("stats", "r") ? '<button class="p w" id="evrp" style="margin:6px 0 10px;min-height:48px">📋 Zápis utkání</button>' + matchStatsHtml(ev.raw) : ""}</div>` : ""}
+${luCard && ev.raw.closed ? luCard : ""}
 ${tpOn ? planCardHtml(tpCtx) : ""}
 ${g ? (cn ? "" : pubLinesHtml(ev, A)) : mt ? "" : linesHtml(ev, A, P, visibleStaff(T, S.pl), ownP)}
 <details class="cd evx"><summary><b>ℹ️ Podrobnosti</b> <span class="mu">místo, čas a sraz, termín, kdo jde</span></summary><div style="margin-top:8px">

@@ -37,7 +37,9 @@ export function teamData() {
     e8: {title: "Trénink daleko", date: "2026-11-20", time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-11-19T18:00"},
     e9: {title: "Trénink", date: OLD, time: "17:00", end: "18:00", place: "Zimní stadion", dl: "2026-07-14T18:00"}
   };
-  const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: [], ln: {}},
+  const matches = {m1: {opp: "Sokol", date: TOMORROW, time: "18:00", home: true, place: "Zimní stadion", dl: "2026-10-26T18:00", ev: [], nom: ["p1", "p2", "p4", "p5", "p6", "p7"], ln: {},
+      // v22.54: uzavřená sestava příštího zápasu – 📋 karta v detailu a značka „Sestava k dispozici“ (karta zápasu, 🏠 Domů)
+      lineup: {"1C": "p1", "1LK": "p2", "1PK": "p6", "1LO": "p4", "1PO": "p5", G1: "p7"}, luOk: true},
     // v22.29: uzavřený zápas se sestavou a góly (⧉ Jako minule pro m1, 📤 souhrn ke sdílení)
     m0: {opp: "Lvice", date: "2026-10-12", time: "17:00", home: false, place: "Hala Lvic", closed: true, nom: ["p1", "p2", "p4", "p5", "p6", "p7"],
       lineup: {"1C": "p1", "1LW": "p2", "1RW": "p6", "1LD": "p4", "1RD": "p5", G1: "p7"},

@@ -22,6 +22,9 @@ L.q[c]=[...old.filter(id=>sel.includes(id)),...sel.filter(id=>!old.includes(id))
 COLS.forEach(k=>{if(k!==c)L.q[k]=(L.q[k]||[]).filter(id=>!sel.includes(id))})});
 if(L.G&&L.G!==lu.G1&&L.G!==lu.G2)L.G=lu.G1||null;if(!L.G)L.G=lu.G1||null}
 export function benchM(m){const nom=nomOf(m),used=new Set(Object.values(m.lineup||{}));return nom.filter(id=>pl(id)&&stOf(pl(id))!=="end"&&!used.has(id)).sort((x,y)=>pri(pl(x))-pri(pl(y))||pl(x).name.localeCompare(pl(y).name,"cs"))}
+// Je sestava zápasu k dispozici hráčkám? Jen když ji trenér uzavřel (m.luOk), má v ní aspoň jednu hráčku a zápas není zrušený.
+// Rozpracovaná (neuzavřená) sestava se hráčkám neukazuje; jakákoli změna sestavy před zahájením uzavření zruší (matches.js, lineup-editor.js).
+export function lineupVisible(m){return !!(m&&m.luOk&&Object.values(m.lineup||{}).some(Boolean)&&!(m.cancelled&&typeof m.cancelled==="object"))}
 // Přihlášky na zápas (ids = hráčky s odpovědí Jdu): počet brankářek a bruslařek a zda stačí na nominaci (min. 1 + 5)
 export function signupState(ids){const P=(ids||[]).map(pl).filter(Boolean),gk=P.filter(isG).length,sk=P.length-gk;return{gk,sk,ok:gk>=1&&sk>=5,txt:`Přihlášky: ${gk} brankářka, ${sk} bruslařek (na nominaci potřeba min. 1 + 5)`}}
 export function readiness(m){const nom=nomOf(m),lu=m.lineup||{},gk=nom.filter(i=>pl(i)&&isG(pl(i))).length,sk=nom.filter(i=>pl(i)&&!isG(pl(i))).length;

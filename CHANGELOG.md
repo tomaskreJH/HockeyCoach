@@ -2,6 +2,19 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.54 (6. 11. 2026) – 📋 Hráčky vidí uzavřenou sestavu zápasu a značku „Sestava k dispozici“
+> **Nasazení – kanál 🧪 BETA:** commit „v22.54“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny (čte se stávající `matches.luOk` a `matches.lineup`). Cache `hokej-beta-v159`. 🔒 Vyžadovat verzi: ne. Test: kap. 55. Bez dalších nákladů na čtení databáze (zápasy se poslouchají už dřív).
+
+**Přidáno** (zadání uživatele 6. 11. 2026: hráčky nevidí sestavu na zápas, ani když je uzavřená; označit u příštího zápasu, že je sestava k dispozici)
+- **📋 Sestava zápasu** – nová karta v detailu zápasu (jen čtení) pro všechny členy týmu: pětky (řady × pozice, střídající se hráčky oddělené ⇄), brankářky, náhradnice a jednotky přesilovek a oslabení. Ukáže se jen u **uzavřené** sestavy (✔ Uzavřít sestavu v kroku Sestava); rozpracovanou sestavu hráčky nevidí. U odehraného zápasu je karta pod výsledkem.
+- **📋 Sestava k dispozici** – zelená značka na kartě nadcházejícího zápasu v Událostech i v 🏠 Domů (karta 🆚 příští zápas i karty příštích 7 dní). Odehraný a zrušený zápas značku nemá.
+- Nový `views/lineup-card.js` (`lineupCardHtml`, `lineupTag`) a `lineupVisible` v `domain/lineup.js`; `tests/lineup-visible.test.js`.
+**Změněno**
+- Hostující hráčky (🎟) beze změny – formaci dál vidí z `lineuppub` po přihlášení ✅ Jdu.
+- Znovuotevření sestavy (🔒 → znovu otevřít) nebo jakákoli její změna před zahájením uzavření zruší, takže karta i značka hráčkám hned zmizí (rozpracovaná sestava se nezveřejňuje).
+**Beze změny:** živý zápis, střely, góly, časomíra, krok Sestava a nominace, pokladna, docházka, databázová pravidla, push notifikace (o uzavření sestavy se zatím nepíše).
+**Ověřeno:** `npm test` (652 testů, nové `tests/lineup-visible.test.js`), `npm run smoke` (8 rolí bez chyb; testovací zápas m1 má uzavřenou sestavu, takže se karta i značka vykreslí ve všech rolích).
+
 ## v22.53 (5. 11. 2026) – 🏒 Členka týmu, která je zároveň hráčka, se v docházce hlásí jen jako hráčka
 > **Nasazení – kanál 🧪 BETA:** commit „v22.53“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**). **Data:** přidané nepovinné pole `staff.pid` (id hráčky; schváleno uživatelem 5. 11. 2026), zapisuje se jen v ✏️ člena týmu (manager, trenér); starší stabilní verze pole ignoruje. Cache `hokej-beta-v158`. 🔒 Vyžadovat verzi: ne. Test: kap. 54. Bez dalších nákladů.
 
