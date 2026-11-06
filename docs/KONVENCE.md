@@ -117,6 +117,7 @@ Směr importů: `config` → `core` → `domain` → `views` → `main`. Podrobn
 | `beta-view.js` | 🧪 pruh bety v liště, zamčená beta, ⚙️ → 🧪 Beta testování a přepnutí kanálu v 👤 Účet |
 | `att-log-view.js` | 🕘 historie přihlášek: tichý zápis `logAtt`, okno historie (čte se až po klepnutí; řádky docházky zápis neukazují, aby se neposouvaly) |
 | `matches.js`, `lineup-editor.js`, `report.js`, `opponents.js`, `stats.js` | zápasy, sestava, zápis utkání, soupeři, statistiky zápasů |
+| `lineup-card.js` | 📋 sestava zápasu pro hráčky (jen čtení): karta v detailu zápasu a značka „Sestava k dispozici“ (`lineupCardHtml`, `lineupTag`; `lineupVisible` v `domain/lineup.js`) |
 | `train-stats.js` | Statistiky: přepínač 📊 Zápasy / 🏒 Trénink, 📈 přehled Tréninku |
 | `live-view.js`, `live-panels.js`, `live-events.js`, `live-quick.js`, `live-feedback.js` | 🔴 živý zápis (vykreslení, panely, klepnutí, rychlý gól / trest, vibrace) |
 | `live-watch.js` | 👁 náhled živého zápasu |

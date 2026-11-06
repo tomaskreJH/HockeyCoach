@@ -496,3 +496,15 @@ Bez změny databáze a pravidel.
 7. 📋 Plán tréninku: přihlášená členka jde zvolit jako 🎓 trenér u linky bez varování „trenér není přihlášený“.
 8. Vrať propojení na „— není hráčka —“ → řádek člena týmu se v docházce vrátí. Totéž když hráčku označíš ⛔ Ukončila.
 9. Nález: čitelnost nové volby v ✏️, zda ji manager najde, jestli někde zůstal druhý řádek (např. v poznámce k události nebo v nepřítomnosti – ta se v této verzi nemění).
+
+## 55. v22.54 (beta) – 📋 Hráčky vidí uzavřenou sestavu zápasu
+**Změna databáze:** žádná (čte se stávající `luOk` a `lineup` zápasu; pravidla beze změny).
+1. Trenér: Zápas → 2 Sestava → vyplň 1. pětku a brankářku → **✔ Uzavřít sestavu**.
+2. Přihlas se jako hráčka (jiné zařízení / účet): v **Událostech** má karta zápasu zelenou značku **📋 Sestava k dispozici**; v **🏠 Domů** ji má karta 🆚 příští zápas i karta zápasu v příštích 7 dnech.
+3. Klepni na zápas → pod hlavičkou je karta **📋 Sestava zápasu**: pětky (LK · C · PK · LO · PO), Brankářky, Náhradnice (a Jednotky, pokud je trenér vyplnil). Nic v ní nejde měnit.
+4. Trenér: **🔒 Sestava uzavřena – znovu otevřít** (nebo změní hráčku v sestavě) → hráčce značka i karta **zmizí** (rozpracovaná sestava se neukazuje).
+5. Znovu ✔ Uzavřít sestavu → značka a karta se vrátí.
+6. Zrušený zápas (❌ Zrušit) značku ani kartu nemá. Odehraný (uzavřený) zápas značku nemá, karta sestavy je pod výsledkem.
+7. Hostující hráčka 🎟: beze změny (Formace z veřejného dokumentu po ✅ Jdu).
+8. Živý zápis, střely, góly a časomíra: beze změny – krátce projet běžící zápas.
+9. Nález: čitelnost tabulky na telefonu (širší tabulka se posouvá do strany), zda hráčky značku najdou.

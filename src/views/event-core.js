@@ -21,6 +21,7 @@ import {attDoc, NOTE_COLL, noteDoc, noteId} from "../domain/private-data.js";
 import {logAtt} from "./att-log-view.js";
 import {cdHtml} from "./countdown-tick.js";
 import {statusLine} from "./event-badges.js";
+import {lineupTag} from "./lineup-card.js";
 import {render} from "./shell.js";
 
 // ===== Konstanty =====
@@ -203,11 +204,14 @@ function cardHtml(e, AT, P) {
   const cq = g ? {yes: "", no: "", maybe: ""} : c, pL = placeLine(e), tL = timeLine(e);
   // Atributy pro vzhled „Čistý“ (styles/clean.css): stav = pruh a nádech barvy karty, druh události = zvýrazněný zápas; ostatní vzhledy je nepoužívají
   const sx = cardState(mine, cn, isLocked(e), !!S.evp);
+  // 📋 Sestava k dispozici: u nadcházejícího zápasu s uzavřenou sestavou (zrušený a odehraný zápas ne)
+  const lu = e.type === "match" && !cn ? lineupTag(m) : "";
   return `<div class="cd evi" data-eo="${e.id}" data-ety="${e.type === "match" ? "match" : "other"}"${sx.k ? ` data-evk="${sx.k}"` : ""}${cn ? ' style="opacity:.7"' : ""}><div class="evh"><b>${titleLine(e, cn)}</b>${sc}</div>
 ${pL ? `<div class="mu">${pL}</div>` : ""}${tL ? `<div class="evtm">${tL}</div>` : ""}
 <div class="mu">${cn ? esc(cancelText(m)) : dlLine(e, isLocked(e))}${S.evp || g ? "" : ` · ✅ ${c.yes} · ❓ ${c.maybe} · ❌ ${c.no}`}</div>
 ${g ? "" : `<div class="mu">${rosterLine(roster(e, AT))}</div>`}
 ${statusLine(e)}
+${lu ? `<div class="mu" style="margin-top:4px">${lu}</div>` : ""}
 ${S.evp ? quick(e, mine, lk, cq) : ""}${mine && mine.reason ? `<div class="mu" style="margin-top:6px">${esc(mine.reason)}</div>` : ""}</div>`;
 }
 
