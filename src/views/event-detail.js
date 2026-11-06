@@ -129,7 +129,7 @@ function detail(a, ev) {
   const pL = placeLine(ev, false), tL = timeLine(ev);                // 📍 místo (bez nákladů – pokladna je níž), 🕔 čas a ⏰ sraz
   const reqMid = staff() ? null : HK.pid() || (myTr() || {}).id || null;
   // 📋 Sestava zápasu (jen čtení, jen uzavřená): vidí ji všichni členové týmu, hostující mají formaci z lineuppub
-  const luCard = mt && !g && !cn ? lineupCardHtml(ev.raw) : "";
+  const luCard = mt && !g && !cn ? lineupCardHtml(ev.raw, me || "") : "";
   a.innerHTML = CSS + `<div id="evw"><button class="s" id="evb" style="margin-bottom:12px">${S.evBack === "fo" ? "← Team" : S.evBack === "home" ? "← Domů" : "← Události"}</button>
 <div class="cd evhd"><div class="evh"><span class="evt">${titleLine(ev, cn)}</span>${cn ? '<span class="tag red">❌ Zrušeno</span>' : ""}</div>
 ${ev.note ? `<div style="margin-top:6px">${esc(ev.note)}</div>` : ""}${myP ? `<div style="margin-top:6px">${pRow(myP)}</div>` : ""}${openM}</div>

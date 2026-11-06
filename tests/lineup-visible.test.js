@@ -33,21 +33,37 @@ test("lineupTag: značka jen u neodehraného zápasu s uzavřenou sestavou", () 
   assert.equal(lineupTag(null), "");
 });
 
-test("lineupCardHtml: pětky, brankářka a náhradnice; neuzavřená sestava nic neukáže", () => {
+test("lineupCardHtml: hlavička, pětky, brankářka a náhradnice; neuzavřená sestava nic neukáže", () => {
   team();
-  const h = lineupCardHtml(match());
-  assert.match(h, /Sestava zápasu/);
-  assert.match(h, /#7 Alena/, "hráčka s číslem v 1. pětce");
+  const h = lineupCardHtml(match({home: true, date: "2026-11-08", time: "18:00"}));
+  assert.match(h, /SESTAVA/);
+  assert.match(h, /HC Střely – Soupeř/, "doma: náš tým první");
+  assert.match(h, /1\. pětka/);
+  assert.match(h, /<b class="lun">7<\/b>[^]*?Alena/, "hráčka s číslem v 1. pětce");
   assert.match(h, /Bára/);
-  assert.match(h, /<b>Brankářky:<\/b> Gita/);
-  assert.match(h, /<b>Náhradnice:<\/b> Nela/, "nominovaná mimo sestavu je náhradnice");
+  assert.match(h, /Brankářky[^]*Gita/);
+  assert.match(h, /Náhradnice[^]*Nela/, "nominovaná mimo sestavu je náhradnice");
+  assert.match(lineupCardHtml(match({home: false})), /Soupeř – HC Střely/, "venku: soupeř první");
   assert.equal(lineupCardHtml(match({luOk: false})), "");
   assert.equal(lineupCardHtml(match({lineup: {}})), "");
 });
 
-test("lineupCardHtml: střídající se hráčky na jednom místě oddělené ⇄ a jednotka přesilovky", () => {
+test("lineupCardHtml: přihlášená hráčka je označená TY a nahoře je, kde hraje", () => {
   team();
-  const h = lineupCardHtml(match({lineup: {G1: "g1", "1C": "a1", "1C+": "n1", "1LO": "b1"}, sp: {PP1: {C: "a1"}}}));
-  assert.match(h, /#7 Alena ⇄ Nela/);
-  assert.match(h, /Přesilovka 1: [^<]*C #7 Alena/);
+  const h = lineupCardHtml(match(), "a1");
+  assert.equal((h.match(/class="luc me"/g) || []).length, 1, "zvýrazněná jen jedna dlaždice");
+  assert.match(h, /lut2">TY</);
+  assert.match(h, /Hraješ: 1\. pětka · C/);
+  assert.match(lineupCardHtml(match(), "g1"), /Jsi v brance/);
+  assert.match(lineupCardHtml(match(), "n1"), /Jsi mezi náhradnicemi/);
+  assert.doesNotMatch(lineupCardHtml(match(), "x9"), /class="luc me"|class="lume"/, "nenominovaná hráčka nic zvýrazněné nemá");
+  assert.doesNotMatch(lineupCardHtml(match()), /class="luc me"/, "bez přihlášené hráčky se nic nezvýrazní");
+});
+
+test("lineupCardHtml: střídající se hráčky na jednom místě pod sebou a jednotka přesilovky", () => {
+  team();
+  const h = lineupCardHtml(match({lineup: {G1: "g1", "1C": "a1", "1C+": "n1", "1LO": "b1"}, sp: {PP1: {C: "a1"}}}), "n1");
+  assert.match(h, /Alena[^]*Nela/, "obě hráčky v jednom místě");
+  assert.equal((h.match(/class="luc me"/g) || []).length, 1);
+  assert.match(h, /Přesilovka 1: [^<]*C Alena/);
 });
