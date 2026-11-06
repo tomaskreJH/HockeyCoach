@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.55 (6. 11. 2026) – 🎨 Sestava jako zveřejnění velkoklubu, přihlášená hráčka zvýrazněná
+> **Nasazení – kanál 🧪 BETA:** commit „v22.55“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v160`. 🔒 Vyžadovat verzi: ne. Test: kap. 55 (doplněno).
+
+**Změněno** (zadání uživatele 6. 11. 2026: sestava se musí vejít na šířku obrazovky, graficky ve stylu týmu jako velkoklub, přihlášenou hráčku označit)
+- **📋 Sestava zápasu** (`views/lineup-card.js`) má nový vzhled: hlavička se znakem týmu a soupeřem (datum, čas, místo, doma / venku), brankářky, každá pětka jako mřížka 3 útočnice + 2 obránkyně, dlaždice s velkým číslem, jménem a příjmením, značka (C) u kapitánky, náhradnice a přesilovky / oslabení pod tím. Střídající se hráčky na jednom místě jsou pod sebou.
+- **Šířka:** mřížka bez posunu do strany (ověřeno na šířce 320 a 390 px); barvy z proměnných aplikace, takže sedí ve světlém i tmavém režimu.
+- **Přihlášená hráčka** je v sestavě zelená se štítkem **TY** (i v přesilovkách) a nahoře je řádek „⭐ Hraješ: 1. pětka · C“, „🥅 Jsi v brance“ nebo „⭐ Jsi mezi náhradnicemi“. Nenominovaná hráčka nic zvýrazněné nemá.
+**Beze změny:** viditelnost (jen uzavřená sestava), značka „Sestava k dispozici“, živý zápis, střely, góly, časomíra, databáze a pravidla.
+**Ověřeno:** `npm test`, `npm run smoke`, vykreslení karty v prohlížeči na šířce 320 a 390 px (bez vodorovného posunu).
+
 ## v22.54 (6. 11. 2026) – 📋 Hráčky vidí uzavřenou sestavu zápasu a značku „Sestava k dispozici“
 > **Nasazení – kanál 🧪 BETA:** commit „v22.54“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny (čte se stávající `matches.luOk` a `matches.lineup`). Cache `hokej-beta-v159`. 🔒 Vyžadovat verzi: ne. Test: kap. 55. Bez dalších nákladů na čtení databáze (zápasy se poslouchají už dřív).
 

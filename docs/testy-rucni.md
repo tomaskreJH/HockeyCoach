@@ -501,7 +501,8 @@ Bez změny databáze a pravidel.
 **Změna databáze:** žádná (čte se stávající `luOk` a `lineup` zápasu; pravidla beze změny).
 1. Trenér: Zápas → 2 Sestava → vyplň 1. pětku a brankářku → **✔ Uzavřít sestavu**.
 2. Přihlas se jako hráčka (jiné zařízení / účet): v **Událostech** má karta zápasu zelenou značku **📋 Sestava k dispozici**; v **🏠 Domů** ji má karta 🆚 příští zápas i karta zápasu v příštích 7 dnech.
-3. Klepni na zápas → pod hlavičkou je karta **📋 Sestava zápasu**: pětky (LK · C · PK · LO · PO), Brankářky, Náhradnice (a Jednotky, pokud je trenér vyplnil). Nic v ní nejde měnit.
+3. Klepni na zápas → pod hlavičkou je karta **📋 Sestava zápasu** (v22.55: vzhled velkoklubu): hlavička se znakem a soupeřem, Brankářky, pětky (3 útočnice + 2 obránkyně), Náhradnice, Přesilovky a oslabení. Nic v ní nejde měnit.
+3a. Karta se vejde na šířku telefonu bez posunu do strany (zkus i úzký telefon a otočení). **Ty** jsi zeleně se štítkem TY a nahoře je „⭐ Hraješ: 1. pětka · C“ (brankářka „🥅 Jsi v brance“, náhradnice „⭐ Jsi mezi náhradnicemi“). Trenér vidí kartu bez zvýraznění, pokud sám není hráčka.
 4. Trenér: **🔒 Sestava uzavřena – znovu otevřít** (nebo změní hráčku v sestavě) → hráčce značka i karta **zmizí** (rozpracovaná sestava se neukazuje).
 5. Znovu ✔ Uzavřít sestavu → značka a karta se vrátí.
 6. Zrušený zápas (❌ Zrušit) značku ani kartu nemá. Odehraný (uzavřený) zápas značku nemá, karta sestavy je pod výsledkem.
