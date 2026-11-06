@@ -1,7 +1,7 @@
 // Doména: 🔔 push notifikace – čisté funkce bez DOM a bez Firebase (testuje je tests/notif.test.js).
 // Posílání řeší Cloud Functions (functions/, nasazuje se zvlášť); aplikace jen eviduje zařízení (devices) a drží hlavní vypínač settings/notif.
 // Fail-safe: chybějící dokument settings/notif = notifikace VYPNUTÉ. STOP = on:false (funkce pak nic nečtou ani neposílají).
-// Struktura: Konstanty -> Podpora zařízení -> Dokumenty -> Rozhodování o obnově -> Texty.
+// Struktura: Konstanty -> Podpora zařízení -> Texty chyb -> Dokumenty -> Rozhodování o obnově -> Texty.
 
 // ===== Konstanty =====
 export const NOTIF_DOC = "notif";                       // settings/notif = {on, vapid, by, at}
@@ -19,6 +19,18 @@ export function pushSupport(env) {
   if (e.ios && !e.standalone) return {ok: false, why: "Na iPhonu a iPadu notifikace fungují jen z aplikace přidané na plochu (Sdílet → Přidat na plochu) – otevři ji z ikony na ploše."};
   if (!e.sw || !e.push || !e.notif) return {ok: false, why: "Tento prohlížeč webové notifikace nepodporuje."};
   return {ok: true, why: ""};
+}
+
+// ===== Texty chyb =====
+// Návod pro Android: oznámení vypnutá v systému telefonu nebo pro web (aplikace z plochy nemá v liště zámek, proto vlastní postup)
+export const ANDROID_HELP = "Android: podrž ikonu aplikace → Informace o aplikaci → Oznámení → povolit (u prohlížeče: Nastavení telefonu → Aplikace → Chrome → Oznámení). V Chrome navíc ⋮ → Nastavení → Nastavení webu → Oznámení → tuto stránku povolit. Pak zkus znovu.";
+// Srozumitelný důvod, proč se zařízení nepodařilo přihlásit k push (chyba z prohlížeče nebo Firebase messaging); neznámá chyba ukáže svůj kód
+export function pushErrorText(err) {
+  const raw = String((err && (err.code || err.message || err.name)) || err || "");
+  if (/permission[ -]?(denied|blocked)|NotAllowed/i.test(raw)) return "Oznámení jsou zablokovaná v telefonu nebo pro tuto stránku. " + ANDROID_HELP;
+  if (/token-subscribe|fcmregistrations|NetworkError|Failed to fetch|network/i.test(raw)) return "Nepodařilo se spojit se službou oznámení (Google). Zkontroluj internet, vypni blokování reklam nebo soukromé DNS a zkus znovu.";
+  if (/service worker|failed-service-worker/i.test(raw)) return "Služba aplikace (service worker) není aktivní – zavři aplikaci, otevři ji znovu a zkus to ještě jednou.";
+  return "Oznámení se nepodařilo zapnout (" + (raw.slice(0, 80) || "neznámá chyba") + ").";
 }
 
 // ===== Dokumenty =====
@@ -66,7 +78,7 @@ export function needsSync(o) {
 // Stav tohoto zařízení pro sekci v ⚙️: {txt, warn}
 export function deviceStatus(o) {
   if (!o.support.ok) return {txt: o.support.why, warn: true};
-  if (o.perm === "denied") return {txt: "Notifikace jsou v prohlížeči zakázané – povol je v nastavení webu (ikona zámku vedle adresy).", warn: true};
+  if (o.perm === "denied") return {txt: "Notifikace jsou zakázané. Povol je v nastavení telefonu nebo webu (v prohlížeči ikona zámku vedle adresy). " + ANDROID_HELP, warn: true};
   if (!o.local.on) return {txt: "Na tomto zařízení vypnuto.", warn: false};
   if (!o.global.on) return {txt: "Zapnuto na tomto zařízení, ale celý tým je právě VYPNUTÝ (STOP) – nic nepřijde.", warn: true};
   return {txt: "Zapnuto na tomto zařízení.", warn: false};

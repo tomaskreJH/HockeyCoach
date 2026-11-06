@@ -509,3 +509,11 @@ Bez změny databáze a pravidel.
 7. Hostující hráčka 🎟: beze změny (Formace z veřejného dokumentu po ✅ Jdu).
 8. Živý zápis, střely, góly a časomíra: beze změny – krátce projet běžící zápas.
 9. Nález: čitelnost tabulky na telefonu (širší tabulka se posouvá do strany), zda hráčky značku najdou.
+
+## 56. v22.56 (beta) – 🔔 Zapnutí notifikací na Androidu (Samsung S21)
+1. Hráčka v ⚙️ → 🔔 Notifikace klepne na **🔔 Zapnout na tomto zařízení** při zablokovaných oznámeních (Informace o aplikaci → Oznámení vypnuto): pod nadpisem „Toto zařízení“ zůstane červený návod (Informace o aplikaci → Oznámení → povolit), ne jen mizející hláška.
+2. Podle návodu oznámení povolit, aplikaci znovu otevřít, znovu klepnout na Zapnout → „🔔 Zapnuto na tomto zařízení“, červený text zmizí.
+3. Test z manažerského účtu: ⚙️ → 🔔 → změna události (zrušení) → na telefonu hráčky přijde oznámení.
+4. Zakázané oznámení v Chrome (Nastavení webu): stav ukáže zakázáno s postupem pro Android i zámek vedle adresy.
+5. Střely, góly, časomíra a ostatní notifikace (živý trénink): beze změny.
+6. Nález: je text srozumitelný pro hráčky? Pomohl postup na S21?

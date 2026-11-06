@@ -2,6 +2,17 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.56 (6. 11. 2026) – 🔔 Notifikace na Androidu: srozumitelná chyba „Registration failed – permission denied“
+> **Nasazení – kanál 🧪 BETA:** commit „v22.56“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v161`. 🔒 Vyžadovat verzi: ne. Test: kap. 56.
+
+**Opraveno** (hlášení uživatele 6. 11. 2026: hráčkám na Samsungu S21 nejde zapnout notifikace, hláška „registration failed permission denied“)
+- Chyba z prohlížeče při přihlášení zařízení k push (oznámení zablokovaná v telefonu nebo pro web) se místo surové hlášky převede na návod pro Android: podržet ikonu aplikace → Informace o aplikaci → Oznámení → povolit, případně Chrome → Nastavení webu → Oznámení. Stejně se vysvětlí chyba spojení se službou oznámení (blokování reklam, soukromé DNS) a neaktivní service worker; neznámá chyba ukáže svůj kód.
+- Důvod posledního neúspěchu zůstane **vidět v sekci ⚙️ → 🔔 Notifikace** (červený text), nejen v mizející hlášce.
+- Text u zakázaných oznámení obsahuje postup i pro aplikaci z plochy, která nemá v liště ikonu zámku.
+- Nové: `pushErrorText` a `ANDROID_HELP` v `domain/notif.js`; `enable()` v `data/notif-api.js` vrací důvod místo výjimky; testy v `tests/notif.test.js`.
+**Beze změny:** posílání notifikací (Cloud Functions), klíč VAPID, vypínač týmu, tichá obnova, střely, góly, časomíra, databáze a pravidla.
+**Ověřeno:** `npm test`.
+
 ## v22.55 (6. 11. 2026) – 🎨 Sestava jako zveřejnění velkoklubu, přihlášená hráčka zvýrazněná
 > **Nasazení – kanál 🧪 BETA:** commit „v22.55“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v160`. 🔒 Vyžadovat verzi: ne. Test: kap. 55 (doplněno).
 

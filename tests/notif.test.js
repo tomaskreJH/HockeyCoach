@@ -7,7 +7,7 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import vm from "node:vm";
-import {deviceDoc, deviceDocId, deviceStatus, globalOf, localOf, needsSync, notifDocOf, pushSupport, RENEW_DAYS, VAPID_RE} from "../src/domain/notif.js";
+import {deviceDoc, deviceDocId, deviceStatus, globalOf, localOf, needsSync, notifDocOf, pushErrorText, pushSupport, RENEW_DAYS, VAPID_RE} from "../src/domain/notif.js";
 import {notifApi} from "../src/data/notif-api.js";
 
 // ===== Pomocné funkce =====
@@ -171,7 +171,26 @@ test("náklady: messaging SDK se při spuštění nenačítá (jen dynamicky př
   assert.equal((main.match(/HK\.notif\.sync\(\)/g) || []).length, 1);
 });
 
-test("verze: sw.js cache a verze aplikace se shodují s číslem 22.55", () => {
-  assert.match(read("sw.js"), /const VER = "160"/);
-  assert.match(read("src/core/app-version.js"), /22\.55/);
+test("verze: sw.js cache a verze aplikace se shodují s číslem 22.56", () => {
+  assert.match(read("sw.js"), /const VER = "161"/);
+  assert.match(read("src/core/app-version.js"), /22\.56/);
+});
+
+// ===== Chyby zapnutí (v22.56) =====
+test("pushErrorText: „Registration failed - permission denied“ dá návod pro Android, síť a neznámá chyba své texty", () => {
+  assert.match(pushErrorText(new Error("Registration failed - permission denied")), /Informace o aplikaci/);
+  assert.match(pushErrorText({code: "messaging/permission-blocked"}), /zablokovaná/);
+  assert.match(pushErrorText({code: "messaging/token-subscribe-failed"}), /spojit/);
+  assert.match(pushErrorText(new Error("Service worker není aktivní – načti aplikaci znovu")), /service worker/);
+  assert.match(pushErrorText({code: "x/jina"}), /x\/jina/);
+  assert.match(pushErrorText(null), /neznámá chyba/);
+  assert.match(deviceStatus({support: {ok: true, why: ""}, perm: "denied", local: {on: false}, global: {on: true}}).txt, /Informace o aplikaci/);
+});
+
+test("api: chyba při získání tokenu (permission denied) vrátí srozumitelný důvod místo výjimky", async () => {
+  const m = make({settings: {notif: {on: true, vapid: KEY}}});
+  const deps = {...m.deps, msg: async () => ({getMessaging: a => ({a}), getToken: async () => { throw new Error("Registration failed - permission denied"); }})};
+  const r = await notifApi(m.C, deps).enable(true, true);
+  assert.equal(r.ok, false);
+  assert.match(r.why, /Informace o aplikaci/);
 });
