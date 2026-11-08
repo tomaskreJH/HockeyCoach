@@ -13,6 +13,7 @@ import {deviceStatus} from "../domain/notif.js";
 const BTN_STOP = "background:var(--no);color:#fff;font-weight:700;font-size:17px;padding:14px";   // červené tlačítko STOP
 let busy = false;                          // probíhá zápis (zabrání dvojímu klepnutí)
 let vdraft = null;                         // rozepsaný klíč VAPID (null = nic nerozepsáno)
+let lastWhy = "";                          // důvod posledního neúspěšného zapnutí (zůstane vidět v sekci, hláška toast zmizí)
 
 // ===== Pomocné funkce =====
 const N = () => HK.notif;
@@ -40,6 +41,7 @@ function body() {
   const dev = i.preview
     ? '<div class="mu">V náhledu role se zařízení nenastavuje.</div>'
     : `<h3>Toto zařízení</h3><div class="mu" style="margin-bottom:8px${ds.warn ? ";color:var(--no);font-weight:600" : ""}">${esc(ds.txt)}</div>
+${lastWhy ? `<div class="mu" style="margin-bottom:8px;color:var(--no);font-weight:600">${esc(lastWhy)}</div>` : ""}
 ${i.support.ok && i.perm !== "denied" ? `<label class="row" style="align-items:center;gap:8px"><input type="checkbox" id="cnz"${l.z ? " checked" : ""}> ❌🕒 Zrušení / změna času</label>
 <label class="row" style="align-items:center;gap:8px;margin-top:4px"><input type="checkbox" id="cnu"${l.u ? " checked" : ""}> ⏳ Hodinu před uzávěrkou, když jsem neodpověděla</label>
 <div class="row" style="margin-top:8px"><button class="p" id="cnon">${l.on ? "💾 Uložit volby" : "🔔 Zapnout na tomto zařízení"}</button>${l.on ? '<button class="s" id="cnoff">Vypnout na tomto zařízení</button>' : ""}</div>` : ""}`;
@@ -62,7 +64,8 @@ function draw(box) {
   const q = s => box.querySelector(s), z = () => (q("#cnz") ? q("#cnz").checked : true), u = () => (q("#cnu") ? q("#cnu").checked : true);
   if (q("#cnon")) q("#cnon").onclick = () => run(box, async () => {
     const r = await N().enable(z(), u());
-    if (!r.ok) { if (r.why) toast(r.why); return false; }
+    if (!r.ok) { lastWhy = r.why || ""; if (r.why) toast(r.why); return false; }
+    lastWhy = "";
     return true;
   }, "🔔 Zapnuto na tomto zařízení");
   if (q("#cnoff")) q("#cnoff").onclick = () => run(box, () => N().disable(), "Na tomto zařízení vypnuto");
@@ -83,5 +86,5 @@ function draw(box) {
 // Vykreslení do připravené schránky (volá settings-view po otevření ⚙️)
 export function bindNotif(el) {
   const box = el.querySelector("#cnt");
-  if (box) { vdraft = null; draw(box); }
+  if (box) { vdraft = null; lastWhy = ""; draw(box); }
 }

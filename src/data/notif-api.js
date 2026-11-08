@@ -6,7 +6,7 @@
 // ===== Importy =====
 import {IS_BETA} from "../core/channel.js";
 import {LS, uid} from "../core/utils.js";
-import {DEV_COLL, LS_KEY, NOTIF_DOC, deviceDoc, deviceDocId, globalOf, localOf, needsSync, notifDocOf, pushSupport} from "../domain/notif.js";
+import {DEV_COLL, LS_KEY, NOTIF_DOC, deviceDoc, deviceDocId, globalOf, localOf, needsSync, notifDocOf, pushErrorText, pushSupport} from "../domain/notif.js";
 import {deleteDoc, doc as fsDoc, serverTimestamp, setDoc} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ===== Konstanty =====
@@ -75,7 +75,8 @@ export function notifApi(C, deps) {
     if (!g.vapid) return {ok: false, why: "Manager ještě nevložil klíč VAPID (⚙️ → 🔔 Notifikace)."};
     if (D.perm() !== "granted" && (await D.ask()) !== "granted") return {ok: false, why: "Notifikace nejsou povolené."};
     const l = local(), code = l.code || uid() + uid();
-    await write(code, await token(g.vapid), z, u);
+    // Chyba z prohlížeče / FCM (např. „Registration failed - permission denied“) se převede na srozumitelný návod
+    try { await write(code, await token(g.vapid), z, u); } catch (e) { return {ok: false, why: pushErrorText(e)}; }
     return {ok: true, why: ""};
   }
   // Vypnout na tomto zařízení: smaže dokument zařízení (funkce mu pak nic neposílají) a zapomene stav
