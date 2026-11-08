@@ -2,6 +2,17 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.57 (8. 11. 2026) – 🕘 Střídání se nepočítá přes hranici třetiny
+> **Nasazení – kanál 🧪 BETA:** commit „v22.57“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny (uložená `live.sh` se nemění). Cache `hokej-beta-v162`. 🔒 Vyžadovat verzi: ne.
+
+**Opraveno** (hlášení trenéra po zápase Berounské Lvice: střídání přes pauzu mezi třetinami se počítala jako jedno, např. 4:56 přes konec 1. třetiny a dlouhé střídání, které nenavazovalo)
+- Střídání se dělí na hranicích třetin (konce třetin z `live.ps`). Pauza mezi třetinami vždy vynuluje počítání: úsek v další třetině je nové střídání, neslučuje se s koncem předchozí.
+- Statistika střídání, čas na ledě, statistiky hráček i výpis střídání ve vývoji zápasu používají stejné pravidlo (`shiftList`), takže se shodují.
+- Hráčka, která na hranici třetiny jen pokračuje na ledě, se ve vývoji zápasu neukáže jako střídání.
+- Uložená data (`live.sh`) a editace střídání se nemění. Pravidlo platí jen pro výpočty a zobrazení.
+- Testy: `tests/shift-period.test.js` (dělení na hranici, statistika po třetinách, sloučení uvnitř třetiny, záznam začínající na hranici). `npm test` 659/659, `npm run smoke` bez chyb.
+- Známé omezení: u starších zápasů bez záznamu konce třetin (`live.ps`) se hranice neznají, střídání přes pauzu se tam počítá jako dosud.
+
 ## v22.56 (6. 11. 2026) – 🔔 Notifikace na Androidu: srozumitelná chyba „Registration failed – permission denied“
 > **Nasazení – kanál 🧪 BETA:** commit „v22.56“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v161`. 🔒 Vyžadovat verzi: ne. Test: kap. 56.
 

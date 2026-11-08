@@ -5,7 +5,8 @@
 // Střídání hráček v rozboru, celkové statistiky, vývoj zápasu):
 //   1) záznamy s délkou ≤ 0 se vynechají,
 //   2) navazující záznamy téže hráčky (konec = začátek dalšího) se sloučí do jednoho střídání – hráčka plynule pokračuje
-//      (návrat do řad po PP/OS, „Sestava znovu“, změna jednotky nebo pozice).
+//      (návrat do řad po PP/OS, „Sestava znovu“, změna jednotky nebo pozice),
+//   3) střídání se nikdy nepočítá přes hranici třetiny: na pauze mezi třetinami se počítání vynuluje (dělí se na hranicích live.ps).
 // Uložená data (live.sh) ani editace střídání (shift-edit.js) se nemění – pravidlo platí jen pro výpočty a zobrazení.
 import {COLS, SIT} from "../config/constants.js";
 import {TEAM_NAME} from "../config/team-config.js";
@@ -42,17 +43,30 @@ export function shiftsOf(m) {
   return out;
 }
 
-// Společné pravidlo střídání: bez nulových záznamů, navazující záznamy téže hráčky sloučené.
+// Hranice třetin v herním čase: konce zaznamenaných třetin (live.ps). Přes ně se střídání nepočítá.
+const boundsOf = m => ((m.live && m.live.ps) || []).filter(v => v != null);
+
+// Rozdělí jedno střídání na úseky podle hranic třetin (pauza mezi třetinami = nové počítání)
+function cutAt(x, B) {
+  const out = []; let a = x.a;
+  B.forEach(t => { if (t > a && t < x.b) { out.push({...x, a, b: t}); a = t; } });
+  out.push({...x, a});
+  return out;
+}
+
+// Společné pravidlo střídání: bez nulových záznamů, střídání se dělí na hranicích třetin
+// a navazující záznamy téže hráčky se slučují jen uvnitř jedné třetiny.
 // Výsledek: {p, c (sloupec na začátku), c2 (sloupec na konci), a, b, open}, seřazeno podle začátku.
 export function shiftList(m) {
-  const by = {};
-  shiftsOf(m).filter(x => x.b - x.a > 0).forEach(x => (by[x.p] = by[x.p] || []).push(x));
+  const B = boundsOf(m), by = {};
+  shiftsOf(m).filter(x => x.b - x.a > 0).forEach(x => cutAt(x, B).forEach(y => { if (y.b - y.a > 0) (by[y.p] = by[y.p] || []).push(y); }));
   const out = [];
   Object.values(by).forEach(list => {
     list.sort((x, y) => x.a - y.a);
     let cur = null;
     list.forEach(x => {
-      if (cur && x.a === cur.b) { cur.b = x.b; cur.c2 = x.c; cur.open = !!x.open; }   // plynulé pokračování téže hráčky
+      // plynulé pokračování téže hráčky, ale ne přes hranici třetiny
+      if (cur && x.a === cur.b && !B.includes(x.a)) { cur.b = x.b; cur.c2 = x.c; cur.open = !!x.open; }
       else { cur = {p: x.p, c: x.c, c2: x.c, a: x.a, b: x.b, open: !!x.open}; out.push(cur); }
     });
   });
@@ -132,7 +146,9 @@ export function timeline(m, {shots = true, subs = true, flow = true, limit = 120
     const times = new Set();
     sh.forEach(x => { if (!x.open) times.add(x.b); if (x.a > 0) times.add(x.a); });
     [...times].forEach(T => {
-      const out = sh.filter(x => !x.open && x.b === T), inn = sh.filter(x => x.a === T && x.a > 0);
+      // hráčka, která na hranici třetiny jen pokračuje (konec úseku = začátek dalšího úseku téže hráčky), není střídání
+      const out = sh.filter(x => !x.open && x.b === T && !sh.some(y => y.p === x.p && y.a === T));
+      const inn = sh.filter(x => x.a === T && x.a > 0 && !sh.some(y => y.p === x.p && y.b === T && !y.open));
       const used = new Set(), parts = []; let long = false;
       out.forEach(o => {
         const d = o.b - o.a, isLong = d >= limit; if (isLong) long = true;
