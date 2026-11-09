@@ -517,3 +517,10 @@ Bez změny databáze a pravidel.
 4. Zakázané oznámení v Chrome (Nastavení webu): stav ukáže zakázáno s postupem pro Android i zámek vedle adresy.
 5. Střely, góly, časomíra a ostatní notifikace (živý trénink): beze změny.
 6. Nález: je text srozumitelný pro hráčky? Pomohl postup na S21?
+
+## 57. v22.57.1 (beta) – 🔧 Zámek závislostí a nasazení
+1. Po nahrání do `beta` proběhne v záložce Actions běh „Nasazení (stabilní + beta)“ celý zelený (testy, kouřový test, nasazení).
+2. Beta se otevře, ⚙️ ukáže v22.57.1, přihlášení a Domů fungují jako dřív (aplikace beze změny).
+3. Stabilní verze (kořen webu) se nezměnila.
+4. Za týden přijde první PR od Dependabota do větve `beta` (není nález, jen návrh).
+5. Nález: selhal některý krok Actions? Odmítlo nasazení z bety?

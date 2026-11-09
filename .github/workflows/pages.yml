@@ -11,10 +11,9 @@ on:
     branches: [main, beta]
   workflow_dispatch:
 
+# Základ jen čtení; zápis do Pages a id-token dostane až job nasazení (testy je nepotřebují)
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Nasazení jedno po druhém (rychle po sobě nahraná main a beta se nepřepíšou napůl)
 concurrency:
@@ -26,35 +25,46 @@ jobs:
   # Stejné ověření jako před commitem (docs/KONVENCE.md kap. 0): npm test zelený, kouřový test všech rolí bez chyb.
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      # Akce jsou připnuté na celý commit (SHA) – komentář říká hlavní verzi; novou verzi navrhne Dependabot
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - name: Testy (npm test)
         run: npm test
       - name: Kouřový test (všechny role)
         run: |
-          npm install --no-save --no-audit --no-fund jsdom@26
+          npm ci --ignore-scripts --no-audit --no-fund
           npm run smoke
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       # ===== Stažení obou větví =====
       - name: Stabilní (main)
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          persist-credentials: false
           ref: main
           path: main
       - name: Beta (větev beta, když existuje)
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         continue-on-error: true
         with:
+          persist-credentials: false
           ref: beta
           path: beta
 
@@ -78,9 +88,9 @@ jobs:
           touch _site/.nojekyll
 
       # ===== Nasazení =====
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

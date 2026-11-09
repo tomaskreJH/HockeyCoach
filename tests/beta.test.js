@@ -119,5 +119,5 @@ test("nasazení: workflow staví main do kořene a betu do beta/", () => {
   const w = read(".github/workflows/pages.yml");
   assert.match(w, /branches: \[main, beta\]/);
   assert.match(w, /beta\/ _site\/beta\//);
-  assert.match(w, /actions\/deploy-pages@v4/);
+  assert.match(w, /actions\/deploy-pages@[0-9a-f]{40} # v4/, "akce nasazení je připnutá na SHA (hlavní verze v komentáři)");
 });
