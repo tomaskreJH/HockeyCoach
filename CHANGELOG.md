@@ -2,6 +2,16 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.57.2 (9. 11. 2026) – 📜 Pravidla pro AI (VP 2)
+> **Nasazení – kanál 🧪 BETA:** commit „v22.57.2“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v164`. 🔒 Vyžadovat verzi: ne. Aplikace pro uživatele beze změny.
+
+**Přidáno** (jen dokumentace)
+- `AGENTS.md` – vstup pro každou AI: popis projektu a obecná pravidla vývoje (pravidla VP 2). `CLAUDE.md` na ni odkazuje.
+- `docs/pro-AI_TOM.md` – návrhy obecných pravidel, která z projektu vzejdou.
+- `README.md`: odkaz na `AGENTS.md`.
+
+**Ověřeno:** `npm test` zelený, `npm run smoke` bez chyb.
+
 ## v22.57.1 (9. 11. 2026) – 🔧 Zámek závislostí a pevnější nasazení
 > **Nasazení – kanál 🧪 BETA:** commit „v22.57.1“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v163`. 🔒 Vyžadovat verzi: ne. Aplikace pro uživatele beze změny (jen nová cache).
 

@@ -524,3 +524,8 @@ Bez změny databáze a pravidel.
 3. Stabilní verze (kořen webu) se nezměnila.
 4. Za týden přijde první PR od Dependabota do větve `beta` (není nález, jen návrh).
 5. Nález: selhal některý krok Actions? Odmítlo nasazení z bety?
+
+## 58. v22.57.2 (beta) – 📜 Pravidla pro AI
+1. Běh „Nasazení (stabilní + beta)“ v Actions je zelený.
+2. Beta se otevře, ⚙️ ukáže v22.57.2, Domů a přihlášení fungují jako dřív (aplikace beze změny).
+3. Nález: něco z aplikace se změnilo?
