@@ -2,6 +2,17 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.57.1 (9. 11. 2026) – 🔧 Zámek závislostí a pevnější nasazení
+> **Nasazení – kanál 🧪 BETA:** commit „v22.57.1“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v163`. 🔒 Vyžadovat verzi: ne. Aplikace pro uživatele beze změny (jen nová cache).
+
+**Změněno** (jen sestavení a nasazení, žádná funkce aplikace)
+- `package-lock.json` (kořen i `functions/`) je v repozitáři; `.gitignore` už ho neskrývá. Testy a kouřový test v Actions běží z `npm ci`, takže se verze nemění od běhu k běhu.
+- Workflow nasazení: akce připnuté na konkrétní commit (hlavní verze v komentáři), testy mají jen oprávnění ke čtení, zápis do Pages dostává až job nasazení.
+- `.github/dependabot.yml`: týdně návrh nových verzí akcí a balíčků jako PR do větve `beta`.
+- Bezpečnostní oprava.
+
+**Ověřeno:** `npm test` zelený, `npm run smoke` všechny role bez chyb, `npm ci` v kořeni i `functions/` projde.
+
 ## v22.57 (8. 11. 2026) – 🕘 Střídání se nepočítá přes hranici třetiny
 > **Nasazení – kanál 🧪 BETA:** commit „v22.57“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny (uložená `live.sh` se nemění). Cache `hokej-beta-v162`. 🔒 Vyžadovat verzi: ne.
 
