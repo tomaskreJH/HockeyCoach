@@ -56,7 +56,7 @@ export function fitMottos(root) {
 // sec = vykreslení sbalitelné sekce ze settings-view.js (id, titulek, obsah, stav)
 export function mottoSecHtml(sec) {
   const own = mineMottos(S.mt, mid()).length;
-  return sec("motto", "💬 Motta a pokřiky", '<div id="cmt"></div>', own ? own + " moje" : "");
+  return sec("motto", "💬 Motta a pokřiky", '<div id="cmot"></div>', own ? own + " moje" : "");   // id cmot: `cmt` už má výběr člena týmu v 👥 (u managera by se motta kreslila do něj)
 }
 function body() {
   const m = mid(), own = mineMottos(S.mt, m), staff = HK.can("sport");
@@ -72,7 +72,7 @@ function body() {
 }
 // Vykreslení obsahu sekce a obsluha tlačítek (volá settings-view.js po otevření ⚙️; po změně dat se překreslí samo)
 export function bindMotto(el) {
-  const box = el.querySelector("#cmt");
+  const box = el.querySelector("#cmot");
   if (!box) return;
   const draw = () => {
     if (!document.body.contains(box)) return;

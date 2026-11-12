@@ -529,3 +529,13 @@ Bez změny databáze a pravidel.
 1. Běh „Nasazení (stabilní + beta)“ v Actions je zelený.
 2. Beta se otevře, ⚙️ ukáže v22.57.2, Domů a přihlášení fungují jako dřív (aplikace beze změny).
 3. Nález: něco z aplikace se změnilo?
+
+## 59. v22.58 (beta) – 🔔 Oznámení o nových žádostech a 💬 motta v ⚙️
+Předpoklad: funkce nasazené (`docs/notifikace-nasazeni.md`, krok 4), notifikace týmu zapnuté a zapnuté na zařízení managera i trenéra (⚙️ → 🔔).
+1. **Motta:** manager otevře ⚙️ → 💬 Motta a pokřiky: je tam pole pro vlastní motto (je-li účet propojený) a dole 🙈 Moderace týmu s motty; „Přidat člena“ v 👥 Tým a členové má dál svůj výběr člena realizačního týmu.
+2. **Žádost o přijetí:** z cizího Google účtu podat ✋ žádost o přijetí → na telefon managera přijde „Nová žádost o přijetí do týmu“ s přezdívkou; trenér nic nedostane. Po přijetí nebo zamítnutí žádné další oznámení nepřijde.
+3. **Změna účasti po uzávěrce:** hráčka po uzávěrce události podá ✋ žádost o změnu účasti → manager i trenér dostanou oznámení se jménem, novou odpovědí a událostí; hráčka své oznámení nedostane. Důvod v oznámení není.
+4. Trenér podá žádost sám za sebe → dostane ji manager a ostatní trenéři, on ne.
+5. ⛔ STOP: po zastavení žádné oznámení o žádosti nepřijde.
+6. Žádost o změnu placení (pokladna) oznámení nespouští.
+7. Nález: je text oznámení srozumitelný (co se děje, co udělat)? Chce i asistent oznámení? Je jich moc?

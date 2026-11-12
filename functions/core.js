@@ -5,15 +5,17 @@
 //
 // Rozhraní store:  settings() → {on}; claim(klíč) → true, pokud je klíč nový; attendance(eid) → [{pid, st}]; devices() → [{id, tok, email, pid, tid, ch, z, u, at}];
 //   eventsDue(kolekce, odDl, doDl) → [{id, …data}]; members(pids, tids) → {p: {id: {ended}}, t: {id: {}}}; bumpBurst(hodina, [id]) → {id: počet};
-//   reserve(den, kolik, strop) → kolik smí odejít; dropDevices([id]); cleanup(předMs).
+//   reserve(den, kolik, strop) → kolik smí odejít; dropDevices([id]); cleanup(předMs);
+//   žádosti: staffEmails([role]) → [e-mail]; devicesOf([e-mail]) → zařízení těchto účtů; memberName(mid) → jméno hráčky / člena týmu ("" když nejde určit);
+//   eventOf(eid) → {coll, data} (události, jinak zápasy) nebo null.
 // Rozhraní push:   send(zařízení, {title, body, tag}, {ttl}) → {sent, bad: [id zařízení se zrušeným tokenem]}.
 // ctx = {store, push, now: () => ms, log: {info, warn}}.
-// Struktura: Importy -> Změna události -> Uzávěrky -> Úklid.
+// Struktura: Importy -> Změna události -> Uzávěrky -> Žádosti -> Úklid.
 
 // ===== Importy =====
-import {LIMITS} from "./config.js";
-import {answeredSet, burstAction, changeRecipients, changeText, dayKey, deadlineRecipients, deadlineText, deadlineTtl, hourKey, inWindow, isCancelled, pragueParts, summaryText,
-  detectChange, usableDevices, dayAdd} from "./logic.js";
+import {LIMITS, REQUEST_ROLES} from "./config.js";
+import {answeredSet, attIsNew, attReqText, burstAction, changeRecipients, changeText, dayKey, deadlineRecipients, deadlineText, deadlineTtl, hourKey, inWindow, isCancelled, joinIsNew,
+  joinText, pragueParts, requestRecipients, summaryText, detectChange, usableDevices, dayAdd} from "./logic.js";
 
 // ===== Změna události =====
 // Zrušení, obnovení a změna času události: oznámení přihlášeným (Jdu / Nejsem jistý). eventId = id události z Firestore (stejná změna nepřijde dvakrát).
@@ -77,6 +79,37 @@ export async function runDeadlines(ctx) {
   }
   if (bad.length) await ctx.store.dropDevices(bad);
   return {r: "done", events: handled, sent, capped, dropped: bad.length};
+}
+
+// ===== Žádosti =====
+// Oznámení o nové žádosti managerovi (přijetí do týmu) a manageru + trenérům (změna účasti po uzávěrce). Společné kroky: STOP → dedupe →
+// příjemci (členové s danou rolí a jejich zařízení, bez žadatele) → text → denní strop → odeslání. Texty se skládají až poté, co je komu
+// poslat (jméno člena a událost se čtou jen tehdy). Nic se nezapisuje do žádostí ani do docházky, jen klíč do pushLog.
+async function sendRequest(ctx, {key, roles, skip, makeText}) {
+  if (!(await ctx.store.settings()).on) return {r: "off"};
+  if (!(await ctx.store.claim(key))) return {r: "dup"};
+  const emails = await ctx.store.staffEmails(roles);
+  if (!emails.length) return {r: "nobody"};
+  const to = requestRecipients(usableDevices(await ctx.store.devicesOf(emails)), emails, skip);
+  if (!to.length) return {r: "nodevices"};
+  const granted = await ctx.store.reserve(dayKey(ctx.now()), to.length, LIMITS.DAY_CAP), list = to.slice(0, granted);
+  if (!list.length) { ctx.log.warn("Denní strop notifikací je vyčerpaný, oznámení o žádosti (" + key + ") se neposílá"); return {r: "capped", sent: 0}; }
+  const res = await ctx.push.send(list, await makeText(), {ttl: LIMITS.TTL_REQUEST_S});
+  if (res.bad.length) await ctx.store.dropDevices(res.bad);
+  return {r: "sent", sent: res.sent, capped: to.length - list.length, dropped: res.bad.length};
+}
+// Nová žádost o přijetí do týmu (joinreq/{e-mail}): jen manager. Vyřízení žádosti ani smazání skončí hned, bez čtení.
+export async function handleJoinRequest(ctx, {id, before, after, eventId}) {
+  if (!joinIsNew(before, after)) return {r: "none"};
+  return sendRequest(ctx, {key: "j_" + eventId, roles: REQUEST_ROLES.join, skip: "", makeText: async () => joinText(after, id)});
+}
+// Nová žádost o změnu účasti po uzávěrce (requests/{id}, kind "att"): manager a trenéři, ne žadatel. Žádosti o placení se přeskočí bez čtení.
+export async function handleAttRequest(ctx, {id, doc}) {
+  if (!attIsNew(doc)) return {r: "none"};
+  return sendRequest(ctx, {key: "q_" + id, roles: REQUEST_ROLES.att, skip: doc.by, makeText: async () => {
+    const [who, ev] = await Promise.all([ctx.store.memberName(doc.mid), ctx.store.eventOf(doc.eid)]);
+    return attReqText(doc, who, ev && ev.data, !!ev && ev.coll === "matches", id);
+  }});
 }
 
 // ===== Úklid =====

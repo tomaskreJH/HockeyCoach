@@ -11,6 +11,7 @@ const DEAD = ["messaging/registration-token-not-registered", "messaging/invalid-
 const ms = t => (t && typeof t.toMillis === "function" ? t.toMillis() : +t || 0);
 const short = s => createHash("sha1").update(String(s)).digest("hex").slice(0, 16);   // id zařízení bez tečky a zavináče do klíče počítadla
 const exists = e => !!e && (e.code === 6 || e.code === "already-exists" || /ALREADY_EXISTS/.test(String(e.message || "")));
+const devOf = d => { const x = d.data(); return {id: d.id, tok: x.tok, email: x.email, pid: x.pid || "", tid: x.tid || "", ch: x.ch, z: x.z, u: x.u, at: ms(x.at)}; };   // zařízení z dokumentu devices
 
 // ===== Úložiště =====
 export function adminStore(db) {
@@ -24,8 +25,25 @@ export function adminStore(db) {
       catch (e) { if (exists(e)) return false; throw e; }
     },
     async attendance(eid) { return (await db.collection("attendance").where("eid", "==", eid).get()).docs.map(d => ({pid: d.data().pid, st: d.data().st})); },
-    async devices() {
-      return (await db.collection("devices").get()).docs.map(d => { const x = d.data(); return {id: d.id, tok: x.tok, email: x.email, pid: x.pid || "", tid: x.tid || "", ch: x.ch, z: x.z, u: x.u, at: ms(x.at)}; });
+    async devices() { return (await db.collection("devices").get()).docs.map(devOf); },
+    // E-maily členů s danou rolí (id dokumentu members = e-mail malými písmeny); dotaz čte jen dokumenty s těmito rolemi
+    async staffEmails(roles) { return (await db.collection("members").where("role", "in", roles).get()).docs.map(d => d.id); },
+    // Zařízení jen zadaných účtů (po dávkách, Firestore dovolí v „in“ nejvýš 30 hodnot); stará zařízení ostatních se nečtou
+    async devicesOf(emails) {
+      const out = [];
+      for (let i = 0; i < emails.length; i += 30) out.push(...(await db.collection("devices").where("email", "in", emails.slice(i, i + 30)).get()).docs.map(devOf));
+      return out;
+    },
+    // Jméno hráčky nebo člena týmu podle id (mid žádosti); neexistuje-li, prázdný řetězec
+    async memberName(mid) {
+      const [p, t] = await db.getAll(db.collection("players").doc(mid), db.collection("staff").doc(mid));
+      const s = p.exists ? p : t;
+      return s.exists && typeof s.data().name === "string" ? s.data().name : "";
+    },
+    // Událost podle id: nejdřív trénink / událost, jinak zápas; neexistuje-li, null
+    async eventOf(eid) {
+      const [e, m] = await db.getAll(db.collection("events").doc(eid), db.collection("matches").doc(eid));
+      return e.exists ? {coll: "events", data: e.data()} : m.exists ? {coll: "matches", data: m.data()} : null;
     },
     // Události s termínem přihlášení v rozmezí (od, do]; jediné pole v dotazu, proto bez vlastního indexu
     async eventsDue(coll, from, to) { return (await db.collection(coll).where("dl", ">", from).where("dl", "<=", to).get()).docs.map(d => ({id: d.id, ...d.data()})); },

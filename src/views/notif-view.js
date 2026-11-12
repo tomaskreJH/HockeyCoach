@@ -36,7 +36,7 @@ export function notifSecHtml(sec) {
 // Obsah: stav týmu + tohle zařízení + správa týmu (jen manager / vývojář)
 function body() {
   const i = N().info(), g = i.global, l = i.local, ds = deviceStatus({support: i.support, perm: i.perm, local: l, global: g});
-  const team = `<div class="mu" style="margin-bottom:8px">Posílají se jen dvě věci: <b>zrušení nebo změna času</b> události, na kterou jsi přihlášená (Jdu / Nejsem jistý), a <b>připomínka hodinu před uzávěrkou přihlašování</b>, když jsi ještě neodpověděla. Jinak nic.</div>
+  const team = `<div class="mu" style="margin-bottom:8px">Posílají se jen tyto věci: <b>zrušení nebo změna času</b> události, na kterou jsi přihlášená (Jdu / Nejsem jistý), a <b>připomínka hodinu před uzávěrkou přihlašování</b>, když jsi ještě neodpověděla. Manager a trenéři navíc dostanou oznámení o <b>nové žádosti</b> (manager o přijetí do týmu, manager i trenéři o změně účasti po uzávěrce; na to není zvláštní vypínač). Jinak nic.</div>
 <div style="margin-bottom:10px"><b>Tým:</b> ${g.on ? "🟢 zapnuto" : "🔴 vypnuto"}${g.at ? ' <span class="mu">(změněno ' + esc(g.at) + (g.by ? ", " + esc(g.by) : "") + ")</span>" : ""}</div>`;
   const dev = i.preview
     ? '<div class="mu">V náhledu role se zařízení nenastavuje.</div>'

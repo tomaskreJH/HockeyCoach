@@ -1,6 +1,6 @@
 // Čistá logika notifikací (bez Firebase a bez sítě, testuje ji tests/notify-logic.test.js): čas v Praze, rozpoznání změny události,
 // texty oznámení, výběr příjemců a rozhodování o limitech. Jádro (core.js) ji volá, index.js ji nezná.
-// Struktura: Importy -> Čas -> Změna události -> Texty -> Zařízení a příjemci -> Limity a klíče.
+// Struktura: Importy -> Čas -> Změna události -> Texty -> Zařízení a příjemci -> Žádosti -> Limity a klíče.
 
 // ===== Importy =====
 import {LIMITS, TZ} from "./config.js";
@@ -114,6 +114,35 @@ export function deadlineRecipients(devs, answered, ents) {
 }
 // Kdo už odpověděl: kdokoli se záznamem Jdu / Nejdu / Nejsem jistý
 export const answeredSet = att => new Set((att || []).filter(a => ["yes", "no", "maybe"].includes(a.st)).map(a => a.pid));
+
+// ===== Žádosti =====
+// Je to NOVÁ otevřená žádost o přijetí do týmu (joinreq)? Vznik dokumentu nebo opětovné podání po vyřízení (st se vrátí na "open").
+// Vyřízení managerem (st ok / no) ani smazání nové oznámení nespustí.
+export const joinIsNew = (before, after) => !!after && after.st === "open" && !(before && before.st === "open");
+// Je to nová otevřená žádost o změnu účasti po uzávěrce (requests, kind "att")? Žádosti o změnu placení (kind "pay") jdou správci pokladny, ne sem.
+// id události a člena musí být obyčejná id dokumentů (písmena, číslice, _ a -): pravidla databáze u žádosti hlídají jen typ řetězce a id z klienta se použije jako cesta
+const DOC_ID = /^[\w-]{1,100}$/;
+export const attIsNew = doc => !!doc && doc.kind === "att" && doc.st === "open" && DOC_ID.test(String(doc.eid || "")) && DOC_ID.test(String(doc.mid || ""));
+const WANT_TXT = {yes: "✅ Jdu", no: "❌ Nejdu", maybe: "❓ Nejsem jistý"};
+const KIND_TXT = {hracka: "hráčka", staff: "realizační tým"};
+// Oznámení o žádosti o přijetí: kdo žádá a kde ji manager vyřídí. Poznámku žadatele do oznámení nedávám (je na zamčené obrazovce).
+export function joinText(req, id) {
+  const nick = String((req && req.nick) || "").slice(0, 40) || "Nový člen";
+  const kind = KIND_TXT[req && req.kind];
+  return {title: "✋ Nová žádost o přijetí do týmu", body: nick + (kind ? " (" + kind + ")" : "") + " žádá o přijetí. Vyřídíš ji v ⚙️ → 👥 Tým a členové. Do vyřízení nemá přístup.", tag: "join_" + id};
+}
+// Oznámení o žádosti o změnu účasti: kdo, na jakou událost, na jakou odpověď. Důvod (může být zdravotní) se neposílá, je jen v aplikaci.
+// who = jméno člena (nebo ""), ev = událost (nebo null, když už neexistuje)
+export function attReqText(req, who, ev, isMatch, id) {
+  const want = WANT_TXT[req.want] || "jinou odpověď";
+  const name = ev ? titleOf(ev, isMatch) + " " + when(ev) : "událost";
+  return {title: "✋ Žádost o změnu účasti", body: (who || "Člen týmu") + " žádá po uzávěrce o změnu na " + want + " · " + name.trim() + ". Vyřídíš ji v Událostech. Do vyřízení platí dosavadní odpověď.", tag: "req_" + id};
+}
+// Zařízení účtů s danou rolí (emails = e-maily členů s rolí), bez zařízení žadatele samotného (skip = jeho e-mail malými písmeny)
+export const requestRecipients = (devs, emails, skip) => {
+  const set = new Set((emails || []).map(e => String(e).toLowerCase()));
+  return (devs || []).filter(d => d && set.has(String(d.email || "").toLowerCase()) && String(d.email || "").toLowerCase() !== String(skip || "").toLowerCase());
+};
 
 // ===== Limity a klíče =====
 // Co s oznámením o změně podle toho, kolikáté to je v hodině pro dané zařízení: "send" (do BURST_MAX), "summary" (hned další, jednou), jinak "drop"

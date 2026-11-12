@@ -13,6 +13,10 @@ export const TZ = "Europe/Prague";
 // Plánovač kontroly uzávěrek: každých 15 minut (96× denně, každý běh stojí 1 čtení, dokud jsou notifikace vypnuté)
 export const SCHEDULE = "every 15 minutes";
 
+// Kdo dostane oznámení o nové žádosti (role z members/{e-mail}.role): žádost o přijetí do týmu vyřizuje jen manager (čte ji jen on),
+// žádost o změnu účasti po uzávěrce vyřizuje manager, trenér i asistent – oznamuje se manageru a trenérům (asistenta přidat do pole)
+export const REQUEST_ROLES = {join: ["manager"], att: ["manager", "trener"]};
+
 // Pojistky proti nákladům a spamu (kód je dodržuje i při chybě jinde; hodnoty lze změnit a nasadit znovu)
 export const LIMITS = {
   DAY_CAP: 200,            // nejvíc odeslaných notifikací za den pro celý tým (po vyčerpání se do půlnoci nic neposílá)
@@ -21,5 +25,6 @@ export const LIMITS = {
   CHANGE_AHEAD_DAYS: 30,   // změny a zrušení se oznamují jen u událostí v nejbližších 30 dnech (hromadná úprava série tak nezahltí tým)
   DEADLINE_MIN: 60,        // připomínka přichází nejdřív 60 minut před uzávěrkou přihlašování
   TTL_CHANGE_S: 43200,     // jak dlouho FCM drží oznámení o změně pro vypnutý telefon (12 h)
+  TTL_REQUEST_S: 86400,    // jak dlouho FCM drží oznámení o nové žádosti pro vypnutý telefon (24 h)
   LOG_KEEP_DAYS: 45        // jak dlouho se drží záznamy v kolekci pushLog (starší maže noční úklid)
 };

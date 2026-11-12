@@ -5,6 +5,8 @@ Stav: kód je v betě (commit „v22.51“). **Nic neběží, dokud neuděláš 
 ## Co se posílá (a nic jiného)
 1. **❌🕒 Zrušení / změna času** (zrušení, obnovení, změna data, začátku, konce tréninku nebo srazu) – jen členům, kteří jsou na události ✅ Jdu nebo ❓ Nejsem jistý, jen pro události do 30 dní.
 2. **⏳ Hodinu před uzávěrkou přihlašování** – jen členům, kteří na událost ještě neodpověděli (hráčka, nebo člen realizačního týmu; čistý manager bez hráčky a člena týmu nic nedostane).
+3. **✋ Nová žádost o přijetí do týmu** (od v22.58) – jen **managerovi**. Žádost čte a vyřizuje jen manager.
+4. **✋ Nová žádost o změnu účasti po uzávěrce** (od v22.58) – **manageru a trenérům** (ne žadateli samotnému, ne asistentovi). Důvod žádosti se do oznámení neposílá. Zvláštní vypínač těchto dvou oznámení není (platí zapnuté oznámení na zařízení); role příjemců jsou v `functions/config.js` (`REQUEST_ROLES`).
 
 ## Pojistky proti nákladům a chybám
 - Hlavní vypínač `settings/notif.on` – výchozí stav VYPNUTO; funkce při vypnutí nic nečtou ani neposílají (jediné čtení je vypínač).
@@ -40,7 +42,7 @@ npm install
 cd ..
 firebase deploy --only functions --project hockeycoach-bb2f3
 ```
-Při prvním nasazení se zeptá na zapnutí API (Cloud Build, Artifact Registry, Eventarc, Cloud Scheduler…) – potvrď. Na dotaz o „cleanup policy“ obrazů odpověz např. 1 den (ať se neplatí za staré obrazy). Vzniknou tři funkce: `notifyEventChange`, `notifyMatchChange`, `notifyDeadlines`.
+Při prvním nasazení se zeptá na zapnutí API (Cloud Build, Artifact Registry, Eventarc, Cloud Scheduler…) – potvrď. Na dotaz o „cleanup policy“ obrazů odpověz např. 1 den (ať se neplatí za staré obrazy). Vzniknou funkce `notifyEventChange`, `notifyMatchChange`, `notifyDeadlines` a od v22.58 `notifyJoinRequest`, `notifyAttRequest`. **Při aktualizaci z v22.57 a starší stačí spustit nasazení znovu** (pravidla Firestore se nemění); nové funkce se přidají a stávající zůstanou.
 
 ### 5. Rozpočtové upozornění (2 min, důležité)
 Plán Blaze **nemá tvrdý strop** nákladů. Google Cloud Console → Billing → Budgets & alerts → Create budget → např. 1 € / měsíc, upozornění na 50 %, 90 % a 100 % e-mailem. Očekávané náklady jsou při běžném provozu nulové (bezplatné limity), ale upozornění tě ochrání před chybou.
@@ -53,7 +55,7 @@ Plán Blaze **nemá tvrdý strop** nákladů. Google Cloud Console → Billing �
 ## Jak to hned vypnout (od nejrychlejšího)
 1. **⛔ STOP** v aplikaci: ⚙️ → 🔔 Notifikace → červené tlačítko (jedno klepnutí, manager nebo vývojář). Okamžitě zastaví veškeré posílání.
 2. Firebase konzole → Firestore → `settings` → `notif` → pole `on` = `false` (stejný účinek, když není po ruce aplikace).
-3. Smazání funkcí: `firebase functions:delete notifyEventChange notifyMatchChange notifyDeadlines --region europe-west1 --project hockeycoach-bb2f3`.
+3. Smazání funkcí: `firebase functions:delete notifyEventChange notifyMatchChange notifyDeadlines notifyJoinRequest notifyAttRequest --region europe-west1 --project hockeycoach-bb2f3`.
 4. Krajní řešení: v Google Cloud Billing odpojit fakturační účet (funkce přestanou běžet).
 Jednotlivec si notifikace vypne sám: ⚙️ → 🔔 → Vypnout na tomto zařízení (nebo v nastavení prohlížeče).
 

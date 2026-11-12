@@ -2,6 +2,28 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.58 (12. 11. 2026) – 🔔 Oznámení o nových žádostech pro managera a trenéry + oprava mott v ⚙️
+> **Nasazení – kanál 🧪 BETA:** commit „v22.58“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. **Cloud Functions nasadit ručně** (přibyly dvě funkce): `firebase deploy --only functions --project hockeycoach-bb2f3`, postup v `docs/notifikace-nasazeni.md`. Cache `hokej-beta-v165`. 🔒 Vyžadovat verzi: ne. Test: kap. 59.
+
+**Přidáno** (zadání uživatele 12. 11. 2026: když někdo zažádá, má to rovnou přijít manageru a trenérům)
+- 🔔 **Nová žádost o přijetí do týmu** (`joinreq`) → oznámení **managerovi** („Kačka (hráčka) žádá o přijetí. Vyřídíš ji v ⚙️ → 👥 Tým a členové“). Žádost čte a vyřizuje jen manager, proto ji trenéři nedostanou. Nové podání po zamítnutí (po 24 h) se oznámí znovu.
+- 🔔 **Nová žádost o změnu účasti po uzávěrce** (`requests`, druh `att`) → oznámení **manageru a trenérům**: kdo, na jakou odpověď, která událost, a že do vyřízení platí dosavadní odpověď. Žadatel (i kdyby byl trenér) své oznámení nedostane.
+- Důvod žádosti a poznámka žadatele se do oznámení **neposílají** (mohou být zdravotní údaj, oznámení je vidět na zamčené obrazovce); jsou jen v aplikaci.
+- Dvě nové Cloud Functions: `notifyJoinRequest`, `notifyAttRequest` (`functions/index.js`); logika `functions/logic.js` (`joinIsNew`, `attIsNew`, `joinText`, `attReqText`, `requestRecipients`), jádro `functions/core.js` (`handleJoinRequest`, `handleAttRequest`), čtení `functions/store.js` (`staffEmails`, `devicesOf`, `memberName`, `eventOf`).
+- Pojistky stejné jako u ostatních oznámení: hlavní vypínač a ⛔ STOP, jedno oznámení na žádost (záznam v `pushLog`), denní strop 200 oznámení na tým, zrušené tokeny se mažou. Vyřízení žádosti (změna stavu) a žádosti o změnu placení skončí na prvním řádku bez čtení databáze.
+- Příjemci: účty s rolí manager (přijetí) a manager + trenér (změna účasti) a jejich zařízení se zapnutými notifikacemi (⚙️ → 🔔). **Zvláštní vypínač těchto oznámení není** (schváleno 12. 11. 2026, aby se neměnila pravidla databáze); jednotlivec je vypne vypnutím notifikací na zařízení. Asistent oznámení nedostane (změna role = jedna hodnota `REQUEST_ROLES` v `functions/config.js`).
+- Text v ⚙️ → 🔔 a v ❓ Nápovědě uvádí, že manager a trenéři dostávají i oznámení o nové žádosti.
+
+**Opraveno**
+- 💬 **Motta a pokřiky v ⚙️ byla u manažera (a dalších účtů, které vidí 👥 Tým a členové) prázdná**: sekce Motta měla stejné `id` (`cmt`) jako výběr člena týmu ve formuláři „Přidat člena“, takže se motta kreslila do něj (a přepisovala jeho nabídku). Sekce má vlastní `id` `cmot`. Motta na kartě příštího zápasu fungovala vždy.
+- Kouřový test teď hlídá duplicitní `id` v okně ⚙️ a to, že sekce Motta není prázdná (bez opravy selže).
+
+**Čtení databáze:** aplikace se nemění, čtení z klienta se nezvyšuje. Na serveru jedna nová žádost stojí řádově 10 čtení (vypínač, role členů, zařízení manažera a trenérů, jméno a událost) – jen při podání žádosti, hluboko pod bezplatným limitem.
+
+**Beze změny:** pravidla databáze, data, střely, góly a časomíra, ostatní oznámení (zrušení / změna času, uzávěrka).
+
+**Ověřeno:** `npm test` (nový `tests/notify-requests.test.js`), `npm run smoke` všechny role bez chyb.
+
 ## v22.57.2 (9. 11. 2026) – 📜 Pravidla pro AI (VP 2)
 > **Nasazení – kanál 🧪 BETA:** commit „v22.57.2“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. Cache `hokej-beta-v164`. 🔒 Vyžadovat verzi: ne. Aplikace pro uživatele beze změny.
 

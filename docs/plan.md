@@ -28,6 +28,7 @@ Hotové fáze a jejich rozhodnutí: `CHANGELOG.md` (starší `docs/archiv/CHANGE
 - **v22.13:** okno hráčky 8 dní zpět a 15 dopředu, vzdálenější budoucnost až ⬇ Načíst další (`farListen`); 🕘 historie přihlášek se čte až po klepnutí na tlačítko.
 - **v22.24:** 📉 pokladna na vyžádání – správce pokladny, který je i trenér, čte `charges` a `cash` až při otevření pokladny (volba zařízení v ⚙️ → 💾 Data); přehled v Domů z `debtors` a `requests`. v22.25: 🟢 přehled online / poslední aktivita pro managera (kolekce `seen`, čte se jen při otevření seznamu členů).
 - **v22.37:** 📉 okno i pro `matches` (pole `date`, stejné dny jako události): starší zápasy z paměti zařízení, pás 60 dní ověřován týdně, 🔄 Aktualizovat zápasy ve Statistikách; zápis do staršího zápasu obnoví archiv z paměti (`archTouch`).
+- **v22.58:** 🔔 oznámení o nové žádosti o přijetí (manager) a o změně účasti po uzávěrce (manager, trenéři) – dvě nové Cloud Functions, bez změny pravidel a dat; oprava prázdných mott v ⚙️ (duplicitní `id`).
 - **v22.57.2:** 📜 `AGENTS.md` s pravidly VP 2, `CLAUDE.md`, `docs/pro-AI_TOM.md`; aplikace beze změny
 - **v22.57.1:** 🔧 zámek závislostí (`package-lock.json`), akce připnuté na SHA, oprávnění jobů, Dependabot do `beta`; aplikace beze změny
 - **v22.56:** 🔔 zapnutí notifikací na Androidu: „Registration failed – permission denied“ ukáže návod, důvod zůstane v ⚙️ → 🔔; bez změny dat a pravidel.

@@ -171,9 +171,9 @@ test("náklady: messaging SDK se při spuštění nenačítá (jen dynamicky př
   assert.equal((main.match(/HK\.notif\.sync\(\)/g) || []).length, 1);
 });
 
-test("verze: sw.js cache a verze aplikace se shodují s číslem 22.57.2", () => {
-  assert.match(read("sw.js"), /const VER = "164"/);
-  assert.match(read("src/core/app-version.js"), /22\.57\.2/);
+test("verze: sw.js cache a verze aplikace se shodují s číslem 22.58", () => {
+  assert.match(read("sw.js"), /const VER = "165"/);
+  assert.match(read("src/core/app-version.js"), /22\.58/);
 });
 
 // ===== Chyby zapnutí (v22.56) =====

@@ -81,6 +81,13 @@ async function settings() {
   snap("cfg");
   const n = document.querySelectorAll("[data-acch]").length;
   for (let i = 0; i < n; i++) { await tap(document.querySelectorAll("[data-acch]")[i], 200); snap("cfg-" + i); }
+  // Duplicitní id v okně ⚙️: querySelector("#id") vezme první prvek a sekce se pak kreslí do cizího (např. motta do výběru člena týmu)
+  const seen = new Set(), dup = new Set();
+  document.querySelectorAll("#cfg [id]").forEach(el => { if (seen.has(el.id)) dup.add(el.id); seen.add(el.id); });
+  if (dup.size) globalThis.__smokeErr.push("⚙️: duplicitní id " + [...dup].join(", "));
+  // Sekce 💬 Motta a pokřiky se musí vykreslit (ne zůstat prázdná)
+  const mt = document.querySelector("#cfg #cmot");
+  if (mt && !mt.children.length) globalThis.__smokeErr.push("⚙️: sekce Motta a pokřiky je prázdná");
   await tap("#cz");
 }
 // ❓ Nápověda (všechny kapitoly rozbalené v HTML)
