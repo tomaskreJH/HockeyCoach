@@ -539,3 +539,13 @@ Předpoklad: funkce nasazené (`docs/notifikace-nasazeni.md`, krok 4), notifikac
 5. ⛔ STOP: po zastavení žádné oznámení o žádosti nepřijde.
 6. Žádost o změnu placení (pokladna) oznámení nespouští.
 7. Nález: je text oznámení srozumitelný (co se děje, co udělat)? Chce i asistent oznámení? Je jich moc?
+
+## 60. v22.59 (beta) – 📚 Cvičení pro hráčky
+Předpoklad: aspoň jeden budoucí trénink má plán s cvičeními (popis, obrázek nebo video v bance); u plánu uloženého před v22.20 klepnout ve 📋 Plánu na 📤 Zpřístupnit hráčkám.
+1. **Hráčka:** Statistiky → nahoře chip **📚 Cvičení** → seznam cvičení z plánů nejbližších 5 tréninků a posledních 5 (nejdřív ta, která jsou „📅 příště“). Klepnutím se cvičení rozbalí: pomůcky, popis, obrázky (klepnutím zvětšit), ▶ video, 📄 PDF.
+2. 🔍 hledání funguje bez diakritiky (název, pomůcky, popis).
+3. **Trenér / asistent / manager** chip 📚 Cvičení ve Statistikách nemá (banku mají v Team → 📚 Cvičení).
+4. Hostující hráčka Statistiky nemá, beze změny.
+5. Zrušený trénink a zápasy se do seznamu nezapočítají.
+6. 📉 Čtení: po otevření chipu přibude nejvýš ~10 čtení plánů (ověřit v ⚙️ → 💾 Data → 📊 Měřič), druhé otevření do 5 min nic nečte.
+7. Nález: chybí cvičení, které je v plánu? Je seznam moc dlouhý? Chce hráčka vidět celou banku (to by vyžadovalo změnu pravidel)?

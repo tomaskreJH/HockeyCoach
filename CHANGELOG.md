@@ -2,6 +2,20 @@
 
 Nejnovější nahoře, od v21.0. Starší záznamy: `docs/archiv/CHANGELOG-do-v20.md`. Postup vydání: `docs/KONVENCE.md`, kap. 4.
 
+## v22.59 (17. 11. 2026) – 📚 Hráčky vidí cvičení z plánů tréninků
+> **Nasazení – kanál 🧪 BETA:** commit „v22.59“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny, Cloud Functions beze změny. Cache `hokej-beta-v166`. 🔒 Vyžadovat verzi: ne. Test: kap. 60.
+
+**Přidáno** (zadání uživatele 17. 11. 2026: hráčky mají vidět banku cvičení; schváleno: jen cvičení z plánů nejbližších tréninků, bez změny pravidel)
+- 📚 **Cvičení pro hráčky**: ve Statistikách nový chip **📚 Cvičení** (jen pro toho, kdo banku nečte – hráčky). Seznam cvičení z plánů až 5 nejbližších budoucích a 5 posledních tréninků (zrušené a zápasy ne), nejdřív ta, která jsou v plánu příště („📅 příště 18. 11.“). Klepnutím se cvičení rozbalí: pomůcky, popis, obrázky, ▶ video a 📄 PDF (kopie podrobností `dx` v plánu, od v22.20). 🔍 hledání v názvu, pomůckách a popisu bez diakritiky. Jen čtení.
+- Nový soubor `domain/drill-prep.js` (`prepEvents`, `prepDrills`, `prepFilter`), `views/drill-prep-view.js`, test `tests/drill-prep.test.js`.
+- Nápověda: nová položka 📚 Cvičení pro hráčky.
+
+**Čtení databáze:** při otevření chipu se jednorázově načte až 10 plánů (`trplan`, po jednom); drží se v paměti 5 minut a plán už načtený v 🏒 Trénink se nečte znovu. Obrázky cvičení se čtou jako dosud nejdřív z paměti zařízení. Nic navíc se neposlouchá.
+
+**Beze změny:** pravidla databáze, data, banka cvičení pro realizační tým (Team → 📚 Cvičení), plán tréninku, střely, góly a časomíra. Hráčky dál nečtou kolekci `drills`; vidí jen to, co trenér zveřejnil v plánu (u staršího plánu 📤 Zpřístupnit hráčkám).
+
+**Ověřeno:** `npm test` (nový `tests/drill-prep.test.js`), `npm run smoke`.
+
 ## v22.58 (12. 11. 2026) – 🔔 Oznámení o nových žádostech pro managera a trenéry + oprava mott v ⚙️
 > **Nasazení – kanál 🧪 BETA:** commit „v22.58“ do větve **`beta`**. firestore.rules beze změny (publikovat **ne**), data beze změny. **Cloud Functions nasadit ručně** (přibyly dvě funkce): `firebase deploy --only functions --project hockeycoach-bb2f3`, postup v `docs/notifikace-nasazeni.md`. Cache `hokej-beta-v165`. 🔒 Vyžadovat verzi: ne. Test: kap. 59.
 

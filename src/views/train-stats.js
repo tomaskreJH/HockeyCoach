@@ -16,11 +16,12 @@ import {RATE, RATES, TREVAL_COLL} from "../domain/training-eval.js";
 import {TRPLAN_COLL} from "../domain/training-plan.js";
 import {TRACT_COLL, actualPlan} from "../domain/training-actual.js";
 import {TS_DAYS, TS_DEF, drillList, loadRows, loadSkills, measExercises, measRows, measTable, missSkill, playerEvals, playerLoad, playerMeas, statWindow} from "../domain/training-stats.js";
+import {drillPrepView} from "./drill-prep-view.js";
 import {render} from "./shell.js";
 import {stats, statsArch} from "./stats.js";
 
 // ===== Konstanty a stav =====
-// S.stv = "m" | "t" (podzáložka), S.tst = {days, st: "load" | "ok" | "err", at, T, plans, ms, ev, err}, S.tsx = id cvičení v tabulce měření,
+// S.stv = "m" | "t" | "d" (podzáložka; d = 📚 Cvičení z plánů pro hráčky, drill-prep-view.js), S.tst = {days, st: "load" | "ok" | "err", at, T, plans, ms, ev, err}, S.tsx = id cvičení v tabulce měření,
 // S.tsp = hráčka na kartě, S.tsk = dovednost v 🔍 Kdo netrénoval
 const TST_TTL = 5 * 60 * 1000;   // jak dlouho platí načtené dokumenty tréninků (ms)
 const CSS = `<style>
@@ -171,10 +172,13 @@ function bind(a) {
 // Záložka Statistiky: přepínač Zápasy / Trénink (Trénink jen s právem číst plán tréninku); zápasové statistiky vykreslí stats.js beze změny
 export function statsView(a) {
   if (!HK.perm("trplan", "r") || HK.can("guest")) { stats(a); statsArch(a); return; }
-  const v = S.stv === "t" ? "t" : "m";
-  a.innerHTML = `<div class="chips"><button class="chip ${v === "m" ? "on" : ""}" data-stv="m">📊 Zápasy</button><button class="chip ${v === "t" ? "on" : ""}" data-stv="t">🏒 Trénink</button></div><div id="stb"></div>`;
+  // 📚 Cvičení z plánů (v22.59) jen pro toho, kdo banku cvičení nečte (hráčky); realizační tým má banku v Team
+  const prep = !HK.perm("drills", "r");
+  const v = S.stv === "t" ? "t" : S.stv === "d" && prep ? "d" : "m";
+  a.innerHTML = `<div class="chips"><button class="chip ${v === "m" ? "on" : ""}" data-stv="m">📊 Zápasy</button><button class="chip ${v === "t" ? "on" : ""}" data-stv="t">🏒 Trénink</button>${prep ? `<button class="chip ${v === "d" ? "on" : ""}" data-stv="d">📚 Cvičení</button>` : ""}</div><div id="stb"></div>`;
   const box = a.querySelector("#stb");
   if (v === "m") { stats(box); statsArch(box); }
+  else if (v === "d") drillPrepView(box);
   else { ensure((S.tst && S.tst.days) || TS_DEF); box.innerHTML = trainHtml(); }
   bind(a);
 }

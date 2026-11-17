@@ -73,6 +73,13 @@ async function trainStats() {
   const p = $("#tsp");
   if (p && p.options.length > 1) { p.value = p.options[1].value; p.onchange(); await new Promise(r => setTimeout(r, 150)); }
   snap("stats-train-30");
+  // 📚 Cvičení z plánů (jen kdo banku nečte): načtení, rozbalení prvního cvičení, hledání
+  if (await tap('[data-stv="d"]', 500)) {
+    snap("stats-drills");
+    if (await tap("[data-dpo]", 250)) snap("stats-drills-open");
+    const q = $("#dpq");
+    if (q) { q.value = "x"; q.oninput(); await new Promise(r => setTimeout(r, 100)); snap("stats-drills-q"); }
+  }
   await tap('[data-stv="m"]', 200);
 }
 // ⚙️ a všechny jeho sekce

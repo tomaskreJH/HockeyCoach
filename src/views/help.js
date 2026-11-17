@@ -160,7 +160,8 @@ const SECTIONS = [
 </ul>`},
   {t: "Statistiky, soupeři a řazení tabulek", v: "stats opp", h: `
 <ul>
-<li data-v="stats"><b>Záložka Statistiky</b> je přístupná všem členům týmu, včetně hráček (jen ke čtení). Nahoře přepínač <b>📊 Zápasy</b> / <b>🏒 Trénink</b>.</li>
+<li data-v="stats"><b>Záložka Statistiky</b> je přístupná všem členům týmu, včetně hráček (jen ke čtení). Nahoře přepínač <b>📊 Zápasy</b> / <b>🏒 Trénink</b> a u hráček <b>📚 Cvičení</b>.</li>
+<li data-v="pl"><b>📚 Cvičení</b> (Statistiky, hráčky, jen ke čtení): cvičení z plánů nejbližších a posledních tréninků – ať se na ně můžeš podívat předem. Klepnutím se cvičení rozbalí (pomůcky, popis, obrázky, ▶ video, 📄 PDF), 🔍 hledá v názvu, pomůckách i popisu. „📅 příště“ = kdy cvičení v plánu je. Celou banku cvičení vidí jen realizační tým.</li>
 <li data-v="stats"><b>🏒 Trénink</b> – přehled tréninků za 30 / 60 / 90 / 180 dní (výchozí 60): <b>⏲ Výsledky měření</b> (výběr cvičení; nejlepší výsledek, poslední, ▲ / ▼ zlepšení proti minule a pořadí týmu – vidí celý tým), <b>👤 Karta hráčky</b> (tréninky, minuty na ledě podle plánu po dovednostech, výsledky s grafem; hráčka vidí jen svou kartu – <b>Můj trénink</b>, minuty po cvičeních), <b>⭐ Hodnocení trenérů</b> na kartě jen pro realizační tým (hráčka ho nikdy nevidí), <b>🌡 Tým × dovednosti</b> (minuty v období, tmavší = víc) a <b>🔍 Kdo netrénoval</b> vybranou dovednost (jen trenér a asistent). ⬇️ CSV pro Excel. Minuty se počítají z plánu tréninků, na kterých hráčka byla (✅ Jdu bez 🚫).</li>
 <li data-v="stats"><b>Statistiky hráčů</b> (jen uzavřené zápasy): Z, <b>Ø stř.</b> (průměrná délka střídání), střely, góly, %, asistence, body, +/-, TM, góly v PP, body doma a venku. +/- se nepočítá u gólů v přesilovce.</li>
 <li data-v="stats"><b>Ø stř.</b> = celkový čas na ledě děleno počtem střídání hráčky (jen zápasy se živým zápisem, bez střídání „–“).</li>
